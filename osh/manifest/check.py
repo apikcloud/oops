@@ -5,11 +5,11 @@ import click
 import libcst as cst
 
 from osh.compat import Optional
-from osh.helpers import find_addons_extended, find_manifests
+from osh.helpers import str_to_list
+from osh.io import find_addons_extended, find_manifests
 from osh.parser import TypingCollector
 from osh.render import human_readable
 from osh.rules.__main__ import run_rules
-from osh.utils import str_to_list
 
 to_read = """
 # -*- coding: utf-8 -*-

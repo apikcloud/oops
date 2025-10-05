@@ -5,9 +5,9 @@ import os
 import click
 
 from osh.gitutils import commit, git_add, git_top, list_available_addons
-from osh.helpers import find_addons_extended, relpath
+from osh.helpers import str_to_list
+from osh.io import find_addons_extended, relpath
 from osh.messages import GIT_ADDONS_NEW
-from osh.utils import str_to_list
 
 
 @click.command("add")

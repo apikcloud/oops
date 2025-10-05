@@ -6,21 +6,17 @@ from pathlib import Path
 import pytest
 from tabulate import tabulate
 
-from osh import utils
-from osh.settings import DATETIME_FORMAT
-from osh.utils import (
+from osh import tools
+from osh.helpers import (
     clean_string,
     date_from_string,
-    format_datetime,
-    human_readable,
-    is_pull_request_path,
-    materialize_symlink,
-    parse_repository_url,
-    read_and_parse,
     removesuffix,
-    render_table,
     str_to_list,
 )
+from osh.io import is_pull_request_path, materialize_symlink, read_and_parse
+from osh.net import parse_repository_url
+from osh.render import format_datetime, human_readable, render_table
+from osh.settings import DATETIME_FORMAT
 
 
 @pytest.mark.parametrize(
@@ -358,7 +354,7 @@ def test_materialize_symlink_cleanup_on_failure(tmp_path, monkeypatch):
         (dst / "partial").write_text("p")
         raise RuntimeError("simulated failure")
 
-    monkeypatch.setattr(utils, "copytree", fake_copytree)
+    monkeypatch.setattr(tools, "copytree", fake_copytree)
 
     with pytest.raises(ValueError, match=r"Failed to materialize"):
         materialize_symlink(link, dry_run=False)

@@ -3,7 +3,7 @@ import subprocess
 import click
 
 from osh.gitutils import commit, git_add, load_repo, parse_gitmodules, update_from
-from osh.helpers import ask
+from osh.io import ask
 from osh.messages import GIT_SUBMODULES_UPDATE
 
 

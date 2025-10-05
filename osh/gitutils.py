@@ -9,16 +9,17 @@ from warnings import warn
 
 from osh.compat import Optional, Union
 from osh.exceptions import NoGitRepository
-from osh.helpers import ensure_parent, find_addons_extended
-from osh.models import CommitInfo
-from osh.render import human_readable
-from osh.utils import (
+from osh.io import (
+    ensure_parent,
+    find_addons_extended,
     is_pull_request_path,
-    parse_repository_url,
-    run,
 )
+from osh.models import CommitInfo
+from osh.net import parse_repository_url
+from osh.render import human_readable
+from osh.tools import run
 
-pattern = re.compile(r"^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+# pattern = re.compile(r"^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 pattern = re.compile(r"^v(?P<x>0|[1-9]\d*)\.(?P<y>0|[1-9]\d*)\.(?P<z>0|[1-9]\d*)$")
 
 

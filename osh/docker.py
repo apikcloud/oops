@@ -6,6 +6,7 @@ from osh.exceptions import (
     warn_deprecated_registry,
     warn_unusual_registry,
 )
+from osh.helpers import date_from_string
 from osh.models import ImageInfo
 from osh.net import make_json_get
 from osh.render import render_table
@@ -17,7 +18,6 @@ from osh.settings import (
     ODOO_IMAGES_URL,
     RELEASE_WARN_AGE_DAYS,
 )
-from osh.utils import date_from_string
 
 # try:
 #     import odoo as odoo

@@ -12,7 +12,7 @@ from osh.gitutils import (
     parse_submodules,
     submodule_deinit,
 )
-from osh.helpers import relpath, symlink_targets
+from osh.io import relpath, symlink_targets
 from osh.messages import GIT_SUBMODULES_PRUNE
 from osh.settings import NEW_SUBMODULES_PATH, OLD_SUBMODULES_PATH
 

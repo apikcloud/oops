@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 from osh.exceptions import MissingMandatoryFiles, MissingRecommendedFiles
+from osh.io import read_and_parse
 from osh.settings import (
     PROJECT_FILE_ODOO_VERSION,
     PROJECT_FILE_PACKAGES,
@@ -11,7 +12,6 @@ from osh.settings import (
     PROJECT_MANDATORY_FILES,
     PROJECT_RECOMMENDED_FILES,
 )
-from osh.utils import read_and_parse
 
 
 def check_project(path: Path, strict: bool = True) -> tuple:

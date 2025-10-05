@@ -6,7 +6,8 @@ import black
 import click
 from libcst.display import dump
 
-from osh.helpers import find_addons_extended, get_manifest_path
+from osh.helpers import clean_string
+from osh.io import find_addons_extended, get_manifest_path
 from osh.settings import (
     BLACK_MODE,
     DEFAULT_VALUES,
@@ -14,7 +15,6 @@ from osh.settings import (
     HEADERS,
     REPLACEMENTS,
 )
-from osh.utils import clean_string
 
 
 def format_manifest(data: dict) -> str:

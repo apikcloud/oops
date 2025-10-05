@@ -5,10 +5,9 @@ import click
 
 from osh.docker import find_available_images, format_available_images, parse_image_tag
 from osh.gitutils import commit, git_add, git_top
-from osh.helpers import ask
+from osh.io import ask, write_text_file
 from osh.messages import GIT_ODOO_IMAGE_UPDATE
 from osh.project.common import parse_odoo_version
-from osh.utils import write_text_file
 
 
 @click.command(name="update")

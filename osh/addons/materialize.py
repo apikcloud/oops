@@ -5,9 +5,10 @@ from pathlib import Path
 import click
 
 from osh.gitutils import commit, git_add, git_top
+from osh.helpers import str_to_list
+from osh.io import materialize_symlink
 from osh.messages import GIT_MATERIALIZE_ADDONS
 from osh.render import human_readable
-from osh.utils import materialize_symlink, str_to_list
 
 
 @click.command("materialize")

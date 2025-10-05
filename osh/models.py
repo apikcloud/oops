@@ -3,8 +3,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from osh.compat import Optional
+from osh.helpers import date_from_string
 from osh.render import format_datetime
-from osh.utils import date_from_string, load_manifest
 
 
 @dataclass
@@ -146,8 +146,7 @@ class AddonInfo:
         return self.symlink and self.root
 
     @classmethod
-    def from_path(cls, path: Path, root_path: Path) -> "AddonInfo":
-        manifest = load_manifest(path)
+    def from_path(cls, path: Path, root_path: Path, manifest: dict) -> "AddonInfo":
         symlink = path.is_symlink()
         root = path.parent == root_path
 

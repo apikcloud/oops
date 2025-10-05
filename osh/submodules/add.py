@@ -14,7 +14,8 @@ from osh.gitutils import (
     submodule_sync,
     submodule_update,
 )
-from osh.helpers import (
+from osh.helpers import str_to_list
+from osh.io import (
     desired_path,
     ensure_parent,
     relpath,
@@ -23,9 +24,9 @@ from osh.messages import (
     GIT_SUBMODULE_ADD,
     GIT_SUBMODULE_ADD_DESC,
 )
+from osh.net import parse_repository_url
 from osh.render import human_readable, render_table
 from osh.settings import NEW_SUBMODULES_PATH
-from osh.utils import parse_repository_url, str_to_list
 
 
 def find_addons(submodule_dir: Path):

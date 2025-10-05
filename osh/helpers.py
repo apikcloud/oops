@@ -1,187 +1,68 @@
-#!/usr/bin/env python3
-import ast
-import contextlib
-import os
-from collections.abc import Generator
-from pathlib import Path
+from datetime import date
 
-import libcst as cst
-
-from osh.compat import Optional, Union
-from osh.exceptions import NoManifestFound
-from osh.models import AddonInfo
-from osh.settings import MANIFEST_NAMES
-from osh.utils import parse_repository_url
+from osh.compat import PY38, Any, List
 
 
-def ask(prompt: str, default="y"):
-    """Ask a yes/no question via input() and return their answer."""
+def removesuffix(raw, suffix) -> str:
+    """Remove suffix from string if present (Python < 3.9 compatible)."""
 
-    try:
-        answer = input(prompt).strip().lower()
-    except EOFError:
-        answer = ""
-    return answer or default
-
-
-def ensure_parent(path: Path):
-    """Ensure the parent directory of `path` exists."""
-
-    path.parent.mkdir(parents=True, exist_ok=True)
+    # str.removesuffix added in 3.8
+    if PY38:
+        return raw[: len(raw) - len(suffix)] if raw[-len(suffix) :] == suffix else raw
+    return raw.removesuffix(suffix)
 
 
-def is_dir_empty(p: Path) -> bool:
-    """Return True if the directory exists and is empty."""
+def clean_string(raw: Any) -> str:
+    """Convert a value to a cleaned string (stripped, no trailing spaces)."""
 
-    try:
-        return p.is_dir() and not any(p.iterdir())
-    except FileNotFoundError:
-        return False
+    return str(raw).strip().rstrip() if raw else ""
 
 
-def rewrite_symlink(link: Path, old_prefix: str, new_prefix: str):
-    """Rewrite a symlink if its target starts with old prefix."""
+def str_to_list(raw: str, sep=",") -> list:
+    """Convert a separated string to a list of cleaned items."""
 
-    try:
-        target = os.readlink(link)
-    except OSError:
-        return False
-    if old_prefix in target:
-        new_target = target.replace(old_prefix, new_prefix)
-        link.unlink()
-        os.symlink(new_target, link)
-        return True
-    return False
+    if not raw:
+        return []
+    return list(filter(bool, (clean_string(item) for item in raw.split(sep))))
 
 
-def desired_path(url: str, base_dir: str, pull_request: bool = False) -> str:
-    """Return the desired local path for a git repository URL."""
-
-    _, owner, repo = parse_repository_url(url)
-    if owner == "oca":
-        owner = owner.upper()
-
-    if pull_request:
-        return f"{base_dir.rstrip('/')}/PRs/{owner}/{repo}"
-
-    return f"{base_dir.rstrip('/')}/{owner}/{repo}"
-
-
-def symlink_targets(repo: Path):
-    targets = []
-    for root, dirs, files in os.walk(repo):
-        if ".git" in dirs:
-            dirs.remove(".git")
-        for n in dirs + files:
-            p = Path(root) / n
-            if p.is_symlink():
-                with contextlib.suppress(OSError):
-                    targets.append(os.readlink(p))
-
-    return targets
-
-
-def relpath(from_path: Path, to_path: Path) -> str:
-    """Return a relative path from `from_path` to `to_path`."""
-
-    return os.path.relpath(to_path, start=from_path)
-
-
-def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None, None]:
-    """Yield all odoo addons under `root`."""
-
-    root_parts = root.resolve().parts
-
-    # followlinks=True lets us enter first-level *symlinked* directories
-    for dirpath, dirnames, filenames in os.walk(root, followlinks=True):
-        # skip VCS noise
-        if ".git" in dirnames:
-            dirnames.remove(".git")
-
-        if "setup" in dirnames:
-            dirnames.remove("setup")  # don't enter setup/ subdir
-
-        # found an addon here?
-        if "__manifest__.py" in filenames or "__openerp__.py" in filenames:
-            # print(dirpath)
-            yield AddonInfo.from_path(Path(dirpath), root_path=root)
-
-        if shallow:
-            depth = len(Path(dirpath).resolve().parts) - len(root_parts)
-            if depth >= 1:
-                # we're already in a first-level subdir (real or symlink) → don't go deeper
-                dirnames[:] = []
-
-
-def get_manifest_path(addon_dir: str) -> Optional[str]:
-    """Return the path to the manifest file in this addon directory."""
-    for manifest_name in MANIFEST_NAMES:
-        manifest_path = os.path.join(addon_dir, manifest_name)
-        if os.path.isfile(manifest_path):
-            return manifest_path
-
-
-def parse_manifest(raw: str) -> dict:
-    return ast.literal_eval(raw)
-
-
-def parse_manifest_cst(raw: str) -> cst.CSTNode:
-    return cst.parse_module(raw)
-
-
-def read_manifest(path: str) -> cst.CSTNode:
-    manifest_path = get_manifest_path(path)
-    if not manifest_path:
-        raise NoManifestFound(f"no Odoo manifest found in {path}")
-    with open(manifest_path) as mf:
-        return parse_manifest_cst(mf.read())
-
-
-def load_manifest(path: Path) -> dict:
+def deep_visit(obj, prefix=""):
     """
-    Parse an Odoo manifest file,
-    then safely convert it to a Python dict via ast.literal_eval.
+    Yield flattened (path, value) pairs for recursive inspection.
+    Example: 'assets.web.assets_backend[0]' -> '/module/static/...'
     """
-    source = path.read_text(encoding="utf-8")
-
-    # Convert the exact dict literal slice to a Python object (safe: literals only).
-    manifest = ast.literal_eval(source)
-    if not isinstance(manifest, dict):
-        raise ValueError("Parsed manifest is not a dict after literal evaluation.")
-    return manifest
-
-
-def find_addons_extended(
-    addons_dir: Union[str, Path], installable_only: bool = False, names: Optional[list] = None
-):
-    """Yield (name, path, manifest) for each addon in the given directory."""
-
-    for name in os.listdir(addons_dir):
-        path = os.path.join(addons_dir, name)
-        try:
-            manifest = parse_manifest(path)
-        except NoManifestFound:
-            continue
-        if installable_only and not manifest.get("installable", True):
-            continue
-
-        if names and name not in names:
-            continue
-
-        yield name, path, manifest
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            key = str(k)
+            yield from deep_visit(v, f"{prefix}.{key}" if prefix else key)
+    elif isinstance(obj, (list, tuple)):
+        for i, v in enumerate(obj):
+            yield from deep_visit(v, f"{prefix}[{i}]")
+    else:
+        yield prefix, obj
 
 
-def find_manifests(path: str, names: Optional[list] = None):
-    """Yield the path to each manifest file in the given directory."""
+def filter_and_clean(items: List[str]) -> set:
+    """Filter and clean text file"""
 
-    for name in os.listdir(path):
-        addon_path = os.path.join(path, name)
-        try:
-            manifest_path = get_manifest_path(addon_path)
-        except NoManifestFound:
-            continue
+    def clean(item):
+        if "#" not in item:
+            return item.strip()
 
-        if names and name not in names:
-            continue
+        return item.split("#")[0].strip()
 
-        yield manifest_path
+    items = list(filter(lambda item: item and not item.startswith("#"), items))
+
+    return set(map(clean, items))
+
+
+def date_from_string(raw: str) -> date:
+    """
+    Convert an 8-character string in YYYYMMDD format into a datetime.date object.
+    """
+
+    if len(raw) != 8:  # noqa: PLR2004
+        raise ValueError("The string does not have the correct length to be converted to a date.")
+
+    y, m, d = int(raw[0:4]), int(raw[4:6]), int(raw[6:8])
+    return date(y, m, d)

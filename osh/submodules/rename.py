@@ -8,9 +8,8 @@ from osh.gitutils import (
     parse_submodules,
     rename_submodule,
 )
-from osh.helpers import ask
+from osh.io import ask, is_pull_request_path
 from osh.messages import GIT_SUBMODULES_RENAME
-from osh.utils import is_pull_request_path
 
 
 @click.command("rename")

@@ -3,7 +3,7 @@
 import click
 
 from osh.gitutils import git_top, parse_submodules
-from osh.helpers import symlink_targets
+from osh.io import symlink_targets
 
 
 @click.command(name="check")

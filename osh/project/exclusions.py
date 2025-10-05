@@ -4,10 +4,9 @@ import sys
 import click
 
 from osh.gitutils import commit, git_add, git_top
-from osh.helpers import find_addons
+from osh.io import find_addons, write_text_file
 from osh.messages import GIT_UPDATE_PRE_COMMIT_EXCLUDE
 from osh.settings import PRE_COMMIT_EXCLUDE_FILE
-from osh.utils import write_text_file
 
 
 @click.command(name="exclude")

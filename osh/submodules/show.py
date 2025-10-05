@@ -1,10 +1,8 @@
 import click
 
 from osh.gitutils import get_last_commit, load_repo, parse_gitmodules
+from osh.net import parse_repository_url
 from osh.render import format_datetime, human_readable, render_boolean, render_table
-from osh.utils import (
-    parse_repository_url,
-)
 
 
 @click.command("show")

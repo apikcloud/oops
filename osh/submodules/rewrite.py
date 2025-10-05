@@ -18,11 +18,10 @@ from osh.gitutils import (
     submodule_sync,
     submodule_update,
 )
-from osh.helpers import ask, desired_path, is_dir_empty, rewrite_symlink
+from osh.io import ask, desired_path, is_dir_empty, is_pull_request_path, rewrite_symlink
 from osh.messages import GIT_SUBMODULES_REWRITE
 from osh.render import human_readable
 from osh.settings import NEW_SUBMODULES_PATH, OLD_SUBMODULES_PATH
-from osh.utils import is_pull_request_path
 
 
 @click.command(name="rewrite")
