@@ -3,7 +3,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from osh.compat import Optional
-from osh.utils import date_from_string, format_datetime, load_manifest
+from osh.render import format_datetime
+from osh.utils import date_from_string, load_manifest
 
 
 @dataclass

@@ -3,14 +3,14 @@ from unittest.mock import patch
 
 import pytest
 
-from osh.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
-from osh.odoo import (
+from osh.docker import (
     ImageInfo,
     check_image,
     fetch_odoo_images,
     find_available_images,
     parse_image_tag,
 )
+from osh.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
 
 tags = [
     {

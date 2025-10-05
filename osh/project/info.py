@@ -3,6 +3,7 @@
 
 import click
 
+from osh.docker import check_image, find_available_images, parse_image_tag
 from osh.github import get_latest_workflow_run
 from osh.gitutils import (
     get_last_commit,
@@ -11,9 +12,8 @@ from osh.gitutils import (
     get_remote_url,
     git_top,
 )
-from osh.odoo import check_image, find_available_images, parse_image_tag
 from osh.project.common import check_project, parse_odoo_version, parse_packages, parse_requirements
-from osh.utils import format_datetime, human_readable, render_table
+from osh.render import format_datetime, human_readable, render_table
 
 
 @click.command(name="info")

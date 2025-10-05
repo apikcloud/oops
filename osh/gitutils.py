@@ -11,8 +11,8 @@ from osh.compat import Optional, Union
 from osh.exceptions import NoGitRepository
 from osh.helpers import ensure_parent, find_addons_extended
 from osh.models import CommitInfo
+from osh.render import human_readable
 from osh.utils import (
-    human_readable,
     is_pull_request_path,
     parse_repository_url,
     run,

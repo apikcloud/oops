@@ -5,16 +5,13 @@ import os
 import re
 import shutil
 import subprocess
-import textwrap
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse
 
-from tabulate import tabulate
-
 from osh.compat import PY38, Any, List, Optional, Tuple
 from osh.exceptions import ScriptNotFound
-from osh.settings import CHECK_SYMBOL, DATETIME_FORMAT, MANIFEST_NAMES
+from osh.settings import MANIFEST_NAMES
 
 
 def get_exec_dir():
@@ -110,20 +107,6 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
     if len(parts) < 2:  # noqa: PLR2004
         raise ValueError(f"Malformed url (missing owner/repo): {url}")
     return extract_data(parts)
-
-
-def human_readable(raw: Any, sep: str = ", ", width: Optional[int] = None) -> str:
-    """Convert a value to a human-readable string."""
-
-    if isinstance(raw, bool):
-        return "yes" if raw else "no"
-    if isinstance(raw, (list, tuple, set)):
-        return sep.join(map(str, raw))
-
-    if width:
-        return textwrap.shorten(raw, width=width, placeholder="...")
-
-    return str(raw)
 
 
 def clean_string(raw: Any) -> str:
@@ -292,30 +275,6 @@ def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
         raise ValueError(f"Failed to materialize {symlink_path}: {e}") from e
 
 
-def render_table(
-    rows: List[List[Any]], headers: Optional[List[str]] = None, index: bool = False
-) -> str:
-    """
-    Render a table using the tabulate library.
-    """
-
-    options = {}
-    if index:
-        options["showindex"] = True
-    if headers:
-        options["headers"] = headers
-
-    return tabulate(rows, tablefmt="github", **options)
-
-
-def format_datetime(dt: datetime) -> str:
-    """
-    Format a datetime object as a string using the module's DATETIME_FORMAT.
-    """
-
-    return dt.strftime(DATETIME_FORMAT)
-
-
 def parse_manifest(filepath: Path) -> dict:
     """
     Parse an Odoo manifest file,
@@ -339,11 +298,3 @@ def load_manifest(addon_dir: Path) -> dict:
             return parse_manifest(manifest_path)
     logging.error(f"No Odoo manifest found in {addon_dir}")
     return {}
-
-
-def render_boolean(raw: bool) -> str:
-    """
-    Render a check mark if the terminal supports UTF-8, otherwise an 'OK'.
-    """
-    return "X" if raw else ""
-    return CHECK_SYMBOL if raw else ""

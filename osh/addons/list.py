@@ -4,7 +4,8 @@ import click
 
 from osh.gitutils import load_repo, parse_gitmodules
 from osh.helpers import find_addons
-from osh.utils import human_readable, parse_repository_url, render_boolean, render_table
+from osh.render import human_readable, render_boolean, render_table
+from osh.utils import parse_repository_url
 
 
 @click.command(name="list")

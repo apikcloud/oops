@@ -9,19 +9,6 @@ GIT_SUBMODULE_ADD_DESC = """
 - path: {path}
 - created symlinks: {symlinks}
 """
-ADD_SUBMODULES_PLAN = """
-=== Plan ===
-"Repo Root         : {repo}
-"URL               : {url}
-"Branch            : {branch}
-"Submodule name    : {name}
-"Target path       : {path}
-"Auto symlinks     : {auto_symlinks}
-"Addons            : {addons}
-"Commit at the end : {commit_or_not}
-"Dry-run           : {dry_run}
-==============
-"""
 GIT_ODOO_IMAGE_UPDATE = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."
 GIT_SUBMODULES_RENAME = "chore: rename submodules to new naming scheme"
 GIT_MATERIALIZE_ADDONS = "chore: materialize addon(s) {names}"

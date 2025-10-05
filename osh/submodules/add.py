@@ -20,12 +20,12 @@ from osh.helpers import (
     relpath,
 )
 from osh.messages import (
-    ADD_SUBMODULES_PLAN,
     GIT_SUBMODULE_ADD,
     GIT_SUBMODULE_ADD_DESC,
 )
+from osh.render import human_readable, render_table
 from osh.settings import NEW_SUBMODULES_PATH
-from osh.utils import human_readable, parse_repository_url, str_to_list
+from osh.utils import parse_repository_url, str_to_list
 
 
 def find_addons(submodule_dir: Path):
@@ -42,7 +42,6 @@ def find_addons(submodule_dir: Path):
 
 @click.argument(
     "url",
-    # help="Remote URL of the submodule (e.g., https://github.com/OCA/server-ux.git)",
 )
 @click.option(
     "-b",
@@ -108,19 +107,18 @@ def main(  # noqa: C901, PLR0915
     sub_name = name or f"{owner}/{repo_name}"
 
     # Plan summary
-    click.echo(
-        ADD_SUBMODULES_PLAN.format(
-            repo=repo,
-            url=url,
-            branch=branch,
-            name=sub_name,
-            path=sub_path_str,
-            auto_symlinks=human_readable(auto_symlinks),
-            addons=addons or "",
-            commit_or_not=human_readable(not no_commit),
-            dry_run=human_readable(dry_run),
-        )
-    )
+    rows = [
+        ["Repo Root", repo],
+        ["URL", url],
+        ["Branch", branch],
+        ["Submodule name", sub_name],
+        ["Target path", sub_path_str],
+        ["Auto symlinks", human_readable(auto_symlinks)],
+        ["Addons", addons or ""],
+        ["Commit at the end", human_readable(not no_commit)],
+        ["Dry-run", human_readable(dry_run)],
+    ]
+    click.echo(render_table(rows))
 
     if dry_run:
         return 0

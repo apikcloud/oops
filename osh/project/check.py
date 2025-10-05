@@ -3,10 +3,10 @@
 
 import click
 
+from osh.docker import check_image, parse_image_tag
 from osh.gitutils import git_top
-from osh.odoo import check_image, parse_image_tag
 from osh.project.common import check_project, parse_odoo_version
-from osh.utils import render_table
+from osh.render import render_table
 
 
 @click.command(name="check")

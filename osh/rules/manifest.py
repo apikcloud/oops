@@ -2,8 +2,6 @@ import libcst as cst
 import libcst.matchers as m
 from fixit import LintRule
 
-# rules/odoo_manifest_author_maintainers.py
-
 
 class OdooManifestAuthorMaintainers(LintRule):
     """

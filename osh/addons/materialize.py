@@ -6,7 +6,8 @@ import click
 
 from osh.gitutils import commit, git_add, git_top
 from osh.messages import GIT_MATERIALIZE_ADDONS
-from osh.utils import human_readable, materialize_symlink, str_to_list
+from osh.render import human_readable
+from osh.utils import materialize_symlink, str_to_list
 
 
 @click.command("materialize")

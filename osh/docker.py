@@ -1,5 +1,4 @@
 import re
-import warnings
 from datetime import date
 
 from osh.compat import Optional
@@ -9,6 +8,7 @@ from osh.exceptions import (
 )
 from osh.models import ImageInfo
 from osh.net import make_json_get
+from osh.render import render_table
 from osh.settings import (
     DOCKER_COLLECTIONS,
     DOCKER_DEPRECATED_REGISTRIES,
@@ -17,15 +17,15 @@ from osh.settings import (
     ODOO_IMAGES_URL,
     RELEASE_WARN_AGE_DAYS,
 )
-from osh.utils import date_from_string, render_table
+from osh.utils import date_from_string
 
-try:
-    import odoo
-except ImportError:
-    odoo = None  # type: ignore
-    warnings.warn(
-        "Odoo is not available, some features will not be available.", ImportWarning, stacklevel=0
-    )
+# try:
+#     import odoo as odoo
+# except ImportError:
+#     odoo = None  # type: ignore
+#     warnings.warn(
+#         "Odoo is not available, some features will not be available.", ImportWarning, stacklevel=0
+#     )
 
 
 def parse_image_tag(tag: str) -> ImageInfo:

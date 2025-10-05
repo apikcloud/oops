@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import contextlib
 import os
 import subprocess
@@ -19,8 +20,9 @@ from osh.gitutils import (
 )
 from osh.helpers import ask, desired_path, is_dir_empty, rewrite_symlink
 from osh.messages import GIT_SUBMODULES_REWRITE
+from osh.render import human_readable
 from osh.settings import NEW_SUBMODULES_PATH, OLD_SUBMODULES_PATH
-from osh.utils import human_readable, is_pull_request_path
+from osh.utils import is_pull_request_path
 
 
 @click.command(name="rewrite")
