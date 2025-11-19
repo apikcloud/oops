@@ -3,14 +3,14 @@ from unittest.mock import patch
 
 import pytest
 
-from oops.docker import (
+from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
+from oops.core.models import ImageInfo
+from oops.services.docker import (
     check_image,
     fetch_odoo_images,
     find_available_images,
     parse_image_tag,
 )
-from oops.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
-from oops.models import ImageInfo
 
 tags = [
     {

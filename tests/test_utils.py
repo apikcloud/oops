@@ -6,17 +6,17 @@ from pathlib import Path
 import pytest
 from tabulate import tabulate
 
-from oops import tools
-from oops.helpers import (
+from oops.core.config import config.datetime_format
+from oops.utils import tools
+from oops.utils.helpers import (
     clean_string,
     date_from_string,
     removesuffix,
     str_to_list,
 )
-from oops.io import is_pull_request_path, materialize_symlink, read_and_parse
-from oops.net import parse_repository_url
-from oops.render import format_datetime, human_readable, render_table
-from oops.settings import DATETIME_FORMAT
+from oops.utils.io import is_pull_request_path, materialize_symlink, read_and_parse
+from oops.utils.net import parse_repository_url
+from oops.utils.render import format_datetime, human_readable, render_table
 
 
 @pytest.mark.parametrize(
@@ -223,12 +223,12 @@ def test_read_and_parse(content, expected, monkeypatch):
 
 def test_format_datetime_naive():
     dt = datetime(2025, 1, 15, 13, 45, 30)
-    assert format_datetime(dt) == dt.strftime(DATETIME_FORMAT)
+    assert format_datetime(dt) == dt.strftime(config.datetime_format)
 
 
 def test_format_datetime_tz_aware():
     dt = datetime(2025, 1, 15, 13, 45, 30, tzinfo=timezone.utc)
-    assert format_datetime(dt) == dt.strftime(DATETIME_FORMAT)
+    assert format_datetime(dt) == dt.strftime(config.datetime_format)
 
 
 def test_render_table_basic():

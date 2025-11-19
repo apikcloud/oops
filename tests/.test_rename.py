@@ -1,6 +1,5 @@
 import click
 import pytest
-
 from oops.submodules import rename as rename_mod
 
 
@@ -69,7 +68,7 @@ def test_rename_and_commit(monkeypatch, tmp_path):
 
     # git_add and commit should have been called
     assert git_add_calls == [[str(gm), ".git/config"]]
-    assert commit_calls == [(rename_mod.GIT_SUBMODULES_RENAME, True)]
+    assert commit_calls == [(rename_mod.commit_messages.submodules_rename, True)]
 
     # echoes include rename notice and committing notice
     assert any("Renaming submodule 'oldname' -> 'newname'" in m for m in messages)
