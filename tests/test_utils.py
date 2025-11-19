@@ -6,17 +6,17 @@ from pathlib import Path
 import pytest
 from tabulate import tabulate
 
-from osh import tools
-from osh.helpers import (
+from oops import tools
+from oops.helpers import (
     clean_string,
     date_from_string,
     removesuffix,
     str_to_list,
 )
-from osh.io import is_pull_request_path, materialize_symlink, read_and_parse
-from osh.net import parse_repository_url
-from osh.render import format_datetime, human_readable, render_table
-from osh.settings import DATETIME_FORMAT
+from oops.io import is_pull_request_path, materialize_symlink, read_and_parse
+from oops.net import parse_repository_url
+from oops.render import format_datetime, human_readable, render_table
+from oops.settings import DATETIME_FORMAT
 
 
 @pytest.mark.parametrize(
@@ -297,7 +297,7 @@ def test_materialize_symlink_tmp_exists(tmp_path):
     (target / "f").write_text("1")
     link = tmp_path / "mylink"
     link.symlink_to(target)
-    tmp = tmp_path / f".{link.name}.__osh_materialize_tmp__"
+    tmp = tmp_path / f".{link.name}.__oops_materialize_tmp__"
     tmp.mkdir()  # create temporary path to trigger the error
     with pytest.raises(ValueError, match=r"Temporary path already exists"):
         materialize_symlink(link, dry_run=False)
@@ -313,7 +313,7 @@ def test_materialize_symlink_dry_run_leaves_symlink(tmp_path):
     assert link.exists()
     assert link.is_symlink()
     # tmp should not exist
-    tmp = tmp_path / f".{link.name}.__osh_materialize_tmp__"
+    tmp = tmp_path / f".{link.name}.__oops_materialize_tmp__"
     assert not tmp.exists()
 
 
@@ -332,7 +332,7 @@ def test_materialize_symlink_success_replaces_with_directory(tmp_path):
     assert link.is_dir()
     assert (link / "file.txt").read_text() == "payload"
     # tmp should not remain
-    tmp = tmp_path / f".{link.name}.__osh_materialize_tmp__"
+    tmp = tmp_path / f".{link.name}.__oops_materialize_tmp__"
     assert not tmp.exists()
     # original target still exists
     assert target.exists()
@@ -346,7 +346,7 @@ def test_materialize_symlink_cleanup_on_failure(tmp_path, monkeypatch):
     link = tmp_path / "badlink"
     link.symlink_to(target)
 
-    tmp = tmp_path / f".{link.name}.__osh_materialize_tmp__"
+    tmp = tmp_path / f".{link.name}.__oops_materialize_tmp__"
 
     def fake_copytree(src, dst):
         # create tmp and then fail to simulate partial copy + error

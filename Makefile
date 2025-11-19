@@ -1,4 +1,4 @@
-# Makefile for osh project
+# Makefile for oops project
 # Requires Python >=3.8, pip, pytest, ruff installed in your venv.
 
 .PHONY: help install lint typecheck test cov cov-html clean build
@@ -28,10 +28,10 @@ test:
 	pytest -vv
 
 cov:
-	pytest --cov=osh --cov-branch --cov-report=term-missing
+	pytest --cov=oops --cov-branch --cov-report=term-missing
 
 cov-html:
-	pytest --cov=osh --cov-branch --cov-report=html
+	pytest --cov=oops --cov-branch --cov-report=html
 	@echo "Open htmlcov/index.html"	
 
 build:

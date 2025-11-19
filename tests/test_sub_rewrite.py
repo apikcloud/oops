@@ -1,12 +1,12 @@
 """
-Minimal, end-to-end flavored test for 'osh-sub-rewrite'.
+Minimal, end-to-end flavored test for 'oops-sub-rewrite'.
 
 We simulate a repo with a .gitmodules pointing to remote URLs and ensure that
 your command rewrites submodule paths to '.third-party/<owner>/<repo>'.
 No network calls; we only check file transformations & git config.
 
 Assumptions:
-- The CLI entry point 'osh-sub-rewrite' accepts '--force' and '--dry-run' flags,
+- The CLI entry point 'oops-sub-rewrite' accepts '--force' and '--dry-run' flags,
   and a '--commit/--no-commit' switch (default commit on).
 - It uses GitPython under the hood but can operate on the filesystem with
   an existing .git and .gitmodules.
@@ -20,7 +20,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from osh.submodules.rewrite import main
+from oops.submodules.rewrite import main
 
 
 def _run(cmd: list, cwd: Path) -> subprocess.CompletedProcess:

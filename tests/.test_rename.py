@@ -1,7 +1,7 @@
 import click
 import pytest
 
-from osh.submodules import rename as rename_mod
+from oops.submodules import rename as rename_mod
 
 
 def test_no_gitmodules(monkeypatch, tmp_path):

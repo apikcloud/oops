@@ -1,2 +1,2 @@
 [tool.fixit]
-enable = [".osh.rules"]
+enable = [".oops.rules"]

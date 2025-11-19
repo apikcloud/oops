@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "odoo-scripts-helpers"
+name = "oops"
 description = "Set of tools to help managing Odoo addons development"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -50,38 +50,38 @@ classifiers = [
 ]
 
 [project.urls]
-homepage = "https://github.com/apikcloud/osh"
-repository = "https://github.com/apikcloud/osh"
+homepage = "https://github.com/apikcloud/oops"
+repository = "https://github.com/apikcloud/oops"
 
 [project.scripts]
 # Main CLI
-osh = "osh.__main__:main"
+oops = "oops.__main__:main"
 
 # Sub-commands
-osh-addons-add = "osh.addons.add:main"
-osh-addons-diff = "osh.addons.diff:main"
-osh-addons-download = "osh.addons.download:main"
-osh-addons-list = "osh.addons.list:main"
-osh-addons-materialize = "osh.addons.materialize:main"
-osh-addons-table = "osh.addons.gen_table:main"
-osh-man-check = "osh.manifest.check:main"
-osh-man-fix = "osh.manifest.fix:main"
-osh-pro-check = "osh.project.check:main"
-osh-pro-exclude = "osh.project.exclusions:main"
-osh-pro-info = "osh.project.info:main"
-osh-pro-update = "osh.project.update:main"
-osh-sub-add = "osh.submodules.add:main"
-osh-sub-check = "osh.submodules.check:main"
-osh-sub-clean = "osh.submodules.clean:main"
-osh-sub-flatten = "osh.submodules:flatten"
-osh-sub-prune = "osh.submodules.prune:main"
-osh-sub-rename = "osh.submodules.rename:main"
-osh-sub-rewrite = "osh.submodules.rewrite:main"
-osh-sub-show = "osh.submodules.show:main"
-osh-sub-update = "osh.submodules.update:main"
+oops-addons-add = "oops.addons.add:main"
+oops-addons-diff = "oops.addons.diff:main"
+oops-addons-download = "oops.addons.download:main"
+oops-addons-list = "oops.addons.list:main"
+oops-addons-materialize = "oops.addons.materialize:main"
+oops-addons-table = "oops.addons.gen_table:main"
+oops-man-check = "oops.manifest.check:main"
+oops-man-fix = "oops.manifest.fix:main"
+oops-pro-check = "oops.project.check:main"
+oops-pro-exclude = "oops.project.exclusions:main"
+oops-pro-info = "oops.project.info:main"
+oops-pro-update = "oops.project.update:main"
+oops-sub-add = "oops.submodules.add:main"
+oops-sub-check = "oops.submodules.check:main"
+oops-sub-clean = "oops.submodules.clean:main"
+oops-sub-flatten = "oops.submodules:flatten"
+oops-sub-prune = "oops.submodules.prune:main"
+oops-sub-rename = "oops.submodules.rename:main"
+oops-sub-rewrite = "oops.submodules.rewrite:main"
+oops-sub-show = "oops.submodules.show:main"
+oops-sub-update = "oops.submodules.update:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["osh"]
+packages = ["oops"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -108,7 +108,7 @@ addopts = "-q --strict-markers"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["osh"]
+source = ["oops"]
 branch = true
 parallel = true
 omit = [
@@ -130,8 +130,8 @@ exclude_lines = [
 
 [tool.coverage.paths]
 source = [
-  "osh",
-  ".venv/lib/python*/site-packages/osh",
+  "oops",
+  ".venv/lib/python*/site-packages/oops",
 ]
 
 [project.optional-dependencies]

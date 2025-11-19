@@ -1,13 +1,13 @@
-- id: osh-addons-table
+- id: oops-addons-table
   name: Generate addons table in README
   always_run: true
-  entry: osh-addons-table
+  entry: oops-addons-table
   language: python
   pass_filenames: false
 
-- id: osh-man-fix
+- id: oops-man-fix
   name: Fix the manifest
-  entry: osh-man-fix
+  entry: oops-man-fix
   pass_filenames: false
   language: python
   files: (__manifest__\.py|__openerp__\.py|__terp__\.py)$

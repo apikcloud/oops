@@ -2,7 +2,7 @@
 
 from click.testing import CliRunner
 
-from osh.__main__ import main
+from oops.__main__ import main
 
 
 def test_cli_smoke():

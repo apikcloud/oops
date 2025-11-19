@@ -1,5 +1,5 @@
 {
-  "name": "OSH CLI DevContainer",
+  "name": "OOPS CLI DevContainer",
   "build": {
     "dockerfile": "Dockerfile"
   },
