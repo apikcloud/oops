@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from oops.git.gitutils import git_top
+from oops.git.core import GitRepository
 
 logging.basicConfig(level=logging.INFO)
 
@@ -49,7 +49,7 @@ def find_modified_addons(files: list) -> list:
 def main(
     mode: str,
 ):
-    local_repo = git_top()
+    GitRepository()
     changed = get_changed_files(mode=mode)
     addons = find_modified_addons(changed)
     print("Changed addons:", addons)

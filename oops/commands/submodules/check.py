@@ -2,7 +2,7 @@
 
 import click
 
-from oops.git.gitutils import git_top, parse_submodules
+from oops.git.core import GitRepository
 from oops.utils.io import symlink_targets
 
 
@@ -10,29 +10,28 @@ from oops.utils.io import symlink_targets
 def main():  # noqa: C901
     """Check that all submodules are under .third-party and used by at least one symlink."""
 
-    repo = git_top()
-    gm = repo / ".gitmodules"
-    if not gm.exists():
+    repo = GitRepository()
+
+    if not repo.has_gitmodules:
         click.echo("No .gitmodules found.")
         return 0
 
-    subs = parse_submodules(gm)
+    # FIXME: parse_gitmodules is a generator now
+    # not subs anymore
+    # if not subs:
+    #     click.echo("No submodules found.")
+    #     return 0
 
-    if not subs:
-        click.echo("No submodules found.")
-        return 0
-
-    targets = symlink_targets(repo)
+    targets = symlink_targets(repo.path)
     bad_paths = []
     unused = []
 
-    for name, item in subs.items():
-        path = item["path"]
-        if not path.startswith(".third-party/"):
-            bad_paths.append((name, path))
+    for submodule in repo.parse_gitmodules():
+        if not submodule.path.startswith(".third-party/"):
+            bad_paths.append((submodule.name, submodule.path))
         # Check if any symlink target mentions this path
-        if not any(path in t for t in targets):
-            unused.append((name, path))
+        if not any(submodule.path in t for t in targets):
+            unused.append((submodule.name, submodule.path))
 
     ok = True
     if bad_paths:

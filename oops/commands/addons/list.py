@@ -2,7 +2,7 @@
 
 import click
 
-from oops.git.gitutils import load_repo, parse_gitmodules
+from oops.git.core import GitRepository
 from oops.utils.io import find_addons
 from oops.utils.net import parse_repository_url
 from oops.utils.render import human_readable, render_boolean, render_table
@@ -42,25 +42,27 @@ from oops.utils.render import human_readable, render_boolean, render_table
 def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_all: bool):  # noqa: C901, PLR0912
     """List all addons found in git submodules."""
 
-    repo, gitmodules = load_repo()
+    repo = GitRepository()
 
     rows = []
     paths = []
 
     # gather submodules info
     subs = {}
-    if gitmodules:
-        for name, path, branch, url, pull_request in parse_gitmodules(gitmodules):
-            canonical_url, _, _ = parse_repository_url(url) if url else ("", None, None)
-            subs[path] = {
-                "name": name,
-                "path": path,
-                "branch": branch or "",
+    if repo.has_gitmodules:
+        for submodule in repo.parse_gitmodules():
+            canonical_url, _, _ = (
+                parse_repository_url(submodule.url) if submodule.url else ("", None, None)
+            )
+            subs[submodule.path] = {
+                "name": submodule.name,
+                "path": submodule.path,
+                "branch": submodule.branch or "",
                 "url": canonical_url,
-                "pr": pull_request,
+                "pr": submodule.pr,
             }
 
-    for addon in find_addons(repo, shallow=not show_all):
+    for addon in find_addons(repo.path, shallow=not show_all):
         # FIXME: this is a bit of a hack, should be improved
         # skip duplicates (can happen if an addon is in a submodule and in the root)
         if addon.path in paths:

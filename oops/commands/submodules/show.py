@@ -1,6 +1,7 @@
 import click
 
-from oops.git.gitutils import get_last_commit, load_repo, parse_gitmodules
+from oops.git.core import GitRepository
+from oops.git.gitutils import get_last_commit
 from oops.utils.net import parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 
@@ -13,22 +14,24 @@ def main(dry_run: bool, no_commit: bool):
     Update git submodules to their latest upstream versions.
     """
 
-    _, gitmodules = load_repo()
+    repo = GitRepository()
 
-    if not gitmodules:
+    if not repo.has_gitmodules:
         click.echo("No .gitmodules found.")
         raise click.Abort()
 
     rows = []
-    for name, path, branch, url, pull_request in parse_gitmodules(gitmodules):
-        canonical_url, _, _ = parse_repository_url(url) if url else ("", None, None)
+    for submodule in repo.parse_gitmodules():
+        canonical_url, _, _ = (
+            parse_repository_url(submodule.url) if submodule.url else ("", None, None)
+        )
         row = [
-            human_readable(name, width=50),
+            human_readable(submodule.name, width=50),
             canonical_url,
-            branch,
-            render_boolean(pull_request) or "",
+            submodule.branch,
+            render_boolean(submodule.pr) or "",
         ]
-        last_commit = get_last_commit(path)
+        last_commit = get_last_commit(submodule.path)
         if last_commit:
             row += [
                 format_datetime(last_commit.date),
