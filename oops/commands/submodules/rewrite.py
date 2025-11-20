@@ -9,13 +9,9 @@ import click
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
+from oops.git.core import GitRepository
 from oops.git.gitutils import (
-    commit,
-    git_add,
-    git_add_all,
     git_config_submodule,
-    git_top,
-    move_with_git,
     parse_submodules,
     submodule_sync,
     submodule_update,
@@ -48,15 +44,13 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
     Also rewrites symlinks.
     """
 
-    repo = git_top()
-    os.chdir(repo)
+    repo = GitRepository()
 
-    gm = repo / ".gitmodules"
-    if not gm.exists():
+    if not repo.has_gitmodules:
         click.echo("No .gitmodules found.")
         return 0
 
-    subs = parse_submodules(gm)
+    subs = parse_submodules(repo.gitmodules)
     plan = []
     for name, d in subs.items():
         url = d.get("url")
@@ -74,7 +68,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
         click.echo("No submodule needs rewriting.")
         return 0
 
-    click.echo(f"Repo: {repo}")
+    click.echo(f"Repo: {repo.path}")
     for name, url, oldp, newp in plan:
         click.echo(f"[plan] {name}\n  url : {url}\n  path: {oldp} -> {newp}")
 
@@ -101,17 +95,17 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
 
     # Update .gitmodules
     for name, _, _, newp in accepted:
-        git_config_submodule(str(gm), name, "path", newp)
+        git_config_submodule(str(repo.gitmodules), name, "path", newp)
 
-    git_add([str(gm)])
+    repo.add([str(repo.gitmodules)])
 
     # Move folders
     for _, _, oldp, newp in accepted:
-        src = repo / oldp
-        dst = repo / newp
+        src = repo.path / oldp
+        dst = repo.path / newp
         if src.exists():
             click.echo(f"[move] {oldp} -> {newp}")
-            move_with_git(src, dst)
+            repo.move(src, dst)
         else:
             # try to init submodule if missing
             click.echo(f"[info] '{oldp}' not found; trying submodule init")
@@ -119,9 +113,9 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
             with contextlib.suppress(subprocess.CalledProcessError):
                 submodule_update(oldp)
 
-            if (repo / oldp).exists():
+            if (repo.path / oldp).exists():
                 click.echo(f"[move] {oldp} -> {newp}")
-                move_with_git(repo / oldp, dst)
+                repo.move(repo.path / oldp, dst)
             else:
                 click.echo(f"[warn] skip move: {oldp} still not found")
 
@@ -133,7 +127,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
     rewrites = 0
     # Build a quick lookup for old->new prefixes
     renames = [(oldp, newp) for (_, _, oldp, newp) in accepted]
-    for root, dirs, files in os.walk(repo):
+    for root, dirs, files in os.walk(repo.path):
         if ".git" in dirs:
             dirs.remove(".git")
         for name in dirs + files:
@@ -152,7 +146,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
         first_segments = {op.split("/", 1)[0] for (_, _, op, _) in accepted if "/" in op}
         old_base = first_segments.pop() if len(first_segments) == 1 else config.old_submodule_path
 
-    old_base_path = repo / old_base
+    old_base_path = repo.path / old_base
     if is_dir_empty(old_base_path):
         click.echo(f"[prune] removing empty dir: {old_base_path}")
 
@@ -160,7 +154,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
             old_base_path.rmdir()
 
     # Stage everything just in case (symlinks/renames)
-    git_add_all()
+    repo.add_all()
 
     # Auto commit with detailed message
     if not no_commit:
@@ -168,7 +162,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
             "Modified submodules:",
         ]
         lines += [f"- {name}: {oldp} -> {newp}" for (name, _, oldp, newp) in accepted]
-        commit(
+        repo.commit(
             commit_messages.submodules_rewrite,
             description=human_readable(lines, sep="\n"),
             skip_hook=True,

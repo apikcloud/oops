@@ -4,7 +4,7 @@
 import click
 
 from oops.commands.project.common import check_project, parse_odoo_version
-from oops.git.gitutils import git_top
+from oops.git.core import GitRepository
 from oops.services.docker import check_image, parse_image_tag
 from oops.utils.render import render_table
 
@@ -14,10 +14,10 @@ from oops.utils.render import render_table
 def main(strict: bool):  # noqa: C901
     """Check project configuration and list available odoo images."""
 
-    repo = git_top()
+    repo = GitRepository()
 
-    warnings, errors = check_project(repo, strict=strict)
-    odoo_version = parse_odoo_version(repo)
+    warnings, errors = check_project(repo.path, strict=strict)
+    odoo_version = parse_odoo_version(repo.path)
     image_infos = parse_image_tag(odoo_version)
     warnings += check_image(image_infos, strict=strict)
 

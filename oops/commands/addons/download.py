@@ -9,7 +9,8 @@ from pathlib import Path
 import click
 
 from oops.core.messages import commit_messages
-from oops.git.gitutils import commit, git_add, git_top, update_gitignore
+from oops.git.core import GitRepository
+from oops.git.gitutils import update_gitignore
 from oops.services.github import fetch_branch_zip
 from oops.utils.compat import Optional
 from oops.utils.helpers import str_to_list
@@ -34,8 +35,8 @@ def main(
 ):
     """Download and extract addons from a git repository branch zip."""
 
-    local_repo = git_top()
-    gitignore = local_repo / ".gitignore"
+    local_repo = GitRepository()
+
     url, owner, repo = parse_repository_url(url)
     addons = [] if addons_list is None else str_to_list(addons_list)
 
@@ -59,7 +60,7 @@ def main(
                 skipped_addons.append(addon.technical_name)
                 continue
 
-            target_path = local_repo / addon.technical_name
+            target_path = local_repo.path / addon.technical_name
 
             # FIXME: check duplicates (addon already exists) and version before copying
 
@@ -81,6 +82,6 @@ def main(
 
         logging.info(f"Addons added ({len(new_addons)}): {', '.join(new_addons)}")
         if exclude:
-            update_gitignore(gitignore, new_addons)
-            git_add([gitignore])
-            commit(commit_messages.addons_ignored, skip_hook=True)
+            update_gitignore(local_repo.gitignore, new_addons)
+            local_repo.add([local_repo.gitignore])
+            local_repo.commit(commit_messages.addons_ignored, skip_hook=True)

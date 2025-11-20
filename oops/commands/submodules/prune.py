@@ -7,13 +7,8 @@ import click
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.git.gitutils import (
-    commit,
-    git_add_all,
-    git_top,
-    parse_submodules,
-    submodule_deinit,
-)
+from oops.git.core import GitRepository
+from oops.git.submodules import GitSubmodules
 from oops.utils.io import relpath, symlink_targets
 
 
@@ -26,26 +21,27 @@ from oops.utils.io import relpath, symlink_targets
 def main(no_commit: bool):  # noqa: C901, PLR0912
     """Remove unused submodules (not referenced by any symlink) and clean old paths."""
 
-    repo = git_top()
-    gm = repo / ".gitmodules"
-    if not gm.exists():
+    repo = GitRepository()
+    submodules = GitSubmodules()
+
+    if not repo.has_gitmodules:
         click.echo("No .gitmodules found.")
         return 0
 
-    subs = parse_submodules(gm)
-    if not subs:
-        click.echo("No submodules found.")
-        return 0
+    # subs = repo.parse_submodules()
+    # if not subs:
+    #     click.echo("No submodules found.")
+    #     return 0
 
-    targets = symlink_targets(repo)
+    targets = symlink_targets(repo.path)
 
     unused = []
-    for name, item in subs.items():
-        path = repo / item["path"]
-        rel = relpath(repo, path)
+    for submodule in repo.parse_gitmodules():
+        path = repo.path / submodule.path
+        rel = relpath(repo.path, path)
         if any(rel in t for t in targets):
             continue
-        unused.append((name, str(path)))
+        unused.append((submodule.name, str(path)))
 
     if not unused:
         click.echo("✅ No unused submodules detected.")
@@ -63,16 +59,16 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
     for name, path in unused:
         click.echo(f"[remove] {name}: {path}")
         # Deinit + remove from index + working tree
-        submodule_deinit(path, delete=True)
+        submodules.deinit(path, delete=True)
 
         # Cleanup .git/modules leftovers
-        moddir = repo / ".git" / "modules" / path
+        moddir = repo.path / ".git" / "modules" / path
         if moddir.exists():
             click.echo(f"[cleanup] removing {moddir}")
             shutil.rmtree(str(moddir))
 
     for path in [config.old_submodule_path, config.new_submodule_path]:
-        old_base_path = repo / path
+        old_base_path = repo.path / path
 
         if old_base_path.exists():
             click.echo(f"[prune] removing dir: {old_base_path}")
@@ -83,8 +79,8 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
 
     # TODO: improve commit functionality...
     if not no_commit:
-        git_add_all()
-        commit(commit_messages.submodules_prune, skip_hook=True)
+        repo.add_all()
+        repo.commit(commit_messages.submodules_prune, skip_hook=True)
 
     click.echo("\n✅ Unused submodules removed.")
 

@@ -1,12 +1,9 @@
 import click
 
 from oops.core.messages import commit_messages
+from oops.git.core import GitRepository
 from oops.git.gitutils import (
-    commit,
-    git_add,
     guess_submodule_name,
-    load_repo,
-    parse_submodules,
     rename_submodule,
 )
 from oops.utils.io import ask, is_pull_request_path
@@ -21,13 +18,13 @@ def main(dry_run: bool, no_commit: bool, prompt: bool):
     Rename git submodules to match new naming conventions.
     """
 
-    _, gitmodules = load_repo()
+    repo = GitRepository()
 
-    if not gitmodules:
+    if not repo.has_gitmodules:
         click.echo("No .gitmodules found.")
         raise click.Abort()
 
-    subs = parse_submodules(gitmodules)
+    subs = repo.parse_submodules()
 
     for name, values in subs.items():
         pull_request = is_pull_request_path(values["path"]) or is_pull_request_path(name)
@@ -44,11 +41,11 @@ def main(dry_run: bool, no_commit: bool, prompt: bool):
                     if custom:
                         new_name = custom
 
-            rename_submodule(str(gitmodules), name, new_name, values, dry_run)
+            rename_submodule(str(repo.gitmodules), name, new_name, values, dry_run)
 
     if not no_commit and not dry_run:
         click.echo("Committing changes...")
-        git_add([str(gitmodules), ".git/config"])
-        commit(commit_messages.submodules_rename, skip_hook=True)
+        repo.add([str(repo.gitmodules), ".git/config"])
+        repo.commit(commit_messages.submodules_rename, skip_hook=True)
     else:
         click.echo("Done. Commit .gitmodules changes to share them with the team.")

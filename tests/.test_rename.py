@@ -4,8 +4,8 @@ from oops.submodules import rename as rename_mod
 
 
 def test_no_gitmodules(monkeypatch, tmp_path):
-    # git_top returns a repo path without .gitmodules
-    monkeypatch.setattr(rename_mod, "git_top", lambda: tmp_path)
+    # get_root_path returns a repo path without .gitmodules
+    monkeypatch.setattr(rename_mod, "get_root_path", lambda: tmp_path)
     # prevent changing working dir in tests
     monkeypatch.setattr(rename_mod.os, "chdir", lambda p: None)
     messages = []
@@ -24,7 +24,7 @@ def test_rename_and_commit(monkeypatch, tmp_path):
         '[submodule "oldname"]\n\tpath = some/path\n\turl = git@github.com:org/repo.git\n'
     )
 
-    monkeypatch.setattr(rename_mod, "git_top", lambda: tmp_path)
+    monkeypatch.setattr(rename_mod, "get_root_path", lambda: tmp_path)
     monkeypatch.setattr(rename_mod.os, "chdir", lambda p: None)
 
     # set up parsed submodules: one that should be renamed
@@ -81,7 +81,7 @@ def test_dry_run_skips_commit(monkeypatch, tmp_path):
         '[submodule "oldname"]\n\tpath = some/path\n\turl = git@github.com:org/repo.git\n'
     )
 
-    monkeypatch.setattr(rename_mod, "git_top", lambda: tmp_path)
+    monkeypatch.setattr(rename_mod, "get_root_path", lambda: tmp_path)
     monkeypatch.setattr(rename_mod.os, "chdir", lambda p: None)
 
     subs = {"oldname": {"path": "some/path", "url": "git@github.com:org/repo.git"}}

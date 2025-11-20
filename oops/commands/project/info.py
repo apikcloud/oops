@@ -9,12 +9,11 @@ from oops.commands.project.common import (
     parse_packages,
     parse_requirements,
 )
+from oops.git.core import GitRepository
 from oops.git.gitutils import (
     get_last_commit,
     get_last_release,
     get_next_releases,
-    get_remote_url,
-    git_top,
 )
 from oops.services.docker import check_image, find_available_images, parse_image_tag
 from oops.services.github import get_latest_workflow_run
@@ -36,16 +35,16 @@ from oops.utils.render import format_datetime, human_readable, render_table
 def main(token: str, minimal: bool):  # noqa: C901
     """Display information about the current project and Odoo image."""
 
-    repo = git_top()
+    repo = GitRepository()
 
-    warnings, errors = check_project(repo, strict=False)
-    packages = parse_packages(repo)
-    requirements = parse_requirements(repo)
-    odoo_version = parse_odoo_version(repo)
+    warnings, errors = check_project(repo.path, strict=False)
+    packages = parse_packages(repo.path)
+    requirements = parse_requirements(repo.path)
+    odoo_version = parse_odoo_version(repo.path)
     image_infos = parse_image_tag(odoo_version)
     warnings += check_image(image_infos, strict=False)
     last_release = get_last_release()
-    url, owner, repo = get_remote_url()
+    url, owner, repo_name = repo.get_remote_url()
 
     try:
         minor, fix, major = get_next_releases()
@@ -89,7 +88,7 @@ def main(token: str, minimal: bool):  # noqa: C901
     ]
 
     if not minimal and token:
-        res = get_latest_workflow_run(owner=owner, repo=repo, token=token, branch="main")
+        res = get_latest_workflow_run(owner=owner, repo=repo_name, token=token, branch="main")
 
         if not res:
             errors.append("Could not fetch latest GitHub Actions workflow run")
