@@ -11,4 +11,3 @@
   pass_filenames: false
   language: python
   files: (__manifest__\.py|__openerp__\.py|__terp__\.py)$
-

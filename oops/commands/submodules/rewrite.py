@@ -69,7 +69,8 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
         # Ensure we have a symlink target for this submodule
         if submodule.path not in symlinks:
             click.echo(
-                f"[warn] submodule '{submodule.name}' path '{submodule.path}' has no symlink, skipping"
+                f"[warn] submodule '{submodule.name}' path '{submodule.path}' "
+                f"has no symlink, skipping"
             )
             continue
 

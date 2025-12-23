@@ -32,11 +32,10 @@ cov:
 
 cov-html:
 	pytest --cov=oops --cov-branch --cov-report=html
-	@echo "Open htmlcov/index.html"	
+	@echo "Open htmlcov/index.html"
 
 build:
 	python -m build
 
 clean:
 	rm -rf build dist *.egg-info .pytest_cache .ruff_cache .mypy_cache .pyright
-

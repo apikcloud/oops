@@ -73,7 +73,7 @@ def find_addons(submodule_dir: Path):
     help="Indicates that the submodule is a pull request (affects naming)",
 )
 @click.command(name="add")
-def main(  # noqa: C901, PLR0915
+def main(  # noqa: C901, PLR0915, PLR0913
     url: str,
     branch: str,
     base_dir: str,

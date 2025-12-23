@@ -177,6 +177,7 @@ def test_parse_image_without_release():
 
 
 def test_check_image():
+    days_old = (date.today() - date(2023, 1, 3)).days
     assert check_image(
         ImageInfo(
             **{
@@ -191,7 +192,7 @@ def test_check_image():
         ),
         strict=False,
     ) == [
-        f"The current Odoo image is {(date.today() - date(2023, 1, 3)).days} days old, consider updating it",
+        f"The current Odoo image is {days_old} days old, consider updating it",
     ]
 
 

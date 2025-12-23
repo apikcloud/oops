@@ -31,8 +31,8 @@ dependencies = [
     "click>=8.1",
     "typing-extensions>=4.7; python_version<'3.8'",
     "libcst==0.4.*; python_version<'3.8'",
-    "rich>=13.0",  
-    "fixit>2.0",  
+    "rich>=13.0",
+    "fixit>2.0",
     "black",
     "tabulate",
 ]
@@ -89,9 +89,9 @@ source = "vcs"
 
 [tool.ruff]
 line-length = 100
-target-version = "py38"
-select = ["E","F","I","B","UP","SIM","PL","C90"]
-ignore = [
+target-version = "py37"
+lint.select = ["E","F","I","B","UP","SIM","PL","C90"]
+lint.ignore = [
   "E203", # whitespace before ':' (plays better with Black if you add it later)
 ]
 exclude = ["tests/fixtures"]

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from tabulate import tabulate
 
-from oops.core.config import config.datetime_format
+from oops.core.config import config
 from oops.utils import tools
 from oops.utils.helpers import (
     clean_string,
