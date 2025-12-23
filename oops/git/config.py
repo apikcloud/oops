@@ -21,7 +21,7 @@ class GitModule:
     path: str
     branch: str
     url: str
-    pr: str
+    pr: bool
     name: str = ""
 
 

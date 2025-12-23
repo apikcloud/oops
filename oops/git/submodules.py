@@ -83,7 +83,9 @@ def rename_submodule(  # noqa: PLR0913
     gitmodules_file: str,
     name: str,
     new_name: str,
-    values: dict,
+    path: str,
+    url: str,
+    branch: Optional[str] = None,
     dry_run: bool = False,
 ) -> None:
     """Rename a git submodule from `name` to `new_name`, keeping the same path/url/branch.
@@ -106,10 +108,6 @@ def rename_submodule(  # noqa: PLR0913
 
     if existing_new_path:
         raise ValueError(f"A submodule named '{new_name}' already exists in .gitmodules.")
-
-    path = values.get("path")
-    url = values.get("url")
-    branch = values.get("branch")
 
     logging.debug(f"Renaming submodule identifier '{name}' -> '{new_name}' (path stays '{path}')")
 

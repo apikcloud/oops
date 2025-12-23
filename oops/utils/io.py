@@ -82,20 +82,40 @@ def rewrite_symlink(link: Path, old_prefix: str, new_prefix: str):
     return False
 
 
-def desired_path(url: str, base_dir: str, pull_request: bool = False) -> str:
-    """Return the desired local path for a git repository URL."""
+def desired_path(
+    url: str,
+    pull_request: bool = False,
+    prefix: Optional[str] = None,
+    suffix: Optional[str] = None,
+) -> str:
+    """
+    Return the desired local path for a git repository URL:
+    <prefix>/<owner>/<repo>/<suffix> or <prefix>/PRs/<owner>/<repo>/<suffix>
+
+    If prefix is given, it is prepended to the path.
+    If pull_request is True, "PRs/" is inserted after the prefix.
+    If suffix is given, it is appended to the path.
+    """
 
     _, owner, repo = parse_repository_url(url)
     if owner == "oca":
         owner = owner.upper()
 
+    parts = [owner, repo]
+
     if pull_request:
-        return f"{base_dir.rstrip('/')}/PRs/{owner}/{repo}"
+        parts.insert(0, "PRs")
 
-    return f"{base_dir.rstrip('/')}/{owner}/{repo}"
+    if prefix:
+        parts.insert(0, prefix.rstrip("/"))
+
+    if suffix:
+        parts.append(suffix)
+
+    return os.path.join(*parts)
 
 
-def symlink_targets(repo: Path):
+def symlink_targets(repo: Path) -> "list[str]":
     targets = []
     for root, dirs, files in os.walk(repo):
         if ".git" in dirs:

@@ -67,6 +67,11 @@ def find_addons(submodule_dir: Path):
     is_flag=True,
     help="Show planned actions only",
 )
+@click.option(
+    "-p",
+    "--pull-request",
+    help="Indicates that the submodule is a pull request (affects naming)",
+)
 @click.command(name="add")
 def main(  # noqa: C901, PLR0915
     url: str,
@@ -74,6 +79,7 @@ def main(  # noqa: C901, PLR0915
     base_dir: str,
     name: str,
     addons: str,
+    pull_request: str,
     **options,
 ):
     """Add a git submodule and optionally create symlinks for its addons."""
@@ -93,7 +99,9 @@ def main(  # noqa: C901, PLR0915
         click.echo(f"Error: {e}")
         sys.exit(1)
 
-    sub_path_str = desired_path(url, base_dir)
+    sub_path_str = desired_path(
+        url, prefix=base_dir, pull_request=bool(pull_request), suffix=pull_request or None
+    )
     sub_path = repo.path / sub_path_str
     sub_name = name or f"{owner}/{repo_name}"
 

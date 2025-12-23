@@ -12,11 +12,16 @@ from oops.core.messages import commit_messages
 from oops.git.core import GitRepository
 from oops.git.gitutils import (
     git_config_submodule,
-    parse_submodules,
-    submodule_sync,
-    submodule_update,
 )
-from oops.utils.io import ask, desired_path, is_dir_empty, is_pull_request_path, rewrite_symlink
+from oops.git.submodules import GitSubmodules
+from oops.utils.io import (
+    ask,
+    desired_path,
+    is_dir_empty,
+    is_pull_request_path,
+    rewrite_symlink,
+    symlink_targets,
+)
 from oops.utils.render import human_readable
 
 
@@ -45,24 +50,37 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
     """
 
     repo = GitRepository()
+    submodules = GitSubmodules()
 
     if not repo.has_gitmodules:
         click.echo("No .gitmodules found.")
         return 0
 
-    subs = parse_submodules(repo.gitmodules)
+    # FIXME: assume there is only one symlink per submodule for now
+    symlinks = {str(Path(t).parent): Path(t).name for t in symlink_targets(repo.path)}
+
     plan = []
-    for name, d in subs.items():
-        url = d.get("url")
-        path = d.get("path")
-        if not url or not path:
+    for submodule in repo.parse_gitmodules():
+        print(submodule)
+        if not submodule.url:
+            click.echo(f"[warn] submodule '{submodule.name}' has no URL, skipping")
             continue
 
-        # FIXME: desired_path, same logic as guess_submodule_name
-        pull_request = is_pull_request_path(path) or is_pull_request_path(name)
-        target = desired_path(url, base_dir, pull_request=pull_request)
-        if path != target:
-            plan.append((name, url, path, target))
+        # Ensure we have a symlink target for this submodule
+        if submodule.path not in symlinks:
+            click.echo(
+                f"[warn] submodule '{submodule.name}' path '{submodule.path}' has no symlink, skipping"
+            )
+            continue
+
+        pull_request = is_pull_request_path(submodule.path) or is_pull_request_path(submodule.name)
+        first_symlink = symlinks[submodule.path] if pull_request else None
+        target = desired_path(
+            submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink
+        )
+
+        if submodule.path != target:
+            plan.append((submodule.name, submodule.url, submodule.path, target))
 
     if not plan:
         click.echo("No submodule needs rewriting.")
@@ -111,7 +129,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
             click.echo(f"[info] '{oldp}' not found; trying submodule init")
 
             with contextlib.suppress(subprocess.CalledProcessError):
-                submodule_update(oldp)
+                submodules.update(oldp)
 
             if (repo.path / oldp).exists():
                 click.echo(f"[move] {oldp} -> {newp}")
@@ -120,8 +138,8 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_di
                 click.echo(f"[warn] skip move: {oldp} still not found")
 
     # Sync and update submodule metadata
-    submodule_sync()
-    submodule_update()
+    submodules.sync()
+    submodules.update()
 
     # Rewrite symlinks
     rewrites = 0

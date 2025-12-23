@@ -1,6 +1,7 @@
 """Git core operations - Basic git commands."""
 
 import contextlib
+import logging
 import os
 import subprocess
 from configparser import ConfigParser
@@ -168,9 +169,15 @@ class GitRepository:
 
         for section in config.sections():
             name = extract_submodule_name(section)
-            path = config.get(section, "path", fallback=None)
-            branch = config.get(section, "branch", fallback=None)
+            path = config.get(section, "path", fallback="")
+            branch = config.get(section, "branch", fallback="")
             url = config.get(section, "url", fallback=None)
+
+            if url is None:
+                raise ValueError(f"Submodule '{name}' has no URL in .gitmodules")
+
             pr = is_pull_request_path(path) or is_pull_request_path(name)
 
-            yield GitModule(name, path, branch, url, pr)
+            logging.debug(f"name: {name}, path: {path}, branch: {branch}, url: {url}, pr: {pr}")
+
+            yield GitModule(name=name, path=path, branch=branch, url=url, pr=pr)
