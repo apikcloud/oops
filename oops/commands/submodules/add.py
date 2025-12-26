@@ -89,6 +89,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
     no_commit = options["no_commit"]
     dry_run = options["dry_run"]
 
+    # FIXME: use Repo from gitpython
     repo = GitRepository()
     submodules = GitSubmodules()
 

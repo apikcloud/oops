@@ -5,9 +5,8 @@
   language: python
   pass_filenames: false
 
-- id: oops-man-fix
-  name: Fix the manifest
-  entry: oops-man-fix
+- id: oops-submodules-check
+  name: Check submodules
+  entry: oops-sub-check
   pass_filenames: false
   language: python
-  files: (__manifest__\.py|__openerp__\.py|__terp__\.py)$

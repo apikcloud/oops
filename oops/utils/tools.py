@@ -6,6 +6,16 @@ from oops.core.exceptions import ScriptNotFound
 from oops.utils.compat import Optional
 
 
+def ask(prompt: str, default="y"):
+    """Ask a yes/no question via input() and return their answer."""
+
+    try:
+        answer = input(prompt).strip().lower()
+    except EOFError:
+        answer = ""
+    return answer or default
+
+
 def get_exec_dir():
     """Return the directory where the current script is located."""
 

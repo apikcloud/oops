@@ -39,6 +39,66 @@ def clean_url(url):
     return cleaned_url
 
 
+def _parse_url(url: str) -> Tuple[str, str, str, str]:
+    url = url.strip()
+
+    # 1) SCP-like SSH form: git@host:owner/repo(.git)?
+    m = re.match(r"^(?P<user>[^@]+)@(?P<host>[^:]+):(?P<path>.+)$", url)
+    if m:
+        host = m.group("host")
+        path = m.group("path").lstrip("/")
+
+        scheme = "ssh"
+
+    # 2) URL-like forms (https, http, ssh, git+ssh)
+    else:
+        parsed = urlparse(url)
+        scheme = (parsed.scheme or "").lower()
+
+        if scheme in ("ssh", "git+ssh"):
+            host = parsed.hostname or ""
+            path = (parsed.path or "").lstrip("/")
+
+        if scheme in ("http", "https", ""):
+            # Strip possible credentials from netloc (user:pass@host)
+            netloc = parsed.netloc or ""
+            host = netloc.split("@")[-1] if netloc else ""
+            path = (parsed.path or "").lstrip("/")
+
+    if not host or not path:
+        raise ValueError(f"Malformed url (missing host/owner/repo): {url}")
+
+    parts = path.split("/")
+
+    if len(parts) < 2:  # noqa: PLR2004
+        raise ValueError(f"Malformed url (missing owner/repo): {url}")
+
+    owner, repo = parts[0], parts[1]
+    if owner == "oca":
+        owner = owner.upper()
+    repo = removesuffix(repo, ".git")
+
+    return scheme, host, owner, repo
+
+
+def encode_url(url: str, scheme: str, suffix: bool = True) -> str:
+    """Encode a GitHub repository URL into the desired scheme (https or ssh)."""
+
+    _, host, owner, repo = _parse_url(url)
+
+    if scheme == "https":
+        return f"https://{host}/{owner}/{repo}" + (".git" if suffix else "")
+    elif scheme == "ssh":
+        return f"git@{host}:{owner}/{repo}.git"
+    else:
+        raise ValueError(f"Unsupported scheme: {scheme}")
+
+
+def get_public_repo_url(url: str) -> str:
+    """Get the public HTTPS URL of a GitHub repository from any URL format."""
+    return encode_url(url, "https", suffix=False)
+
+
 def parse_repository_url(url: str) -> Tuple[str, str, str]:
     """
     Parse any GitHub URL (HTTPS or SSH) and return:
@@ -58,50 +118,10 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
     Raises:
       ValueError if the URL cannot be parsed into owner/repo.
     """
-    url = url.strip()
 
-    def extract_data(parts: list) -> tuple:
-        owner, repo = parts[0], parts[1]
-        repo = removesuffix(repo, ".git")
-        canonical = f"https://{host}/{owner}/{repo}"
+    scheme, host, owner, repo = _parse_url(url)
 
-        if owner == "oca":
-            owner = owner.upper()
+    if host != "github.com":
+        raise ValueError(f"Unsupported host: {host}")
 
-        return canonical, owner, repo
-
-    def get_host_and_path(url):
-        # 1) SCP-like SSH form: git@host:owner/repo(.git)?
-        m = re.match(r"^(?P<user>[^@]+)@(?P<host>[^:]+):(?P<path>.+)$", url)
-        if m:
-            host = m.group("host")
-            path = m.group("path").lstrip("/")
-
-            return host, path
-
-        # 2) URL-like forms (https, http, ssh, git+ssh)
-        parsed = urlparse(url)
-        scheme = (parsed.scheme or "").lower()
-
-        if scheme in ("ssh", "git+ssh"):
-            host = parsed.hostname or ""
-            path = (parsed.path or "").lstrip("/")
-
-            return host, path
-
-        if scheme in ("http", "https", ""):
-            # Strip possible credentials from netloc (user:pass@host)
-            netloc = parsed.netloc or ""
-            host = netloc.split("@")[-1] if netloc else ""
-            path = (parsed.path or "").lstrip("/")
-
-            return host, path
-
-        raise ValueError(f"Unsupported URL scheme in: {url}")
-
-    host, path = get_host_and_path(url)
-    parts = path.split("/")
-
-    if len(parts) < 2:  # noqa: PLR2004
-        raise ValueError(f"Malformed url (missing owner/repo): {url}")
-    return extract_data(parts)
+    return scheme, owner, repo

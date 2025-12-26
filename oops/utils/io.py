@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 from collections.abc import Generator
+from os import PathLike
 from pathlib import Path
 
 import libcst as cst
@@ -15,16 +16,6 @@ from oops.core.models import AddonInfo
 from oops.utils.compat import Optional, Union
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
-
-
-def ask(prompt: str, default="y"):
-    """Ask a yes/no question via input() and return their answer."""
-
-    try:
-        answer = input(prompt).strip().lower()
-    except EOFError:
-        answer = ""
-    return answer or default
 
 
 def ensure_parent(path: Path):
@@ -115,18 +106,42 @@ def desired_path(
     return os.path.join(*parts)
 
 
-def symlink_targets(repo: Path) -> "list[str]":
+def list_symlinks(path: PathLike, broken_only: bool = False) -> "list[str]":
+    """Return a list of all symlink targets under the given path."""
+
     targets = []
-    for root, dirs, files in os.walk(repo):
+    for root, dirs, files in os.walk(path):
         if ".git" in dirs:
             dirs.remove(".git")
         for n in dirs + files:
             p = Path(root) / n
             if p.is_symlink():
-                with contextlib.suppress(OSError):
+                if broken_only and not p.exists():
                     targets.append(os.readlink(p))
+                elif not broken_only:
+                    with contextlib.suppress(OSError):
+                        targets.append(os.readlink(p))
 
     return targets
+
+
+def get_symlink_map(path: str) -> dict:
+    """Return a mapping of symlink parent dirs to their target names."""
+
+    # FIXME: assume there is only one symlink per submodule for now
+    return {str(Path(t).parent): Path(t).name for t in list_symlinks(path)}
+
+
+def check_prefix(path: PathLike, prefix: PathLike) -> bool:
+    """Check if the given path starts with the given prefix."""
+
+    try:
+        p = Path(path).resolve()
+        prefix = Path(prefix).resolve()
+
+        return prefix in p.parents or p == prefix
+    except FileNotFoundError:
+        return False
 
 
 def relpath(from_path: Path, to_path: Path) -> str:

@@ -37,7 +37,7 @@ def main(
 
     local_repo = GitRepository()
 
-    url, owner, repo = parse_repository_url(url)
+    _, owner, repo = parse_repository_url(url)
     addons = [] if addons_list is None else str_to_list(addons_list)
 
     options = {}

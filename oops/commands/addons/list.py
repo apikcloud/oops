@@ -4,7 +4,7 @@ import click
 
 from oops.git.core import GitRepository
 from oops.utils.io import find_addons
-from oops.utils.net import parse_repository_url
+from oops.utils.net import encode_url
 from oops.utils.render import human_readable, render_boolean, render_table
 
 
@@ -42,6 +42,7 @@ from oops.utils.render import human_readable, render_boolean, render_table
 def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_all: bool):  # noqa: C901, PLR0912
     """List all addons found in git submodules."""
 
+    # FIXME:
     repo = GitRepository()
 
     rows = []
@@ -52,8 +53,11 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
     if repo.has_gitmodules:
         for submodule in repo.parse_gitmodules():
             canonical_url, _, _ = (
-                parse_repository_url(submodule.url) if submodule.url else ("", None, None)
+                encode_url("https", submodule.url, suffix=False)
+                if submodule.url
+                else ("", None, None)
             )
+
             subs[submodule.path] = {
                 "name": submodule.name,
                 "path": submodule.path,

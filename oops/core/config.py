@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import black
 
@@ -11,8 +12,8 @@ BLACK_MODE = black.FileMode()
 @dataclass
 class Config:
     # Submodule
-    new_submodule_path: str = ".third-party"
-    old_submodule_path: str = "third-party"
+    new_submodule_path: Path = Path(".third-party")
+    old_submodule_path: Path = Path("third-party")
 
     # Manifest
     manifest_names: List[str] = field(
@@ -48,6 +49,25 @@ class Config:
     datetime_format: str = "%Y-%m-%d %H:%M:%S"
     check_symbol: str = "✓" if os.environ.get("LANG", "").lower().endswith(".utf-8") else "[X]"
     pre_commit_exclude_file: str = ".pre-commit-exclusions"
+
+    # Submodules
+    sub_force_scheme: str = "ssh"
+    sub_deprecated_repositories: dict = field(
+        default_factory=lambda: {
+            "apikcloud/apik-accounting": "apikcloud/apik-addons",
+            "apikcloud/apik-taxes": "apikcloud/apik-addons",
+        }
+    )
+    sub_checks: List[str] = field(
+        default_factory=lambda: [
+            "check_path",
+            "check_branch",
+            "check_symlink",
+            "check_url_scheme",
+            "check_deprecated_repo",
+            "check_broken_symlink",
+        ]
+    )
 
     @property
     def odoo_images_url(self) -> str:

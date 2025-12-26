@@ -1,28 +1,25 @@
 #!/usr/bin/env python3
 
-import contextlib
+from __future__ import annotations
+
+import logging
 import os
-import subprocess
+import shutil
 from pathlib import Path
+from typing import Optional
 
 import click
+from git import Repo
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.git.core import GitRepository
-from oops.git.gitutils import (
-    git_config_submodule,
-)
-from oops.git.submodules import GitSubmodules
+from oops.utils.git import is_pull_request
 from oops.utils.io import (
-    ask,
     desired_path,
-    is_dir_empty,
-    is_pull_request_path,
+    get_symlink_map,
     rewrite_symlink,
-    symlink_targets,
 )
-from oops.utils.render import human_readable
+from oops.utils.tools import ask
 
 
 @click.command(name="rewrite")
@@ -38,153 +35,124 @@ from oops.utils.render import human_readable
     is_flag=True,
     help="Do not commit automatically at the end",
 )
-@click.option(
-    "--old-base-dir",
-    default=None,
-    help="Old base dir to prune if empty (default: auto-detect, fallback 'third-party')",
-)
-def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, old_base_dir: str):  # noqa: C901, PLR0912, PLR0915
+@click.argument("names", nargs=-1, required=False)
+def main(
+    base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: Optional[tuple[str]] = None
+):  # noqa: C901, PLR0912, PLR0915
     """
     Rewrite submodule paths to be under a common base dir (e.g. .third-party).
     Also rewrites symlinks.
     """
 
-    repo = GitRepository()
-    submodules = GitSubmodules()
+    repo = Repo()
 
-    if not repo.has_gitmodules:
+    if not repo.submodules:
         click.echo("No .gitmodules found.")
         return 0
 
     # FIXME: assume there is only one symlink per submodule for now
-    symlinks = {str(Path(t).parent): Path(t).name for t in symlink_targets(repo.path)}
+    mapping = get_symlink_map(repo.working_dir)
 
     plan = []
-    for submodule in repo.parse_gitmodules():
-        print(submodule)
+    for submodule in repo.submodules:
+        if names and submodule.name not in names:
+            continue
         if not submodule.url:
             click.echo(f"[warn] submodule '{submodule.name}' has no URL, skipping")
             continue
 
         # Ensure we have a symlink target for this submodule
-        if submodule.path not in symlinks:
+        if submodule.path not in mapping:
             click.echo(
                 f"[warn] submodule '{submodule.name}' path '{submodule.path}' "
                 f"has no symlink, skipping"
             )
             continue
 
-        pull_request = is_pull_request_path(submodule.path) or is_pull_request_path(submodule.name)
-        first_symlink = symlinks[submodule.path] if pull_request else None
+        pull_request = is_pull_request(submodule)
+        first_symlink = mapping[submodule.path] if pull_request else None
         target = desired_path(
             submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink
         )
 
         if submodule.path != target:
-            plan.append((submodule.name, submodule.url, submodule.path, target))
+            plan.append((submodule, target))
 
     if not plan:
         click.echo("No submodule needs rewriting.")
         return 0
 
-    click.echo(f"Repo: {repo.path}")
-    for name, url, oldp, newp in plan:
-        click.echo(f"[plan] {name}\n  url : {url}\n  path: {oldp} -> {newp}")
-
-    if dry_run:
-        click.echo("Dry-run only.")
-        return 0
+    for submodule, new_path in plan:
+        click.echo(
+            f"[plan] {submodule.name}\n  url : {submodule.url}\n  path: {submodule.path} -> {new_path}"
+        )
 
     accepted = []
-    for name, url, oldp, newp in plan:
+    for submodule, new_path in plan:
         if force:
-            accepted.append((name, url, oldp, newp))
+            accepted.append((submodule, new_path))
         else:
-            ans = ask(f"\nApply change for '{name}' ({oldp} -> {newp})? [Y/n/e] ", default="y")
+            ans = ask(
+                f"\nApply change for '{submodule.name}' ({submodule.path} -> {new_path})? [Y/n/e] ",
+                default="y",
+            )
             if ans in ("y", "yes"):
-                accepted.append((name, url, oldp, newp))
+                accepted.append((submodule, new_path))
             elif ans == "e":
                 custom = input("Enter custom target path: ").strip()
                 if custom:
-                    accepted.append((name, url, oldp, custom))
-
+                    accepted.append((submodule, custom))
     if not accepted:
         click.echo("Nothing accepted. Exiting.")
         return 0
 
-    # Update .gitmodules
-    for name, _, _, newp in accepted:
-        git_config_submodule(str(repo.gitmodules), name, "path", newp)
+    # Move submodules
+    moved = []
+    for submodule, new_path in accepted:
+        # capture before move (GitPython mutates it)
+        old_path = str(submodule.path)
+        moved.append((old_path, str(new_path)))
+        if not dry_run:
+            submodule.move(new_path)
 
-    repo.add([str(repo.gitmodules)])
+        logging.debug(moved)
 
-    # Move folders
-    for _, _, oldp, newp in accepted:
-        src = repo.path / oldp
-        dst = repo.path / newp
-        if src.exists():
-            click.echo(f"[move] {oldp} -> {newp}")
-            repo.move(src, dst)
-        else:
-            # try to init submodule if missing
-            click.echo(f"[info] '{oldp}' not found; trying submodule init")
-
-            with contextlib.suppress(subprocess.CalledProcessError):
-                submodules.update(oldp)
-
-            if (repo.path / oldp).exists():
-                click.echo(f"[move] {oldp} -> {newp}")
-                repo.move(repo.path / oldp, dst)
-            else:
-                click.echo(f"[warn] skip move: {oldp} still not found")
-
-    # Sync and update submodule metadata
-    submodules.sync()
-    submodules.update()
+    if dry_run:
+        click.echo("\nDry run mode, no changes applied.")
+        for oldp, newp in moved:
+            click.echo(f"[dry-run] {oldp} -> {newp}")
+        return 0
 
     # Rewrite symlinks
-    rewrites = 0
     # Build a quick lookup for old->new prefixes
-    renames = [(oldp, newp) for (_, _, oldp, newp) in accepted]
-    for root, dirs, files in os.walk(repo.path):
+    rewrites = 0
+    for root, dirs, files in os.walk(repo.working_dir):
         if ".git" in dirs:
             dirs.remove(".git")
         for name in dirs + files:
             p = Path(root) / name
             if p.is_symlink():
-                for oldp, newp in renames:
+                for oldp, newp in moved:
+                    logging.debug(p, ":", oldp, "->", newp)
                     if rewrite_symlink(p, oldp, newp):
                         rewrites += 1
+                        repo.index.add([str(p)])
                         break
+
     click.echo(f"Symlinks rewritten: {rewrites}")
 
-    # Prune old base dir if empty (auto-detect or --old-base-dir)
-    old_base = old_base_dir
-    if not old_base:
-        # auto-detect from first path segment of old paths if unique, else fallback
-        first_segments = {op.split("/", 1)[0] for (_, _, op, _) in accepted if "/" in op}
-        old_base = first_segments.pop() if len(first_segments) == 1 else config.old_submodule_path
+    # Remove old base dir if it exists
+    if config.old_submodule_path.exists():
+        shutil.rmtree(config.old_submodule_path)
+        repo.index.remove([str(config.old_submodule_path)], r=True, f=True)
+        click.echo(f"Removed old submodule base dir: {config.old_submodule_path}")
 
-    old_base_path = repo.path / old_base
-    if is_dir_empty(old_base_path):
-        click.echo(f"[prune] removing empty dir: {old_base_path}")
-
-        with contextlib.suppress(OSError):
-            old_base_path.rmdir()
-
-    # Stage everything just in case (symlinks/renames)
-    repo.add_all()
-
-    # Auto commit with detailed message
-    if not no_commit:
-        lines = [
-            "Modified submodules:",
-        ]
-        lines += [f"- {name}: {oldp} -> {newp}" for (name, _, oldp, newp) in accepted]
-        repo.commit(
+    # Auto commit
+    # TODO: add description of changes
+    if not no_commit and not dry_run and repo.index.diff(repo.head.commit):
+        repo.index.commit(
             commit_messages.submodules_rewrite,
-            description=human_readable(lines, sep="\n"),
-            skip_hook=True,
+            skip_hooks=True,
         )
 
         click.echo("Changes committed.")

@@ -9,11 +9,14 @@ class CommitMessages:
     materialize_addons: str = "chore: materialize addon(s) {names}"
 
     # Submodules
-    submodules_rewrite: str = "chore: rewrite submodule paths based on remote URL"
-    submodules_prune: str = "chore: remove unused submodules"
-    submodules_rename: str = "chore: rename submodules to new naming scheme"
-    submodules_update: str = "chore: update submodules to latest upstream versions"
-    submodule_add: str = "chore: add submodule {name}"
+    submodules_rewrite: str = "chore(submodules): rewrite submodule paths to new scheme"
+    submodules_prune: str = "chore(submodules): remove unused submodules"
+    submodules_rename: str = "chore(submodules): rename submodules to new naming scheme"
+    submodules_update: str = (
+        "chore(submodules): update submodules to latest upstream versions\n\n{description}"
+    )
+    submodules_branch: str = "chore(submodules): update .gitmodules with fixed submodule branches"
+    submodule_add: str = "chore(submodules): add submodule {name}"
     submodule_add_desc: str = """
     - url: {url}
     - branch: {branch}

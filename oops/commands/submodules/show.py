@@ -2,18 +2,22 @@ import click
 
 from oops.git.core import GitRepository
 from oops.git.gitutils import get_last_commit
-from oops.utils.net import parse_repository_url
+from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 
 
 @click.command("show")
-@click.option("--dry-run", is_flag=True, help="Show planned changes only")
-@click.option("--no-commit", is_flag=True, help="Do not commit changes")
-def main(dry_run: bool, no_commit: bool):
+@click.option(
+    "--pull-request",
+    is_flag=True,
+    help="Show pull request submodules only",
+)
+def main(pull_request: bool):
     """
     Update git submodules to their latest upstream versions.
     """
 
+    # FIXME: use Repo from gitpython
     repo = GitRepository()
 
     if not repo.has_gitmodules:
@@ -22,9 +26,9 @@ def main(dry_run: bool, no_commit: bool):
 
     rows = []
     for submodule in repo.parse_gitmodules():
-        canonical_url, _, _ = (
-            parse_repository_url(submodule.url) if submodule.url else ("", None, None)
-        )
+        if pull_request is True and not submodule.pr:
+            continue
+        canonical_url = get_public_repo_url(submodule.url) if submodule.url else ""
         row = [
             human_readable(submodule.name, width=50),
             canonical_url,

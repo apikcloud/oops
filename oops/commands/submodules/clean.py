@@ -15,6 +15,7 @@ from oops.git.submodules import GitSubmodules
 def main(reset: bool):
     """Clean old submodule paths and update submodules."""
 
+    # FIXME: use Repo from gitpython
     repo = GitRepository()
     submodules = GitSubmodules()
 
