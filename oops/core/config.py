@@ -56,6 +56,7 @@ class Config:
         default_factory=lambda: {
             "apikcloud/apik-accounting": "apikcloud/apik-addons",
             "apikcloud/apik-taxes": "apikcloud/apik-addons",
+            "apikcloud/apik-sales": "apikcloud/apik-addons",
         }
     )
     sub_checks: List[str] = field(

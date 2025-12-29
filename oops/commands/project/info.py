@@ -79,7 +79,7 @@ def main(token: str, minimal: bool):  # noqa: C901
         ["Registry", image_infos.source],
         ["Available image(s)", message],
         ["System package(s)", human_readable(packages) or "--"],
-        ["Python requirement(s)", human_readable(requirements) or "--"],
+        ["Python requirement(s)", human_readable(requirements, sep="\n") or "--"],
         ["Git:", ""],
         ["Remote URL", url or "no remote found"],
         ["Last release", last_release or "no valid release found"],

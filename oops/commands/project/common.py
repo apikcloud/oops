@@ -34,11 +34,11 @@ def parse_packages(path: Path) -> list:
     return read_and_parse(path / config.project_file_packages)
 
 
-def parse_requirements(path) -> list:
+def parse_requirements(path: Path) -> list:
     return read_and_parse(path / config.project_file_requirements)
 
 
-def parse_odoo_version(path) -> str:
+def parse_odoo_version(path: Path) -> str:
     res = read_and_parse(path / config.project_file_odoo_version)
     if not res:
         raise ValueError()

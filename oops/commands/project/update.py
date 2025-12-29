@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 
+from pathlib import Path
+
 import click
+from git import Repo
 
 from oops.commands.project.common import parse_odoo_version
 from oops.core.messages import commit_messages
-from oops.git.core import GitRepository
 from oops.services.docker import find_available_images, format_available_images, parse_image_tag
-from oops.utils.io import ask, write_text_file
+from oops.utils.io import write_text_file
+from oops.utils.tools import ask
 
 
 @click.command(name="update")
@@ -15,8 +18,8 @@ from oops.utils.io import ask, write_text_file
 def main(force: bool):  # noqa: C901
     """Update odoo image in odoo_version.txt to the latest available."""
 
-    repo = GitRepository()
-    current_version = parse_odoo_version(repo.path)
+    repo = Repo()
+    current_version = parse_odoo_version(Path(repo.working_dir))
     image_infos = parse_image_tag(current_version)
 
     if not image_infos.release:
@@ -46,13 +49,13 @@ def main(force: bool):  # noqa: C901
 
     click.echo(f"Update odoo image to: {new_image.image}")
 
-    odoo_version_file = repo.path / "odoo_version.txt"
+    odoo_version_file = Path(repo.working_dir) / "odoo_version.txt"
     write_text_file(odoo_version_file, [new_image.image])
 
-    repo.add([odoo_version_file])
-    repo.commit(
+    repo.index.add([str(odoo_version_file)])
+    repo.index.commit(
         commit_messages.image_update.format(
             old=current_version, new=new_image.image, days=new_image.delta
         ),
-        skip_hook=True,
+        skip_hooks=True,
     )
