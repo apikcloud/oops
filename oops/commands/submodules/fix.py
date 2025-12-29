@@ -36,6 +36,10 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
     new_urls = []
     deprecated_repos = []
 
+    repo_to_remove = []
+    repo_to_add = []
+    symlinks_to_update = []
+
     for submodule in repo.submodules:
         scheme, owner, repository = parse_repository_url(submodule.url)
         repository_name = f"{owner}/{repository}"
@@ -46,8 +50,9 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
 
         # Check deprecated repositories
         if repository_name in config.sub_deprecated_repositories:
-            deprecated_repos.append(
-                (submodule.name, config.sub_deprecated_repositories[repository_name])
+            repo_to_remove.append(submodule.name)
+            repo_to_add.append(
+                (config.sub_deprecated_repositories[repository_name], submodule.branch)
             )
 
     # Fix submodule URLs
@@ -64,7 +69,7 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
         if not no_commit and repo.index.diff("HEAD"):
             click.echo("Committing submodule URL changes...")
             repo.index.commit(
-                commit_messages.submodule_fix_urls.format(
+                commit_messages.submodules_fix_urls.format(
                     description="\n".join(f"- {name}: {url}" for name, url in new_urls)
                 )
             )

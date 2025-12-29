@@ -16,6 +16,10 @@ class CommitMessages:
         "chore(submodules): update submodules to latest upstream versions\n\n{description}"
     )
     submodules_branch: str = "chore(submodules): update .gitmodules with fixed submodule branches"
+    submodules_fix_urls: str = "chore(submodules): fix submodule URLs\n\n{description}"
+    submodules_replace: str = (
+        "chore(submodules): replace submodule(s) and update symlinks\n\n{description}"
+    )
     submodule_add: str = "chore(submodules): add submodule {name}"
     submodule_add_desc: str = """
     - url: {url}
@@ -23,7 +27,6 @@ class CommitMessages:
     - path: {path}
     - created symlinks: {symlinks}
     """
-    submodule_fix_urls: str = "chore(submodules): fix submodule URLs\n\n{description}"
 
     # Miscellaneous
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."

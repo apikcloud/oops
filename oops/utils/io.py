@@ -132,6 +132,15 @@ def get_symlink_map(path: str) -> dict:
     return {str(Path(t).parent): Path(t).name for t in list_symlinks(path)}
 
 
+def get_symlink_complete_map(path: str) -> dict:
+    res = {}
+
+    for t in list_symlinks(path):
+        res.setdefault(str(Path(t).parent), []).append(Path(t).name)
+
+    return res
+
+
 def check_prefix(path: PathLike, prefix: PathLike) -> bool:
     """Check if the given path starts with the given prefix."""
 
