@@ -23,6 +23,7 @@ class CommitMessages:
     - path: {path}
     - created symlinks: {symlinks}
     """
+    submodule_fix_urls: str = "chore(submodules): fix submodule URLs\n\n{description}"
 
     # Miscellaneous
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."
