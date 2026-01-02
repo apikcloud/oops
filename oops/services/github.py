@@ -86,3 +86,22 @@ def get_latest_workflow_run(
         return None
 
     return res
+
+def list_addons(owner: str, repo: str, branch: str) -> list:
+    """List of addons for repository"""
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = _get_headers(token=token)
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}:?recursive=1"
+    r = requests.get(url, headers=headers)
+    r.raise_for_status()
+    
+    items = r.json().get("tree", [])
+
+    addons = []
+    for item in items:
+        if item["path"].endswith("__manifest__.py"):
+            addon = item["path"].split("/")[0]
+            addons.append(addon)
+    
+    return addons

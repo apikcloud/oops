@@ -193,6 +193,30 @@ def get_manifest_path(addon_dir: str) -> Optional[str]:
             return manifest_path
 
 
+def get_manifest_values(path: str, keys: list) -> dict:
+    """ Return the elements (keys) of the manifest"""
+    result = {}
+    manifest = read_manifest(path)
+    stmt = manifest.body[0]
+    if not isinstance(stmt, cst.SimpleStatementLine):
+        return {}
+
+    expr = stmt.body[0]
+    if not isinstance(expr, cst.Expr):
+        return {}
+
+    if not isinstance(expr.value, cst.Dict):
+        return {}
+
+    for element in expr.value.elements:
+        if element.key and isinstance(element.key, cst.SimpleString):
+            k = element.key.evaluated_value
+            if k  in keys and isinstance(element.value, cst.SimpleString):
+                result.setdefault(k,element.value.evaluated_value)
+
+    return result
+
+
 def parse_manifest_cst(raw: str) -> cst.CSTNode:
     return cst.parse_module(raw)
 

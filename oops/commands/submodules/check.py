@@ -8,9 +8,10 @@ from git import Repo
 
 from oops.core.config import config
 from oops.utils.git import read_gitmodules
-from oops.utils.io import check_prefix, list_symlinks
+from oops.utils.io import check_prefix, list_symlinks, get_manifest_values
 from oops.utils.net import parse_repository_url
-
+from oops.services.github import list_addons
+from oops.utils.render import human_readable, render_table
 
 @click.command(name="check")
 def main():  # noqa: C901
@@ -103,6 +104,17 @@ def main():  # noqa: C901
             click.echo(f"  - {symlink}")
         res = False
 
+    rows = check_oca_pr(symlinks=symlinks)
+    if rows:
+        click.echo("⚠️ Submodule in addons of OCA repositories")
+        click.echo(
+        render_table(
+            rows,
+            headers=["Submodule", "Repo", "Version", "ssh"],
+            index=False,
+        )
+    )
+
     if res:
         click.echo(
             f"✅ All submodules are under {config.new_submodule_path} "
@@ -111,3 +123,34 @@ def main():  # noqa: C901
         return 0
     else:
         return 1
+
+def check_oca_pr(symlinks: list) -> list:
+    """ Check if submodule in addons of repository"""
+    submodules_in_addons = []
+    submodule_oca_prs = {}
+    for symlink in symlinks:
+        if "PRs" not in symlink.split("/"):
+            continue
+        manifest_datas = get_manifest_values(symlink, ["website", "version"])
+        if "/OCA/" not in manifest_datas.get("website", "") or not manifest_datas.get("version"):
+            continue
+        key = (
+            manifest_datas.get("website", "").split("/")[-1],
+            (manifest_datas.get("version", "").split(".")[0])+'.0',
+        )
+        submodule_oca_prs.setdefault(key, [])
+        submodule_oca_prs[key].append(symlink.split("/")[-1])
+
+    for key, submodules in submodule_oca_prs.items():
+        repo, version = key
+        addons = list_addons("OCA",repo,version)
+        for submodule in submodules:
+            if submodule in addons:
+                submodules_in_addons.append([
+                    human_readable(submodule, width=75),
+                    human_readable(repo, width=75),
+                    human_readable(version, width=6),
+                    human_readable(f"git@github.com:OCA/{repo}.git", width=100),
+                ])
+
+    return submodules_in_addons
