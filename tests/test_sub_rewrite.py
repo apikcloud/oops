@@ -20,7 +20,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from oops.submodules.rewrite import main
+from oops.commands.submodules.rewrite import main
 
 
 def _run(cmd: list, cwd: Path) -> subprocess.CompletedProcess:
