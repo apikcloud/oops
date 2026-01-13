@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import os
 
 import click
 from git import Repo
@@ -69,5 +70,8 @@ def main(
     click.echo(command)
 
     if save:
-        with open("migrate.sh", mode="w", encoding="UTF-8") as file:
+        with open(config.migrate_file, mode="w", encoding="UTF-8") as file:
             file.write(config.migrate_content.format(content=command))
+        # Do a chmod +x
+        st = os.stat(config.migrate_file)
+        os.chmod(config.migrate_file, st.st_mode | 0o111)
