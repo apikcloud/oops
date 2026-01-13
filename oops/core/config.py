@@ -70,6 +70,14 @@ class Config:
         ]
     )
 
+    migrate_file: str = "migrate.sh"
+    migrate_command: str = "odoo --stop-after-init --no-http -u {addons}"
+    migrate_content: str = """#!/bin/bash
+
+# Unreleased
+{content}
+"""
+
     @property
     def odoo_images_url(self) -> str:
         return f"https://raw.githubusercontent.com/{self.repo_docker_images}/refs/heads/main/{self.repo_docker_file}"

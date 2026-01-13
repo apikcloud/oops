@@ -317,3 +317,15 @@ def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
             if tmp.exists():
                 shutil.rmtree(tmp)
         raise ValueError(f"Failed to materialize {symlink_path}: {e}") from e
+
+
+def find_modified_addons(files: list) -> list:
+    addons = set()
+    for f in files:
+        p = Path(f)
+        # Go back up the tree until you find a manifest
+        for parent in [p] + list(p.parents):
+            if (parent / "__manifest__.py").exists() or (parent / "__openerp__.py").exists():
+                addons.add(str(parent.name))
+                break
+    return sorted(addons)
