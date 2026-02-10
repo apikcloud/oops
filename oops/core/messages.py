@@ -20,8 +20,8 @@ class CommitMessages:
     submodules_replace: str = (
         "chore(submodules): replace submodule(s) and update symlinks\n\n{description}"
     )
-    submodule_add: str = "chore(submodules): add submodule {name}"
-    submodule_add_desc: str = """
+    submodule_add: str = """chore(submodules): add submodule {name}"
+    
     - url: {url}
     - branch: {branch}
     - path: {path}
