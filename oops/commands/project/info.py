@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: info.py — oops/commands/project/info.py
 
 
 import click
@@ -9,12 +12,12 @@ from oops.commands.project.common import (
     parse_packages,
     parse_requirements,
 )
-from oops.git.core import GitRepository
 from oops.git import (
     get_last_commit,
     get_last_release,
     get_next_releases,
 )
+from oops.git.core import GitRepository
 from oops.services.docker import check_image, find_available_images, parse_image_tag
 from oops.services.github import get_latest_workflow_run
 from oops.utils.render import format_datetime, human_readable, render_table
@@ -79,7 +82,7 @@ def main(token: str, minimal: bool):  # noqa: C901
         ["Registry", image_infos.source],
         ["Available image(s)", message],
         ["System package(s)", human_readable(packages) or "--"],
-        ["Python requirement(s)", human_readable(requirements, sep="\n") or "--"],
+        ["Python requirement(s)", human_readable(requirements, sep=", ") or "--"],
         ["Git:", ""],
         ["Remote URL", url or "no remote found"],
         ["Last release", last_release or "no valid release found"],

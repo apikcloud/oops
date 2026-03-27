@@ -1,3 +1,8 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: models.py — oops/core/models.py
+
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path

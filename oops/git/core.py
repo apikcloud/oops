@@ -1,4 +1,7 @@
-"""Git core operations - Basic git commands."""
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: core.py — oops/git/core.py
 
 import contextlib
 import logging

@@ -1,4 +1,7 @@
-"""Git versioning operations - Tags, releases, and semantic versioning."""
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: versioning.py — oops/git/versioning.py
 
 import re
 import subprocess

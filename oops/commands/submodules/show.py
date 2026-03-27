@@ -1,7 +1,12 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: show.py — oops/commands/submodules/show.py
+
 import click
 
-from oops.git.core import GitRepository
 from oops.git import get_last_commit
+from oops.git.core import GitRepository
 from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 

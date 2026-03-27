@@ -1,7 +1,7 @@
-# oops/render.py
-"""
-Rendering utilities for tables and formatted output.
-"""
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: render.py — oops/utils/render.py
 
 import textwrap
 from datetime import datetime

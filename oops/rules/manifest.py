@@ -1,3 +1,8 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: manifest.py — oops/rules/manifest.py
+
 import libcst as cst
 import libcst.matchers as m
 from fixit import LintRule

@@ -1,12 +1,16 @@
-#!/usr/bin/env python3
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: add.py — oops/commands/addons/add.py
+
 import logging
 import os
 
 import click
 
 from oops.core.messages import commit_messages
-from oops.git.core import GitRepository
 from oops.git import list_available_addons
+from oops.git.core import GitRepository
 from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons_extended, relpath
 

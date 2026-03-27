@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: add.py — oops/commands/submodules/add.py
+
 import os
 import sys
 from pathlib import Path

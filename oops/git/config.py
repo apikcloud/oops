@@ -1,4 +1,7 @@
-"""Git configuration operations - .gitmodules and git config management."""
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: config.py — oops/git/config.py
 
 import subprocess
 from dataclasses import dataclass

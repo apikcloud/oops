@@ -1,5 +1,7 @@
-#!/usr/bin/env python3
-
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: fix.py — oops/commands/submodules/fix.py
 
 from pathlib import Path
 
@@ -34,11 +36,11 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
     symlinks = list_symlinks(repo.working_dir)
     broken_symlinks = list_symlinks(repo.working_dir, broken_only=True)
     new_urls = []
-    deprecated_repos = []
+    # deprecated_repos = []
 
     repo_to_remove = []
     repo_to_add = []
-    symlinks_to_update = []
+    # symlinks_to_update = []
 
     for submodule in repo.submodules:
         scheme, owner, repository = parse_repository_url(submodule.url)

@@ -1,3 +1,8 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: helpers.py — oops/utils/helpers.py
+
 from datetime import date
 
 from oops.utils.compat import PY38, Any, List

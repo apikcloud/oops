@@ -1,0 +1,15 @@
+{
+  // Python
+  "Copyright Only": {
+    "prefix": "copy",
+    "scope": "python",
+    "body": [
+      "# Copyright ${CURRENT_YEAR} apik (https://apik.cloud).",
+      "# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).$0",
+      "#",
+      "# File: ${TM_FILENAME} — ${RELATIVE_FILEPATH}",
+      "",
+    ],
+    "description": "Copyright"
+  },  
+}

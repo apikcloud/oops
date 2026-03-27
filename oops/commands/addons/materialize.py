@@ -1,4 +1,8 @@
-# oops/commands/addons_materialize.py
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: materialize.py — oops/commands/addons/materialize.py
+
 from pathlib import Path
 
 import click

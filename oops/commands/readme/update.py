@@ -1,5 +1,8 @@
-#!/usr/bin/env python
-# License AGPLv3 (https://www.gnu.org/licenses/agpl-3.0-standalone.html)
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: update.py — oops/commands/readme/update.py
+
 """
 This script replaces markers in the README.md file
 of an repository with the list of addons present

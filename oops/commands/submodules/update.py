@@ -1,3 +1,8 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: update.py — oops/commands/submodules/update.py
+
 import click
 from git import Repo
 
@@ -10,7 +15,7 @@ from oops.utils.git import is_pull_request
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")
 @click.argument("names", nargs=-1, required=False)
-def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: tuple[str] = None):
+def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | None" = None):
     """
     Update git submodules to their latest upstream versions.
     """

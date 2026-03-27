@@ -1,4 +1,7 @@
-"""Git repository operations and helpers."""
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: repository.py — oops/git/repository.py
 
 import contextlib
 import subprocess

@@ -1,5 +1,7 @@
-#!/usr/bin/env python3
-
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: branch.py — oops/commands/submodules/branch.py
 
 import configparser
 import logging
