@@ -12,7 +12,7 @@ chasing repository drift.
 - Ships reproducible scripts that integrate well with CI pipelines and project bootstrap tooling.
 
 ## Requirements
-- Python 3.8+ (Python 3.7 is the minimum supported version).
+- Python 3.7+.
 - Git with submodule support enabled.
 - A POSIX-compatible shell; examples below assume `bash`.
 
