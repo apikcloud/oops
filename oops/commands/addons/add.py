@@ -8,11 +8,15 @@ import os
 
 import click
 
+from git import Repo
+from pathlib import Path
+
+from oops.core.config import config
 from oops.core.messages import commit_messages
 from oops.git import list_available_addons
-from oops.git.core import GitRepository
+# from oops.git.core import GitRepository
 from oops.utils.helpers import str_to_list
-from oops.utils.io import find_addons_extended, relpath
+from oops.utils.io import desired_path,find_addons_extended, relpath
 
 
 @click.command("add")
@@ -21,13 +25,20 @@ from oops.utils.io import find_addons_extended, relpath
 def main(addons_list: str, no_commit: bool):
     """Create symlinks for listed addons from available ones in submodules."""
 
-    repo = GitRepository()
-
-    existing_addons = [name for name, _, _ in find_addons_extended(repo.path)]
+    repo = Repo()
+    submodule_path = Path(repo.working_dir) / config.new_submodule_path
+    addons_extended = find_addons_extended(Path(repo.working_dir))
+    print("submodule_path",submodule_path)
+    print([(name,path) for name, path, _ in addons_extended if submodule_path not in path.parents])
+    existing_addons = [name for name, path, _ in addons_extended if submodule_path not in path.parents]
+    print("="*120)
+    print(existing_addons)
+    print("="*120)
     addons = set(str_to_list(addons_list)) - set(existing_addons)
 
     addons_to_link = {}
-    for name, path, _ in list_available_addons(repo.path):
+    for name, path, _ in addons_extended:
+        print(name,path)
         if name in addons:
             addons_to_link[name] = {"path": path, "version": None}
 

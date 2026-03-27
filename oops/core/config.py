@@ -19,6 +19,7 @@ class Config:
     # Submodule
     new_submodule_path: Path = Path(".third-party")
     old_submodule_path: Path = Path("third-party")
+    pull_request_dir: str = "PRs"
 
     # Manifest
     manifest_names: List[str] = field(

@@ -18,21 +18,10 @@ from oops.utils.io import (
     desired_path,
     ensure_parent,
     relpath,
+    find_addon_dirs,
 )
 from oops.utils.net import parse_repository_url
 from oops.utils.render import human_readable, render_table
-
-
-def find_addons(submodule_dir: Path):
-    """Return addon directories (contain __manifest__.py or __openerp__.py)."""
-    addons = []
-    for root, dirs, files in os.walk(submodule_dir):
-        # speed: ignore .git and typical junk
-        if ".git" in dirs:
-            dirs.remove(".git")
-        if "__manifest__.py" in files or "__openerp__.py" in files:
-            addons.append(Path(root))
-    return addons
 
 
 @click.argument(
@@ -166,7 +155,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     if auto_symlinks or addons:
         click.echo("[scan] detecting addon folders…")
-        addons_found = find_addons(sub_path)
+        addons_found = [addon for addon in find_addon_dirs(sub_path,with_pr=pull_request)]
         if not addons_found:
             click.echo("  no addon folders detected.")
         else:

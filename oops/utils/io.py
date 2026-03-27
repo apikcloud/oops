@@ -99,7 +99,7 @@ def desired_path(
     parts = [owner, repo]
 
     if pull_request:
-        parts.insert(0, "PRs")
+        parts.insert(0, config.pull_request_dir)
 
     if prefix:
         parts.insert(0, prefix.rstrip("/"))
@@ -188,6 +188,18 @@ def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None,
                 # we're already in a first-level subdir (real or symlink) → don't go deeper
                 dirnames[:] = []
 
+def find_addon_dirs(addon_dir: Path, with_pr:bool=False):
+    addon_dir = Path(addon_dir)
+    seen = set()
+
+    for pattern in config.manifest_names:
+        for path in addon_dir.rglob(pattern):
+            if not with_pr and any(part==config.pull_request_dir for part in path.parts):
+                continue
+
+            if path.parent not in seen:
+                seen.add(path.parent)
+                yield path.parent
 
 def get_manifest_path(addon_dir: str) -> Optional[str]:
     """Return the path to the manifest file in this addon directory."""
@@ -214,14 +226,18 @@ def find_addons_extended(
 ):
     """Yield (name, path, manifest) for each addon in the given directory."""
 
-    for name in os.listdir(addons_dir):
-        path = os.path.join(addons_dir, name)
+    for full_path in find_addon_dirs(Path(addons_dir)):
+        files = [file for file in full_path.rglob("*") if file.name in config.manifest_names]
+
         try:
-            manifest = parse_manifest(path)
+            manifest = parse_manifest(files[0])
         except NoManifestFound:
             continue
         if installable_only and not manifest.get("installable", True):
             continue
+        
+        name = full_path.name
+        path = full_path.parent
 
         if names and name not in names:
             continue
@@ -268,7 +284,7 @@ def is_pull_request_path(raw: Optional[str]) -> bool:
     if not raw:
         return False
 
-    return raw.startswith("PRs/") or "pr" in raw.split("/")
+    return raw.startswith(config.pull_request_dir + "/") or "pr" in raw.split("/")
 
 
 def copytree(src: Path, dst: Path, ignore_git: bool = True) -> None:
