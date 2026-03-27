@@ -9,8 +9,8 @@ from pathlib import Path
 import click
 
 from oops.core.messages import commit_messages
-from oops.git.core import GitRepository
 from oops.git import update_gitignore
+from oops.git.core import GitRepository
 from oops.services.github import fetch_branch_zip
 from oops.utils.compat import Optional
 from oops.utils.helpers import str_to_list

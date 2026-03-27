@@ -32,5 +32,7 @@ class CommitMessages:
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."
     pre_commit_exclude: str = "chore: update pre-commit exclusions"
 
+    update_addons_table: str = "chore(README): update addons table"
+
 
 commit_messages = CommitMessages()

@@ -7,42 +7,42 @@ name = "oops"
 description = "Set of tools to help managing Odoo addons development"
 readme = "README.md"
 license = "AGPL-3.0-only"
-authors = [{name = "Apik"}]
+authors = [{ name = "Apik" }]
 keywords = ["odoo", "git", "submodules", "manifests", "cli"]
 dynamic = ["version"]
 dependencies = [
-    "appdirs",
-    "docutils",
-    "freezegun",
-    "PyYAML",
-    "requests",
-    "twine",
-    "wheel",
-    "pyproject_dependencies ; python_version>='3.7'",
-    "typing-extensions; python_version<'3.11'",
-    "importlib-metadata; python_version<'3.10'",
-    "tomli; python_version<'3.11'", # from 3.11 tomllib is in stdlib
-    "backports.zoneinfo; python_version<'3.9'",
-    "click>=8.1",
-    "typing-extensions>=4.7; python_version<'3.8'",
-    "libcst==0.4.*; python_version<'3.8'",
-    "rich>=13.0",
-    "fixit>2.0",
-    "black",
-    "tabulate",
-    "GitPython",
+  "appdirs",
+  "docutils",
+  "freezegun",
+  "PyYAML",
+  "requests",
+  "twine",
+  "wheel",
+  "pyproject_dependencies ; python_version>='3.7'",
+  "typing-extensions; python_version<'3.11'",
+  "importlib-metadata; python_version<'3.10'",
+  "tomli; python_version<'3.11'",                   # from 3.11 tomllib is in stdlib
+  "backports.zoneinfo; python_version<'3.9'",
+  "click>=8.1",
+  "typing-extensions>=4.7; python_version<'3.8'",
+  "libcst==0.4.*; python_version<'3.8'",
+  "rich>=13.0",
+  "fixit>2.0",
+  "black",
+  "tabulate",
+  "GitPython",
 ]
 
 
 requires-python = ">=3.7"
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python",
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python",
 ]
 
 [project.urls]
@@ -56,7 +56,6 @@ oops-addons-diff = "oops.commands.addons.diff:main"
 oops-addons-download = "oops.commands.addons.download:main"
 oops-addons-list = "oops.commands.addons.list:main"
 oops-addons-materialize = "oops.commands.addons.materialize:main"
-oops-addons-table = "oops.commands.addons.gen_table:main"
 oops-i-did-it-again = "oops.commands.submodules.clean:main"
 oops-man-check = "oops.commands.manifest.check:main"
 oops-man-fix = "oops.commands.manifest.fix:main"
@@ -64,6 +63,7 @@ oops-pro-check = "oops.commands.project.check:main"
 oops-pro-exclude = "oops.commands.project.exclusions:main"
 oops-pro-info = "oops.commands.project.info:main"
 oops-pro-update = "oops.commands.project.update:main"
+oops-readme-update = "oops.commands.readme.update:main"
 oops-sub-add = "oops.commands.submodules.add:main"
 oops-sub-branch = "oops.commands.submodules.branch:main"
 oops-sub-check = "oops.commands.submodules.check:main"
@@ -89,7 +89,7 @@ source = "vcs"
 [tool.ruff]
 line-length = 100
 target-version = "py37"
-lint.select = ["E","F","I","B","UP","SIM","PL","C90"]
+lint.select = ["E", "F", "I", "B", "UP", "SIM", "PL", "C90"]
 lint.ignore = [
   "E203", # whitespace before ':' (plays better with Black if you add it later)
 ]
@@ -108,11 +108,7 @@ testpaths = ["tests"]
 source = ["oops"]
 branch = true
 parallel = true
-omit = [
-  "*/__main__.py",
-  "*/_version.py",
-  "*/tests/*",
-]
+omit = ["*/__main__.py", "*/_version.py", "*/tests/*"]
 
 [tool.coverage.report]
 skip_empty = true
@@ -126,14 +122,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.paths]
-source = [
-  "oops",
-  ".venv/lib/python*/site-packages/oops",
-]
+source = ["oops", ".venv/lib/python*/site-packages/oops"]
 
 [project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-cov",
-    "coverage[toml]",
-]
+dev = ["pytest", "pytest-cov", "coverage[toml]"]

@@ -1,12 +1,12 @@
-- id: oops-addons-table
-  name: Generate addons table in README
+- id: oops-readme-update
+  name: Update addons table in README
   always_run: true
-  entry: oops-addons-table
+  entry: oops-readme-update
   language: python
   pass_filenames: false
 
 - id: oops-submodules-check
   name: Check submodules
   entry: oops-sub-check
-  pass_filenames: false
   language: python
+  pass_filenames: false

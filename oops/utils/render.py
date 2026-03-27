@@ -55,3 +55,30 @@ def render_table(
         options["headers"] = headers
 
     return tabulate(rows, tablefmt="github", **options)
+
+
+def sanitize_cell(s):
+    if not s:
+        return ""
+    s = " ".join(s.split())
+    return s
+
+
+def render_markdown_table(header, rows):
+    table = []
+    rows = [header, ["---"] * len(header)] + rows
+    for row in rows:
+        table.append(" | ".join(row))
+    return "\n".join(table)
+
+
+def render_maintainers(manifest):
+    maintainers = manifest.get("maintainers") or []
+    return " ".join(
+        [
+            f"<a href='https://github.com/{x}'>"
+            f"<img src='https://github.com/{x}.png' width='32' height='32' style='border-radius:50%;' alt='{x}'/>"  # noqa: E501
+            "</a>"
+            for x in maintainers
+        ]
+    )

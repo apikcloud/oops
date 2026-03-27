@@ -21,6 +21,12 @@ class ScriptNotFound(Exception):
     pass
 
 
+class MarkersNotFound(Exception):
+    """Raised when the addons table markers are missing or malformed in a README."""
+
+    pass
+
+
 class MissingMandatoryFiles(Exception):
     """Raised when mandatory files are missing."""
 

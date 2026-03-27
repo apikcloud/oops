@@ -54,7 +54,7 @@ def load_manifest(addon_dir: Path) -> dict:
         manifest_path = addon_dir / manifest_name
         if manifest_path.is_file():
             return parse_manifest(manifest_path)
-    logging.error(f"No Odoo manifest found in {addon_dir}")
+    logging.debug(f"No Odoo manifest found in {addon_dir}")
     return {}
 
 
@@ -329,3 +329,12 @@ def find_modified_addons(files: list) -> list:
                 addons.add(str(parent.name))
                 break
     return sorted(addons)
+
+
+def collect_addon_paths(addons_dir: Path) -> list:
+    """Return list of (addon_path, unported) pairs, sorted by path."""
+    paths = [(p, False) for p in addons_dir.iterdir()]
+    unported = addons_dir / "__unported__"
+    if unported.is_dir():
+        paths += [(p, True) for p in unported.iterdir()]
+    return sorted(paths, key=lambda x: x[0])

@@ -6,10 +6,9 @@ from pathlib import Path
 import click
 from git import Repo
 
-from oops.utils.git import is_pull_request, read_gitmodules
-
 from oops.core.config import config
 from oops.core.messages import commit_messages
+from oops.utils.git import read_gitmodules
 from oops.utils.helpers import str_to_list
 from oops.utils.io import (
     desired_path,
@@ -100,9 +99,8 @@ def main(  # noqa: C901, PLR0915, PLR0913
         sys.exit(1)
 
     suffix = addons_to_link[0] if addons_to_link and pull_request else None
-    sub_path_str = desired_path(
-        url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
-    
+    sub_path_str = desired_path(url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
+
     sub_path = Path(repo.working_dir) / sub_path_str
     sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
 
@@ -136,7 +134,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
         name=sub_name,
         path=sub_path_str,
         url=url,
-        branch=branch,  
+        branch=branch,
     )
 
     # Pin branch in .gitmodules (redundant but explicit)
@@ -191,7 +189,8 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     if not no_commit:
         repo.index.commit(
-            commit_messages.submodule_add.format(name=sub_name,
+            commit_messages.submodule_add.format(
+                name=sub_name,
                 url=url,
                 branch=branch,
                 path=sub_path_str,
