@@ -70,7 +70,7 @@ oops-pro-update --force
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.project.exclusions
+    :module: oops.commands.project.exclude
     :command: main
     :prog_name: oops-pro-exclude
     :depth: 2

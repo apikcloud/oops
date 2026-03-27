@@ -13,7 +13,6 @@ image automatically and commits the change.
 
 import click
 import requests
-
 from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import parse_odoo_version, write_text_file
@@ -25,7 +24,6 @@ from oops.services.git import commit, get_local_repo
 @command(name="update", help=__doc__)
 @click.option("--force", is_flag=True, help="Don't ask for confirmation")
 def main(force: bool):  # noqa: C901
-
     repo, repo_path = get_local_repo()
 
     try:
@@ -34,9 +32,7 @@ def main(force: bool):  # noqa: C901
         raise click.ClickException(str(e) or "Could not parse current Odoo version.") from e
 
     if not image_info.release:
-        raise click.ClickException(
-            "Current Odoo version does not specify a release date, cannot proceed."
-        )
+        raise click.ClickException("Current Odoo version does not specify a release date, cannot proceed.")
 
     try:
         available_images = find_available_images(
@@ -54,9 +50,11 @@ def main(force: bool):  # noqa: C901
         new_image = available_images[0]
     else:
         click.echo(format_available_images(available_images, include_index=True))
-        answer = ask("Select new image [0]: ", default="0")
+        answer = ask("Select new image [1]: ", default="1")
         try:
-            new_image = available_images[int(answer)]
+            # Remove 1 to match the index as we display from 1 to n.
+            answer = 1 if int(answer) <= 0 else int(answer) - 1
+            new_image = available_images[answer]
         except (ValueError, IndexError) as e:
             raise click.ClickException("Invalid selection.") from e
 

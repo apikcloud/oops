@@ -191,6 +191,7 @@ nav:
       - Project: commands/project.md
       - Readme: commands/readme.md
       - Release: commands/release.md
+      - Requirements: commands/requirements.md
       - Submodules: commands/submodules.md
   - Hooks: hooks.md
   - Lint Rules: rules.md

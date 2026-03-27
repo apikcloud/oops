@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 
 import requests
 from git import Repo
-
 from oops.core.config import config
 from oops.utils.compat import Optional, Tuple
 from oops.utils.helpers import removesuffix
@@ -80,6 +79,7 @@ def _parse_url(url: str) -> Tuple[str, str, str, str]:
         ValueError: If the URL is missing a host or owner/repo path segments.
     """
     url = url.strip()
+    host = path = None
 
     # 1) SCP-like SSH form: git@host:owner/repo(.git)?
     m = re.match(r"^(?P<user>[^@]+)@(?P<host>[^:]+):(?P<path>.+)$", url)

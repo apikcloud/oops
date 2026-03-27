@@ -7,10 +7,9 @@ import textwrap
 from datetime import datetime
 
 import click
-from tabulate import tabulate
-
 from oops.core.config import config
 from oops.utils.compat import Any, List, Optional
+from tabulate import tabulate
 
 
 def format_datetime(dt: datetime) -> str:
@@ -65,7 +64,10 @@ def render_boolean(raw: bool) -> str:
 
 
 def render_table(
-    rows: List[List[Any]], headers: Optional[List[str]] = None, index: bool = False
+    rows: List[List[Any]],
+    headers: Optional[List[str]] = None,
+    index: bool = False,
+    start_index: int = 1,
 ) -> str:
     """Render a list of rows as a GitHub-flavoured Markdown table.
 
@@ -73,6 +75,7 @@ def render_table(
         rows: List of row data, where each row is a list of cell values.
         headers: Optional column header labels.
         index: If True, prepend a numeric row index. Defaults to False.
+        start_index: First index value when *index* is True. Defaults to 1.
 
     Returns:
         Formatted Markdown table string.
@@ -80,7 +83,7 @@ def render_table(
 
     options = {}
     if index:
-        options["showindex"] = True
+        options["showindex"] = range(start_index, start_index + len(rows))
     if headers:
         options["headers"] = headers
 

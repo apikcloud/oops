@@ -4,7 +4,7 @@
 # File: models.py — oops/core/models.py
 
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from oops.utils.compat import Optional
@@ -113,9 +113,7 @@ class WorkflowRunInfo:
     @classmethod
     def from_dict(cls, vals: dict) -> "WorkflowRunInfo":
         # ISO8601 -> datetime (handles trailing 'Z')
-        created = datetime.fromisoformat(vals["created_at"].replace("Z", "+00:00")).astimezone(
-            timezone.utc
-        )
+        created = datetime.fromisoformat(vals["created_at"].replace("Z", "+00:00")).astimezone(UTC)
 
         return cls(
             **{
@@ -132,7 +130,9 @@ class WorkflowRunInfo:
         )
 
     def __str__(self) -> str:
-        return f"{self.name} triggered by {self.event} on {self.branch} by {self.actor} ({self.status}/{self.conclusion})"  # noqa: E501
+        return (
+            f"{self.name} triggered by {self.event} on {self.branch} by {self.actor} ({self.status}/{self.conclusion})"  # noqa: E501
+        )
 
 
 @dataclass
@@ -142,8 +142,11 @@ class AddonInfo:
     technical_name: str
     symlink: bool
     root: bool  # is it in the root of the repo?
-    author: str
     version: str
+    author: str
+    maintainers: list[str]
+    summary: str
+    external_dependencies: dict[str, list[str]]
     installable: bool
 
     @property
@@ -170,7 +173,10 @@ class AddonInfo:
             symlink=symlink,
             root=root,
             rel_path=rel_path,
-            author=manifest.get("author", "unknown"),
             version=manifest.get("version", "unknown"),
+            author=manifest.get("author", "unknown"),
+            maintainers=manifest.get("maintainers", []),
+            summary=manifest.get("summary", ""),
+            external_dependencies=manifest.get("external_dependencies", {}),
             installable=manifest.get("installable", True),
         )

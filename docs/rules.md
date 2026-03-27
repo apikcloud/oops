@@ -67,5 +67,5 @@ positive.
 
 ## Adding a rule
 
-See the developer guide at the top of [`oops/rules/manifest.py`](/reference/rules/manifest)
+See the developer guide at the top of [`oops/rules/manifest.py`](reference/rules/manifest.md)
 and the shared helpers in `oops/rules/_helpers.py`.

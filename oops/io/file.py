@@ -13,16 +13,19 @@ Sections:
     - Addons: locating and collecting Odoo addon directories
 """
 
+from __future__ import annotations
+
 import contextlib
+import difflib
 import logging
 import os
+import re
 import shutil
 from collections.abc import Generator
 from os import PathLike
 from pathlib import Path
 
 from git.repo import Repo
-
 from oops.core.config import config
 from oops.core.models import AddonInfo, ImageInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
@@ -172,7 +175,7 @@ def parse_text_file(content: str) -> set:
     return filter_and_clean(content.splitlines())
 
 
-def read_and_parse(path: Path) -> "list[str]":
+def read_and_parse(path: Path) -> list[str]:
     """Read a text file and return its non-empty, sorted lines.
 
     Args:
@@ -261,12 +264,120 @@ def parse_odoo_version(path: Path) -> ImageInfo:
     return parse_image_tag(res[0])
 
 
+def get_requirements_diff(requirement_file: Path, repo_path: Path) -> tuple[bool, list, list]:
+    """Compare the current requirements file against Python deps declared in addon manifests.
+
+    Collects all ``python`` entries from ``external_dependencies`` across every
+    addon found in *repo_path*, sorts them, and runs a line-level diff against
+    the existing *requirement_file*.
+
+    Args:
+        requirement_file: Path to the existing ``requirements.txt`` (may not exist yet).
+        repo_path: Root of the repository to scan for addons.
+
+    Returns:
+        A three-element tuple ``(has_changes, new_lines, diff)``:
+
+        - ``has_changes``: True if the new content differs from the current file.
+        - ``new_lines``: Sorted list of dependency lines to write.
+        - ``diff``: Raw output from :func:`difflib.ndiff`.
+    """
+    python_dependencies = ["# Requirements generated from manifests external_dependencies:"]
+    for addon in find_addons(repo_path, shallow=True):
+        python_dependencies.extend(addon.external_dependencies.get("python", []))
+
+    python_dependencies.sort()
+
+    # TODO: duplicate code with parse_requirements, should be refactored
+    old_content_list = []
+    if requirement_file.exists():
+        old_content_list = requirement_file.read_text().splitlines()
+
+    diff = list(difflib.ndiff(old_content_list, python_dependencies))
+
+    has_changes = any(line.startswith(("-", "+")) for line in diff)
+
+    return has_changes, python_dependencies, diff
+
+
+def file_updater(
+    filepath: str,
+    new_inner_content: str,
+    start_tag: Optional[str] = None,
+    end_tag: Optional[str] = None,
+    padding: str = "\n",
+    append_position: str | bool = "bottom",
+) -> bool:
+    """Update a file with new content, either replacing the entire file or a section between tags.
+
+    Args:
+        filepath: Path to the file to update.
+        new_inner_content: New content to insert.
+        start_tag: Start tag for targeted replacement (optional).
+        end_tag: End tag for targeted replacement (optional).
+        padding: Padding to add around the new content (default: newline).
+        append_position: Where to append the new content if it doesn't exist ('top' or 'bottom') (default: 'bottom'). If
+          it is not defined (False), content will not be edited if tags are missing.
+
+    Returns:
+        bool: True if the file was updated, False if no changes have been made.
+    """
+    path = Path(filepath)
+    if not path.exists():
+        os.makedirs(path.parent, exist_ok=True)
+        with open(filepath, "w") as new_file:
+            if start_tag and end_tag:
+                new_file.write(f"{start_tag}\n{new_inner_content}\n{end_tag}\n")
+
+    if (start_tag and not end_tag) or (end_tag and not start_tag):
+        raise ValueError(f"Targeted update for {filepath} requires BOTH start and end tags.")
+
+    content = path.read_text()
+    is_to_append = False
+
+    # Case 1: Full File Replacement (missing tags).
+    if not start_tag or not end_tag:
+        new_file_content = new_inner_content.strip()
+
+    # Case 2: Targeted Replacement (replace content between tags).
+    else:
+        start_esc = re.escape(start_tag)
+        end_esc = re.escape(end_tag)
+        # Capture optional leading whitespace to preserve indentation
+        pattern = rf"([ \t]*{start_esc}).*?([ \t]*{end_esc})"
+
+        match = re.search(pattern, content, flags=re.DOTALL)
+        if match:
+            replacement = f"\\1{padding}{new_inner_content}{padding}\\2"
+            new_file_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+        elif append_position:
+            # Content adding if not found.
+            new_file_content = f"{start_tag}{padding}{new_inner_content}{padding}{end_tag}"
+            is_to_append = True
+        else:
+            return False
+
+    if new_file_content != content:
+        if is_to_append:
+            current_content = path.read_text()
+            if append_position == "top":
+                new_file_content = f"{new_file_content}\n{current_content}\n"
+            else:
+                new_file_content = f"{current_content}\n{new_file_content}\n"
+            path.write_text(new_file_content)
+        else:
+            path.write_text(new_file_content + "\n")
+        return True
+
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Symlinks
 # ---------------------------------------------------------------------------
 
 
-def list_symlinks(path: PathLike, broken_only: bool = False) -> "list[str]":
+def list_symlinks(path: PathLike, broken_only: bool = False) -> list[str]:
     """Collect symlink targets found recursively under a directory.
 
     Args:
@@ -501,7 +612,7 @@ def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
 # ---------------------------------------------------------------------------
 
 
-def get_addons_diff(repo: Repo, base_ref: str) -> "tuple[list, list, list]":
+def get_addons_diff(repo: Repo, base_ref: str) -> tuple[list, list, list]:
     """Classify addon changes between base_ref and HEAD into new, updated, and removed.
 
     Args:
@@ -518,9 +629,7 @@ def get_addons_diff(repo: Repo, base_ref: str) -> "tuple[list, list, list]":
 
     # Removed root-level entries: verify each had a manifest at base_ref
     deleted_root = [
-        f
-        for f in repo.git.diff("--name-only", "--diff-filter=D", base_ref, "HEAD").splitlines()
-        if "/" not in f
+        f for f in repo.git.diff("--name-only", "--diff-filter=D", base_ref, "HEAD").splitlines() if "/" not in f
     ]
     removed_addons = []
     for name in deleted_root:
