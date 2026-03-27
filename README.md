@@ -38,8 +38,8 @@ oops-sub-add https://github.com/OCA/server-ux.git -b 18.0 --auto-symlinks
 # List every addon discovered in the configured submodules
 oops-addons-list --format json > addons.json
 
-# Reformat every __manifest__.py under ./addons and exit non-zero on pending changes
-oops-man-rewrite --addons-dir ./addons --check
+# Generate or refresh the addons table in README.md
+oops-readme-update
 ```
 
 ## Commands
@@ -202,13 +202,12 @@ oops-addons-download https://github.com/OCA/server-ux.git 18.0 --token $GH_TOKEN
 
 The `--no-exclude` flag skips adding downloaded addons to `.gitignore`.
 
-#### `oops-addons-table`
-Generate or refresh the addon inventory table inside a `README.md` that contains the standard OCA markers.
+#### `oops-readme-update`
+Generate or refresh the addon inventory table inside the repo's `README.md`. Creates `README.md` with the marker skeleton if the file does not exist. Commits automatically unless `--no-commit` is passed.
 
 ```bash
-oops-addons-table
-oops-addons-table --addons-dir ./addons --readme-path ./addons/README.md
-oops-addons-table --commit   # commit the updated README automatically
+oops-readme-update            # update table and commit if changed
+oops-readme-update --no-commit
 ```
 
 ---
