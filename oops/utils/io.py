@@ -3,10 +3,14 @@
 #
 # File: io.py — oops/utils/io.py
 
+from __future__ import annotations
+
 import ast
 import contextlib
+import difflib
 import logging
 import os
+import re
 import shutil
 from collections.abc import Generator
 from os import PathLike
@@ -110,7 +114,7 @@ def desired_path(
     return os.path.join(*parts)
 
 
-def list_symlinks(path: PathLike, broken_only: bool = False) -> "list[str]":
+def list_symlinks(path: PathLike, broken_only: bool = False) -> list[str]:
     """Return a list of all symlink targets under the given path."""
 
     targets = []
@@ -209,9 +213,7 @@ def read_manifest(path: str) -> cst.CSTNode:
         return parse_manifest_cst(mf.read())
 
 
-def find_addons_extended(
-    addons_dir: Union[str, Path], installable_only: bool = False, names: Optional[list] = None
-):
+def find_addons_extended(addons_dir: Union[str, Path], installable_only: bool = False, names: Optional[list] = None):
     """Yield (name, path, manifest) for each addon in the given directory."""
 
     if isinstance(addons_dir, str):
@@ -345,3 +347,96 @@ def collect_addon_paths(addons_dir: Path) -> list:
     if unported.is_dir():
         paths += [(p, True) for p in unported.iterdir()]
     return sorted(paths, key=lambda x: x[0])
+
+
+# -------------------------
+# Manifest related features
+# -------------------------
+def get_python_dependencies(requirement_file: Path, repo_path: Path):
+    python_dependencies = ["# Requirements generated from manifests external_dependencies:"]
+    for addon in find_addons(repo_path, shallow=True):
+        python_dependencies.extend(addon.external_dependencies.get("python", []))
+
+    python_dependencies.sort()
+
+    old_content_list = []
+    if requirement_file.exists():
+        old_content_list = requirement_file.read_text().splitlines()
+
+    diff = list(difflib.ndiff(old_content_list, python_dependencies))
+
+    has_changes = any(line.startswith(("-", "+")) for line in diff)
+
+    return has_changes, python_dependencies, diff
+
+
+# ------------------------
+# File management features
+# ------------------------
+def file_updater(
+    filepath: str,
+    new_inner_content: str,
+    start_tag: str = None,
+    end_tag: str = None,
+    padding: str = "\n",
+    append_position: str = "bottom",
+) -> bool:
+    """Update a file with new content, either replacing the entire file or a section between tags.
+
+    Args:
+        filepath: Path to the file to update.
+        new_inner_content: New content to insert.
+        start_tag: Start tag for targeted replacement (optional).
+        end_tag: End tag for targeted replacement (optional).
+        padding: Padding to add around the new content (default: newline).
+        append_position: Where to append the new content if it doesn't exist ('top' or 'bottom') (default: 'bottom').
+
+    Returns:
+        bool: True if the file was updated, False if no changes have been made.
+    """
+    path = Path(filepath)
+    if not path.exists():
+        os.makedirs(path.parent, exist_ok=True)
+        with open(filepath, "w") as new_file:
+            if start_tag and end_tag:
+                new_file.write(f"{start_tag}\n{new_inner_content}\n{end_tag}\n")
+
+    if (start_tag and not end_tag) or (end_tag and not start_tag):
+        raise ValueError(f"Targeted update for {filepath} requires BOTH start and end tags.")
+
+    content = path.read_text()
+    is_to_append = False
+
+    # Case 1: Full File Replacement (no tags).
+    if not start_tag:
+        new_file_content = new_inner_content.strip()
+
+    # Case 2: Targeted Replacement (replace content between tags).
+    else:
+        start_esc = re.escape(start_tag)
+        end_esc = re.escape(end_tag)
+        # Capture optional leading whitespace to preserve indentation
+        pattern = rf"([ \t]*{start_esc}).*?([ \t]*{end_esc})"
+
+        match = re.search(pattern, content, flags=re.DOTALL)
+        if match:
+            replacement = f"\\1{padding}{new_inner_content.strip()}{padding}\\2"
+            new_file_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+        else:
+            # Content adding if not found.
+            new_file_content = f"{start_tag}{padding}{new_inner_content.strip()}{padding}{end_tag}"
+            is_to_append = True
+
+    if new_file_content != content:
+        if is_to_append:
+            current_content = path.read_text()
+            if append_position == "top":
+                new_file_content = f"{new_file_content}\n{current_content}\n"
+            else:
+                new_file_content = f"{current_content}\n{new_file_content}\n"
+            path.write_text(new_file_content)
+        else:
+            path.write_text(new_file_content + "\n")
+        return True
+
+    return False

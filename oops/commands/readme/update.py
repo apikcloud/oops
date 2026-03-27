@@ -4,132 +4,89 @@
 # File: update.py — oops/commands/readme/update.py
 
 """
-This script replaces markers in the README.md file
-of an repository with the list of addons present
-in the repository. It preserves the marker so it
-can be run again.
+Generate the addons table in the README.md of the project.
 
-Markers in README.md must have the form:
+The exclusion list uses a start and end tags to identify the section to update. The tags are the following:
+- start: # [//]: # (addons)
+- end: # [//]: # (end addons)
 
-\b
-<!-- prettier-ignore-start -->
-[//]: # (addons)
-does not matter, will be replaced by the script
-[//]: # (end addons)
-<!-- prettier-ignore-end -->
+If the tags are not found in the file, they are automatically added at the end of the file with its content.
+
+This command can be used with two options:
+- --dry-run: Show what would happen, do nothing.
+- --no-commit: Do not commit changes.
+
 """
 
-import logging
-import re
+from __future__ import annotations
+
 from pathlib import Path
 
 import click
 from git import Repo
+from tabulate import tabulate
 
-from oops.core.exceptions import MarkersNotFound
+from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.utils.io import collect_addon_paths, load_manifest
-from oops.utils.render import render_maintainers, render_markdown_table, sanitize_cell
-
-_logger = logging.getLogger(__name__)
-
-MARKERS = r"(\[//\]: # \(addons\))|(\[//\]: # \(end addons\))"
-PARTS_NUMBER = 7
+from oops.utils.io import file_updater, find_addons
 
 
-def replace_in_readme(readme_path, header, rows_available, rows_unported) -> bool:
-    with open(readme_path, encoding="utf8") as f:
-        original = f.read()
-    parts = re.split(MARKERS, original, flags=re.MULTILINE)
-    if len(parts) != PARTS_NUMBER:
-        raise MarkersNotFound(f"Addons markers not found or incorrect in {readme_path}")
-    addons = []
-    # TODO Use the same heading styles as Prettier (prefixing the line with
-    # `##` instead of adding all `----------` under it)
-    if rows_available:
-        addons.extend(
-            [
-                "\n",
-                "\n",
-                "Available addons\n",
-                "----------------\n",
-                render_markdown_table(header, rows_available),
-                "\n",
-            ]
+@click.option("--dry-run", default=False, is_flag=True, help="Show what would happen, do nothing.")
+@click.option("--no-commit", default=True, is_flag=True, help="Do not commit changes.")
+def main(dry_run: bool = False, no_commit: bool = True):
+    def _get_github_user(_user):
+        """Structure the maintainer's GitHub user as a link and display their avatar."""
+        return (
+            f"<a href='https://github.com/{_user}'>"
+            f"<img src='https://github.com/{_user}.png' width='32' height='32' alt='{_user}'/></a>"
         )
-    if rows_unported:
-        addons.extend(
-            [
-                "\n",
-                "\n",
-                "Unported addons\n",
-                "---------------\n",
-                render_markdown_table(header, rows_unported),
-                "\n",
-            ]
-        )
-    addons.append("\n")
-    parts[2:5] = addons
-    updated = "".join(parts)
-    if updated == original:
-        return False
-    with open(readme_path, "w", encoding="utf8") as f:
-        f.write(updated)
-    return True
 
+    # Corresponding map for headers and manifest keys.
+    headers = {
+        "Addon": "technical_name",
+        "Version": "version",
+        "Maintainers": "maintainers",
+        "Summary": "summary",
+    }
 
-@click.command(
-    help=__doc__,
-    name="update",
-)
-@click.option(
-    "--commit/--no-commit",
-    default=True,
-    help="git commit changes to README.rst, if any.",
-)
-def main(commit):  # noqa: C901
+    readme_file = config.project_file_readme
 
     repo = Repo()
-    working_dir = Path(repo.working_dir)
-    readme = working_dir / "README.md"
+    repo_path = Path(repo.working_dir)
 
-    if not readme.is_file():
-        readme.write_text(
-            "<!-- prettier-ignore-start -->\n"
-            "[//]: # (addons)\n"
-            "[//]: # (end addons)\n"
-            "<!-- prettier-ignore-end -->\n",
-            encoding="utf-8",
+    structure = []
+    for addon in find_addons(repo_path, shallow=True):
+        row = [f"[{addon.technical_name}](/{addon.technical_name})", addon.version]
+
+        addon_maintainers = [_get_github_user(user) for user in addon.maintainers]
+        row.append(" ".join(addon_maintainers))
+
+        row.append(" ".join(addon.summary.split()))
+
+        structure.append(row)
+
+    table = tabulate(structure, headers=headers.keys(), tablefmt="github")
+
+    new_content = f"Available addons\n----------------\n\n{table}\n"
+
+    has_update = False
+    if not dry_run:
+        click.echo(f"Updating {readme_file}...")
+        # We keep using OCA tags, in case we want to use their tools again.
+        # Start tag: # [//]: # (addons)
+        # End tag: # [//]: # (end addons)
+        has_update = file_updater(
+            filepath=readme_file,
+            new_inner_content=new_content,
+            start_tag="[//]: # (addons)",
+            end_tag="[//]: # (end addons)",
+            padding="\n\n",
         )
-        click.echo(f"Created {readme} with addon table markers.")
+    else:
+        click.echo(f"It would update {readme_file} with:\n{new_content}")
 
-    header = ("addon", "version", "maintainers", "summary")
-    rows_available = []
-    rows_unported = []
+    if not no_commit and not dry_run and has_update:
+        click.echo("Committing changes...")
 
-    for addon_path, unported in collect_addon_paths(working_dir):
-        manifest = load_manifest(addon_path)
-        if not manifest:
-            continue
-
-        link = f"[{addon_path.name}]({addon_path}/)"
-        version = manifest.get("version") or ""
-        summary = sanitize_cell(manifest.get("summary") or manifest.get("name"))
-        installable = manifest.get("installable", True)
-
-        if unported and installable:
-            _logger.warning(f"{addon_path} is in __unported__ but is marked installable.")
-            installable = False
-
-        row = (link, version, render_maintainers(manifest), summary)
-        if installable:
-            rows_available.append(row)
-        else:
-            rows_unported.append(
-                (link, version + " (unported)", render_maintainers(manifest), summary)
-            )
-
-    changed = replace_in_readme(readme, header, rows_available, rows_unported)
-    if commit and changed:
-        repo.index.add(["README.md"])
-        repo.index.commit(commit_messages.addons_update_table)
+        repo.index.add([readme_file])
+        repo.index.commit(commit_messages.update_addons_table, skip_hooks=True)

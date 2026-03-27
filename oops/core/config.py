@@ -21,9 +21,7 @@ class Config:
     old_submodule_path: Path = Path("third-party")
 
     # Manifest
-    manifest_names: List[str] = field(
-        default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"]
-    )
+    manifest_names: List[str] = field(default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"])
 
     # Docker images
     repo_docker_images: str = "apikcloud/images"
@@ -44,6 +42,7 @@ class Config:
     project_file_packages: str = "packages.txt"
     project_file_requirements: str = "requirements.txt"
     project_file_odoo_version: str = "odoo_version.txt"
+    project_file_readme: str = "README.md"
 
     # Network
     default_timeout: int = 60
@@ -53,7 +52,21 @@ class Config:
     new_line: str = "\n"
     datetime_format: str = "%Y-%m-%d %H:%M:%S"
     check_symbol: str = "✓" if os.environ.get("LANG", "").lower().endswith(".utf-8") else "[X]"
+    pre_commit_file: str = ".pre-commit-config.yaml"
     pre_commit_exclude_file: str = ".pre-commit-exclusions"
+    pre_commit_default_exclusions = [
+        r"^setup/|/static/description/index\.html$",
+        ".svg$|/tests/([^/]+/)?cassettes/|^.copier-answers.yml$|^.github/|^eslint.config.cjs|^prettier.config.cjs",
+        r"^README\.md$",
+        "/static/(src/)?lib/",
+        r"^docs/_templates/.*\.html$",
+        r"readme/.*\.(rst|md)$",
+        "/build/|/dist/",
+        "/tests/samples/.*",
+        "(LICENSE.*|COPYING.*)",
+        ".third-party/",
+        "third-party/",
+    ]
 
     # Submodules
     sub_force_scheme: str = "ssh"
