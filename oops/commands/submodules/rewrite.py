@@ -116,7 +116,11 @@ def main(
         old_path = str(submodule.path)
         moved.append((old_path, str(new_path)))
         if not dry_run:
-            submodule.move(new_path)
+            try:
+                submodule.move(new_path)
+            except ValueError:
+                click.echo(f"{submodule.name} already exists at {new_path}")
+                click.echo("Skipping...")
 
         logging.debug(moved)
 
@@ -161,3 +165,5 @@ def main(
         click.echo("Changes committed.")
     else:
         click.echo("Changes staged but not committed (--no-commit).")
+
+    return 0

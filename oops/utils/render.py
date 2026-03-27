@@ -42,7 +42,10 @@ def render_boolean(raw: bool) -> str:
 
 
 def render_table(
-    rows: List[List[Any]], headers: Optional[List[str]] = None, index: bool = False
+    rows: List[List[Any]],
+    headers: Optional[List[str]] = None,
+    index: bool = False,
+    start_index: int = 1,
 ) -> str:
     """
     Render a table using the tabulate library.
@@ -50,7 +53,7 @@ def render_table(
 
     options = {}
     if index:
-        options["showindex"] = True
+        options["showindex"] = range(start_index, start_index + len(rows))
     if headers:
         options["headers"] = headers
 

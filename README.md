@@ -256,12 +256,27 @@ oops-pro-exclude --no-commit
    - `make lint` to execute Ruff.
    - `make typecheck` to run Pyright (soft-fail by design).
    - `make test` to execute the pytest suite.
-4. Build artifacts locally with `make build` when you need wheels or source distributions.
+4. Build artefacts locally with `make build` when you need wheels or source distributions.
+
+## Precommit usage
+
+You can add `oops` features in your precommit by doing the following:
+```yaml
+  - repo: local
+    hooks:
+      - id: update-readme-table
+        name: Update Addons Table in README
+        entry: oops-addons-table
+        language: system
+        pass_filenames: false
+```
+
+This way, your precommit will use your local version to execute actions on your project.
 
 ## Contributing and support
 Issues and pull requests are welcome on GitHub. Please include clear reproduction steps, add tests or
 changelog fragments when relevant, and describe the impact on downstream projects so reviews can move
-quickly. The scripts are provided as-is by the Apik team; feel free to fork if you need bespoke behavior.
+quickly. The scripts are provided as-is by the Apik team; feel free to fork if you need bespoke behaviour.
 
 ## License
 oops is distributed under the AGPL-3.0-only license. See `LICENSE` or visit
