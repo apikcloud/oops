@@ -214,8 +214,11 @@ def find_addons_extended(
 ):
     """Yield (name, path, manifest) for each addon in the given directory."""
 
+    if isinstance(addons_dir, str):
+        addons_dir = Path(addons_dir)
+
     for name in os.listdir(addons_dir):
-        path = os.path.join(addons_dir, name)
+        path = addons_dir / Path(name)
         try:
             manifest = parse_manifest(path)
         except NoManifestFound:

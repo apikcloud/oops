@@ -28,8 +28,7 @@ def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tu
     repo = Repo()
 
     if not repo.submodules:
-        click.echo("No .gitmodules found.")
-        raise click.Abort()
+        raise click.UsageError("No .gitmodules found.")
 
     # FIXME: assume there is only one symlink per submodule for now
     mapping = get_symlink_map(repo.working_dir)
@@ -60,12 +59,12 @@ def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tu
                         new_name = custom
 
             if not dry_run:
-                submodule.rename(new_name)
                 try:
                     submodule.rename(new_name)
-                except Exception as e:
-                    click.echo(f"Error renaming submodule {submodule.name}: {e}")
-                    return 1
+                except Exception as err:
+                    raise click.UsageError(
+                        f"Error renaming submodule {submodule.name}: {err}"
+                    ) from err
 
     if not no_commit and not dry_run:
         if repo.index.diff(repo.head.commit):

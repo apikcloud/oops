@@ -24,8 +24,7 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
     changes = []
 
     if not repo.submodules:
-        click.echo("No .gitmodules found.")
-        raise click.Abort()
+        raise click.UsageError("No .gitmodules found.")
 
     for submodule in repo.submodules:
         if names and submodule.name not in names:

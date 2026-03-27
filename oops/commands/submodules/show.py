@@ -26,8 +26,7 @@ def main(pull_request: bool):
     repo = GitRepository()
 
     if not repo.has_gitmodules:
-        click.echo("No .gitmodules found.")
-        raise click.Abort()
+        raise click.UsageError("No .gitmodules found.")
 
     rows = []
     for submodule in repo.parse_gitmodules():
@@ -53,8 +52,7 @@ def main(pull_request: bool):
         rows.append(row)
 
     if not rows:
-        click.echo("No submodules found.")
-        raise click.Abort()
+        raise click.UsageError("No submodules found.")
 
     rows = sorted(rows, key=lambda x: x[0].lower())
 

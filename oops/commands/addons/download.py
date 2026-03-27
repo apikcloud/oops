@@ -50,7 +50,7 @@ def main(
         _, extracted_root = fetch_branch_zip(owner, repo, branch, tmpdirname, **options)
 
         if extracted_root is None:
-            raise click.Abort()
+            raise click.UsageError("Download failed.")
 
         logging.debug(extracted_root)
         logging.debug(os.listdir(extracted_root))

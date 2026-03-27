@@ -35,7 +35,7 @@ def main(addons_list: str, no_commit: bool):
         logging.warning("Not found...")
         return 0
 
-    missing_addons = set(addons_to_link.keys()).difference(addons)
+    missing_addons = addons.difference(set(addons_to_link.keys()))
 
     if missing_addons:
         click.echo(f"Missing addons ({len(missing_addons)}): {', '.join(missing_addons)}")

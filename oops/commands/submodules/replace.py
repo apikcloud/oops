@@ -32,8 +32,7 @@ def main(
     repo = Repo()
 
     if not repo.submodules:
-        click.echo("No .gitmodules found.")
-        raise click.Abort()
+        raise click.UsageError("No .gitmodules found.")
 
     not_found = [name for name in names if name not in repo.submodules]
     if not_found:
@@ -105,6 +104,6 @@ def main(
                 description="\n".join(
                     f"- replaced '{name}' with '{new_name}' (branch={branch})" for name in names
                 ),
-                skip_hooks=True,
-            )
+            ),
+            skip_hooks=True,
         )
