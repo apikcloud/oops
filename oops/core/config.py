@@ -123,7 +123,7 @@ class Config:
     new_line: str = "\n"
     datetime_format: str = "%Y-%m-%d %H:%M:%S"
     check_symbol: str = "✓" if os.environ.get("LANG", "").lower().endswith(".utf-8") else "[X]"
-
+    pull_request_dir: str = "PRs"
 
 # ---------------------------------------------------------------------------
 # YAML loading

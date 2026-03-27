@@ -16,9 +16,9 @@ import click
 from oops.commands.base import command
 from oops.core.messages import commit_messages
 from oops.git import list_available_addons
-from oops.git.core import GitRepository
 from oops.io.file import relpath
 from oops.io.manifest import find_addons_extended
+from oops.services.git import get_local_repo
 from oops.utils.helpers import str_to_list
 
 
@@ -31,13 +31,13 @@ from oops.utils.helpers import str_to_list
 )
 def main(addons_list: str, no_commit: bool):
 
-    repo = GitRepository()
+    repo, repo_path = get_local_repo()
 
-    existing_addons = [name for name, _, _ in find_addons_extended(repo.path)]
+    existing_addons = [name for name, _, _ in find_addons_extended(repo_path)]
     addons = set(str_to_list(addons_list)) - set(existing_addons)
 
     addons_to_link = {}
-    for name, path, _ in list_available_addons(repo.path):
+    for name, path, _ in list_available_addons(repo_path):
         if name in addons:
             addons_to_link[name] = {"path": path, "version": None}
 
@@ -52,18 +52,15 @@ def main(addons_list: str, no_commit: bool):
 
     created_links = []
     for name, vals in addons_to_link.items():
-        link_path = repo.path / name
-        # Determine relative target from repo root to the addon_dir
-        target_rel = relpath(repo.path, vals["path"])
+        link_path = repo_path / name
+        target_rel = relpath(repo_path, vals["path"])
         if link_path.exists() or link_path.is_symlink():
             click.echo(f"  [skip] {name} already exists")
             continue
         os.symlink(target_rel, link_path)
         created_links.append(name)
-        # Stage symlink
-        repo.add([name])
+        repo.index.add([str(repo_path / name)])
 
     if created_links and not no_commit:
-        repo.commit(
-            commit_messages.new_addons, description="\n".join(created_links), skip_hook=True
-        )
+        if repo.index.diff("HEAD"):
+            repo.index.commit(commit_messages.new_addons, skip_hooks=True)

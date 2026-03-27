@@ -22,6 +22,7 @@ from collections.abc import Generator
 from os import PathLike
 from pathlib import Path
 
+from oops.core.config import config
 from oops.core.models import AddonInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.io.manifest import load_manifest
@@ -98,7 +99,7 @@ def desired_path(
     parts = [owner, repo]
 
     if pull_request:
-        parts.insert(0, PR_DIR)
+        parts.insert(0, config.pull_request_dir)
 
     if prefix:
         parts.insert(0, prefix.rstrip("/"))
@@ -288,3 +289,21 @@ def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None,
             if depth >= 1:
                 # we're already in a first-level subdir (real or symlink) → don't go deeper
                 dirnames[:] = []
+
+
+def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
+    """Return a list of addon directories (containing __manifest__.py or __openerp__.py).
+
+    Args:
+        root: Directory to search recursively.
+        with_pr: If True, descend into pull-request subdirectories (PR_DIR).
+    """
+    addons = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        if ".git" in dirnames:
+            dirnames.remove(".git")
+        if not with_pr and PR_DIR in dirnames:
+            dirnames.remove(PR_DIR)
+        if "__manifest__.py" in filenames or "__openerp__.py" in filenames:
+            addons.append(Path(dirpath))
+    return addons
