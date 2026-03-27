@@ -87,7 +87,7 @@ class CommitInfo:
 
 
 @dataclass
-class WorfklowRunInfo:
+class WorkflowRunInfo:
     actor: str
     branch: str
     conclusion: str
@@ -106,7 +106,7 @@ class WorfklowRunInfo:
         return (datetime.today().date() - self.date.date()).days
 
     @classmethod
-    def from_dict(cls, vals: dict) -> "WorfklowRunInfo":
+    def from_dict(cls, vals: dict) -> "WorkflowRunInfo":
         # ISO8601 -> datetime (handles trailing 'Z')
         created = datetime.fromisoformat(vals["created_at"].replace("Z", "+00:00")).astimezone(
             timezone.utc

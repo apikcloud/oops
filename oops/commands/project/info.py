@@ -10,7 +10,7 @@ from oops.commands.project.common import (
     parse_requirements,
 )
 from oops.git.core import GitRepository
-from oops.git.gitutils import (
+from oops.git import (
     get_last_commit,
     get_last_release,
     get_next_releases,

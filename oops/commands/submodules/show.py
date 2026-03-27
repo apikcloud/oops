@@ -1,7 +1,7 @@
 import click
 
 from oops.git.core import GitRepository
-from oops.git.gitutils import get_last_commit
+from oops.git import get_last_commit
 from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 

@@ -6,7 +6,7 @@ import click
 
 from oops.core.messages import commit_messages
 from oops.git.core import GitRepository
-from oops.git.gitutils import list_available_addons
+from oops.git import list_available_addons
 from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons_extended, relpath
 

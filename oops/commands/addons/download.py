@@ -10,7 +10,7 @@ import click
 
 from oops.core.messages import commit_messages
 from oops.git.core import GitRepository
-from oops.git.gitutils import update_gitignore
+from oops.git import update_gitignore
 from oops.services.github import fetch_branch_zip
 from oops.utils.compat import Optional
 from oops.utils.helpers import str_to_list
@@ -47,8 +47,7 @@ def main(
         _, extracted_root = fetch_branch_zip(owner, repo, branch, tmpdirname, **options)
 
         if extracted_root is None:
-            click.Abort("You're fucked")
-            return 1
+            raise click.Abort()
 
         logging.debug(extracted_root)
         logging.debug(os.listdir(extracted_root))

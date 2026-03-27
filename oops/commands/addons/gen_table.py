@@ -23,12 +23,12 @@ import re
 
 import click
 
-from oops.git.gitutils import commit_if_needed
+from oops.core.config import config
+from oops.git.core import GitRepository
 
 _logger = logging.getLogger(__name__)
 
 MARKERS = r"(\[//\]: # \(addons\))|(\[//\]: # \(end addons\))"
-MANIFESTS = ("__openerp__.py", "__manifest__.py")
 PARTS_NUMBER = 7
 
 
@@ -133,7 +133,7 @@ def main(commit, readme_path, addons_dir):  # noqa: C901
     rows_available = []
     rows_unported = []
     for addon_path, unported in addon_paths:
-        for manifest_file in MANIFESTS:
+        for manifest_file in config.manifest_names:
             manifest_path = os.path.join(addon_path, manifest_file)
             has_manifest = os.path.isfile(manifest_path)
             if has_manifest:
@@ -164,7 +164,7 @@ def main(commit, readme_path, addons_dir):  # noqa: C901
     # replace table in README.md
     replace_in_readme(readme_path, header, rows_available, rows_unported)
     if commit:
-        commit_if_needed(
+        GitRepository.commit_if_needed(
             [readme_path],
             "[UPD] addons table in README.md",
         )

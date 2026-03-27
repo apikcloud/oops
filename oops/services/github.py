@@ -5,7 +5,7 @@ import zipfile
 import requests
 
 from oops.core.config import config
-from oops.core.models import WorfklowRunInfo
+from oops.core.models import WorkflowRunInfo
 from oops.utils.compat import Optional, Tuple
 from oops.utils.net import make_json_get
 
@@ -64,7 +64,7 @@ def fetch_branch_zip(  # noqa: PLR0913
 
 def get_latest_workflow_run(
     owner: str, repo: str, token: str, branch: Optional[str] = None
-) -> Optional[WorfklowRunInfo]:  # pragma: no cover
+) -> Optional[WorkflowRunInfo]:  # pragma: no cover
     """Fetch the latest GitHub Actions workflow run for this repo."""
 
     params = {"per_page": "1"}
@@ -80,7 +80,7 @@ def get_latest_workflow_run(
     data = response["workflow_runs"][0]
 
     try:
-        res = WorfklowRunInfo.from_dict(data)
+        res = WorkflowRunInfo.from_dict(data)
     except Exception as e:
         logging.error(f"Could not parse workflow run data: {e}")
         return None

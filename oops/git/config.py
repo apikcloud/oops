@@ -8,12 +8,6 @@ from oops.utils.compat import Optional
 from oops.utils.tools import run
 
 
-class GitModules:
-    """Class for handling .gitmodules parsing and submodule configuration."""
-
-    pass
-
-
 @dataclass
 class GitModule:
     """Class for handling individual git submodule configuration."""

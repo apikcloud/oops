@@ -38,7 +38,6 @@ def render_boolean(raw: bool) -> str:
     """
     Render a check mark if the terminal supports UTF-8, otherwise an 'OK'.
     """
-    return "X" if raw else ""
     return config.check_symbol if raw else ""
 
 
