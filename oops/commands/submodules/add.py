@@ -4,11 +4,12 @@ import sys
 from pathlib import Path
 
 import click
+from git import Repo
+
+from oops.utils.git import is_pull_request, read_gitmodules
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.git.core import GitRepository
-from oops.git.submodules import GitSubmodules
 from oops.utils.helpers import str_to_list
 from oops.utils.io import (
     desired_path,
@@ -68,8 +69,8 @@ def find_addons(submodule_dir: Path):
     help="Show planned actions only",
 )
 @click.option(
-    "-p",
     "--pull-request",
+    is_flag=True,
     help="Indicates that the submodule is a pull request (affects naming)",
 )
 @click.command(name="add")
@@ -79,7 +80,6 @@ def main(  # noqa: C901, PLR0915, PLR0913
     base_dir: str,
     name: str,
     addons: str,
-    pull_request: str,
     **options,
 ):
     """Add a git submodule and optionally create symlinks for its addons."""
@@ -87,11 +87,10 @@ def main(  # noqa: C901, PLR0915, PLR0913
     addons_to_link = str_to_list(addons) if addons else []
     auto_symlinks = options["auto_symlinks"]
     no_commit = options["no_commit"]
+    pull_request = options["pull_request"]
     dry_run = options["dry_run"]
 
-    # FIXME: use Repo from gitpython
-    repo = GitRepository()
-    submodules = GitSubmodules()
+    repo = Repo()
 
     # Compute target path and name
     try:
@@ -100,15 +99,16 @@ def main(  # noqa: C901, PLR0915, PLR0913
         click.echo(f"Error: {e}")
         sys.exit(1)
 
+    suffix = addons_to_link[0] if addons_to_link and pull_request else None
     sub_path_str = desired_path(
-        url, prefix=base_dir, pull_request=bool(pull_request), suffix=pull_request or None
-    )
-    sub_path = repo.path / sub_path_str
-    sub_name = name or f"{owner}/{repo_name}"
+        url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
+    
+    sub_path = Path(repo.working_dir) / sub_path_str
+    sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
 
     # Plan summary
     rows = [
-        ["Repo Root", repo.path],
+        ["Repo Root", repo.working_dir],
         ["URL", url],
         ["Branch", branch],
         ["Submodule name", sub_name],
@@ -132,33 +132,35 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     # Add submodule
     click.echo("[add] git submodule add")
-    # FIXME: checkout to the branch before commit
-    submodules.add(url, sub_name, sub_path_str, branch=branch)
+    repo.create_submodule(
+        name=sub_name,
+        path=sub_path_str,
+        url=url,
+        branch=branch,  
+    )
 
     # Pin branch in .gitmodules (redundant but explicit)
     click.echo("[config] record branch in .gitmodules")
 
     if branch:
-        submodules.set_branch(sub_name, branch)
-
-    # Sync and fetch content
-    submodules.sync()
-    submodules.update()
+        gitmodules = read_gitmodules(repo)
+        click.echo(f"Setting branch {branch!r} for submodule {sub_name!r}...")
+        gitmodules.set_value(f'submodule "{sub_name}"', "branch", branch)
 
     created_links = []
 
     def create_symlink(addon_dir: Path):
         link_name = f"{addon_dir.name}"
-        link_path = repo.path / link_name
+        link_path = Path(repo.working_dir) / link_name
         # Determine relative target from repo root to the addon_dir
-        target_rel = relpath(repo.path, addon_dir)
+        target_rel = relpath(Path(repo.working_dir), addon_dir)
         if link_path.exists() or link_path.is_symlink():
             click.echo(f"  [skip] {link_name} already exists")
             return
         os.symlink(target_rel, link_path)
         created_links.append(link_name)
         # Stage symlink
-        repo.add([link_name])
+        repo.index.add([link_name])
 
     if auto_symlinks or addons:
         click.echo("[scan] detecting addon folders…")
@@ -185,12 +187,11 @@ def main(  # noqa: C901, PLR0915, PLR0913
                 click.echo(f"Addons not found: {human_readable(diff)}")
 
     # Stage .gitmodules and submodule path
-    repo.add([".gitmodules", sub_path_str])
+    repo.index.add([".gitmodules", sub_path_str])
 
     if not no_commit:
-        repo.commit(
-            commit_messages.submodule_add.format(name=sub_name),
-            description=commit_messages.submodule_add_desc.format(
+        repo.index.commit(
+            commit_messages.submodule_add.format(name=sub_name,
                 url=url,
                 branch=branch,
                 path=sub_path_str,

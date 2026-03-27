@@ -12,7 +12,7 @@ from oops.utils.tools import run
 class GitSubmodules:
     """Class for handling git submodule operations."""
 
-    path: str
+    path: str = ""
 
     def add(self, url: str, name: str, path: str, branch: Optional[str] = None) -> None:
         """Add a git submodule to the repository.
