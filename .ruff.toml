@@ -1,0 +1,33 @@
+line-length = 120  # Max line length
+target-version = "py312"  # Python version: 312 = Python 3.12
+fix = true  # Enable the edition of files if correction is possible.
+
+[lint]
+select = [
+    "F",    # Pyflakes (Replace autoflake)
+    "E",    # Pycodestyle errors
+    "W",    # Pycodestyle warnings
+    "B",    # Bugbear
+    "I",    # Isort
+    "UP",   # Pyupgrade
+    "C90",  # McCabe complexity
+]
+
+exclude = ["setup/*", "__pycache__"]
+
+[format]
+exclude = ["__init__.py", "setup/*"]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401", "I001"]  # Ignore unused __init__ files and do not sort imports in them
+"__manifest__.py" = ["B018"]
+
+[lint.isort]
+section-order = ["future", "standard-library", "third-party", "odoo", "odoo-addons", "first-party", "local-folder"]
+
+[lint.isort.sections]
+"odoo" = ["odoo"]
+"odoo-addons" = ["odoo.addons"]
+
+[lint.mccabe]
+max-complexity = 16  # Cyclomatic complexity (limit for loop in loops and if/else statements).

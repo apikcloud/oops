@@ -1,0 +1,55 @@
+# v1.0.0
+# EditorConfig for Apik.
+# Documentation: https://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 120
+
+[*.xml]
+tab_width = 4
+trim_trailing_whitespace = false
+
+# PyCharm specific settings.
+ij_xml_align_attributes = false
+ij_xml_align_text = false
+ij_xml_continuation_indent_size = 4
+ij_xml_space_inside_empty_tag = false
+
+[*.py]
+ij_python_align_multiline_parameters = false
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{rst,md}]
+indent_size = 2
+trim_trailing_whitespace = false
+
+[*.po]
+indent_style = unset
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+[**/static/lib/**]
+indent_size = unset
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[**/static/src/lib/**]
+indent_size = unset
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[**/static/description/index.html]
+insert_final_newline = false
+
+[**/readme/*.rst]
+insert_final_newline = false

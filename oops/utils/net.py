@@ -46,6 +46,7 @@ def clean_url(url):
 
 def _parse_url(url: str) -> Tuple[str, str, str, str]:
     url = url.strip()
+    host = path = None
 
     # 1) SCP-like SSH form: git@host:owner/repo(.git)?
     m = re.match(r"^(?P<user>[^@]+)@(?P<host>[^:]+):(?P<path>.+)$", url)

@@ -57,3 +57,5 @@ def main(addons_list: str, no_commit: bool):
         repo.commit(
             commit_messages.new_addons, description="\n".join(created_links), skip_hook=True
         )
+
+    return 0

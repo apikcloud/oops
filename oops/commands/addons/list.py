@@ -55,8 +55,8 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
     subs = {}
     if repo.has_gitmodules:
         for submodule in repo.parse_gitmodules():
-            canonical_url, _, _ = (
-                encode_url("https", submodule.url, suffix=False)
+            canonical_url = (
+                encode_url(url=submodule.url, scheme="https", suffix=False)
                 if submodule.url
                 else ("", None, None)
             )
