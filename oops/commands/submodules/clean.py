@@ -3,6 +3,14 @@
 #
 # File: clean.py — oops/commands/submodules/clean.py
 
+"""
+Remove stale submodule base directories and re-initialise submodules.
+
+Deletes the old and new submodule base directories (third-party and
+.third-party) if they exist on disk, then runs git submodule update --init
+to restore them from .gitmodules. Use --reset to hard-reset the repo first.
+"""
+
 import logging
 import shutil
 
@@ -13,10 +21,9 @@ from oops.git.core import GitRepository
 from oops.git.submodules import GitSubmodules
 
 
-@click.command(name="clean")
+@click.command(name="clean", help=__doc__)
 @click.option("--reset", is_flag=True, help="Do a hard reset before")
 def main(reset: bool):
-    """Clean old submodule paths and update submodules."""
 
     # FIXME: use Repo from gitpython
     repo = GitRepository()
@@ -24,7 +31,7 @@ def main(reset: bool):
 
     if not repo.has_gitmodules:
         click.echo("No .gitmodules found.")
-        return 0
+        raise click.Abort()
 
     if reset:
         repo.reset_hard()

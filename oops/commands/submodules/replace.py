@@ -3,6 +3,13 @@
 #
 # File: replace.py — oops/commands/submodules/replace.py
 
+"""
+Replace one or more submodules with a new repository.
+
+Removes the named submodules, adds the new repository as a submodule, and
+rewrites any symlinks that pointed to the old paths to point to the new one.
+"""
+
 import logging
 import os
 from pathlib import Path
@@ -16,7 +23,7 @@ from oops.utils.io import desired_path, rewrite_symlink
 from oops.utils.net import encode_url
 
 
-@click.command("replace")
+@click.command("replace", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.argument("names", nargs=-1, required=False)
@@ -25,9 +32,6 @@ from oops.utils.net import encode_url
 def main(
     dry_run: bool, no_commit: bool, names: tuple[str] = None, url: str = None, branch: str = None
 ):
-    """
-    Replace one or more submodules with a (new) submodule
-    """
 
     repo = Repo()
 

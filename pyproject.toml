@@ -70,7 +70,6 @@ oops-sub-branch = "oops.commands.submodules.branch:main"
 oops-sub-check = "oops.commands.submodules.check:main"
 oops-sub-clean = "oops.commands.submodules.clean:main"
 oops-sub-fix = "oops.commands.submodules.fix:main"
-oops-sub-flatten = "oops.commands.submodules:flatten"
 oops-sub-prune = "oops.commands.submodules.prune:main"
 oops-sub-rename = "oops.commands.submodules.rename:main"
 oops-sub-replace = "oops.commands.submodules.replace:main"
@@ -126,4 +125,12 @@ exclude_lines = [
 source = ["oops", ".venv/lib/python*/site-packages/oops"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "coverage[toml]"]
+dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright"]
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.7",
+  "mkdocs-click>=0.9",
+  "mkdocs-glightbox>=0.5",
+  "mkdocs-redirects>=1.2",
+  "mkdocs-git-revision-date-localized-plugin>=1.5",
+]

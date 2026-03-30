@@ -3,6 +3,13 @@
 #
 # File: compare.py — oops/commands/addons/compare.py
 
+"""
+Compare a provided addon list against the local root addons.
+
+Prints addons missing locally (prefixed with -) and extra local addons not in
+the list (prefixed with +). With --delete, extra local symlinks are removed.
+"""
+
 from pathlib import Path
 
 import click
@@ -13,7 +20,7 @@ from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons
 
 
-@click.command("compare")
+@click.command("compare", help=__doc__)
 @click.argument("addons_list")
 @click.option(
     "--delete",
@@ -26,7 +33,6 @@ from oops.utils.io import find_addons
     help="Do not commit changes",
 )
 def main(addons_list: str, delete: bool, no_commit: bool):
-    """Show the diff between the provided addon list and the local root addons."""
 
     repo = Repo()
     root = Path(repo.working_dir)

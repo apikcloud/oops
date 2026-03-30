@@ -3,6 +3,14 @@
 #
 # File: check.py — oops/commands/submodules/check.py
 
+"""
+Check all submodules for common issues.
+
+Verifies path conventions, URL scheme, branch presence, deprecated repository
+references, unused submodules (no symlink points to them), and broken symlinks.
+Exits non-zero if any issue is found.
+"""
+
 import configparser
 import logging
 
@@ -15,17 +23,14 @@ from oops.utils.io import check_prefix, list_symlinks
 from oops.utils.net import parse_repository_url
 
 
-@click.command(name="check")
+@click.command(name="check", help=__doc__)
 def main():  # noqa: C901
-    """
-    Check git submodules for common issues
-    """
 
     repo = Repo()
 
     if not repo.submodules:
         click.echo("No submodules found.")
-        return 0
+        raise click.Abort()
 
     symlinks = list_symlinks(repo.working_dir)
     broken_symlinks = list_symlinks(repo.working_dir, broken_only=True)
@@ -111,6 +116,6 @@ def main():  # noqa: C901
             f"✅ All submodules are under {config.new_submodule_path} "
             f"and used by at least one symlink."
         )
-        return 0
+        raise click.exceptions.Exit(0)
     else:
-        return 1
+        raise click.UsageError("Submodule check failed. Please fix the above issues.")

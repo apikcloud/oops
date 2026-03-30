@@ -3,6 +3,13 @@
 #
 # File: fix.py — oops/commands/submodules/fix.py
 
+"""
+Fix common submodule issues detected by oops-sub-check.
+
+Normalises submodule URLs to the configured scheme (e.g. SSH) and replaces
+deprecated repository paths as defined in the project config.
+"""
+
 from pathlib import Path
 
 import click
@@ -14,14 +21,13 @@ from oops.utils.io import list_symlinks
 from oops.utils.net import encode_url, parse_repository_url
 
 
-@click.command(name="fix")
+@click.command(name="fix", help=__doc__)
 @click.option(
     "--no-commit",
     is_flag=True,
     help="Do not commit automatically at the end",
 )
 def main(no_commit: bool):  # noqa: C901, PLR0912
-    """Fix submodules"""
 
     # 1. Prune unused submodules
     # 2. Rename submodules
@@ -31,7 +37,7 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
 
     if not repo.submodules:
         click.echo("No submodules found.")
-        return 0
+        raise click.Abort()
 
     symlinks = list_symlinks(repo.working_dir)
     broken_symlinks = list_symlinks(repo.working_dir, broken_only=True)

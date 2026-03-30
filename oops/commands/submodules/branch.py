@@ -3,6 +3,13 @@
 #
 # File: branch.py — oops/commands/submodules/branch.py
 
+"""
+Detect and fix submodules missing a branch in .gitmodules.
+
+Iterates over all submodules, finds those without a branch entry, and either
+prompts interactively or applies the default branch provided via --branch.
+"""
+
 import configparser
 import logging
 
@@ -14,7 +21,7 @@ from oops.utils.git import is_pull_request, read_gitmodules
 from oops.utils.tools import ask
 
 
-@click.command(name="branch")
+@click.command(name="branch", help=__doc__)
 @click.option(
     "--branch",
     "default_branch",
@@ -31,13 +38,12 @@ from oops.utils.tools import ask
     help="Do not commit automatically at the end",
 )
 def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PLR0912
-    """Fix submodules missing branch in .gitmodules"""
 
     repo = Repo(".")
 
     if not repo.submodules:
         click.echo("No submodules found.")
-        return 0
+        raise click.Abort()
 
     to_fix = []
     gitmodules = read_gitmodules(repo)
@@ -71,7 +77,7 @@ def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PL
 
     if not to_fix:
         click.echo("Nothing to fix.")
-        return 0
+        raise click.Abort()
 
     for name, branch in to_fix:
         click.echo(f"Setting branch {branch!r} for submodule {name!r}...")

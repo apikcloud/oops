@@ -3,6 +3,14 @@
 #
 # File: prune.py — oops/commands/submodules/prune.py
 
+"""
+Remove submodules that are not referenced by any symlink.
+
+Iterates over all submodules, checks whether any symlink in the repository
+points to the submodule path, and removes those that are unused. Specific
+submodules can be targeted by passing their names as arguments.
+"""
+
 from pathlib import Path
 
 import click
@@ -12,7 +20,7 @@ from oops.core.messages import commit_messages
 from oops.utils.io import list_symlinks, relpath
 
 
-@click.command(name="prune")
+@click.command(name="prune", help=__doc__)
 @click.option(
     "--no-commit",
     is_flag=True,
@@ -25,13 +33,12 @@ from oops.utils.io import list_symlinks, relpath
 )
 @click.argument("names", nargs=-1, required=False)
 def main(no_commit: bool, dry_run: bool, names: tuple[str] = None):  # noqa: C901, PLR0912
-    """Remove unused submodules (not referenced by any symlink) and clean old paths."""
 
     repo = Repo()
 
     if not repo.submodules:
         click.echo("No .gitmodules found.")
-        return 0
+        raise click.Abort()
 
     symlinks = list_symlinks(repo.working_dir)
     unused = []
@@ -53,7 +60,7 @@ def main(no_commit: bool, dry_run: bool, names: tuple[str] = None):  # noqa: C90
 
     if not unused:
         click.echo("✅ No unused submodules detected.")
-        return 0
+        raise click.exceptions.Exit(0)
 
     if not no_commit:
         repo.index.commit(commit_messages.submodules_prune, skip_hooks=True)
@@ -62,5 +69,3 @@ def main(no_commit: bool, dry_run: bool, names: tuple[str] = None):  # noqa: C90
 
     if no_commit:
         click.echo("Don't forget to commit: git commit -m 'chore: remove unused submodules'")
-
-    return 0

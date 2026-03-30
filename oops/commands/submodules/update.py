@@ -3,6 +3,14 @@
 #
 # File: update.py — oops/commands/submodules/update.py
 
+"""
+Fetch and pull submodules to their latest upstream commit.
+
+For each submodule with a configured branch, fetches from origin, checks out
+the branch, and pulls the latest commits. Specific submodules can be targeted
+by name; PR submodules can be skipped with --skip-pr.
+"""
+
 import click
 from git import Repo
 
@@ -10,15 +18,12 @@ from oops.core.messages import commit_messages
 from oops.utils.git import is_pull_request
 
 
-@click.command("update")
+@click.command("update", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | None" = None):
-    """
-    Update git submodules to their latest upstream versions.
-    """
 
     repo = Repo()
     changes = []
@@ -64,7 +69,7 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
     if not no_commit and not dry_run:
         if not repo.index.diff(repo.head.commit):
             click.echo("No changes to commit.")
-            return 0
+            raise click.exceptions.Exit(0)
 
         click.echo("Committing changes...")
         desc = "\n".join(changes)

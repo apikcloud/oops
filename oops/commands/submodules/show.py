@@ -3,6 +3,14 @@
 #
 # File: show.py — oops/commands/submodules/show.py
 
+"""
+Display a table of all submodules with their details.
+
+Shows name, URL, upstream branch, pull-request flag, last commit date,
+commit age, and SHA for each submodule. Filter to PR-only submodules
+with --pull-request.
+"""
+
 import click
 
 from oops.git import get_last_commit
@@ -11,16 +19,13 @@ from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 
 
-@click.command("show")
+@click.command("show", help=__doc__)
 @click.option(
     "--pull-request",
     is_flag=True,
     help="Show pull request submodules only",
 )
 def main(pull_request: bool):
-    """
-    Update git submodules to their latest upstream versions.
-    """
 
     # FIXME: use Repo from gitpython
     repo = GitRepository()

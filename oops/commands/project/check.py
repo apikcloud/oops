@@ -3,6 +3,14 @@
 #
 # File: check.py — oops/commands/project/check.py
 
+"""
+Validate project configuration and list available Odoo Docker images.
+
+Checks for mandatory project files, verifies the configured Odoo image, and
+reports warnings and errors. Exits non-zero if errors are found; with --strict,
+warnings also cause a non-zero exit.
+"""
+
 import click
 
 from oops.commands.project.common import check_project, parse_odoo_version
@@ -11,10 +19,9 @@ from oops.services.docker import check_image, parse_image_tag
 from oops.utils.render import render_table
 
 
-@click.command(name="check")
+@click.command(name="check", help=__doc__)
 @click.option("--strict", is_flag=True, help="Do not fail on warnings")
 def main(strict: bool):  # noqa: C901
-    """Check project configuration and list available odoo images."""
 
     repo = GitRepository()
 

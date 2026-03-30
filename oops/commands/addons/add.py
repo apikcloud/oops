@@ -2,8 +2,13 @@
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
 # File: add.py — oops/commands/addons/add.py
+"""
+Create root-level symlinks for specific addons found in any tracked submodule.
 
-import logging
+Searches all submodules for addons matching the provided names and creates
+symlinks at the repository root. Skips addons that are already present.
+"""
+
 import os
 
 import click
@@ -16,10 +21,13 @@ from oops.utils.io import find_addons_extended, relpath
 
 
 @click.command("add")
-@click.argument("addons_list")
-@click.option("--no-commit", is_flag=True)
+@click.argument("addons_list", type=str)
+@click.option(
+    "--no-commit",
+    is_flag=True,
+    help="If set, created symlinks will not be committed.",
+)
 def main(addons_list: str, no_commit: bool):
-    """Create symlinks for listed addons from available ones in submodules."""
 
     repo = GitRepository()
 
@@ -32,8 +40,8 @@ def main(addons_list: str, no_commit: bool):
             addons_to_link[name] = {"path": path, "version": None}
 
     if not addons_to_link:
-        logging.warning("Not found...")
-        return 0
+        click.echo("No addons found...")
+        raise click.Abort()
 
     missing_addons = addons.difference(set(addons_to_link.keys()))
 

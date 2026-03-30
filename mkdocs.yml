@@ -1,0 +1,95 @@
+site_name: Oops
+site_description: CLI toolkit for managing Odoo multi-repository projects
+site_author: Apik
+repo_url: https://github.com/apikcloud/oops
+repo_name: apikcloud/oops
+
+extra_css:
+  - stylesheets/extra.css
+
+theme:
+  name: material
+  logo: assets/logo.png
+  palette:
+    - scheme: default
+      primary: custom
+      accent: customs
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - toc.follow
+
+plugins:
+  - search
+  - glightbox
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+
+markdown_extensions:
+  - mkdocs-click
+  - admonition # Encadrés (note, tip, warning...)
+  - pymdownx.details # Encadrés dépliables
+  - pymdownx.superfences: # Blocs de code avancés
+      custom_fences:
+        - name: mermaid # Diagrammes Mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed: # Onglets de contenu
+      alternate_style: true
+  - pymdownx.highlight: # Coloration syntaxique
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite # Code inline coloré
+  - pymdownx.snippets # Inclusion de fichiers
+  - pymdownx.emoji: # Emojis et icônes
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list # Attributs HTML sur éléments
+  - md_in_html # Markdown dans le HTML
+  - tables # Tableaux
+  - footnotes # Notes de bas de page
+  - pymdownx.critic # Suivi des modifications
+  - pymdownx.caret # Superscript et insertion
+  - pymdownx.keys # Raccourcis clavier
+  - pymdownx.mark # Surlignage de texte
+  - pymdownx.tilde # Subscript et barré
+  - toc: # Table des matières
+      permalink: true
+  - pymdownx.tasklist: # Listes de tâches
+      custom_checkbox: true
+  - def_list # Listes de définitions
+  - abbr # Abréviations
+
+nav:
+  - Home: index.md
+  - Commands:
+      - Addons: commands/addons.md
+      - Project: commands/project.md
+      - Readme: commands/readme.md
+      - Submodules: commands/submodules.md
+  - Hooks: hooks.md
+  - Configuration: config.md
+  - Use case: use_case.md
+  - Contributing: contributing.md

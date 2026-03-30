@@ -3,6 +3,14 @@
 #
 # File: rename.py — oops/commands/submodules/rename.py
 
+"""
+Rename submodules to match the <ORG>/<REPO> naming convention.
+
+Computes the canonical name from the submodule URL and renames it if it
+differs. Prompts for confirmation on each change unless --no-prompt is passed.
+Specific submodules can be targeted by name.
+"""
+
 import click
 from git import Repo
 
@@ -12,7 +20,7 @@ from oops.utils.io import desired_path, get_symlink_map
 from oops.utils.tools import ask
 
 
-@click.command("rename")
+@click.command("rename", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--prompt/--no-prompt", is_flag=True, default=True, help="Prompt before renaming")
@@ -21,9 +29,6 @@ from oops.utils.tools import ask
 )
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tuple[str] = None):
-    """
-    Rename git submodules to match new naming conventions.
-    """
 
     repo = Repo()
 

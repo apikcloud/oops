@@ -3,6 +3,14 @@
 #
 # File: materialize.py — oops/commands/addons/materialize.py
 
+"""
+Replace addon symlinks with a real copy of the addon directory.
+
+Useful when you need to modify a third-party addon locally. The symlink is
+removed and its target directory is copied in place. Only symlinks are
+processed; real directories are skipped.
+"""
+
 from pathlib import Path
 
 import click
@@ -14,12 +22,11 @@ from oops.utils.io import materialize_symlink
 from oops.utils.render import human_readable
 
 
-@click.command("materialize")
+@click.command("materialize", help=__doc__)
 @click.argument("addons")
 @click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 def main(addons: str, dry_run: bool, no_commit: bool):
-    """Replace an addon symlink by its real directory contents."""
 
     repo = GitRepository()
 

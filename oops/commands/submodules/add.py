@@ -3,6 +3,14 @@
 #
 # File: add.py — oops/commands/submodules/add.py
 
+"""
+Add a git submodule and optionally create symlinks for its addons.
+
+Clones the repository as a submodule under the base directory (default:
+.third-party), records the tracked branch, and optionally creates symlinks at
+the repo root for every addon found or for a specific list.
+"""
+
 import os
 import sys
 from pathlib import Path
@@ -76,7 +84,7 @@ def find_addons(submodule_dir: Path):
     is_flag=True,
     help="Indicates that the submodule is a pull request (affects naming)",
 )
-@click.command(name="add")
+@click.command(name="add", help=__doc__)
 def main(  # noqa: C901, PLR0915, PLR0913
     url: str,
     branch: str,
@@ -85,7 +93,6 @@ def main(  # noqa: C901, PLR0915, PLR0913
     addons: str,
     **options,
 ):
-    """Add a git submodule and optionally create symlinks for its addons."""
 
     addons_to_link = str_to_list(addons) if addons else []
     auto_symlinks = options["auto_symlinks"]
@@ -123,7 +130,8 @@ def main(  # noqa: C901, PLR0915, PLR0913
     click.echo(render_table(rows))
 
     if dry_run:
-        return 0
+        click.echo("⚠️ This is a dry run. No changes will be made.")
+        raise click.Abort()
 
     # Safety: prevent overwrite
     if sub_path.exists():
@@ -204,5 +212,3 @@ def main(  # noqa: C901, PLR0915, PLR0913
         click.echo("✅ Submodule added and committed.")
     else:
         click.echo("⚠️ Changes staged but not committed (--no-commit).")
-
-    return 0

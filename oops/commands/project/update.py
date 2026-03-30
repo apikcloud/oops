@@ -3,6 +3,14 @@
 #
 # File: update.py — oops/commands/project/update.py
 
+"""
+Update odoo_version.txt to the latest available Docker image.
+
+Queries the image registry for newer releases of the currently configured Odoo
+version and prompts the user to select one. With --force, picks the latest
+image automatically and commits the change.
+"""
+
 from pathlib import Path
 
 import click
@@ -15,10 +23,9 @@ from oops.utils.io import write_text_file
 from oops.utils.tools import ask
 
 
-@click.command(name="update")
+@click.command(name="update", help=__doc__)
 @click.option("--force", is_flag=True, help="Don't ask for confirmation")
 def main(force: bool):  # noqa: C901
-    """Update odoo image in odoo_version.txt to the latest available."""
 
     repo = Repo()
     current_version = parse_odoo_version(Path(repo.working_dir))
@@ -36,7 +43,7 @@ def main(force: bool):  # noqa: C901
 
     if not available_images:
         click.echo("No available images found")
-        return 0
+        raise click.Abort()
 
     if force:
         new_image = available_images[0]

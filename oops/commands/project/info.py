@@ -3,6 +3,13 @@
 #
 # File: info.py — oops/commands/project/info.py
 
+"""
+Display a summary of the current project.
+
+Shows Odoo version, Docker image release date, available image updates,
+Python requirements, system packages, git remote and release info.
+With a GitHub token, also shows the latest Actions workflow run.
+"""
 
 import click
 
@@ -23,7 +30,7 @@ from oops.services.github import get_latest_workflow_run
 from oops.utils.render import format_datetime, human_readable, render_table
 
 
-@click.command(name="info")
+@click.command(name="info", help=__doc__)
 @click.option(
     "--token",
     envvar=["TOKEN", "GH_TOKEN", "GITHUB_TOKEN"],
@@ -36,7 +43,6 @@ from oops.utils.render import format_datetime, human_readable, render_table
     help="Show minimal output.",
 )
 def main(token: str, minimal: bool):  # noqa: C901
-    """Display information about the current project and Odoo image."""
 
     repo = GitRepository()
 

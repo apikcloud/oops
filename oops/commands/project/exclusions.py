@@ -3,6 +3,14 @@
 #
 # File: exclusions.py — oops/commands/project/exclusions.py
 
+"""
+Add symlinked addons to the pre-commit exclusion file.
+
+Writes the list of symlinked addon paths to the pre-commit exclusion file so
+that pre-commit hooks skip third-party addons. The file is committed unless
+--no-commit is passed.
+"""
+
 import sys
 
 import click
@@ -13,7 +21,7 @@ from oops.git.core import GitRepository
 from oops.utils.io import find_addons, write_text_file
 
 
-@click.command(name="exclude")
+@click.command(name="exclude", help=__doc__)
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 def main(no_commit: bool):  # noqa: C901, PLR0912
     repo = GitRepository()
@@ -29,7 +37,7 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
 
     if not names:
         click.echo("No symlinked addons found.")
-        return 0
+        raise click.Abort()
 
     click.echo(f"Found {len(names)} symlinked addon(s) to exclude from pre-commit")
 

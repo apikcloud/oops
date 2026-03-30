@@ -3,6 +3,14 @@
 #
 # File: diff.py — oops/commands/addons/diff.py
 
+"""
+Find modified Odoo addons and print the corresponding --update command.
+
+Compares the current HEAD against either the last git tag or the last N commits,
+including changes inside submodules. With --save, writes the command to a
+migration script file.
+"""
+
 import logging
 import os
 
@@ -22,7 +30,7 @@ def get_submodule_sha(repo, ref, path):
         return None
 
 
-@click.command(name="diff")
+@click.command(name="diff", help=__doc__)
 @click.argument("mode", type=click.Choice(["tag", "commit"], case_sensitive=False))
 @click.argument("number", required=False, default=1)
 @click.option("-s", "--save", is_flag=True, help="Write the command in the migration file.")
@@ -31,9 +39,7 @@ def main(
     number: int,
     save: bool,
 ):
-    """
-    Search for modified Odoo addons in the last X commits or since the last tag.
-    """
+
     repo = Repo(".")
     tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
 

@@ -3,6 +3,15 @@
 #
 # File: download.py — oops/commands/addons/download.py
 
+"""
+Download and extract addons from a GitHub repository branch.
+
+Fetches the branch as a ZIP archive, extracts addon directories into the
+working directory, and adds them to .gitignore (unless --no-exclude is passed).
+A GitHub token can be provided via --token or the TOKEN / GH_TOKEN / GITHUB_TOKEN
+environment variables.
+"""
+
 import logging
 import os
 import shutil
@@ -23,7 +32,7 @@ from oops.utils.net import parse_repository_url
 logging.basicConfig(level=logging.INFO)
 
 
-@click.command(name="download")
+@click.command(name="download", help=__doc__)
 @click.argument("url")
 @click.argument("branch")
 @click.option("--token", envvar=["TOKEN", "GH_TOKEN", "GITHUB_TOKEN"])
@@ -36,7 +45,6 @@ def main(
     token: Optional[str] = None,
     addons_list: Optional[str] = None,
 ):
-    """Download and extract addons from a git repository branch zip."""
 
     local_repo = GitRepository()
 
@@ -80,7 +88,8 @@ def main(
             logging.debug(" ".join(skipped_addons))
 
         if not new_addons:
-            return 0
+            click.echo("No addons downloaded.")
+            raise click.Abort()
 
         logging.info(f"Addons added ({len(new_addons)}): {', '.join(new_addons)}")
         if exclude:

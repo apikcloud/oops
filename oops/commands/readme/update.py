@@ -88,7 +88,6 @@ def replace_in_readme(readme_path, header, rows_available, rows_unported) -> boo
     help="git commit changes to README.rst, if any.",
 )
 def main(commit):  # noqa: C901
-    """Generate or update the addons table in README.md."""
 
     repo = Repo()
     working_dir = Path(repo.working_dir)

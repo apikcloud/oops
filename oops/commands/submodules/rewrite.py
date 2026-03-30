@@ -3,6 +3,14 @@
 #
 # File: rewrite.py — oops/commands/submodules/rewrite.py
 
+"""
+Move submodule paths under a canonical base directory and update symlinks.
+
+Computes the target path for each submodule under the base directory (default:
+.third-party), moves the submodule, and rewrites all symlinks that referenced
+the old path. Prompts for confirmation unless --force is used.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -25,7 +33,7 @@ from oops.utils.io import (
 from oops.utils.tools import ask
 
 
-@click.command(name="rewrite")
+@click.command(name="rewrite", help=__doc__)
 @click.option(
     "--base-dir",
     default=config.new_submodule_path,
@@ -42,16 +50,12 @@ from oops.utils.tools import ask
 def main(
     base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: Optional[tuple[str]] = None
 ):  # noqa: C901, PLR0912, PLR0915
-    """
-    Rewrite submodule paths to be under a common base dir (e.g. .third-party).
-    Also rewrites symlinks.
-    """
 
     repo = Repo()
 
     if not repo.submodules:
         click.echo("No .gitmodules found.")
-        return 0
+        raise click.Abort()
 
     # FIXME: assume there is only one symlink per submodule for now
     mapping = get_symlink_map(repo.working_dir)
@@ -83,7 +87,7 @@ def main(
 
     if not plan:
         click.echo("No submodule needs rewriting.")
-        return 0
+        raise click.Abort()
 
     for submodule, new_path in plan:
         click.echo(
@@ -107,7 +111,7 @@ def main(
                     accepted.append((submodule, custom))
     if not accepted:
         click.echo("Nothing accepted. Exiting.")
-        return 0
+        raise click.exceptions.Exit(0)
 
     # Move submodules
     moved = []
@@ -124,7 +128,7 @@ def main(
         click.echo("\nDry run mode, no changes applied.")
         for oldp, newp in moved:
             click.echo(f"[dry-run] {oldp} -> {newp}")
-        return 0
+        raise click.exceptions.Exit(0)
 
     # Rewrite symlinks
     # Build a quick lookup for old->new prefixes

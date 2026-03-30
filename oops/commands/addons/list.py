@@ -3,6 +3,12 @@
 #
 # File: list.py — oops/commands/addons/list.py
 
+"""List all addons discovered across submodules with their metadata.
+
+Displays a table with addon name, symlink flag, submodule, upstream branch,
+PR flag, version, and author. Output can be formatted as text, JSON, or CSV.
+"""
+
 import click
 
 from oops.git.core import GitRepository
@@ -11,7 +17,7 @@ from oops.utils.net import encode_url
 from oops.utils.render import human_readable, render_boolean, render_table
 
 
-@click.command(name="list")
+@click.command(name="list", help=__doc__)
 @click.option(
     "--format",
     type=click.Choice(["text", "json", "csv"]),
@@ -43,7 +49,6 @@ from oops.utils.render import human_readable, render_boolean, render_table
     help="List all addons, including those not in submodules (i.e. in the root of the repo)",
 )
 def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_all: bool):  # noqa: C901, PLR0912
-    """List all addons found in git submodules."""
 
     # FIXME:
     repo = GitRepository()
@@ -102,5 +107,3 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
             index=True,
         )
     )
-
-    return 0
