@@ -202,6 +202,15 @@ oops-addons-download https://github.com/OCA/server-ux.git 18.0 --token $GH_TOKEN
 
 The `--no-exclude` flag skips adding downloaded addons to `.gitignore`.
 
+#### `oops-addons-compare <addons>`
+Compare a provided comma-separated addon list against the local root addons. Prints `+` for extra local addons (present locally but not in the list) and `-` for missing ones (in the list but not local).
+
+```bash
+oops-addons-compare "mass_editing,web_notify,sale_management"
+oops-addons-compare "mass_editing,web_notify" --delete           # unlink extra local symlinks
+oops-addons-compare "mass_editing,web_notify" --delete --no-commit
+```
+
 #### `oops-readme-update`
 Generate or refresh the addon inventory table inside the repo's `README.md`. Creates `README.md` with the marker skeleton if the file does not exist. Commits automatically unless `--no-commit` is passed.
 

@@ -133,4 +133,4 @@ def main(commit):  # noqa: C901
     changed = replace_in_readme(readme, header, rows_available, rows_unported)
     if commit and changed:
         repo.index.add(["README.md"])
-        repo.index.commit(commit_messages.update_addons_table)
+        repo.index.commit(commit_messages.addons_update_table)
