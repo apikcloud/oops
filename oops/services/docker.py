@@ -4,13 +4,11 @@
 # File: docker.py — oops/services/docker.py
 
 import re
+import warnings
 from datetime import date
 
 from oops.core.config import config
-from oops.core.exceptions import (
-    warn_deprecated_registry,
-    warn_unusual_registry,
-)
+from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
 from oops.core.models import ImageInfo
 from oops.utils.compat import Optional
 from oops.utils.helpers import date_from_string
@@ -24,6 +22,22 @@ from oops.utils.render import render_table
 #     warnings.warn(
 #         "Odoo is not available, some features will not be available.", ImportWarning, stacklevel=0
 #     )
+
+
+def warn_deprecated_registry(name):
+    warnings.warn(
+        f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
+        DeprecatedRegistryWarning,
+        stacklevel=3,
+    )
+
+
+def warn_unusual_registry(name):
+    warnings.warn(
+        f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
+        UnusualRegistryWarning,
+        stacklevel=3,
+    )
 
 
 def parse_image_tag(tag: str) -> ImageInfo:

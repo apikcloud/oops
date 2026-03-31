@@ -11,6 +11,7 @@ from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
 from typing import Final
 
+import click
 import yaml
 
 from oops.core.exceptions import ConfigurationError
@@ -49,9 +50,9 @@ class ImageRegistriesConfig:
 
 @dataclass
 class ImagesConfig:
-    source: ImageSourceConfig = field(default_factory=ImageSourceConfig)
+    source: ImageSourceConfig = field(default_factory=lambda: ImageSourceConfig())
     collections: List[str] = field(default_factory=lambda: [])
-    registries: ImageRegistriesConfig = field(default_factory=ImageRegistriesConfig)
+    registries: ImageRegistriesConfig = field(default_factory=lambda: ImageRegistriesConfig())
     release_warn_age_days: int = 30
 
 
@@ -191,7 +192,14 @@ def _check_version(data: dict, path: Path) -> None:
 def load_config() -> Config:
     found = [p for p in _CONFIG_PATHS if p.exists()]
     if not found:
-        raise ConfigurationError("No config file found. Create ~/.oops.yaml or .oops.yaml")
+        ctx = click.get_current_context(silent=True)
+        if ctx is None or ctx.resilient_parsing:
+            return Config()
+
+        ConfigurationError.__suppress_context__ = True
+        raise ConfigurationError(
+            "No config file found. Create ~/.oops.yaml or .oops.yaml"
+        ) from None
 
     cfg = Config()
     for path in found:

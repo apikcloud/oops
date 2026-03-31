@@ -3,10 +3,6 @@
 #
 # File: exceptions.py — oops/core/exceptions.py
 
-import warnings
-
-from oops.core.config import config
-
 
 class ConfigurationError(Exception):
     """Raised when required configuration values are missing."""
@@ -51,19 +47,3 @@ class DeprecatedRegistryWarning(UserWarning):
 
 class UnusualRegistryWarning(UserWarning):
     """Warning for unusual Docker registries."""
-
-
-def warn_deprecated_registry(name):
-    warnings.warn(
-        f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
-        DeprecatedRegistryWarning,
-        stacklevel=3,
-    )
-
-
-def warn_unusual_registry(name):
-    warnings.warn(
-        f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
-        UnusualRegistryWarning,
-        stacklevel=3,
-    )
