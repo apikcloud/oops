@@ -91,5 +91,5 @@ nav:
       - Submodules: commands/submodules.md
   - Hooks: hooks.md
   - Configuration: config.md
-  - Use case: use_case.md
+  - Use case: use-case.md
   - Contributing: contributing.md
