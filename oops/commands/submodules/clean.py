@@ -43,7 +43,7 @@ def main(reset: bool):
     #     click.echo("No submodules found.")
     #     return 0
 
-    for path in [config.old_submodule_path, config.new_submodule_path]:
+    for path in [config.submodules.old_paths[0], config.submodules.current_path]:
         old_base_path = repo.path / path
 
         if old_base_path.exists():

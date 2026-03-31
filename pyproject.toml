@@ -28,7 +28,6 @@ dependencies = [
   "libcst==0.4.*; python_version<'3.8'",
   "rich>=13.0",
   "fixit>2.0",
-  "black",
   "tabulate",
   "GitPython",
 ]

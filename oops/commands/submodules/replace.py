@@ -43,12 +43,12 @@ def main(
         click.echo(f"❌ Submodule(s) not found: {', '.join(not_found)}")
         return 1
 
-    new_url = encode_url(url, config.sub_force_scheme)
+    new_url = encode_url(url, config.submodules.force_scheme)
     old_paths = []
 
     if not dry_run:
         new_name = desired_path(new_url, pull_request=False)
-        new_path = desired_path(new_url, pull_request=False, prefix=str(config.new_submodule_path))
+        new_path = desired_path(new_url, pull_request=False, prefix=str(config.submodules.current_path))
 
         if new_name not in repo.submodules:
             click.echo(f"Adding new submodule '{new_url}' (branch={branch})")

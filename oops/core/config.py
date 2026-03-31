@@ -4,67 +4,61 @@
 # File: config.py — oops/core/config.py
 
 import os
-from dataclasses import dataclass, field
+import typing
+from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
 
-import black
+import yaml
 
 from oops.utils.compat import List
 
-BLACK_MODE = black.FileMode()
+# Sentinel for fields that must be provided via a config file (no in-code default).
+_MISSING: str = object()  # type: ignore[assignment]
+
+CONFIG_FILENAME = ".oops.yaml"
+_CONFIG_PATHS = [
+    Path.home() / CONFIG_FILENAME,  # global
+    Path(CONFIG_FILENAME),  # local (cwd), takes precedence
+]
+
+
+# ---------------------------------------------------------------------------
+# Nested config dataclasses
+# ---------------------------------------------------------------------------
 
 
 @dataclass
-class Config:
-    # Submodule
-    new_submodule_path: Path = Path(".third-party")
-    old_submodule_path: Path = Path("third-party")
+class ImageSourceConfig:
+    repository: str = _MISSING  # type: ignore[assignment]
+    file: str = _MISSING  # type: ignore[assignment]
 
-    # Manifest
-    manifest_names: List[str] = field(
-        default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"]
-    )
+    @property
+    def url(self) -> str:
+        return f"https://raw.githubusercontent.com/{self.repository}/refs/heads/main/{self.file}"
 
-    # Docker images
-    repo_docker_images: str = "apikcloud/images"
-    repo_docker_file: str = "tags.json"
-    docker_collections: List[str] = field(default_factory=lambda: ["production", "ofleet"])
-    docker_recommended_registries: List[str] = field(default_factory=lambda: ["apik"])
-    docker_deprecated_registries: List[str] = field(default_factory=lambda: ["ofleet", "loginline"])
-    docker_warn_registries: List[str] = field(default_factory=lambda: ["odoo"])
+
+@dataclass
+class ImageRegistriesConfig:
+    recommended: List[str] = field(default_factory=lambda: [])
+    deprecated: List[str] = field(default_factory=lambda: [])
+    warn: List[str] = field(default_factory=lambda: [])
+
+
+@dataclass
+class ImagesConfig:
+    source: ImageSourceConfig = field(default_factory=ImageSourceConfig)
+    collections: List[str] = field(default_factory=lambda: [])
+    registries: ImageRegistriesConfig = field(default_factory=ImageRegistriesConfig)
     release_warn_age_days: int = 30
 
-    # Project files
-    project_mandatory_files: set = field(
-        default_factory=lambda: {"requirements.txt", "odoo_version.txt", "packages.txt"}
-    )
-    project_recommended_files: set = field(
-        default_factory=lambda: {"README.md", "CODEOWNERS", "CHANGELOG.md", ".gitignore"}
-    )
-    project_file_packages: str = "packages.txt"
-    project_file_requirements: str = "requirements.txt"
-    project_file_odoo_version: str = "odoo_version.txt"
 
-    # Network
-    default_timeout: int = 60
-    github_api: str = "https://api.github.com"
-
-    # Misc
-    new_line: str = "\n"
-    datetime_format: str = "%Y-%m-%d %H:%M:%S"
-    check_symbol: str = "✓" if os.environ.get("LANG", "").lower().endswith(".utf-8") else "[X]"
-    pre_commit_exclude_file: str = ".pre-commit-exclusions"
-
-    # Submodules
-    sub_force_scheme: str = "ssh"
-    sub_deprecated_repositories: dict = field(
-        default_factory=lambda: {
-            "apikcloud/apik-accounting": "apikcloud/apik-addons",
-            "apikcloud/apik-taxes": "apikcloud/apik-addons",
-            "apikcloud/apik-sales": "apikcloud/apik-addons",
-        }
-    )
-    sub_checks: List[str] = field(
+@dataclass
+class SubmodulesConfig:
+    current_path: Path = field(default_factory=lambda: Path(".third-party"))
+    old_paths: List[Path] = field(default_factory=lambda: [Path("third-party")])
+    force_scheme: str = "ssh"
+    deprecated_repositories: dict = field(default_factory=lambda: {})
+    checks: List[str] = field(
         default_factory=lambda: [
             "check_path",
             "check_branch",
@@ -75,7 +69,20 @@ class Config:
         ]
     )
 
-    migrate_file: str = "migrate.sh"
+
+@dataclass
+class ProjectConfig:
+    mandatory_files: set = field(
+        default_factory=lambda: {"requirements.txt", "odoo_version.txt", "packages.txt"}
+    )
+    recommended_files: set = field(
+        default_factory=lambda: {"README.md", "CODEOWNERS", "CHANGELOG.md", ".gitignore"}
+    )
+    file_packages: str = "packages.txt"
+    file_requirements: str = "requirements.txt"
+    file_odoo_version: str = "odoo_version.txt"
+    file_migrate: str = "migrate.sh"
+    pre_commit_exclude_file: str = ".pre-commit-exclusions"
     migrate_command: str = "odoo --stop-after-init --no-http -u {addons}"
     migrate_content: str = """#!/bin/bash
 
@@ -83,10 +90,101 @@ class Config:
 {content}
 """
 
-    @property
-    def odoo_images_url(self) -> str:
-        return f"https://raw.githubusercontent.com/{self.repo_docker_images}/refs/heads/main/{self.repo_docker_file}"
 
+# ---------------------------------------------------------------------------
+# Root config
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class Config:
+    images: ImagesConfig = field(default_factory=ImagesConfig)
+    submodules: SubmodulesConfig = field(default_factory=SubmodulesConfig)
+    project: ProjectConfig = field(default_factory=ProjectConfig)
+
+    # Internal / misc (not exposed in .oops.yaml)
+    manifest_names: List[str] = field(
+        default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"]
+    )
+    default_timeout: int = 60
+    github_api: str = "https://api.github.com"
+    new_line: str = "\n"
+    datetime_format: str = "%Y-%m-%d %H:%M:%S"
+    check_symbol: str = "✓" if os.environ.get("LANG", "").lower().endswith(".utf-8") else "[X]"
+
+
+# ---------------------------------------------------------------------------
+# YAML loading
+# ---------------------------------------------------------------------------
+
+
+class ConfigurationError(Exception):
+    """Raised when required configuration values are missing."""
+
+
+def _validate(obj, path: str = "") -> List[str]:
+    """Return dotted paths of required fields not yet populated."""
+    missing = []
+    for f in fields(obj):
+        value = getattr(obj, f.name)
+        key = f"{path}.{f.name}" if path else f.name
+        if value is _MISSING:
+            missing.append(key)
+        elif is_dataclass(value):
+            missing.extend(_validate(value, key))
+    return missing
+
+
+def _is_list_of_path(hint: object) -> bool:
+    return getattr(hint, "__origin__", None) is list and getattr(hint, "__args__", ()) == (Path,)
+
+
+def _apply(obj, data: dict) -> None:
+    """Recursively merge *data* into *obj* (unknown keys are silently ignored)."""
+    try:
+        hints = typing.get_type_hints(type(obj))
+    except Exception:
+        hints = {}
+    for key, value in data.items():
+        if not hasattr(obj, key):
+            continue
+        attr = getattr(obj, key)
+        if isinstance(value, dict) and is_dataclass(attr):
+            _apply(attr, value)
+        elif isinstance(attr, Path) and isinstance(value, (str, Path)):
+            setattr(obj, key, Path(value))
+        elif _is_list_of_path(hints.get(key)) and isinstance(value, list):
+            setattr(obj, key, [Path(v) for v in value])
+        elif isinstance(attr, set) and isinstance(value, (list, set)):
+            setattr(obj, key, set(value))
+        else:
+            # dict fields (e.g. deprecated_repositories) are replaced wholesale, not merged.
+            setattr(obj, key, value)
+
+
+def load_config() -> Config:
+    found = [p for p in _CONFIG_PATHS if p.exists()]
+    if not found:
+        raise ConfigurationError("No config file found. Create ~/.oops.yaml or .oops.yaml")
+    cfg = Config()
+    for path in found:
+        data = yaml.safe_load(path.read_text()) or {}
+        _apply(cfg, data)
+    missing = _validate(cfg)
+    if missing:
+        raise ConfigurationError(
+            f"Missing required configuration: {', '.join(missing)}. "
+            f"Set them in ~/.oops.yaml or .oops.yaml"
+        )
+    return cfg
+
+
+config = load_config()
+
+
+# ---------------------------------------------------------------------------
+# Manifest / rules constants (not configurable)
+# ---------------------------------------------------------------------------
 
 REPLACEMENTS = {
     "Frederic Grall": "fredericgrall",
@@ -95,7 +193,6 @@ REPLACEMENTS = {
     "Romain THIEUW": "Romathi",
     "Aurelien ROY": "royaurelien",
 }
-
 
 FORCED_KEYS = ["author", "website", "license"]
 
@@ -121,6 +218,3 @@ DEFAULT_VALUES = {
     "application": False,
     "auto_install": False,
 }
-
-
-config = Config()

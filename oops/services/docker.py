@@ -107,8 +107,8 @@ def fetch_odoo_images(collections: Optional[list] = None) -> list:
     # },
 
     if collections is None:
-        collections = config.docker_collections
-    data = make_json_get(config.odoo_images_url)
+        collections = config.images.collections
+    data = make_json_get(config.images.source.url)
 
     items = [ImageInfo.from_raw_dict(vals) for vals in data]
 
@@ -121,9 +121,9 @@ def fetch_odoo_images(collections: Optional[list] = None) -> list:
 
 def check_image(image: ImageInfo, strict: bool = True) -> list:
     warnings = []
-    recommmended = ", ".join(config.docker_recommended_registries)
-    if image.registry not in config.docker_recommended_registries:
-        if image.registry in config.docker_deprecated_registries:
+    recommmended = ", ".join(config.images.registries.recommended)
+    if image.registry not in config.images.registries.recommended:
+        if image.registry in config.images.registries.deprecated:
             if strict:
                 warn_deprecated_registry(image.registry)
             else:
@@ -132,7 +132,7 @@ def check_image(image: ImageInfo, strict: bool = True) -> list:
                     f" as a replacement for '{image.registry}'."
                 )
 
-        if image.registry in config.docker_warn_registries:
+        if image.registry in config.images.registries.warn:
             if strict:
                 warn_unusual_registry(image.registry)
             else:
@@ -141,7 +141,7 @@ def check_image(image: ImageInfo, strict: bool = True) -> list:
                     f" as a replacement for '{image.registry}'."
                 )
 
-    if image.age and image.age > config.release_warn_age_days:
+    if image.age and image.age > config.images.release_warn_age_days:
         warnings.append(
             f"The current Odoo image is {image.age} days old, consider updating it",
         )
@@ -158,7 +158,7 @@ def find_available_images(release: date, enterprise: bool, version: float) -> li
             item.major_version == version
             and item.enterprise == enterprise
             and item.release > release
-            and item.collection in config.docker_collections
+            and item.collection in config.images.collections
         ):
             return item
 

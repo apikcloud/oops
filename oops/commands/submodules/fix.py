@@ -53,14 +53,14 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
         repository_name = f"{owner}/{repository}"
 
         # Check URL scheme
-        if config.sub_force_scheme and config.sub_force_scheme != scheme:
-            new_urls.append((submodule.name, encode_url(submodule.url, config.sub_force_scheme)))
+        if config.submodules.force_scheme and config.submodules.force_scheme != scheme:
+            new_urls.append((submodule.name, encode_url(submodule.url, config.submodules.force_scheme)))
 
         # Check deprecated repositories
-        if repository_name in config.sub_deprecated_repositories:
+        if repository_name in config.submodules.deprecated_repositories:
             repo_to_remove.append(submodule.name)
             repo_to_add.append(
-                (config.sub_deprecated_repositories[repository_name], submodule.branch)
+                (config.submodules.deprecated_repositories[repository_name], submodule.branch)
             )
 
     # Fix submodule URLs

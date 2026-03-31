@@ -70,7 +70,7 @@ def main(
         click.echo("No addons found")
         return
 
-    command = config.migrate_command.format(addons=",".join(addons))
+    command = config.project.migrate_command.format(addons=",".join(addons))
 
     click.echo(f"{len(addons)} addon(s) found:")
     click.echo("\n".join(addons))
@@ -79,8 +79,8 @@ def main(
     click.echo(command)
 
     if save:
-        with open(config.migrate_file, mode="w", encoding="UTF-8") as file:
-            file.write(config.migrate_content.format(content=command))
+        with open(config.project.file_migrate, mode="w", encoding="UTF-8") as file:
+            file.write(config.project.migrate_content.format(content=command))
         # Do a chmod +x
-        st = os.stat(config.migrate_file)
-        os.chmod(config.migrate_file, st.st_mode | 0o111)
+        st = os.stat(config.project.file_migrate)
+        os.chmod(config.project.file_migrate, st.st_mode | 0o111)

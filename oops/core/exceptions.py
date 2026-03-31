@@ -63,7 +63,7 @@ class UnusualRegistryWarning(UserWarning):
 
 def warn_deprecated_registry(name):
     warnings.warn(
-        f"You should use one of these registries ({', '.join(config.docker_recommended_registries)}) as a replacement for '{name}'.",  # noqa: E501
+        f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
         DeprecatedRegistryWarning,
         stacklevel=3,
     )
@@ -71,7 +71,7 @@ def warn_deprecated_registry(name):
 
 def warn_unusual_registry(name):
     warnings.warn(
-        f"You should use one of these registries ({', '.join(config.docker_recommended_registries)}) as a replacement for '{name}'.",  # noqa: E501
+        f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
         UnusualRegistryWarning,
         stacklevel=3,
     )

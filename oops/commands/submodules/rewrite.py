@@ -36,7 +36,7 @@ from oops.utils.tools import ask
 @click.command(name="rewrite", help=__doc__)
 @click.option(
     "--base-dir",
-    default=config.new_submodule_path,
+    default=config.submodules.current_path,
     help="Base directory for rewritten paths (default: .third-party)",
 )
 @click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
@@ -149,10 +149,10 @@ def main(
     click.echo(f"Symlinks rewritten: {rewrites}")
 
     # Remove old base dir if it exists
-    if config.old_submodule_path.exists():
-        shutil.rmtree(config.old_submodule_path)
-        repo.index.remove([str(config.old_submodule_path)], r=True, f=True)
-        click.echo(f"Removed old submodule base dir: {config.old_submodule_path}")
+    if config.submodules.old_paths[0].exists():
+        shutil.rmtree(config.submodules.old_paths[0])
+        repo.index.remove([str(config.submodules.old_paths[0])], r=True, f=True)
+        click.echo(f"Removed old submodule base dir: {config.submodules.old_paths[0]}")
 
     # Auto commit
     # TODO: add description of changes

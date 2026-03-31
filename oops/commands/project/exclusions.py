@@ -41,7 +41,7 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
 
     click.echo(f"Found {len(names)} symlinked addon(s) to exclude from pre-commit")
 
-    filepath = repo.path / config.pre_commit_exclude_file
+    filepath = repo.path / config.project.pre_commit_exclude_file
     res = "|".join(sorted([f"{name}/" for name in names]))
     write_text_file(filepath, [res])
 
