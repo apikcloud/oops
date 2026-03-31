@@ -11,11 +11,6 @@ The exclusion list uses a start and end tags to identify the section to update. 
 - end: # [//]: # (end addons)
 
 If the tags are not found in the file, they are automatically added at the end of the file with its content.
-
-This command can be used with two options:
-- --dry-run: Show what would happen, do nothing.
-- --no-commit: Do not commit changes.
-
 """
 
 from __future__ import annotations
@@ -28,18 +23,14 @@ from tabulate import tabulate
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
+from oops.services.github import get_github_user
 from oops.utils.io import file_updater, find_addons
 
 
+@click.command(name="update", help=__doc__)
 @click.option("--dry-run", default=False, is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", default=True, is_flag=True, help="Do not commit changes.")
 def main(dry_run: bool = False, no_commit: bool = True):
-    def _get_github_user(_user):
-        """Structure the maintainer's GitHub user as a link and display their avatar."""
-        return (
-            f"<a href='https://github.com/{_user}'>"
-            f"<img src='https://github.com/{_user}.png' width='32' height='32' alt='{_user}'/></a>"
-        )
 
     # Corresponding map for headers and manifest keys.
     headers = {
@@ -58,14 +49,14 @@ def main(dry_run: bool = False, no_commit: bool = True):
     for addon in find_addons(repo_path, shallow=True):
         row = [f"[{addon.technical_name}](/{addon.technical_name})", addon.version]
 
-        addon_maintainers = [_get_github_user(user) for user in addon.maintainers]
+        addon_maintainers = [get_github_user(user) for user in addon.maintainers]
         row.append(" ".join(addon_maintainers))
 
         row.append(" ".join(addon.summary.split()))
 
         structure.append(row)
 
-    table = tabulate(structure, headers=headers.keys(), tablefmt="github")
+    table = tabulate(structure, headers=list(headers.keys()), tablefmt="github")
 
     new_content = f"Available addons\n----------------\n\n{table}\n"
 
@@ -89,4 +80,4 @@ def main(dry_run: bool = False, no_commit: bool = True):
         click.echo("Committing changes...")
 
         repo.index.add([readme_file])
-        repo.index.commit(commit_messages.update_addons_table, skip_hooks=True)
+        repo.index.commit(commit_messages.addons_update_table, skip_hooks=True)

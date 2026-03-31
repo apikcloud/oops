@@ -1,5 +1,5 @@
 line-length = 120  # Max line length
-target-version = "py312"  # Python version: 312 = Python 3.12
+target-version = "py37"  # Python version: 37 = Python 3.7
 fix = true  # Enable the edition of files if correction is possible.
 
 [lint]
@@ -23,11 +23,7 @@ exclude = ["__init__.py", "setup/*"]
 "__manifest__.py" = ["B018"]
 
 [lint.isort]
-section-order = ["future", "standard-library", "third-party", "odoo", "odoo-addons", "first-party", "local-folder"]
-
-[lint.isort.sections]
-"odoo" = ["odoo"]
-"odoo-addons" = ["odoo.addons"]
+section-order = ["future", "standard-library", "third-party", "local-folder"]
 
 [lint.mccabe]
 max-complexity = 16  # Cyclomatic complexity (limit for loop in loops and if/else statements).

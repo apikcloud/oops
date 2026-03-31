@@ -1,10 +1,10 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
-# File: update.py — oops/commands/requirements/show.py
+# File: check.py — oops/commands/requirements/check.py
 
 """
-Display the differences between the existing requirements and the expected ones.
+Check the differences between the existing requirements and the expected ones.
 
 The expecting requirements are computed by going through the addons at the root of the project and extracted from the
 manifests.
@@ -31,17 +31,18 @@ from oops.core.config import config
 from oops.utils.io import get_python_dependencies
 
 
-@click.command("show")
+@click.command("check", help=__doc__)
 def main():
-    requirement_file = Path(config.project_file_requirements)
+
     repo = Repo()
+    requirement_file = Path(config.project_file_requirements)
     repo_path = Path(repo.working_dir)
 
-    has_changes, python_dependencies, diff = get_python_dependencies(requirement_file, repo_path)
+    has_changes, _, diff = get_python_dependencies(requirement_file, repo_path)
 
     if not has_changes:
         click.echo("No changes detected in requirements.")
-        return
+        raise click.exceptions.Exit(0)
 
     click.echo(f"Changes for {requirement_file}:")
     for line in diff:
@@ -49,3 +50,5 @@ def main():
             click.secho(line, fg="red")
         elif line.startswith("+ "):
             click.secho(line, fg="green")
+
+    raise click.exceptions.Exit(1)

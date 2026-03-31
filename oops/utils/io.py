@@ -352,7 +352,7 @@ def collect_addon_paths(addons_dir: Path) -> list:
 # -------------------------
 # Manifest related features
 # -------------------------
-def get_python_dependencies(requirement_file: Path, repo_path: Path):
+def get_python_dependencies(requirement_file: Path, repo_path: Path) -> tuple[bool, list[str], list[str]]:
     python_dependencies = ["# Requirements generated from manifests external_dependencies:"]
     for addon in find_addons(repo_path, shallow=True):
         python_dependencies.extend(addon.external_dependencies.get("python", []))
@@ -376,8 +376,8 @@ def get_python_dependencies(requirement_file: Path, repo_path: Path):
 def file_updater(
     filepath: str,
     new_inner_content: str,
-    start_tag: str = None,
-    end_tag: str = None,
+    start_tag: Optional[str] = None,
+    end_tag: Optional[str] = None,
     padding: str = "\n",
     append_position: str = "bottom",
 ) -> bool:
@@ -400,6 +400,7 @@ def file_updater(
         with open(filepath, "w") as new_file:
             if start_tag and end_tag:
                 new_file.write(f"{start_tag}\n{new_inner_content}\n{end_tag}\n")
+                return True
 
     if (start_tag and not end_tag) or (end_tag and not start_tag):
         raise ValueError(f"Targeted update for {filepath} requires BOTH start and end tags.")

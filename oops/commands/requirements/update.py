@@ -26,21 +26,28 @@ from oops.utils.io import file_updater, get_python_dependencies
 
 
 @click.command("update")
+@click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes.")
-def main(no_commit: bool):
-    requirement_file = Path(config.project_file_requirements)
+def main(dry_run: bool, no_commit: bool):
+
     repo = Repo()
+    requirement_file = Path(config.project_file_requirements)
     repo_path = Path(repo.working_dir)
 
-    has_changes, python_dependencies, diff = get_python_dependencies(requirement_file, repo_path)
+    has_changes, python_dependencies, _ = get_python_dependencies(requirement_file, repo_path)
 
     python_dependencies_str = "\n".join(python_dependencies)
 
     if not has_changes:
         click.echo("No changes detected in requirements.")
-        return
+        raise click.exceptions.Exit(0)
 
     click.echo(f"Updating {requirement_file}...")
+    if dry_run:
+        click.echo("[dry-run]:")
+        click.echo(python_dependencies_str)
+        raise click.exceptions.Exit(0)
+
     has_update = file_updater(
         filepath=str(requirement_file),
         new_inner_content=python_dependencies_str,

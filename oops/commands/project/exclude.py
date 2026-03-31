@@ -12,11 +12,6 @@ The exclusion list uses a start and end tags to identify the section to update. 
 - end: # oops:exclude:end
 
 If the tags are not found in the file, they are automatically added with the inner content at the head of the file.
-
-This command can be used with two options:
-- --dry-run: Show what would happen, do nothing.
-- --no-commit: Do not commit changes.
-
 """
 
 from __future__ import annotations
@@ -25,13 +20,12 @@ from pathlib import Path
 
 import click
 from git import Repo
-
 from oops.core.config import config
 from oops.core.messages import commit_messages
 from oops.utils.io import file_updater, find_addons
 
 
-@click.command("update")
+@click.command("exclude", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes.")
 def main(dry_run: bool = False, no_commit: bool = False):
