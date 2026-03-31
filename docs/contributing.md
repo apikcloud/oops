@@ -11,6 +11,41 @@ Issues and pull requests are welcome on [GitHub](https://github.com/apikcloud/oo
 - **No core changes without tests** — if tests don't exist yet, write them first.
 - **Follow existing conventions** — look at current commands and match the pattern.
 
+## Command Naming
+
+Commands follow a three-part structure:
+
+    oops-<scope>-<verb>
+
+### Scopes
+
+Each scope covers a well-defined area of responsibility:
+
+| Scope | Responsibility |
+|---|---|
+| `addons` | Odoo addon lifecycle (listing, downloading, diffing…) |
+| `sub` | Git submodule management |
+| `readme` | README generation and maintenance |
+| `pro` | Project-level metadata and configuration |
+
+### Verbs
+
+The verb defines the default behavior — users should be able to guess
+what a command does from its name alone.
+
+| Type | Examples | Default behavior |
+|---|---|---|
+| **edit** | `add`, `fix`, `update`, `prune`, `rename`… | Applies changes and commits. Use `--dry-run` to preview or `--no-commit` to skip the commit. |
+| **show** | `list`, `show`, `info`, `diff`, `compare` | Read-only. No side effects. |
+| **check** | `check` | Validates and reports. Exits non-zero on failure. Pairs with a matching `fix` command when one exists. |
+
+### Rules
+
+- A new scope requires a clear, bounded responsibility — don't create one for a single command.
+- Prefer an existing verb before introducing a new one.
+- `check` + `fix` always come in pairs — if you add one, add the other.
+- Edit commands must support `--dry-run` and `--no-commit`.
+
 ## Setup
 
 ```bash
