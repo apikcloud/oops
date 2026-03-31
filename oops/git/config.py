@@ -3,6 +3,8 @@
 #
 # File: config.py — oops/git/config.py
 
+# TODO: deprecated, to be removed in the future.
+
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path

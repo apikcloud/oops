@@ -3,6 +3,8 @@
 #
 # File: submodules.py — oops/git/submodules.py
 
+# TODO: deprecated, to be removed in the future.
+
 import logging
 import subprocess
 from pathlib import Path

@@ -3,6 +3,8 @@
 #
 # File: common.py — oops/commands/project/common.py
 
+# TODO: move to utils
+
 import os
 from pathlib import Path
 

@@ -3,6 +3,8 @@
 #
 # File: utils.py — oops/git/utils.py
 
+# TODO: deprecated, to be removed in the future.
+
 import re
 
 

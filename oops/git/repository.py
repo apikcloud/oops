@@ -3,6 +3,8 @@
 #
 # File: repository.py — oops/git/repository.py
 
+# TODO: deprecated, to be removed in the future.
+
 import contextlib
 import subprocess
 from pathlib import Path

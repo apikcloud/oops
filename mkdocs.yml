@@ -48,39 +48,39 @@ plugins:
 
 markdown_extensions:
   - mkdocs-click
-  - admonition # Encadrés (note, tip, warning...)
-  - pymdownx.details # Encadrés dépliables
-  - pymdownx.superfences: # Blocs de code avancés
+  - admonition # Callout blocks (note, tip, warning...)
+  - pymdownx.details # Collapsible callout blocks
+  - pymdownx.superfences: # Advanced code blocks
       custom_fences:
-        - name: mermaid # Diagrammes Mermaid
+        - name: mermaid # Mermaid diagrams
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-  - pymdownx.tabbed: # Onglets de contenu
+  - pymdownx.tabbed: # Content tabs
       alternate_style: true
-  - pymdownx.highlight: # Coloration syntaxique
+  - pymdownx.highlight: # Syntax highlighting
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
-  - pymdownx.inlinehilite # Code inline coloré
-  - pymdownx.snippets # Inclusion de fichiers
-  - pymdownx.emoji: # Emojis et icônes
+  - pymdownx.inlinehilite # Inline code highlighting
+  - pymdownx.snippets # File inclusion
+  - pymdownx.emoji: # Emojis and icons
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - attr_list # Attributs HTML sur éléments
-  - md_in_html # Markdown dans le HTML
-  - tables # Tableaux
-  - footnotes # Notes de bas de page
-  - pymdownx.critic # Suivi des modifications
-  - pymdownx.caret # Superscript et insertion
-  - pymdownx.keys # Raccourcis clavier
-  - pymdownx.mark # Surlignage de texte
-  - pymdownx.tilde # Subscript et barré
-  - toc: # Table des matières
+  - attr_list # HTML attributes on elements
+  - md_in_html # Markdown inside HTML
+  - tables # Tables
+  - footnotes # Footnotes
+  - pymdownx.critic # Change tracking
+  - pymdownx.caret # Superscript and insertion
+  - pymdownx.keys # Keyboard shortcuts
+  - pymdownx.mark # Text highlighting
+  - pymdownx.tilde # Subscript and strikethrough
+  - toc: # Table of contents
       permalink: true
-  - pymdownx.tasklist: # Listes de tâches
+  - pymdownx.tasklist: # Task lists
       custom_checkbox: true
-  - def_list # Listes de définitions
-  - abbr # Abréviations
+  - def_list # Definition lists
+  - abbr # Abbreviations
 
 nav:
   - Home: index.md

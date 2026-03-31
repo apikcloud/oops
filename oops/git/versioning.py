@@ -3,6 +3,8 @@
 #
 # File: versioning.py — oops/git/versioning.py
 
+# TODO: move to utils
+
 import re
 import subprocess
 

@@ -1,14 +1,9 @@
-"""Git operations module - Refactored into specialized submodules.
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: __init__.py — oops/git/__init__.py
 
-This module provides a unified interface to all git operations, organized into:
-- core: Basic git commands (commit, add, reset, etc.)
-- submodules: Submodule management (add, update, sync, etc.)
-- config: Git configuration and .gitmodules parsing
-- versioning: Tags, releases, and semantic versioning
-- repository: Repository-level helpers (load_repo, remote_url, etc.)
-
-For backward compatibility, all functions are re-exported at this level.
-"""
+# TODO: deprecated, to be removed in the future.
 
 from oops.git.config import (
     get_submodule_config,

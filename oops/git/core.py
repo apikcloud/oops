@@ -3,6 +3,8 @@
 #
 # File: core.py — oops/git/core.py
 
+# TODO: deprecated, to be removed in the future.
+
 import contextlib
 import logging
 import os
