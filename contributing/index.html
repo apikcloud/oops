@@ -757,6 +757,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#command-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command Naming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command Naming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scopes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scopes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -835,6 +885,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#command-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command Naming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command Naming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scopes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scopes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verbs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verbs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -898,6 +998,74 @@
 <li><strong>No core changes without tests</strong> — if tests don't exist yet, write them first.</li>
 <li><strong>Follow existing conventions</strong> — look at current commands and match the pattern.</li>
 </ul>
+<h2 id="command-naming">Command Naming<a class="headerlink" href="#command-naming" title="Permanent link">¶</a></h2>
+<p>Commands follow a three-part structure:</p>
+<div class="language-text highlight"><pre><span></span><code>oops-&lt;scope&gt;-&lt;verb&gt;
+</code></pre></div>
+<h3 id="scopes">Scopes<a class="headerlink" href="#scopes" title="Permanent link">¶</a></h3>
+<p>Each scope covers a well-defined area of responsibility:</p>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>addons</code></td>
+<td>Odoo addon lifecycle (listing, downloading, diffing…)</td>
+</tr>
+<tr>
+<td><code>sub</code></td>
+<td>Git submodule management</td>
+</tr>
+<tr>
+<td><code>readme</code></td>
+<td>README generation and maintenance</td>
+</tr>
+<tr>
+<td><code>pro</code></td>
+<td>Project-level metadata and configuration</td>
+</tr>
+</tbody>
+</table>
+<h3 id="verbs">Verbs<a class="headerlink" href="#verbs" title="Permanent link">¶</a></h3>
+<p>The verb defines the default behavior — users should be able to guess
+what a command does from its name alone.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Examples</th>
+<th>Default behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>edit</strong></td>
+<td><code>add</code>, <code>fix</code>, <code>update</code>, <code>prune</code>, <code>rename</code>…</td>
+<td>Applies changes and commits. Use <code>--dry-run</code> to preview or <code>--no-commit</code> to skip the commit.</td>
+</tr>
+<tr>
+<td><strong>show</strong></td>
+<td><code>list</code>, <code>show</code>, <code>info</code>, <code>diff</code>, <code>compare</code></td>
+<td>Read-only. No side effects.</td>
+</tr>
+<tr>
+<td><strong>check</strong></td>
+<td><code>check</code></td>
+<td>Validates and reports. Exits non-zero on failure. Pairs with a matching <code>fix</code> command when one exists.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rules">Rules<a class="headerlink" href="#rules" title="Permanent link">¶</a></h3>
+<ul>
+<li>A new scope requires a clear, bounded responsibility — don't create one for a single command.</li>
+<li>Prefer an existing verb before introducing a new one.</li>
+<li><code>check</code> + <code>fix</code> always come in pairs — if you add one, add the other.</li>
+<li>Edit commands must support <code>--dry-run</code> and <code>--no-commit</code>.</li>
+</ul>
 <h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">¶</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/apikcloud/oops.git
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>oops
@@ -938,7 +1106,7 @@ reinstall the package to pick up the change (<code>make docs-serve</code> does t
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="March 30, 2026 09:08:23 UTC"><span class="timeago" datetime="2026-03-30T09:08:23+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="March 30, 2026 09:08:23 UTC">2026-03-30</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="March 31, 2026 14:01:30 UTC"><span class="timeago" datetime="2026-03-31T14:01:30+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="March 31, 2026 14:01:30 UTC">2026-03-31</span>
   </span>
 
     
