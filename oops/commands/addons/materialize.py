@@ -11,11 +11,10 @@ removed and its target directory is copied in place. Only symlinks are
 processed; real directories are skipped.
 """
 
-from pathlib import Path
-
 import click
 
 from oops.core.messages import commit_messages
+from oops.core.paths import WORKING_DIR
 from oops.git.core import GitRepository
 from oops.utils.helpers import str_to_list
 from oops.utils.io import materialize_symlink
@@ -36,7 +35,7 @@ def main(addons: str, dry_run: bool, no_commit: bool):
     for addon in addons_list:
         if not addon:
             continue
-        addon_path = Path(repo.path) / addon
+        addon_path = WORKING_DIR / addon
         if not addon_path.exists():
             click.echo(f"[oops] skip: {addon_path} does not exist.")
             continue

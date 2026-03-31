@@ -17,6 +17,8 @@ import click
 from git import Repo
 
 from oops.core.messages import commit_messages
+from oops.core.paths import WORKING_DIR
+from oops.utils.compat import Optional
 from oops.utils.io import list_symlinks, relpath
 
 
@@ -32,7 +34,7 @@ from oops.utils.io import list_symlinks, relpath
     help="Show planned changes only",
 )
 @click.argument("names", nargs=-1, required=False)
-def main(no_commit: bool, dry_run: bool, names: tuple[str] = None):  # noqa: C901, PLR0912
+def main(no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = None):  # noqa: C901, PLR0912
 
     repo = Repo()
 
@@ -40,7 +42,7 @@ def main(no_commit: bool, dry_run: bool, names: tuple[str] = None):  # noqa: C90
         click.echo("No .gitmodules found.")
         raise click.Abort()
 
-    symlinks = list_symlinks(repo.working_dir)
+    symlinks = list_symlinks(WORKING_DIR)
     unused = []
 
     # Check for unused submodules
@@ -49,8 +51,8 @@ def main(no_commit: bool, dry_run: bool, names: tuple[str] = None):  # noqa: C90
         if names and submodule.name not in names:
             continue
 
-        path = Path(repo.working_dir) / Path(submodule.path)
-        rel = relpath(repo.working_dir, path)
+        path = WORKING_DIR / Path(submodule.path)
+        rel = relpath(WORKING_DIR, path)
         if any(rel in t for t in symlinks):
             continue
 

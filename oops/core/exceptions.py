@@ -8,28 +8,24 @@ import warnings
 from oops.core.config import config
 
 
+class ConfigurationError(Exception):
+    """Raised when required configuration values are missing."""
+
+
 class NoManifestFound(Exception):
     """Raised when no manifest file is found in an addon."""
-
-    pass
 
 
 class NoGitRepository(Exception):
     """Raised when the current directory is not part of a git repository."""
 
-    pass
-
 
 class ScriptNotFound(Exception):
     """Raised when a required script is not found."""
 
-    pass
-
 
 class MarkersNotFound(Exception):
     """Raised when the addons table markers are missing or malformed in a README."""
-
-    pass
 
 
 class MissingMandatoryFiles(Exception):
@@ -52,13 +48,9 @@ class MissingRecommendedFiles(MissingMandatoryFiles):
 class DeprecatedRegistryWarning(UserWarning):
     """Warning for deprecated Docker registries."""
 
-    pass
-
 
 class UnusualRegistryWarning(UserWarning):
     """Warning for unusual Docker registries."""
-
-    pass
 
 
 def warn_deprecated_registry(name):

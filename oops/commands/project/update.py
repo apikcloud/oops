@@ -11,13 +11,12 @@ version and prompts the user to select one. With --force, picks the latest
 image automatically and commits the change.
 """
 
-from pathlib import Path
-
 import click
 from git import Repo
 
 from oops.commands.project.common import parse_odoo_version
 from oops.core.messages import commit_messages
+from oops.core.paths import WORKING_DIR
 from oops.services.docker import find_available_images, format_available_images, parse_image_tag
 from oops.utils.io import write_text_file
 from oops.utils.tools import ask
@@ -28,7 +27,7 @@ from oops.utils.tools import ask
 def main(force: bool):  # noqa: C901
 
     repo = Repo()
-    current_version = parse_odoo_version(Path(repo.working_dir))
+    current_version = parse_odoo_version(WORKING_DIR)
     image_infos = parse_image_tag(current_version)
 
     if not image_infos.release:
@@ -58,7 +57,7 @@ def main(force: bool):  # noqa: C901
 
     click.echo(f"Update odoo image to: {new_image.image}")
 
-    odoo_version_file = Path(repo.working_dir) / "odoo_version.txt"
+    odoo_version_file = WORKING_DIR / "odoo_version.txt"
     write_text_file(odoo_version_file, [new_image.image])
 
     repo.index.add([str(odoo_version_file)])

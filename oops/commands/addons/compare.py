@@ -10,12 +10,11 @@ Prints addons missing locally (prefixed with -) and extra local addons not in
 the list (prefixed with +). With --delete, extra local symlinks are removed.
 """
 
-from pathlib import Path
-
 import click
 from git import Repo
 
 from oops.core.messages import commit_messages
+from oops.core.paths import WORKING_DIR
 from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons
 
@@ -35,9 +34,9 @@ from oops.utils.io import find_addons
 def main(addons_list: str, delete: bool, no_commit: bool):
 
     repo = Repo()
-    root = Path(repo.working_dir)
+
     provided = set(str_to_list(addons_list))
-    local = {a.technical_name for a in find_addons(root, shallow=True)}
+    local = {a.technical_name for a in find_addons(WORKING_DIR, shallow=True)}
 
     missing = sorted(provided - local)  # in args, not local
     additionals = sorted(local - provided)  # local, not in args
@@ -49,7 +48,7 @@ def main(addons_list: str, delete: bool, no_commit: bool):
     for name in additionals:
         click.echo(click.style(f"+ {name}", fg="green"))
         if delete:
-            (root / name).unlink()
+            (WORKING_DIR / name).unlink()
             changes.append(name)
 
     click.echo(

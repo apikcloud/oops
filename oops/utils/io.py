@@ -16,6 +16,7 @@ import libcst as cst
 
 from oops.core.config import config
 from oops.core.exceptions import NoManifestFound
+from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.core.models import AddonInfo
 from oops.utils.compat import Optional, Union
 from oops.utils.helpers import filter_and_clean
@@ -99,7 +100,7 @@ def desired_path(
     parts = [owner, repo]
 
     if pull_request:
-        parts.insert(0, "PRs")
+        parts.insert(0, PR_DIR)
 
     if prefix:
         parts.insert(0, prefix.rstrip("/"))
@@ -271,7 +272,7 @@ def is_pull_request_path(raw: Optional[str]) -> bool:
     if not raw:
         return False
 
-    return raw.startswith("PRs/") or "pr" in raw.split("/")
+    return raw.startswith(f"{PR_DIR}/") or "pr" in raw.split("/")
 
 
 def copytree(src: Path, dst: Path, ignore_git: bool = True) -> None:
@@ -341,7 +342,7 @@ def find_modified_addons(files: list) -> list:
 def collect_addon_paths(addons_dir: Path) -> list:
     """Return list of (addon_path, unported) pairs, sorted by path."""
     paths = [(p, False) for p in addons_dir.iterdir()]
-    unported = addons_dir / "__unported__"
+    unported = addons_dir / UNPORTED_DIR
     if unported.is_dir():
         paths += [(p, True) for p in unported.iterdir()]
     return sorted(paths, key=lambda x: x[0])

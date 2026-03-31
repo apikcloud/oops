@@ -3,23 +3,26 @@
 #
 # File: config.py — oops/core/config.py
 
+import logging
 import os
 import typing
+import warnings
 from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
+from typing import Final
 
 import yaml
 
+from oops.core.exceptions import ConfigurationError
+from oops.core.paths import CONFIG_PATHS as _CONFIG_PATHS
 from oops.utils.compat import List
 
-# Sentinel for fields that must be provided via a config file (no in-code default).
-_MISSING: str = object()  # type: ignore[assignment]
+logger = logging.getLogger(__name__)
 
-CONFIG_FILENAME = ".oops.yaml"
-_CONFIG_PATHS = [
-    Path.home() / CONFIG_FILENAME,  # global
-    Path(CONFIG_FILENAME),  # local (cwd), takes precedence
-]
+# Sentinel for fields that must be provided via a config file (no in-code default).
+_MISSING: Final = object()
+
+_SUPPORTED_VERSIONS: Final = {1}
 
 
 # ---------------------------------------------------------------------------
@@ -118,10 +121,6 @@ class Config:
 # ---------------------------------------------------------------------------
 
 
-class ConfigurationError(Exception):
-    """Raised when required configuration values are missing."""
-
-
 def _validate(obj, path: str = "") -> List[str]:
     """Return dotted paths of required fields not yet populated."""
     missing = []
@@ -139,18 +138,30 @@ def _is_list_of_path(hint: object) -> bool:
     return getattr(hint, "__origin__", None) is list and getattr(hint, "__args__", ()) == (Path,)
 
 
-def _apply(obj, data: dict) -> None:
-    """Recursively merge *data* into *obj* (unknown keys are silently ignored)."""
+def _apply(obj, data: dict, path: str = "") -> None:
+    """Recursively merge *data* into *obj*.
+
+    Unknown keys produce a warning rather than being silently ignored.
+    Dict and set fields are replaced wholesale (not merged) — intentional,
+    so that a project-level config can fully override a global default.
+    """
     try:
         hints = typing.get_type_hints(type(obj))
     except Exception:
         hints = {}
+
     for key, value in data.items():
+        full_key = f"{path}.{key}" if path else key
         if not hasattr(obj, key):
+            warnings.warn(
+                f"Unknown config key ignored: '{full_key}'",
+                UserWarning,
+                stacklevel=2,
+            )
             continue
         attr = getattr(obj, key)
         if isinstance(value, dict) and is_dataclass(attr):
-            _apply(attr, value)
+            _apply(attr, value, full_key)
         elif isinstance(attr, Path) and isinstance(value, (str, Path)):
             setattr(obj, key, Path(value))
         elif _is_list_of_path(hints.get(key)) and isinstance(value, list):
@@ -158,63 +169,50 @@ def _apply(obj, data: dict) -> None:
         elif isinstance(attr, set) and isinstance(value, (list, set)):
             setattr(obj, key, set(value))
         else:
-            # dict fields (e.g. deprecated_repositories) are replaced wholesale, not merged.
             setattr(obj, key, value)
+
+
+def _check_version(data: dict, path: Path) -> None:
+    """Validate the 'version' key from a config file."""
+    version = data.get("version")
+    if version is None:
+        warnings.warn(
+            f"{path}: no 'version' key found, assuming v1",
+            UserWarning,
+            stacklevel=2,
+        )
+    elif version not in _SUPPORTED_VERSIONS:
+        raise ConfigurationError(
+            f"{path}: unsupported config version {version!r} "
+            f"(supported: {sorted(_SUPPORTED_VERSIONS)})"
+        )
 
 
 def load_config() -> Config:
     found = [p for p in _CONFIG_PATHS if p.exists()]
     if not found:
         raise ConfigurationError("No config file found. Create ~/.oops.yaml or .oops.yaml")
+
     cfg = Config()
     for path in found:
+        logger.debug("Loading config from %s", path)
         data = yaml.safe_load(path.read_text()) or {}
+        _check_version(data, path)
         _apply(cfg, data)
+
     missing = _validate(cfg)
     if missing:
+        grouped: dict[str, list[str]] = {}
+        for m in missing:
+            root = m.split(".")[0]
+            grouped.setdefault(root, []).append(m)
+        lines = "\n".join(f"  [{section}]: {', '.join(keys)}" for section, keys in grouped.items())
         raise ConfigurationError(
-            f"Missing required configuration: {', '.join(missing)}. "
-            f"Set them in ~/.oops.yaml or .oops.yaml"
+            f"Missing required configuration:\n{lines}\nSet them in ~/.oops.yaml or .oops.yaml"
         )
+
+    logger.debug("Config loaded successfully")
     return cfg
 
 
 config = load_config()
-
-
-# ---------------------------------------------------------------------------
-# Manifest / rules constants (not configurable)
-# ---------------------------------------------------------------------------
-
-REPLACEMENTS = {
-    "Frederic Grall": "fredericgrall",
-    "Michel GUIHENEUF": "apik-mgu",
-    "rth-apik": "Romathi",
-    "Romain THIEUW": "Romathi",
-    "Aurelien ROY": "royaurelien",
-}
-
-FORCED_KEYS = ["author", "website", "license"]
-
-HEADERS = [
-    "# pylint: disable=W0104",
-    "# License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).",
-]
-
-DEFAULT_VALUES = {
-    "name": None,
-    "summary": None,
-    "category": "Technical",
-    "author": "Apik",
-    "maintainers": [],
-    "website": "https://apik.cloud",
-    "version": None,
-    "license": "LGPL-3",
-    "depends": [],
-    "data": [],
-    "demo": [],
-    "assets": {},
-    "installable": True,
-    "application": False,
-    "auto_install": False,
-}

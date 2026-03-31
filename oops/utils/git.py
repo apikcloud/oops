@@ -8,6 +8,8 @@ from pathlib import Path, PurePosixPath
 from git import Repo, Submodule
 from git.config import GitConfigParser
 
+from oops.core.paths import PR_DIR
+
 
 def read_gitmodules(repo: Repo) -> GitConfigParser:
     """Read the .gitmodules file of the given repository."""
@@ -24,7 +26,7 @@ def read_gitmodules(repo: Repo) -> GitConfigParser:
 def is_pull_request(submodule: Submodule) -> bool:
     for raw in (submodule.path, submodule.name):
         p = PurePosixPath(raw)
-        match = p.parts[:1] == ("PRs",) or "pr" in p.parts
+        match = p.parts[:1] == (PR_DIR,) or "pr" in p.parts
         if match:
             return True
 

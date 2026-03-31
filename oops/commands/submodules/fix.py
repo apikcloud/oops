@@ -10,14 +10,12 @@ Normalises submodule URLs to the configured scheme (e.g. SSH) and replaces
 deprecated repository paths as defined in the project config.
 """
 
-from pathlib import Path
-
 import click
 from git import Repo
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.utils.io import list_symlinks
+from oops.core.paths import WORKING_DIR
 from oops.utils.net import encode_url, parse_repository_url
 
 
@@ -39,8 +37,6 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
         click.echo("No submodules found.")
         raise click.Abort()
 
-    symlinks = list_symlinks(repo.working_dir)
-    broken_symlinks = list_symlinks(repo.working_dir, broken_only=True)
     new_urls = []
     # deprecated_repos = []
 
@@ -54,7 +50,9 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
 
         # Check URL scheme
         if config.submodules.force_scheme and config.submodules.force_scheme != scheme:
-            new_urls.append((submodule.name, encode_url(submodule.url, config.submodules.force_scheme)))
+            new_urls.append(
+                (submodule.name, encode_url(submodule.url, config.submodules.force_scheme))
+            )
 
         # Check deprecated repositories
         if repository_name in config.submodules.deprecated_repositories:
@@ -72,7 +70,7 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
             repo.git.submodule("set-url", submodule.path, new_url)
 
         click.echo("Staging submodule URL changes...")
-        repo.index.add([Path(repo.working_dir) / ".gitmodules"])
+        repo.index.add([WORKING_DIR / ".gitmodules"])
 
         if not no_commit and repo.index.diff("HEAD"):
             click.echo("Committing submodule URL changes...")
