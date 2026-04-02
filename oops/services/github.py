@@ -91,3 +91,11 @@ def get_latest_workflow_run(
         return None
 
     return res
+
+
+def get_github_user(name: str) -> str:
+    """Structure the maintainer's GitHub user as a link and display their avatar."""
+    return (
+        f"<a href='https://github.com/{name}'>"
+        f"<img src='https://github.com/{name}.png' width='32' height='32' alt='{name}'/></a>"
+    )

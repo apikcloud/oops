@@ -11,10 +11,11 @@ that pre-commit hooks skip third-party addons. The file is committed unless
 --no-commit is passed.
 """
 
+# TODO: replace by exclude command
+
 import sys
 
 import click
-
 from oops.core.config import config
 from oops.core.messages import commit_messages
 from oops.git.core import GitRepository
