@@ -5,9 +5,11 @@
 
 from pathlib import Path, PurePosixPath
 
-from git import Repo, Submodule
+import click
+from git import GitCommandError, Repo, Submodule
 from git.config import GitConfigParser
 
+from oops.core.messages import commit_messages
 from oops.core.paths import PR_DIR
 
 
@@ -31,3 +33,61 @@ def is_pull_request(submodule: Submodule) -> bool:
             return True
 
     return False
+
+
+def get_local_repo() -> tuple:
+    """Return the local git repo and its working tree root."""
+    repo = Repo(Path.cwd(), search_parent_directories=True)
+    if repo.working_tree_dir is None:
+        raise click.ClickException("Not inside a git repository.")
+    return repo, Path(repo.working_tree_dir)
+
+
+def show_diff(tmpdir: Path, files: list, local_repo: Repo, repo_root: Path) -> bool:
+    """
+    Show the diff between remote files (tmpdir) and local files.
+    Returns True if at least one file differs.
+    """
+    has_changes = False
+
+    for f in files:
+        src = tmpdir / f
+        dst = repo_root / f
+
+        if not src.exists():
+            click.echo(click.style(f"[SKIP] {f}", fg="yellow") + " — not present in remote repo")
+            continue
+
+        if not dst.exists():
+            click.echo(click.style(f"[NEW]  {f}", fg="green") + " — will be created")
+            has_changes = True
+            continue
+
+        # git diff --no-index compares two arbitrary paths (outside a repo)
+        try:
+            diff_output = local_repo.git.diff("--no-index", "--color", str(dst), str(src))
+            # No exception = exit code 0 = no differences
+        except GitCommandError as exc:
+            # Exit code 1 = differences found; stdout contains the diff
+            diff_output = exc.stdout
+
+        if diff_output:
+            click.echo(diff_output)
+            has_changes = True
+
+    return has_changes
+
+
+def commit(local_repo: Repo, repo_root: Path, files: list, message_name: str) -> None:
+    """Stage the synced files and create a commit."""
+    local_repo.index.add([str(repo_root / f) for f in files])
+
+    if not local_repo.index.diff("HEAD"):
+        click.echo(click.style("⚠ Nothing to commit (index identical to HEAD).", fg="yellow"))
+        return
+
+    message = getattr(commit_messages, message_name, None)
+    if message is None:
+        raise ValueError(f"Unknown commit message name: {message_name}")
+    commit = local_repo.index.commit(message)
+    click.echo(click.style(f"\n✓ Commit {commit.hexsha[:8]} — {message}", fg="green"))

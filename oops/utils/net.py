@@ -4,9 +4,11 @@
 # File: net.py — oops/utils/net.py
 
 import re
+from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
+from git import Repo
 
 from oops.core.config import config
 from oops.utils.compat import Optional, Tuple
@@ -130,3 +132,24 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
         raise ValueError(f"Unsupported host: {host}")
 
     return scheme, owner, repo
+
+
+def sparse_clone(remote_url: str, tmpdir: Path, files: list) -> None:
+    """Clone only the listed files/directories (sparse checkout, depth=1)."""
+    remote_repo = Repo.clone_from(
+        remote_url,
+        str(tmpdir),
+        depth=1,
+        no_checkout=True,
+    )
+
+    # Enable sparse checkout
+    with remote_repo.config_writer() as cw:
+        cw.set_value("core", "sparseCheckout", True)
+
+    # Write the list of patterns to .git/info/sparse-checkout
+    sparse_file = tmpdir / ".git" / "info" / "sparse-checkout"
+    sparse_file.write_text("\n".join(files) + "\n", encoding="utf-8")
+
+    # Perform the actual checkout
+    remote_repo.git.checkout("HEAD")

@@ -6,9 +6,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import git as gitlib
+import pytest
 from click.testing import CliRunner
 
-from oops.commands.project.sync import _apply, _commit, _show_diff, main
+from oops.commands.project.sync import _apply, main
+from oops.utils.git import commit, show_diff
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -64,22 +66,24 @@ class TestMainGuards:
 class TestMainDryRun:
     def test_dry_run_no_changes(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
+        local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), \
-             patch("oops.commands.project.sync._local_repo", return_value=(mock_repo, tmp_path)), \
-             patch("oops.commands.project.sync._fetch"), \
-             patch("oops.commands.project.sync._show_diff", return_value=False):
+             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
+             patch("oops.commands.project.sync.sparse_clone"), \
+             patch("oops.commands.project.sync.show_diff", return_value=False):
             result = runner.invoke(main, ["--dry-run"])
         assert result.exit_code == 0
         assert "Already up to date" in result.output
 
     def test_dry_run_with_changes(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
+        local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), \
-             patch("oops.commands.project.sync._local_repo", return_value=(mock_repo, tmp_path)), \
-             patch("oops.commands.project.sync._fetch"), \
-             patch("oops.commands.project.sync._show_diff", return_value=True):
+             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
+             patch("oops.commands.project.sync.sparse_clone"), \
+             patch("oops.commands.project.sync.show_diff", return_value=True):
             result = runner.invoke(main, ["--dry-run"])
         assert result.exit_code == 0
         assert "dry-run" in result.output
@@ -94,22 +98,23 @@ class TestMainDryRun:
 class TestMainApply:
     def test_yes_flag_applies_and_commits(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
+        local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), \
-             patch("oops.commands.project.sync._local_repo", return_value=(mock_repo, tmp_path)), \
-             patch("oops.commands.project.sync._fetch"), \
-             patch("oops.commands.project.sync._show_diff", return_value=True), \
+             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
+             patch("oops.commands.project.sync.sparse_clone"), \
+             patch("oops.commands.project.sync.show_diff", return_value=True), \
              patch("oops.commands.project.sync._apply") as mock_apply, \
-             patch("oops.commands.project.sync._commit") as mock_commit:
+             patch("oops.commands.project.sync.commit") as mock_commit:
             result = runner.invoke(main, ["--yes"])
 
         assert result.exit_code == 0
         mock_apply.assert_called_once()
-        mock_commit.assert_called_once_with(mock_repo, tmp_path, ["Makefile"])
+        mock_commit.assert_called_once_with(mock_repo, tmp_path, ["Makefile"], "project_sync")
 
 
 # ---------------------------------------------------------------------------
-# _show_diff
+# show_diff
 # ---------------------------------------------------------------------------
 
 
@@ -121,7 +126,7 @@ class TestShowDiff:
         remote_dir.mkdir()
 
         mock_repo = _make_local_repo(local_root)
-        result = _show_diff(remote_dir, ["missing.txt"], mock_repo, local_root)
+        result = show_diff(remote_dir, ["missing.txt"], mock_repo, local_root)
         assert result is False
 
     def test_new_file_detected(self, tmp_path):
@@ -132,7 +137,7 @@ class TestShowDiff:
         (remote_dir / "newfile.txt").write_text("hello")
 
         mock_repo = _make_local_repo(local_root)
-        result = _show_diff(remote_dir, ["newfile.txt"], mock_repo, local_root)
+        result = show_diff(remote_dir, ["newfile.txt"], mock_repo, local_root)
         assert result is True
 
     def test_identical_files_no_changes(self, tmp_path):
@@ -145,9 +150,9 @@ class TestShowDiff:
         (local_root / "file.txt").write_text(content)
 
         mock_repo = _make_local_repo(local_root)
-        mock_repo.git.diff.return_value = ""  # exit code 0, no diff output
+        mock_repo.git.diff.return_value = ""
 
-        result = _show_diff(remote_dir, ["file.txt"], mock_repo, local_root)
+        result = show_diff(remote_dir, ["file.txt"], mock_repo, local_root)
         assert result is False
 
     def test_changed_file_detected(self, tmp_path):
@@ -163,7 +168,7 @@ class TestShowDiff:
         exc.stdout = "--- a/file.txt\n+++ b/file.txt\n-old\n+new\n"
         mock_repo.git.diff.side_effect = exc
 
-        result = _show_diff(remote_dir, ["file.txt"], mock_repo, local_root)
+        result = show_diff(remote_dir, ["file.txt"], mock_repo, local_root)
         assert result is True
 
 
@@ -218,7 +223,7 @@ class TestApply:
 
 
 # ---------------------------------------------------------------------------
-# _commit
+# commit
 # ---------------------------------------------------------------------------
 
 
@@ -230,7 +235,7 @@ class TestCommit:
         mock_commit.hexsha = "abcd1234efgh5678"
         mock_repo.index.commit.return_value = mock_commit
 
-        _commit(mock_repo, tmp_path, ["Makefile"])
+        commit(mock_repo, tmp_path, ["Makefile"], "project_sync")
 
         mock_repo.index.add.assert_called_once_with([str(tmp_path / "Makefile")])
         mock_repo.index.commit.assert_called_once()
@@ -241,15 +246,22 @@ class TestCommit:
         mock_repo.index.diff.return_value = [MagicMock()]
         mock_repo.index.commit.return_value = MagicMock(hexsha="aa" * 8)
 
-        _commit(mock_repo, tmp_path, ["a/b.txt"])
+        commit(mock_repo, tmp_path, ["a/b.txt"], "project_sync")
 
         added = mock_repo.index.add.call_args[0][0]
         assert all(Path(p).is_absolute() for p in added)
 
     def test_nothing_to_commit(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
-        mock_repo.index.diff.return_value = []  # empty = nothing staged
+        mock_repo.index.diff.return_value = []
 
-        _commit(mock_repo, tmp_path, ["Makefile"])
+        commit(mock_repo, tmp_path, ["Makefile"], "project_sync")
 
         mock_repo.index.commit.assert_not_called()
+
+    def test_unknown_message_name_raises(self, tmp_path):
+        mock_repo = _make_local_repo(tmp_path)
+        mock_repo.index.diff.return_value = [MagicMock()]
+
+        with pytest.raises(ValueError, match="Unknown commit message name"):
+            commit(mock_repo, tmp_path, ["Makefile"], "nonexistent_key")
