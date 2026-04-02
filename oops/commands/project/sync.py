@@ -48,7 +48,12 @@ def main(dry_run: bool, yes: bool) -> None:
             "sync.files is empty. List the files to sync in ~/.oops.yaml or .oops.yaml."
         )
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    # Resolve the local repo once — fail fast if not inside a git repository.
+    local_repo, repo_root = _local_repo()
+
+    with tempfile.TemporaryDirectory() as _tmpdir:
+        tmpdir = Path(_tmpdir)
+
         # 1. FETCH
         click.echo(f"↓ Cloning {remote_url} …")
         try:
@@ -58,7 +63,7 @@ def main(dry_run: bool, yes: bool) -> None:
 
         # 2. DIFF
         click.echo("")
-        has_changes = _show_diff(Path(tmpdir), files)
+        has_changes = _show_diff(tmpdir, files, local_repo, repo_root)
 
         if not has_changes:
             click.echo(click.style("✓ Already up to date.", fg="green"))
@@ -73,23 +78,19 @@ def main(dry_run: bool, yes: bool) -> None:
         if not yes:
             click.confirm("Apply these changes?", abort=True)
 
-        _apply(Path(tmpdir), files)
+        _apply(tmpdir, files, repo_root)
+        _commit(local_repo, repo_root, files)
 
-        local_repo = git.Repo(Path.cwd(), search_parent_directories=True)
-        repo_root = Path(local_repo.working_tree_dir)
 
-        local_repo.index.add([str(repo_root / f) for f in files])
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-        if not local_repo.index.diff("HEAD"):
-            click.echo(click.style("⚠ Nothing to commit (index identical to HEAD).", fg="yellow"))
-            return
 
-        commit = local_repo.index.commit(commit_messages.project_sync)
-        click.echo(
-            click.style(
-                f"\n✓ Commit {commit.hexsha[:8]} — {commit_messages.project_sync}", fg="green"
-            )
-        )
+def _local_repo() -> tuple:
+    """Return the local git repo and its working tree root."""
+    repo = git.Repo(Path.cwd(), search_parent_directories=True)
+    return repo, Path(repo.working_tree_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -97,11 +98,11 @@ def main(dry_run: bool, yes: bool) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _fetch(remote_url: str, tmpdir: str, files: list[str]) -> None:
+def _fetch(remote_url: str, tmpdir: Path, files: list) -> None:
     """Clone only the listed files/directories (sparse checkout, depth=1)."""
     remote_repo = git.Repo.clone_from(
         remote_url,
-        tmpdir,
+        str(tmpdir),
         depth=1,
         no_checkout=True,
     )
@@ -111,7 +112,7 @@ def _fetch(remote_url: str, tmpdir: str, files: list[str]) -> None:
         cw.set_value("core", "sparseCheckout", True)
 
     # Write the list of patterns to .git/info/sparse-checkout
-    sparse_file = Path(tmpdir) / ".git" / "info" / "sparse-checkout"
+    sparse_file = tmpdir / ".git" / "info" / "sparse-checkout"
     sparse_file.write_text("\n".join(files) + "\n", encoding="utf-8")
 
     # Perform the actual checkout
@@ -123,13 +124,11 @@ def _fetch(remote_url: str, tmpdir: str, files: list[str]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _show_diff(tmpdir: Path, files: list[str]) -> bool:
+def _show_diff(tmpdir: Path, files: list, local_repo: git.Repo, repo_root: Path) -> bool:
     """
     Show the diff between remote files (tmpdir) and local files.
     Returns True if at least one file differs.
     """
-    local_repo = git.Repo(Path.cwd(), search_parent_directories=True)
-    repo_root = Path(local_repo.working_tree_dir)
     has_changes = False
 
     for f in files:
@@ -147,12 +146,7 @@ def _show_diff(tmpdir: Path, files: list[str]) -> bool:
 
         # git diff --no-index compares two arbitrary paths (outside a repo)
         try:
-            diff_output = local_repo.git.diff(
-                "--no-index",
-                "--color",
-                str(dst),
-                str(src),
-            )
+            diff_output = local_repo.git.diff("--no-index", "--color", str(dst), str(src))
             # No exception = exit code 0 = no differences
         except git.GitCommandError as exc:
             # Exit code 1 = differences found; stdout contains the diff
@@ -170,11 +164,8 @@ def _show_diff(tmpdir: Path, files: list[str]) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _apply(tmpdir: Path, files: list[str]) -> None:
+def _apply(tmpdir: Path, files: list, repo_root: Path) -> None:
     """Copy files/directories from tmpdir into the local repo."""
-    local_repo = git.Repo(Path.cwd(), search_parent_directories=True)
-    repo_root = Path(local_repo.working_tree_dir)
-
     for f in files:
         src = tmpdir / f
         dst = repo_root / f
@@ -189,3 +180,22 @@ def _apply(tmpdir: Path, files: list[str]) -> None:
             shutil.copy2(src, dst)
 
         click.echo(f"  ✓ {f}")
+
+
+# ---------------------------------------------------------------------------
+# 4. Commit — stage and commit the synced files
+# ---------------------------------------------------------------------------
+
+
+def _commit(local_repo: git.Repo, repo_root: Path, files: list) -> None:
+    """Stage the synced files and create a commit."""
+    local_repo.index.add([str(repo_root / f) for f in files])
+
+    if not local_repo.index.diff("HEAD"):
+        click.echo(click.style("⚠ Nothing to commit (index identical to HEAD).", fg="yellow"))
+        return
+
+    commit = local_repo.index.commit(commit_messages.project_sync)
+    click.echo(
+        click.style(f"\n✓ Commit {commit.hexsha[:8]} — {commit_messages.project_sync}", fg="green")
+    )

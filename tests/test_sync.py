@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import git as gitlib
 from click.testing import CliRunner
 
-from oops.commands.project.sync import _apply, _show_diff, main
+from oops.commands.project.sync import _apply, _commit, _show_diff, main
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -61,18 +62,22 @@ class TestMainGuards:
 
 
 class TestMainDryRun:
-    def test_dry_run_no_changes(self):
+    def test_dry_run_no_changes(self, tmp_path):
+        mock_repo = _make_local_repo(tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), \
+             patch("oops.commands.project.sync._local_repo", return_value=(mock_repo, tmp_path)), \
              patch("oops.commands.project.sync._fetch"), \
              patch("oops.commands.project.sync._show_diff", return_value=False):
             result = runner.invoke(main, ["--dry-run"])
         assert result.exit_code == 0
         assert "Already up to date" in result.output
 
-    def test_dry_run_with_changes(self):
+    def test_dry_run_with_changes(self, tmp_path):
+        mock_repo = _make_local_repo(tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), \
+             patch("oops.commands.project.sync._local_repo", return_value=(mock_repo, tmp_path)), \
              patch("oops.commands.project.sync._fetch"), \
              patch("oops.commands.project.sync._show_diff", return_value=True):
             result = runner.invoke(main, ["--dry-run"])
@@ -89,55 +94,18 @@ class TestMainDryRun:
 class TestMainApply:
     def test_yes_flag_applies_and_commits(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
-        mock_repo.index.diff.return_value = [MagicMock()]  # non-empty = staged changes exist
-        mock_commit = MagicMock()
-        mock_commit.hexsha = "abcd1234efgh5678"
-        mock_repo.index.commit.return_value = mock_commit
-
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), \
+             patch("oops.commands.project.sync._local_repo", return_value=(mock_repo, tmp_path)), \
              patch("oops.commands.project.sync._fetch"), \
              patch("oops.commands.project.sync._show_diff", return_value=True), \
-             patch("oops.commands.project.sync._apply"), \
-             patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
+             patch("oops.commands.project.sync._apply") as mock_apply, \
+             patch("oops.commands.project.sync._commit") as mock_commit:
             result = runner.invoke(main, ["--yes"])
 
         assert result.exit_code == 0
-        mock_repo.index.add.assert_called_once_with([str(tmp_path / "Makefile")])
-        mock_repo.index.commit.assert_called_once()
-
-    def test_nothing_to_commit(self, tmp_path):
-        mock_repo = _make_local_repo(tmp_path)
-        mock_repo.index.diff.return_value = []  # empty = nothing staged
-
-        runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), \
-             patch("oops.commands.project.sync._fetch"), \
-             patch("oops.commands.project.sync._show_diff", return_value=True), \
-             patch("oops.commands.project.sync._apply"), \
-             patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            result = runner.invoke(main, ["--yes"])
-
-        assert result.exit_code == 0
-        assert "Nothing to commit" in result.output
-        mock_repo.index.commit.assert_not_called()
-
-    def test_index_add_uses_absolute_paths(self, tmp_path):
-        """Regression: index.add must receive absolute paths so it works from any cwd."""
-        mock_repo = _make_local_repo(tmp_path)
-        mock_repo.index.diff.return_value = [MagicMock()]
-        mock_repo.index.commit.return_value = MagicMock(hexsha="aa" * 8)
-
-        runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config(files=["a/b.txt"])), \
-             patch("oops.commands.project.sync._fetch"), \
-             patch("oops.commands.project.sync._show_diff", return_value=True), \
-             patch("oops.commands.project.sync._apply"), \
-             patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            runner.invoke(main, ["--yes"])
-
-        added = mock_repo.index.add.call_args[0][0]
-        assert all(path.startswith("/") for path in added), "Paths must be absolute"
+        mock_apply.assert_called_once()
+        mock_commit.assert_called_once_with(mock_repo, tmp_path, ["Makefile"])
 
 
 # ---------------------------------------------------------------------------
@@ -153,9 +121,7 @@ class TestShowDiff:
         remote_dir.mkdir()
 
         mock_repo = _make_local_repo(local_root)
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            result = _show_diff(remote_dir, ["missing.txt"])
-
+        result = _show_diff(remote_dir, ["missing.txt"], mock_repo, local_root)
         assert result is False
 
     def test_new_file_detected(self, tmp_path):
@@ -166,9 +132,7 @@ class TestShowDiff:
         (remote_dir / "newfile.txt").write_text("hello")
 
         mock_repo = _make_local_repo(local_root)
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            result = _show_diff(remote_dir, ["newfile.txt"])
-
+        result = _show_diff(remote_dir, ["newfile.txt"], mock_repo, local_root)
         assert result is True
 
     def test_identical_files_no_changes(self, tmp_path):
@@ -183,9 +147,7 @@ class TestShowDiff:
         mock_repo = _make_local_repo(local_root)
         mock_repo.git.diff.return_value = ""  # exit code 0, no diff output
 
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            result = _show_diff(remote_dir, ["file.txt"])
-
+        result = _show_diff(remote_dir, ["file.txt"], mock_repo, local_root)
         assert result is False
 
     def test_changed_file_detected(self, tmp_path):
@@ -201,9 +163,7 @@ class TestShowDiff:
         exc.stdout = "--- a/file.txt\n+++ b/file.txt\n-old\n+new\n"
         mock_repo.git.diff.side_effect = exc
 
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            result = _show_diff(remote_dir, ["file.txt"])
-
+        result = _show_diff(remote_dir, ["file.txt"], mock_repo, local_root)
         assert result is True
 
 
@@ -220,9 +180,7 @@ class TestApply:
         local_root.mkdir()
         (remote_dir / "Makefile").write_text("all:\n\techo hi\n")
 
-        mock_repo = _make_local_repo(local_root)
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            _apply(remote_dir, ["Makefile"])
+        _apply(remote_dir, ["Makefile"], local_root)
 
         assert (local_root / "Makefile").read_text() == "all:\n\techo hi\n"
 
@@ -233,9 +191,7 @@ class TestApply:
         local_root = tmp_path / "local"
         local_root.mkdir()
 
-        mock_repo = _make_local_repo(local_root)
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            _apply(remote_dir, ["subdir"])
+        _apply(remote_dir, ["subdir"], local_root)
 
         assert (local_root / "subdir" / "file.txt").read_text() == "content"
 
@@ -245,9 +201,7 @@ class TestApply:
         local_root = tmp_path / "local"
         local_root.mkdir()
 
-        mock_repo = _make_local_repo(local_root)
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            _apply(remote_dir, ["nonexistent.txt"])  # must not raise
+        _apply(remote_dir, ["nonexistent.txt"], local_root)  # must not raise
 
         assert not (local_root / "nonexistent.txt").exists()
 
@@ -258,8 +212,44 @@ class TestApply:
         local_root = tmp_path / "local"
         local_root.mkdir()
 
-        mock_repo = _make_local_repo(local_root)
-        with patch("oops.commands.project.sync.git.Repo", return_value=mock_repo):
-            _apply(remote_dir, ["deep/nested/file.txt"])
+        _apply(remote_dir, ["deep/nested/file.txt"], local_root)
 
         assert (local_root / "deep" / "nested" / "file.txt").read_text() == "hi"
+
+
+# ---------------------------------------------------------------------------
+# _commit
+# ---------------------------------------------------------------------------
+
+
+class TestCommit:
+    def test_commits_staged_files(self, tmp_path):
+        mock_repo = _make_local_repo(tmp_path)
+        mock_repo.index.diff.return_value = [MagicMock()]
+        mock_commit = MagicMock()
+        mock_commit.hexsha = "abcd1234efgh5678"
+        mock_repo.index.commit.return_value = mock_commit
+
+        _commit(mock_repo, tmp_path, ["Makefile"])
+
+        mock_repo.index.add.assert_called_once_with([str(tmp_path / "Makefile")])
+        mock_repo.index.commit.assert_called_once()
+
+    def test_add_uses_absolute_paths(self, tmp_path):
+        """Regression: index.add must receive absolute paths regardless of cwd."""
+        mock_repo = _make_local_repo(tmp_path)
+        mock_repo.index.diff.return_value = [MagicMock()]
+        mock_repo.index.commit.return_value = MagicMock(hexsha="aa" * 8)
+
+        _commit(mock_repo, tmp_path, ["a/b.txt"])
+
+        added = mock_repo.index.add.call_args[0][0]
+        assert all(Path(p).is_absolute() for p in added)
+
+    def test_nothing_to_commit(self, tmp_path):
+        mock_repo = _make_local_repo(tmp_path)
+        mock_repo.index.diff.return_value = []  # empty = nothing staged
+
+        _commit(mock_repo, tmp_path, ["Makefile"])
+
+        mock_repo.index.commit.assert_not_called()
