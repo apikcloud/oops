@@ -42,5 +42,7 @@ class CommitMessages:
         "chore: synchronizing the repository based on the list of provided modules"
     )
 
+    project_sync: str = "chore: sync from source-repo"
+
 
 commit_messages = CommitMessages()

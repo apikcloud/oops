@@ -111,6 +111,8 @@ def main():  # noqa: C901
             click.echo(f"  - {symlink}")
         res = False
 
+    # TODO: add check for PRs
+
     if res:
         click.echo(
             f"✅ All submodules are under {config.submodules.current_path} "

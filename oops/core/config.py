@@ -32,6 +32,12 @@ _SUPPORTED_VERSIONS: Final = {1}
 
 
 @dataclass
+class SyncConfig:
+    remote_url: str = _MISSING  # type: ignore[assignment]
+    files: List[str] = field(default_factory=lambda: [])
+
+
+@dataclass
 class ImageSourceConfig:
     repository: str = _MISSING  # type: ignore[assignment]
     file: str = _MISSING  # type: ignore[assignment]
@@ -105,6 +111,7 @@ class Config:
     images: ImagesConfig = field(default_factory=ImagesConfig)
     submodules: SubmodulesConfig = field(default_factory=SubmodulesConfig)
     project: ProjectConfig = field(default_factory=ProjectConfig)
+    sync: SyncConfig = field(default_factory=SyncConfig)
 
     # Internal / misc (not exposed in .oops.yaml)
     manifest_names: List[str] = field(
