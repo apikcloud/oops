@@ -16,7 +16,7 @@ import yaml
 
 from oops.core.exceptions import ConfigurationError
 from oops.core.paths import CONFIG_PATHS as _CONFIG_PATHS
-from oops.utils.compat import List
+from oops.utils.compat import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ _SUPPORTED_VERSIONS: Final = {1}
 
 @dataclass
 class SyncConfig:
-    remote_url: str = _MISSING  # type: ignore[assignment]
+    remote_url: Optional[str] = None
     files: List[str] = field(default_factory=lambda: [])
 
 
