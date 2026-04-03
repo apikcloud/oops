@@ -37,7 +37,7 @@ from oops.utils.tools import ask
 @command(name="rewrite", help=__doc__)
 @click.option(
     "--base-dir",
-    default=config.submodules.current_path,
+    default=lambda: config.submodules.current_path,
     help="Base directory for rewritten paths (default: .third-party)",
 )
 @click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")

@@ -14,7 +14,10 @@ WORKING_DIR = Path.cwd()
 CONFIG_FILENAME = ".oops.yaml"
 CONFIG_GLOBAL = Path.home() / CONFIG_FILENAME  # ~/.oops.yaml
 CONFIG_LOCAL = Path(CONFIG_FILENAME)  # ./.oops.yaml  (resolved at runtime vs cwd)
-CONFIG_PATHS = [CONFIG_GLOBAL, CONFIG_LOCAL]
+CONFIG_PATHS = [
+    CONFIG_GLOBAL,
+    CONFIG_LOCAL,
+]  # order of precedence for config file discovery
 
 # ---------------------------------------------------------------------------
 # Odoo project conventions

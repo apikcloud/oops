@@ -53,7 +53,7 @@ def find_addons(submodule_dir: Path):
 )
 @click.option(
     "--base-dir",
-    default=config.submodules.current_path,
+    default=lambda: config.submodules.current_path,
     help="Base dir for submodules (default: .third-party)",
 )
 @click.option(
