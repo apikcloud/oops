@@ -16,8 +16,8 @@ import libcst as cst
 
 from oops.core.config import config
 from oops.core.exceptions import NoManifestFound
-from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.core.models import AddonInfo
+from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.utils.compat import Optional, Union
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url

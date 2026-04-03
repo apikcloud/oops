@@ -20,6 +20,7 @@ from oops.core.messages import commit_messages
 from oops.utils.compat import Optional
 from oops.utils.git import get_local_repo
 from oops.utils.io import list_symlinks, relpath
+from oops.utils.render import print_success, print_warning
 
 
 @command(name="prune", help=__doc__)
@@ -61,13 +62,13 @@ def main(no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = None): 
         unused.append(submodule.name)
 
     if not unused:
-        click.echo("✓ No unused submodules detected.")
+        print_success("No unused submodules detected.")
         raise click.exceptions.Exit(0)
 
     if not no_commit:
         repo.index.commit(commit_messages.submodules_prune, skip_hooks=True)
 
-    click.echo("\n✓ Unused submodules removed.")
+    print_success(f"{len(unused)} submodule(s) removed: {', '.join(unused)}")
 
     if no_commit:
-        click.echo("Don't forget to commit: git commit -m 'chore: remove unused submodules'")
+        print_warning("Don't forget to commit: git commit -m 'chore: remove unused submodules'")

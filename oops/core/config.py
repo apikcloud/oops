@@ -188,7 +188,7 @@ def _check_version(data: dict, path: Path) -> None:
         warnings.warn(
             f"{path}: no 'version' key found, assuming v1",
             UserWarning,
-            stacklevel=2,
+            stacklevel=1,
         )
     elif version not in _SUPPORTED_VERSIONS:
         raise ConfigurationError(

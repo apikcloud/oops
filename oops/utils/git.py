@@ -6,7 +6,7 @@
 from pathlib import Path, PurePosixPath
 
 import click
-from git import GitCommandError, Repo, Submodule
+from git import GitCommandError, InvalidGitRepositoryError, Repo, Submodule
 from git.config import GitConfigParser
 
 from oops.core.messages import commit_messages
@@ -28,6 +28,8 @@ def read_gitmodules(repo: Repo) -> GitConfigParser:
 
 
 def is_pull_request(submodule: Submodule) -> bool:
+    """Determine whether a submodule is a pull request based on its path or name."""
+
     for raw in (submodule.path, submodule.name):
         p = PurePosixPath(raw)
         match = p.parts[:1] == (PR_DIR,) or "pr" in p.parts
@@ -37,9 +39,16 @@ def is_pull_request(submodule: Submodule) -> bool:
     return False
 
 
-def get_local_repo() -> tuple:
+def get_local_repo() -> "tuple[Repo, Path]":
     """Return the local git repo and its working tree root."""
-    repo = Repo(Path.cwd(), search_parent_directories=True)
+
+    try:
+        repo = Repo(Path.cwd(), search_parent_directories=True)
+    except InvalidGitRepositoryError as error:
+        raise click.ClickException("Not inside a git repository.") from error
+    except Exception as err:
+        raise click.ClickException(f"Error accessing git repository: {err}") from err
+
     if repo.working_tree_dir is None:
         raise click.ClickException("Not inside a git repository.")
     return repo, Path(repo.working_tree_dir)
