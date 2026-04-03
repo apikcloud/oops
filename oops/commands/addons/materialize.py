@@ -14,8 +14,7 @@ processed; real directories are skipped.
 import click
 
 from oops.core.messages import commit_messages
-from oops.core.paths import WORKING_DIR
-from oops.git.core import GitRepository
+from oops.utils.git import get_local_repo
 from oops.utils.helpers import str_to_list
 from oops.utils.io import materialize_symlink
 from oops.utils.render import human_readable
@@ -27,7 +26,7 @@ from oops.utils.render import human_readable
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 def main(addons: str, dry_run: bool, no_commit: bool):
 
-    repo = GitRepository()
+    repo, repo_path = get_local_repo()
 
     addons_list = str_to_list(addons)
 
@@ -35,7 +34,7 @@ def main(addons: str, dry_run: bool, no_commit: bool):
     for addon in addons_list:
         if not addon:
             continue
-        addon_path = WORKING_DIR / addon
+        addon_path = repo_path / addon
         if not addon_path.exists():
             click.echo(f"[oops] skip: {addon_path} does not exist.")
             continue
@@ -56,10 +55,9 @@ def main(addons: str, dry_run: bool, no_commit: bool):
     if not no_commit and changes and not dry_run:
         click.echo("Committing changes...")
 
-        repo.add([str(path) for path in changes])
-        repo.commit(
+        repo.index.add([str(path) for path in changes])
+        repo.index.commit(
             commit_messages.materialize_addons.format(
                 names=human_readable([path.name for path in changes])
-            ),
-            skip_hook=True,
+            )
         )

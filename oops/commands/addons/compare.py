@@ -11,10 +11,9 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.
 """
 
 import click
-from git import Repo
 
 from oops.core.messages import commit_messages
-from oops.core.paths import WORKING_DIR
+from oops.utils.git import get_local_repo
 from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons
 
@@ -33,10 +32,10 @@ from oops.utils.io import find_addons
 )
 def main(addons_list: str, delete: bool, no_commit: bool):
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     provided = set(str_to_list(addons_list))
-    local = {a.technical_name for a in find_addons(WORKING_DIR, shallow=True)}
+    local = {a.technical_name for a in find_addons(repo_path, shallow=True)}
 
     missing = sorted(provided - local)  # in args, not local
     additionals = sorted(local - provided)  # local, not in args
@@ -48,7 +47,7 @@ def main(addons_list: str, delete: bool, no_commit: bool):
     for name in additionals:
         click.echo(click.style(f"+ {name}", fg="green"))
         if delete:
-            (WORKING_DIR / name).unlink()
+            (repo_path / name).unlink()
             changes.append(name)
 
     click.echo(

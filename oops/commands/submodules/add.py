@@ -16,12 +16,10 @@ import sys
 from pathlib import Path
 
 import click
-from git import Repo
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.core.paths import WORKING_DIR
-from oops.utils.git import read_gitmodules
+from oops.utils.git import get_local_repo, read_gitmodules
 from oops.utils.helpers import str_to_list
 from oops.utils.io import (
     desired_path,
@@ -101,7 +99,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
     pull_request = options["pull_request"]
     dry_run = options["dry_run"]
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     # Compute target path and name
     try:
@@ -113,12 +111,12 @@ def main(  # noqa: C901, PLR0915, PLR0913
     suffix = addons_to_link[0] if addons_to_link and pull_request else None
     sub_path_str = desired_path(url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
 
-    sub_path = WORKING_DIR / sub_path_str
+    sub_path = repo_path / sub_path_str
     sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
 
     # Plan summary
     rows = [
-        ["Repo Root", WORKING_DIR],
+        ["Repo Root", repo_path],
         ["URL", url],
         ["Branch", branch],
         ["Submodule name", sub_name],
@@ -162,9 +160,9 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     def create_symlink(addon_dir: Path):
         link_name = f"{addon_dir.name}"
-        link_path = WORKING_DIR / link_name
+        link_path = repo_path / link_name
         # Determine relative target from repo root to the addon_dir
-        target_rel = relpath(WORKING_DIR, addon_dir)
+        target_rel = relpath(repo_path, addon_dir)
         if link_path.exists() or link_path.is_symlink():
             click.echo(f"  [skip] {link_name} already exists")
             return

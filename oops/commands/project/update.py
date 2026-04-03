@@ -12,12 +12,11 @@ image automatically and commits the change.
 """
 
 import click
-from git import Repo
 
 from oops.commands.project.common import parse_odoo_version
 from oops.core.messages import commit_messages
-from oops.core.paths import WORKING_DIR
 from oops.services.docker import find_available_images, format_available_images, parse_image_tag
+from oops.utils.git import get_local_repo
 from oops.utils.io import write_text_file
 from oops.utils.tools import ask
 
@@ -26,8 +25,8 @@ from oops.utils.tools import ask
 @click.option("--force", is_flag=True, help="Don't ask for confirmation")
 def main(force: bool):  # noqa: C901
 
-    repo = Repo()
-    current_version = parse_odoo_version(WORKING_DIR)
+    repo, repo_path = get_local_repo()
+    current_version = parse_odoo_version(repo_path)
     image_infos = parse_image_tag(current_version)
 
     if not image_infos.release:
@@ -57,7 +56,7 @@ def main(force: bool):  # noqa: C901
 
     click.echo(f"Update odoo image to: {new_image.image}")
 
-    odoo_version_file = WORKING_DIR / "odoo_version.txt"
+    odoo_version_file = repo_path / "odoo_version.txt"
     write_text_file(odoo_version_file, [new_image.image])
 
     repo.index.add([str(odoo_version_file)])

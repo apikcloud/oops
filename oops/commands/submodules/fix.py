@@ -11,11 +11,10 @@ deprecated repository paths as defined in the project config.
 """
 
 import click
-from git import Repo
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.core.paths import WORKING_DIR
+from oops.utils.git import get_local_repo
 from oops.utils.net import encode_url, parse_repository_url
 
 
@@ -31,7 +30,7 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
     # 2. Rename submodules
     # 3. Rewrite submodules
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     if not repo.submodules:
         click.echo("No submodules found.")
@@ -70,7 +69,7 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
             repo.git.submodule("set-url", submodule.path, new_url)
 
         click.echo("Staging submodule URL changes...")
-        repo.index.add([WORKING_DIR / ".gitmodules"])
+        repo.index.add([repo_path / ".gitmodules"])
 
         if not no_commit and repo.index.diff("HEAD"):
             click.echo("Committing submodule URL changes...")

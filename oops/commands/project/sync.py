@@ -46,7 +46,7 @@ def main(dry_run: bool, force: bool) -> None:
         )
 
     # Resolve the local repo once — fail fast if not inside a git repository.
-    local_repo, repo_root = get_local_repo()
+    local_repo, repo_path = get_local_repo()
 
     with tempfile.TemporaryDirectory() as _tmpdir:
         tmpdir = Path(_tmpdir)
@@ -60,7 +60,7 @@ def main(dry_run: bool, force: bool) -> None:
 
         # 2. DIFF
         click.echo("")
-        has_changes = show_diff(tmpdir, files, local_repo, repo_root)
+        has_changes = show_diff(tmpdir, files, local_repo, repo_path)
 
         if not has_changes:
             click.echo(click.style("✓ Already up to date.", fg="green"))
@@ -75,15 +75,15 @@ def main(dry_run: bool, force: bool) -> None:
         if not force:
             click.confirm("Apply these changes?", abort=True)
 
-        _apply(tmpdir, files, repo_root)
-        commit(local_repo, repo_root, files, "project_sync")
+        _apply(tmpdir, files, repo_path)
+        commit(local_repo, repo_path, files, "project_sync")
 
 
-def _apply(tmpdir: Path, files: list, repo_root: Path) -> None:
+def _apply(tmpdir: Path, files: list, repo_path: Path) -> None:
     """Copy files/directories from tmpdir into the local repo."""
     for f in files:
         src = tmpdir / f
-        dst = repo_root / f
+        dst = repo_path / f
 
         if not src.exists():
             continue
