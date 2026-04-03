@@ -12,12 +12,13 @@ image automatically and commits the change.
 """
 
 import click
-from oops.commands.base import command
+import requests
 
+from oops.commands.base import command
 from oops.commands.project.common import parse_odoo_version
-from oops.core.messages import commit_messages
+from oops.core.config import config
 from oops.services.docker import find_available_images, format_available_images, parse_image_tag
-from oops.utils.git import get_local_repo
+from oops.utils.git import commit, get_local_repo
 from oops.utils.io import write_text_file
 from oops.utils.tools import ask
 
@@ -27,22 +28,29 @@ from oops.utils.tools import ask
 def main(force: bool):  # noqa: C901
 
     repo, repo_path = get_local_repo()
-    current_version = parse_odoo_version(repo_path)
-    image_infos = parse_image_tag(current_version)
 
-    if not image_infos.release:
-        click.echo("Current odoo version does not specify a release date, cannot proceed")
-        return 1
+    try:
+        current_version = parse_odoo_version(repo_path)
+        image_info = parse_image_tag(current_version)
+    except ValueError as e:
+        raise click.ClickException(str(e) or "Could not parse current Odoo version.") from e
 
-    available_images = find_available_images(
-        release=image_infos.release,
-        version=image_infos.major_version,
-        enterprise=image_infos.enterprise,
-    )
+    if not image_info.release:
+        raise click.ClickException(
+            "Current Odoo version does not specify a release date, cannot proceed."
+        )
+
+    try:
+        available_images = find_available_images(
+            release=image_info.release,
+            version=image_info.major_version,
+            enterprise=image_info.enterprise,
+        )
+    except requests.RequestException as e:
+        raise click.ClickException(f"Failed to fetch available images: {e}") from e
 
     if not available_images:
-        click.echo("No available images found")
-        raise click.Abort()
+        raise click.ClickException("No newer images found.")
 
     if force:
         new_image = available_images[0]
@@ -51,19 +59,21 @@ def main(force: bool):  # noqa: C901
         answer = ask("Select new image [0]: ", default="0")
         try:
             new_image = available_images[int(answer)]
-        except (ValueError, IndexError):
-            click.echo("Invalid selection, aborting")
-            return 1
+        except (ValueError, IndexError) as e:
+            raise click.ClickException("Invalid selection.") from e
 
-    click.echo(f"Update odoo image to: {new_image.image}")
+    click.echo(f"Updating Odoo image to: {new_image.image}")
 
-    odoo_version_file = repo_path / "odoo_version.txt"
+    odoo_version_file = repo_path / config.project.file_odoo_version
     write_text_file(odoo_version_file, [new_image.image])
 
-    repo.index.add([str(odoo_version_file)])
-    repo.index.commit(
-        commit_messages.image_update.format(
-            old=current_version, new=new_image.image, days=new_image.delta
-        ),
+    commit(
+        repo,
+        repo_path,
+        [config.project.file_odoo_version],
+        "image_update",
         skip_hooks=True,
+        old=current_version,
+        new=new_image.image,
+        days=new_image.delta,
     )
