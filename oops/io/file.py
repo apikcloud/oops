@@ -3,6 +3,16 @@
 #
 # File: file.py — oops/io/file.py
 
+"""
+Filesystem helpers for path manipulation, file I/O, symlink management, and addon discovery.
+
+Sections:
+    - Path utilities: path predicates, canonical path computation, prefix checks
+    - File I/O: plain-text file reading/writing and directory copy
+    - Symlinks: listing, mapping, rewriting, and materialising symlinks
+    - Addons: locating and collecting Odoo addon directories
+"""
+
 
 import contextlib
 import logging
@@ -19,7 +29,9 @@ from oops.utils.compat import Optional
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
 
-# Paths
+# ---------------------------------------------------------------------------
+# Path utilities
+# ---------------------------------------------------------------------------
 
 
 def ensure_parent(path: Path):
@@ -64,22 +76,77 @@ def is_pull_request_path(raw: Optional[str]) -> bool:
     return raw.startswith(f"{PR_DIR}/") or "pr" in raw.split("/")
 
 
+def desired_path(
+    url: str,
+    pull_request: bool = False,
+    prefix: Optional[str] = None,
+    suffix: Optional[str] = None,
+) -> str:
+    """
+    Return the desired local path for a git repository URL:
+    <prefix>/<owner>/<repo>/<suffix> or <prefix>/PRs/<owner>/<repo>/<suffix>
+
+    If prefix is given, it is prepended to the path.
+    If pull_request is True, "PRs/" is inserted after the prefix.
+    If suffix is given, it is appended to the path.
+    """
+
+    _, owner, repo = parse_repository_url(url)
+    if owner == "oca":
+        owner = owner.upper()
+
+    parts = [owner, repo]
+
+    if pull_request:
+        parts.insert(0, PR_DIR)
+
+    if prefix:
+        parts.insert(0, prefix.rstrip("/"))
+
+    if suffix:
+        parts.append(suffix)
+
+    return os.path.join(*parts)
+
+
+# ---------------------------------------------------------------------------
+# File I/O
+# ---------------------------------------------------------------------------
+
+
+def parse_text_file(content: str) -> set:
+    """Parse Python text file"""
+
+    return filter_and_clean(content.splitlines())
+
+
+def read_and_parse(path: Path):
+    return sorted(parse_text_file(path.read_text()))
+
+
+def write_text_file(path: Path, lines: list, new_line: str = "\n", add_final_newline: bool = True):
+    content = new_line.join(lines)
+    if add_final_newline:
+        content += new_line
+    path.write_text(content)
+
+
+def copytree(src: Path, dst: Path, ignore_git: bool = True) -> None:
+    """
+    Copy src tree to dst. Fails if dst exists.
+    """
+
+    def _ignore(_dir, names):
+        if not ignore_git:
+            return set()
+        return {n for n in names if n == ".git"}
+
+    shutil.copytree(src, dst, symlinks=True, ignore=_ignore)
+
+
+# ---------------------------------------------------------------------------
 # Symlinks
-
-
-def rewrite_symlink(link: Path, old_prefix: str, new_prefix: str):
-    """Rewrite a symlink if its target starts with old prefix."""
-
-    try:
-        target = os.readlink(link)
-    except OSError:
-        return False
-    if old_prefix in target:
-        new_target = target.replace(old_prefix, new_prefix)
-        link.unlink()
-        os.symlink(new_target, link)
-        return True
-    return False
+# ---------------------------------------------------------------------------
 
 
 def list_symlinks(path: PathLike, broken_only: bool = False) -> "list[str]":
@@ -115,6 +182,21 @@ def get_symlink_complete_map(path: str) -> dict:
         res.setdefault(str(Path(t).parent), []).append(Path(t).name)
 
     return res
+
+
+def rewrite_symlink(link: Path, old_prefix: str, new_prefix: str):
+    """Rewrite a symlink if its target starts with old prefix."""
+
+    try:
+        target = os.readlink(link)
+    except OSError:
+        return False
+    if old_prefix in target:
+        new_target = target.replace(old_prefix, new_prefix)
+        link.unlink()
+        os.symlink(new_target, link)
+        return True
+    return False
 
 
 def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
@@ -156,73 +238,9 @@ def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
         raise ValueError(f"Failed to materialize {symlink_path}: {e}") from e
 
 
-# Reading/writing files
-
-
-def parse_text_file(content: str) -> set:
-    """Parse Python text file"""
-
-    return filter_and_clean(content.splitlines())
-
-
-def read_and_parse(path: Path):
-    return sorted(parse_text_file(path.read_text()))
-
-
-def write_text_file(path: Path, lines: list, new_line: str = "\n", add_final_newline: bool = True):
-    content = new_line.join(lines)
-    if add_final_newline:
-        content += new_line
-    path.write_text(content)
-
-
-def copytree(src: Path, dst: Path, ignore_git: bool = True) -> None:
-    """
-    Copy src tree to dst. Fails if dst exists.
-    """
-
-    def _ignore(_dir, names):
-        if not ignore_git:
-            return set()
-        return {n for n in names if n == ".git"}
-
-    shutil.copytree(src, dst, symlinks=True, ignore=_ignore)
-
-
-def desired_path(
-    url: str,
-    pull_request: bool = False,
-    prefix: Optional[str] = None,
-    suffix: Optional[str] = None,
-) -> str:
-    """
-    Return the desired local path for a git repository URL:
-    <prefix>/<owner>/<repo>/<suffix> or <prefix>/PRs/<owner>/<repo>/<suffix>
-
-    If prefix is given, it is prepended to the path.
-    If pull_request is True, "PRs/" is inserted after the prefix.
-    If suffix is given, it is appended to the path.
-    """
-
-    _, owner, repo = parse_repository_url(url)
-    if owner == "oca":
-        owner = owner.upper()
-
-    parts = [owner, repo]
-
-    if pull_request:
-        parts.insert(0, PR_DIR)
-
-    if prefix:
-        parts.insert(0, prefix.rstrip("/"))
-
-    if suffix:
-        parts.append(suffix)
-
-    return os.path.join(*parts)
-
-
+# ---------------------------------------------------------------------------
 # Addons
+# ---------------------------------------------------------------------------
 
 
 def find_modified_addons(files: list) -> list:
