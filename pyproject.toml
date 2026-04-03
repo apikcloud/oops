@@ -27,7 +27,7 @@ dependencies = [
   "typing-extensions>=4.7; python_version<'3.8'",
   "libcst==0.4.*; python_version<'3.8'",
   "rich>=13.0",
-  "fixit>2.0",
+  "fixit>2.0; python_version>='3.9'",
   "tabulate",
   "GitPython",
 ]
@@ -127,10 +127,13 @@ source = ["oops", ".venv/lib/python*/site-packages/oops"]
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright"]
 docs = [
-  "mkdocs>=1.6",
-  "mkdocs-material>=9.7",
-  "mkdocs-click>=0.9",
-  "mkdocs-glightbox>=0.5",
-  "mkdocs-redirects>=1.2",
-  "mkdocs-git-revision-date-localized-plugin>=1.5",
+  "mkdocs>=1.6; python_version>='3.9'",
+  "mkdocs-material>=9.7; python_version>='3.9'",
+  "mkdocs-click>=0.9; python_version>='3.9'",
+  "mkdocs-glightbox>=0.5; python_version>='3.9'",
+  "mkdocs-redirects>=1.2; python_version>='3.9'",
+  "mkdocs-git-revision-date-localized-plugin>=1.5; python_version>='3.9'",
 ]
+
+[tool.uv]
+package = true

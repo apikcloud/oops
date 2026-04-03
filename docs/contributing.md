@@ -51,7 +51,7 @@ what a command does from its name alone.
 ```bash
 git clone https://github.com/apikcloud/oops.git
 cd oops
-make install
+uv sync --extra dev
 ```
 
 ## Quality checks

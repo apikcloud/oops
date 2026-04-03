@@ -1,5 +1,5 @@
 # Makefile for oops project
-# Requires Python >=3.7 and pip. All dev tools are installed via: make install
+# Requires Python >=3.7 and uv. All dev tools are installed via: make install
 
 .PHONY: help install install-docs lint typecheck test cov cov-html clean build docs docs-serve
 
@@ -19,35 +19,35 @@ help:
 	@echo "  make clean        Remove build artifacts"
 
 install:
-	python3 -m pip install -e .[dev]
+	uv sync --extra dev
 
 install-docs:
-	python3 -m pip install -e .[docs]
+	uv sync --extra docs
 
 lint:
-	ruff check .
+	uv run ruff check .
 
 typecheck:
-	pyright || true
+	uv run pyright || true
 
 test:
-	pytest -vv
+	uv run pytest -vv
 
 cov:
-	pytest --cov=oops --cov-branch --cov-report=term-missing
+	uv run pytest --cov=oops --cov-branch --cov-report=term-missing
 
 cov-html:
-	pytest --cov=oops --cov-branch --cov-report=html
+	uv run pytest --cov=oops --cov-branch --cov-report=html
 	@echo "Open htmlcov/index.html"
 
 build:
-	python -m build
+	uv build
 
 docs:
-	mkdocs build
+	uv run mkdocs build
 
-docs-serve: install
-	mkdocs serve --watch oops/
+docs-serve: install-docs
+	uv run mkdocs serve --watch oops/
 
 clean:
 	rm -rf build dist site *.egg-info .pytest_cache .ruff_cache .mypy_cache .pyright
