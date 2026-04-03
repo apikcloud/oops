@@ -3,6 +3,13 @@
 #
 # File: tools.py — oops/io/tools.py
 
+"""
+Low-level runtime utilities: user prompts and subprocess execution.
+
+Sections:
+    - User interaction: prompt helpers
+    - Subprocess: wrappers around subprocess.run and shell script execution
+"""
 
 import logging
 import os
@@ -10,6 +17,10 @@ import subprocess
 
 from oops.core.exceptions import ScriptNotFound
 from oops.utils.compat import Optional
+
+# ---------------------------------------------------------------------------
+# User interaction
+# ---------------------------------------------------------------------------
 
 
 def ask(prompt: str, default="y"):
@@ -20,6 +31,11 @@ def ask(prompt: str, default="y"):
     except EOFError:
         answer = ""
     return answer or default
+
+
+# ---------------------------------------------------------------------------
+# Subprocess
+# ---------------------------------------------------------------------------
 
 
 def get_exec_dir():
