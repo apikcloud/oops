@@ -1,9 +1,9 @@
 # Project
 
 ::: mkdocs-click:commands
-    :module: oops.commands.project.info
+    :module: oops.commands.project.show
     :command: main
-    :prog_name: oops-pro-info
+    :prog_name: oops-pro-show
     :depth: 2
     :style: table
 
@@ -12,13 +12,13 @@
 Display the full project summary:
 
 ```bash
-oops-pro-info
+oops-pro-show
 ```
 
 Include the latest GitHub Actions run:
 
 ```bash
-oops-pro-info --token $GH_TOKEN
+oops-pro-show --token $GH_TOKEN
 ```
 
 ---

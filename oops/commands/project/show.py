@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
-# File: info.py — oops/commands/project/info.py
+# File: show.py — oops/commands/project/show.py
 
 """
 Display a summary of the current project.
@@ -31,7 +31,7 @@ from oops.utils.net import get_public_repo_url, parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
 
 
-@command(name="info", help=__doc__)
+@command(name="show", help=__doc__)
 @click.option(
     "--token",
     envvar=["TOKEN", "GH_TOKEN", "GITHUB_TOKEN"],
