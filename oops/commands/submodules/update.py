@@ -12,11 +12,9 @@ by name; PR submodules can be skipped with --skip-pr.
 """
 
 import click
-from oops.commands.base import command
-from git import Repo
 
-from oops.core.messages import commit_messages
-from oops.utils.git import is_pull_request
+from oops.commands.base import command
+from oops.utils.git import commit, get_local_repo, is_pull_request
 
 
 @command("update", help=__doc__)
@@ -26,8 +24,9 @@ from oops.utils.git import is_pull_request
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | None" = None):
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
     changes = []
+    files = []
 
     if not repo.submodules:
         raise click.UsageError("No .gitmodules found.")
@@ -64,18 +63,17 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
         sub_repo.remotes.origin.pull(branch)
 
         # Stage submodule update in parent repo
-        repo.git.add(submodule.path)
+        files.append(submodule.path)
         changes.append(f"{submodule.name} ({submodule.branch})")
 
     if not no_commit and not dry_run:
-        if not repo.index.diff(repo.head.commit):
-            click.echo("No changes to commit.")
-            raise click.exceptions.Exit(0)
-
-        click.echo("Committing changes...")
-        desc = "\n".join(changes)
-        repo.index.commit(
-            commit_messages.submodules_update.format(description=desc), skip_hooks=True
+        commit(
+            repo,
+            repo_path,
+            files,
+            "submodules_update",
+            skip_hooks=True,
+            description="\n".join(changes),
         )
 
-    click.echo("✅ Submodules updated to their upstream branches.")
+    click.echo("✓ Submodules updated to their upstream branches.")

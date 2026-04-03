@@ -15,9 +15,9 @@ import os
 from pathlib import Path
 
 import click
-from oops.commands.base import command
 from git import Repo
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
 from oops.utils.io import desired_path, rewrite_symlink
@@ -49,7 +49,9 @@ def main(
 
     if not dry_run:
         new_name = desired_path(new_url, pull_request=False)
-        new_path = desired_path(new_url, pull_request=False, prefix=str(config.submodules.current_path))
+        new_path = desired_path(
+            new_url, pull_request=False, prefix=str(config.submodules.current_path)
+        )
 
         if new_name not in repo.submodules:
             click.echo(f"Adding new submodule '{new_url}' (branch={branch})")

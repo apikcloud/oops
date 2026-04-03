@@ -12,10 +12,9 @@ processed; real directories are skipped.
 """
 
 import click
-from oops.commands.base import command
 
-from oops.core.messages import commit_messages
-from oops.utils.git import get_local_repo
+from oops.commands.base import command
+from oops.utils.git import commit, get_local_repo
 from oops.utils.helpers import str_to_list
 from oops.utils.io import materialize_symlink
 from oops.utils.render import human_readable
@@ -54,11 +53,10 @@ def main(addons: str, dry_run: bool, no_commit: bool):
         changes.append(addon_path)
 
     if not no_commit and changes and not dry_run:
-        click.echo("Committing changes...")
-
-        repo.index.add([str(path) for path in changes])
-        repo.index.commit(
-            commit_messages.materialize_addons.format(
-                names=human_readable([path.name for path in changes])
-            )
+        commit(
+            repo,
+            repo_path,
+            [str(path) for path in changes],
+            "materialize_addons",
+            names=human_readable([path.name for path in changes]),
         )

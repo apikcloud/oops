@@ -16,8 +16,8 @@ import sys
 from pathlib import Path
 
 import click
-from oops.commands.base import command
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
 from oops.utils.git import get_local_repo, read_gitmodules
@@ -209,6 +209,6 @@ def main(  # noqa: C901, PLR0915, PLR0913
                 symlinks=human_readable(created_links) if created_links else 0,
             ),
         )
-        click.echo("✅ Submodule added and committed.")
+        click.echo("✓ Submodule added and committed.")
     else:
         click.echo("⚠️ Changes staged but not committed (--no-commit).")

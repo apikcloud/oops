@@ -15,9 +15,9 @@ import configparser
 import logging
 
 import click
-from oops.commands.base import command
 from git import Repo
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.utils.git import read_gitmodules
 from oops.utils.io import check_prefix, list_symlinks
@@ -116,7 +116,7 @@ def main():  # noqa: C901
 
     if res:
         click.echo(
-            f"✅ All submodules are under {config.submodules.current_path} "
+            f"✓ All submodules are under {config.submodules.current_path} "
             f"and used by at least one symlink."
         )
         raise click.exceptions.Exit(0)

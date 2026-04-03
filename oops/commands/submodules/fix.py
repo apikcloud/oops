@@ -11,11 +11,10 @@ deprecated repository paths as defined in the project config.
 """
 
 import click
-from oops.commands.base import command
 
+from oops.commands.base import command
 from oops.core.config import config
-from oops.core.messages import commit_messages
-from oops.utils.git import get_local_repo
+from oops.utils.git import commit, get_local_repo
 from oops.utils.net import encode_url, parse_repository_url
 
 
@@ -69,13 +68,12 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
             submodule = repo.submodules[name]
             repo.git.submodule("set-url", submodule.path, new_url)
 
-        click.echo("Staging submodule URL changes...")
-        repo.index.add([repo_path / ".gitmodules"])
-
-        if not no_commit and repo.index.diff("HEAD"):
+        if not no_commit:
             click.echo("Committing submodule URL changes...")
-            repo.index.commit(
-                commit_messages.submodules_fix_urls.format(
-                    description="\n".join(f"- {name}: {url}" for name, url in new_urls)
-                )
+            commit(
+                repo,
+                repo_path,
+                [".gitmodules"],
+                "submodules_fix_urls",
+                description="\n".join(f"- {name}: {url}" for name, url in new_urls),
             )

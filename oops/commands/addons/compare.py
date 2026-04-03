@@ -13,8 +13,7 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.
 import click
 from oops.commands.base import command
 
-from oops.core.messages import commit_messages
-from oops.utils.git import get_local_repo
+from oops.utils.git import commit, get_local_repo
 from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons
 
@@ -58,5 +57,10 @@ def main(addons_list: str, delete: bool, no_commit: bool):
 
     if delete and changes and not no_commit:
         click.echo(f"{len(changes)} addon(s) removed, committing changes...")
-        repo.index.remove(changes)
-        repo.index.commit(commit_messages.addons_synchronize)
+        commit(
+            repo,
+            repo_path,
+            changes,
+            "addons_synchronize",
+            remove=True,
+        )

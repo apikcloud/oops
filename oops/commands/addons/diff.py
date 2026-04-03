@@ -11,24 +11,14 @@ including changes inside submodules. With --save, writes the command to a
 migration script file.
 """
 
-import logging
 import os
 
 import click
+
 from oops.commands.base import command
-from git import Repo
-
 from oops.core.config import config
+from oops.utils.git import get_local_repo, get_submodule_sha
 from oops.utils.io import find_modified_addons
-
-logging.basicConfig(level=logging.INFO)
-
-
-def get_submodule_sha(repo, ref, path):
-    try:
-        return repo.git.rev_parse(f"{ref}:{path}")
-    except Exception:
-        return None
 
 
 @command(name="diff", help=__doc__)
@@ -40,8 +30,8 @@ def main(
     number: int,
     save: bool,
 ):
-
-    repo = Repo(".")
+    # TODO: distinguish between new modules and modified ones (install vs update)
+    repo, _ = get_local_repo()
     tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
 
     if tags and mode == "tag":
@@ -68,8 +58,8 @@ def main(
     addons = find_modified_addons(diff_files)
 
     if not addons:
-        click.echo("No addons found")
-        return
+        click.echo("No modified addon found.")
+        raise click.exceptions.Exit(0)
 
     command = config.project.migrate_command.format(addons=",".join(addons))
 

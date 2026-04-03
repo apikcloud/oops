@@ -12,9 +12,9 @@ Specific submodules can be targeted by name.
 """
 
 import click
-from oops.commands.base import command
 from git import Repo
 
+from oops.commands.base import command
 from oops.core.messages import commit_messages
 from oops.utils.git import is_pull_request
 from oops.utils.io import desired_path, get_symlink_map

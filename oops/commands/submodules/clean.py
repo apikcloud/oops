@@ -15,8 +15,8 @@ import logging
 import shutil
 
 import click
-from oops.commands.base import command
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.git.core import GitRepository
 from oops.git.submodules import GitSubmodules

@@ -11,6 +11,7 @@ from git.config import GitConfigParser
 
 from oops.core.messages import commit_messages
 from oops.core.paths import PR_DIR
+from oops.utils.compat import Optional
 
 
 def read_gitmodules(repo: Repo) -> GitConfigParser:
@@ -78,9 +79,22 @@ def show_diff(tmpdir: Path, files: list, local_repo: Repo, repo_root: Path) -> b
     return has_changes
 
 
-def commit(local_repo: Repo, repo_root: Path, files: list, message_name: str) -> None:
+def commit(  # noqa: PLR0913
+    local_repo: Repo,
+    repo_root: Path,
+    files: list,
+    message_name: str,
+    skip_hooks: bool = False,
+    remove: bool = False,
+    **kwargs,
+) -> None:
     """Stage the synced files and create a commit."""
-    local_repo.index.add([str(repo_root / f) for f in files])
+
+    changes = [str(repo_root / f) for f in files]
+    if remove:
+        local_repo.index.remove(changes)
+    else:
+        local_repo.index.add(changes)
 
     if not local_repo.index.diff("HEAD"):
         click.echo(click.style("⚠ Nothing to commit (index identical to HEAD).", fg="yellow"))
@@ -89,5 +103,19 @@ def commit(local_repo: Repo, repo_root: Path, files: list, message_name: str) ->
     message = getattr(commit_messages, message_name, None)
     if message is None:
         raise ValueError(f"Unknown commit message name: {message_name}")
-    commit = local_repo.index.commit(message)
+    if kwargs:
+        try:
+            message = message.format(**kwargs)
+        except KeyError as exc:
+            raise ValueError(f"Missing placeholder for commit message: {exc}") from exc
+
+    commit = local_repo.index.commit(message, skip_hooks=skip_hooks)
     click.echo(click.style(f"\n✓ Commit {commit.hexsha[:8]} — {message}", fg="green"))
+
+
+def get_submodule_sha(repo: Repo, ref: str, path: str) -> Optional[str]:
+    """Get the SHA of a submodule at a given ref (commit-ish)."""
+    try:
+        return repo.git.rev_parse(f"{ref}:{path}")
+    except Exception:
+        return None

@@ -1,0 +1,36 @@
+version: 1
+images:
+  source:
+    repository: "organization/repository"
+    file: "images.json"
+  registries:
+    warn:
+      - "odoo"
+
+submodules:
+  current_path: ".third-party"
+  old_paths:
+    - "third-party"
+
+  force_scheme: "ssh"
+
+  checks:
+    - "check_path"
+    - "check_branch"
+    - "check_symlink"
+    - "check_url_scheme"
+    - "check_deprecated_repo"
+    - "check_broken_symlink"
+
+project:
+  mandatory_files:
+    - "requirements.txt"
+  recommended_files:
+    - "README.md"
+    - "CODEOWNERS"
+    - "CHANGELOG.md"
+    - ".gitignore"
+sync:
+  remote_url: "git@github.com:organization/repository.git"
+  files:
+    - ".pre-commit-config.yaml"
