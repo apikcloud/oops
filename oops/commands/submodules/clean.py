@@ -17,7 +17,7 @@ import click
 
 from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.git import get_local_repo
+from oops.services.git import get_local_repo
 from oops.utils.render import print_error
 
 

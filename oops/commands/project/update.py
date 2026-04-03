@@ -17,10 +17,10 @@ import requests
 from oops.commands.base import command
 from oops.commands.project.common import parse_odoo_version
 from oops.core.config import config
+from oops.io.file import write_text_file
+from oops.io.tools import ask
 from oops.services.docker import find_available_images, format_available_images, parse_image_tag
-from oops.utils.git import commit, get_local_repo
-from oops.utils.io import write_text_file
-from oops.utils.tools import ask
+from oops.services.git import commit, get_local_repo
 
 
 @command(name="update", help=__doc__)

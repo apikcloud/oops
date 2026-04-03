@@ -7,14 +7,14 @@ import pytest
 from tabulate import tabulate
 
 from oops.core.config import config
-from oops.utils import tools
+from oops.io import tools
+from oops.io.file import is_pull_request_path, materialize_symlink, read_and_parse
 from oops.utils.helpers import (
     clean_string,
     date_from_string,
     removesuffix,
     str_to_list,
 )
-from oops.utils.io import is_pull_request_path, materialize_symlink, read_and_parse
 from oops.utils.net import parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
 

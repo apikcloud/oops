@@ -16,8 +16,8 @@ import json
 import click
 
 from oops.commands.base import command
-from oops.utils.git import get_local_repo, is_pull_request
-from oops.utils.io import find_addons
+from oops.io.file import find_addons
+from oops.services.git import get_local_repo, is_pull_request
 from oops.utils.net import encode_url
 from oops.utils.render import human_readable, render_boolean, render_table
 
@@ -83,9 +83,7 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
 
     # Filter submodule names if requested
     active_paths = (
-        {path for path, info in subs.items() if info["name"] in submodules}
-        if submodules
-        else None
+        {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
     )
 
     rows = []

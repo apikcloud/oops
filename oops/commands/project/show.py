@@ -24,9 +24,9 @@ from oops.commands.project.common import (
 from oops.git.repository import get_last_commit
 from oops.git.versioning import get_last_release, get_next_releases
 from oops.services.docker import check_image, find_available_images, parse_image_tag
+from oops.services.git import get_local_repo
 from oops.services.github import get_latest_workflow_run
 from oops.utils.compat import Optional
-from oops.utils.git import get_local_repo
 from oops.utils.net import get_public_repo_url, parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
 
@@ -107,8 +107,14 @@ def main(token: Optional[str], minimal: bool):  # noqa: C901
     last_commit = get_last_commit(str(repo_path))
 
     rows = [
-        ["Odoo version", f"{image_info.major_version} ({image_info.edition})" if image_info else "--"],
-        ["Current image date", image_info.release.isoformat() if image_info and image_info.release else "--"],
+        [
+            "Odoo version",
+            f"{image_info.major_version} ({image_info.edition})" if image_info else "--",
+        ],
+        [
+            "Current image date",
+            image_info.release.isoformat() if image_info and image_info.release else "--",
+        ],
         ["Registry", image_info.source if image_info else "--"],
         ["Available update(s)", image_update_msg],
         ["System package(s)", human_readable(packages) or "--"],

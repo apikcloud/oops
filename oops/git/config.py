@@ -9,8 +9,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from oops.io.tools import run
 from oops.utils.compat import Optional
-from oops.utils.tools import run
 
 
 @dataclass

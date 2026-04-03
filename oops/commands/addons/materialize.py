@@ -14,9 +14,9 @@ processed; real directories are skipped.
 import click
 
 from oops.commands.base import command
-from oops.utils.git import commit, get_local_repo
+from oops.io.file import materialize_symlink
+from oops.services.git import commit, get_local_repo
 from oops.utils.helpers import str_to_list
-from oops.utils.io import materialize_symlink
 from oops.utils.render import human_readable
 
 

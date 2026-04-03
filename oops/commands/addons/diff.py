@@ -17,8 +17,8 @@ import click
 
 from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.git import get_local_repo, get_submodule_sha
-from oops.utils.io import find_modified_addons
+from oops.io.file import find_modified_addons
+from oops.services.git import get_local_repo, get_submodule_sha
 
 
 @command(name="diff", help=__doc__)

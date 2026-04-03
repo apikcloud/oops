@@ -18,8 +18,8 @@ import click
 
 from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.git import get_local_repo, read_gitmodules
-from oops.utils.io import check_prefix, list_symlinks
+from oops.io.file import check_prefix, list_symlinks
+from oops.services.git import get_local_repo, read_gitmodules
 from oops.utils.net import parse_repository_url
 from oops.utils.render import print_error, print_success
 

@@ -10,7 +10,7 @@ import pytest
 from click.testing import CliRunner
 
 from oops.commands.project.sync import _apply, main
-from oops.utils.git import commit, show_diff
+from oops.services.git import commit, show_diff
 from oops.utils.net import sparse_clone
 
 # ---------------------------------------------------------------------------
@@ -70,10 +70,11 @@ class TestMainDryRun:
         mock_repo = _make_local_repo(tmp_path)
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config()), \
-             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
-             patch("oops.commands.project.sync.sparse_clone"), \
-             patch("oops.commands.project.sync.show_diff", return_value=False):
+        with patch("oops.commands.project.sync.config", _make_config()), patch(
+            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+        ), patch("oops.commands.project.sync.sparse_clone"), patch(
+            "oops.commands.project.sync.show_diff", return_value=False
+        ):
             result = runner.invoke(main, ["--dry-run"])
         assert result.exit_code == 0
         assert "Already up to date" in result.output
@@ -82,10 +83,11 @@ class TestMainDryRun:
         mock_repo = _make_local_repo(tmp_path)
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config()), \
-             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
-             patch("oops.commands.project.sync.sparse_clone"), \
-             patch("oops.commands.project.sync.show_diff", return_value=True):
+        with patch("oops.commands.project.sync.config", _make_config()), patch(
+            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+        ), patch("oops.commands.project.sync.sparse_clone"), patch(
+            "oops.commands.project.sync.show_diff", return_value=True
+        ):
             result = runner.invoke(main, ["--dry-run"])
         assert result.exit_code == 0
         assert "dry run" in result.output
@@ -101,12 +103,13 @@ class TestMainApply:
         mock_repo = _make_local_repo(tmp_path)
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), \
-             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
-             patch("oops.commands.project.sync.sparse_clone"), \
-             patch("oops.commands.project.sync.show_diff", return_value=True), \
-             patch("oops.commands.project.sync._apply") as mock_apply, \
-             patch("oops.commands.project.sync.commit") as mock_commit:
+        with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), patch(
+            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+        ), patch("oops.commands.project.sync.sparse_clone"), patch(
+            "oops.commands.project.sync.show_diff", return_value=True
+        ), patch("oops.commands.project.sync._apply") as mock_apply, patch(
+            "oops.commands.project.sync.commit"
+        ) as mock_commit:
             result = runner.invoke(main, ["--force"])
 
         assert result.exit_code == 0
@@ -117,12 +120,11 @@ class TestMainApply:
         mock_repo = _make_local_repo(tmp_path)
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config(branch="main")), \
-             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
-             patch("oops.commands.project.sync.sparse_clone") as mock_clone, \
-             patch("oops.commands.project.sync.show_diff", return_value=True), \
-             patch("oops.commands.project.sync._apply"), \
-             patch("oops.commands.project.sync.commit"):
+        with patch("oops.commands.project.sync.config", _make_config(branch="main")), patch(
+            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+        ), patch("oops.commands.project.sync.sparse_clone") as mock_clone, patch(
+            "oops.commands.project.sync.show_diff", return_value=True
+        ), patch("oops.commands.project.sync._apply"), patch("oops.commands.project.sync.commit"):
             runner.invoke(main, ["--force"])
 
         _, _, _, branch_arg = mock_clone.call_args[0]

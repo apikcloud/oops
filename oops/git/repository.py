@@ -10,10 +10,10 @@ import subprocess
 from pathlib import Path
 
 from oops.core.models import CommitInfo
+from oops.io.manifest import find_addons_extended
+from oops.io.tools import run
 from oops.utils.compat import Optional, Union
-from oops.utils.io import find_addons_extended
 from oops.utils.render import human_readable
-from oops.utils.tools import run
 
 
 def get_last_commit(path: Optional[str] = None) -> Optional[CommitInfo]:

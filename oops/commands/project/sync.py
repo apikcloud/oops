@@ -18,7 +18,7 @@ import git
 
 from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.git import commit, get_local_repo, show_diff
+from oops.services.git import commit, get_local_repo, show_diff
 from oops.utils.net import sparse_clone
 from oops.utils.render import print_success
 

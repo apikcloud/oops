@@ -14,7 +14,7 @@ by name; PR submodules can be skipped with --skip-pr.
 import click
 
 from oops.commands.base import command
-from oops.utils.git import commit, get_local_repo, is_pull_request
+from oops.services.git import commit, get_local_repo, is_pull_request
 from oops.utils.render import print_success, print_warning
 
 

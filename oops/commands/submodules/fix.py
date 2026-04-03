@@ -14,7 +14,7 @@ import click
 
 from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.git import commit, get_local_repo
+from oops.services.git import commit, get_local_repo
 from oops.utils.net import encode_url, parse_repository_url
 
 

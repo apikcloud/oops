@@ -14,12 +14,12 @@ that pre-commit hooks skip third-party addons. The file is committed unless
 import sys
 
 import click
-from oops.commands.base import command
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
 from oops.git.core import GitRepository
-from oops.utils.io import find_addons, write_text_file
+from oops.io.file import find_addons, write_text_file
 
 
 @command(name="exclude", help=__doc__)

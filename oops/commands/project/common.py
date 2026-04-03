@@ -10,7 +10,7 @@ from pathlib import Path
 
 from oops.core.config import config
 from oops.core.exceptions import MissingMandatoryFiles, MissingRecommendedFiles
-from oops.utils.io import read_and_parse
+from oops.io.file import read_and_parse
 
 
 def check_project(path: Path, strict: bool = True) -> tuple:

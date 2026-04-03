@@ -8,8 +8,8 @@
 import re
 import subprocess
 
+from oops.io.tools import run
 from oops.utils.compat import Optional
-from oops.utils.tools import run
 
 # Semantic versioning pattern: v1.2.3
 SEMVER_PATTERN = re.compile(r"^v(?P<x>0|[1-9]\d*)\.(?P<y>0|[1-9]\d*)\.(?P<z>0|[1-9]\d*)$")

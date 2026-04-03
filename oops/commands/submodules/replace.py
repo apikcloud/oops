@@ -20,8 +20,8 @@ from git import Repo
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
+from oops.io.file import desired_path, rewrite_symlink
 from oops.utils.compat import Optional
-from oops.utils.io import desired_path, rewrite_symlink
 from oops.utils.net import encode_url
 
 

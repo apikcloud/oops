@@ -10,8 +10,8 @@ import subprocess
 from pathlib import Path
 
 from oops.git.config import git_config_submodule
+from oops.io.tools import run
 from oops.utils.compat import Optional
-from oops.utils.tools import run
 
 
 class GitSubmodules:

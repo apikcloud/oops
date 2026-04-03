@@ -16,8 +16,8 @@ import logging
 import click
 
 from oops.commands.base import command
-from oops.utils.git import commit, get_local_repo, is_pull_request, read_gitmodules
-from oops.utils.tools import ask
+from oops.io.tools import ask
+from oops.services.git import commit, get_local_repo, is_pull_request, read_gitmodules
 
 
 @command(name="branch", help=__doc__)

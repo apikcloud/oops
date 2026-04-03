@@ -15,10 +15,10 @@ from pathlib import Path
 from oops.core.exceptions import NoGitRepository
 from oops.git.config import GitModule
 from oops.git.utils import extract_submodule_name
+from oops.io.file import ensure_parent, is_pull_request_path
+from oops.io.tools import run
 from oops.utils.compat import Optional
-from oops.utils.io import ensure_parent, is_pull_request_path
 from oops.utils.net import parse_repository_url
-from oops.utils.tools import run
 
 
 class GitRepository:

@@ -25,13 +25,13 @@ from git import Repo
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.utils.git import is_pull_request
-from oops.utils.io import (
+from oops.io.file import (
     desired_path,
     get_symlink_map,
     rewrite_symlink,
 )
-from oops.utils.tools import ask
+from oops.io.tools import ask
+from oops.services.git import is_pull_request
 
 
 @command(name="rewrite", help=__doc__)

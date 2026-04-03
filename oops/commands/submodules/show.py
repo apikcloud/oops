@@ -15,7 +15,7 @@ import click
 
 from oops.commands.base import command
 from oops.git.repository import get_last_commit
-from oops.utils.git import get_local_repo, is_pull_request
+from oops.services.git import get_local_repo, is_pull_request
 from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 

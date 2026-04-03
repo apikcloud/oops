@@ -17,8 +17,9 @@ from oops.commands.base import command
 from oops.core.messages import commit_messages
 from oops.git import list_available_addons
 from oops.git.core import GitRepository
+from oops.io.file import relpath
+from oops.io.manifest import find_addons_extended
 from oops.utils.helpers import str_to_list
-from oops.utils.io import find_addons_extended, relpath
 
 
 @command("add")

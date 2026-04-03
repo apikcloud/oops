@@ -20,13 +20,13 @@ import click
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.utils.git import get_local_repo, read_gitmodules
-from oops.utils.helpers import str_to_list
-from oops.utils.io import (
+from oops.io.file import (
     desired_path,
     ensure_parent,
     relpath,
 )
+from oops.services.git import get_local_repo, read_gitmodules
+from oops.utils.helpers import str_to_list
 from oops.utils.net import parse_repository_url
 from oops.utils.render import human_readable, render_table
 

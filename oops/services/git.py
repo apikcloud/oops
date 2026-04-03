@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
-# File: git.py — oops/utils/git.py
+# File: git.py — oops/services/git.py
 
 from pathlib import Path, PurePosixPath
 

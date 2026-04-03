@@ -21,11 +21,11 @@ import click
 
 from oops.commands.base import command
 from oops.git.repository import update_gitignore
+from oops.io.file import find_addons
+from oops.services.git import commit, get_local_repo
 from oops.services.github import fetch_branch_zip
 from oops.utils.compat import Optional
-from oops.utils.git import commit, get_local_repo
 from oops.utils.helpers import str_to_list
-from oops.utils.io import find_addons
 from oops.utils.net import parse_repository_url
 
 
