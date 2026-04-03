@@ -3,6 +3,15 @@
 #
 # File: manifest.py — oops/io/manifest.py
 
+"""
+Odoo manifest reading, parsing, and addon discovery.
+
+Sections:
+    - Path lookup: locate manifest files within addon directories
+    - Dict parsing: read manifests as plain Python dicts (via ast.literal_eval)
+    - CST parsing: read manifests as concrete syntax trees (via libcst) for lossless rewriting
+    - Discovery: enumerate addons and manifest paths under a directory
+"""
 
 import ast
 import logging
@@ -14,6 +23,23 @@ import libcst as cst
 from oops.core.config import config
 from oops.core.exceptions import NoManifestFound
 from oops.utils.compat import Optional, Union
+
+# ---------------------------------------------------------------------------
+# Path lookup
+# ---------------------------------------------------------------------------
+
+
+def get_manifest_path(addon_dir: str) -> Optional[str]:
+    """Return the path to the manifest file in this addon directory."""
+    for manifest_name in config.manifest_names:
+        manifest_path = os.path.join(addon_dir, manifest_name)
+        if os.path.isfile(manifest_path):
+            return manifest_path
+
+
+# ---------------------------------------------------------------------------
+# Dict parsing
+# ---------------------------------------------------------------------------
 
 
 def parse_manifest(filepath: Path) -> dict:
@@ -41,12 +67,9 @@ def load_manifest(addon_dir: Path) -> dict:
     return {}
 
 
-def get_manifest_path(addon_dir: str) -> Optional[str]:
-    """Return the path to the manifest file in this addon directory."""
-    for manifest_name in config.manifest_names:
-        manifest_path = os.path.join(addon_dir, manifest_name)
-        if os.path.isfile(manifest_path):
-            return manifest_path
+# ---------------------------------------------------------------------------
+# CST parsing
+# ---------------------------------------------------------------------------
 
 
 def parse_manifest_cst(raw: str) -> cst.CSTNode:
@@ -59,6 +82,11 @@ def read_manifest(path: str) -> cst.CSTNode:
         raise NoManifestFound(f"no Odoo manifest found in {path}")
     with open(manifest_path) as mf:
         return parse_manifest_cst(mf.read())
+
+
+# ---------------------------------------------------------------------------
+# Discovery
+# ---------------------------------------------------------------------------
 
 
 def find_addons_extended(
