@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Optional
 
 import click
-from git import Repo
 
 from oops.commands.base import command
 from oops.core.config import config
@@ -31,7 +30,7 @@ from oops.io.file import (
     rewrite_symlink,
 )
 from oops.io.tools import ask
-from oops.services.git import is_pull_request
+from oops.services.git import get_local_repo, is_pull_request
 
 
 @command(name="rewrite", help=__doc__)
@@ -52,7 +51,7 @@ def main(
     base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: Optional[tuple[str]] = None
 ):  # noqa: C901, PLR0912, PLR0915
 
-    repo = Repo()
+    repo, _ = get_local_repo()
 
     if not repo.submodules:
         click.echo("No .gitmodules found.")

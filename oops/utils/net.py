@@ -81,8 +81,6 @@ def _parse_url(url: str) -> Tuple[str, str, str, str]:
         raise ValueError(f"Malformed url (missing owner/repo): {url}")
 
     owner, repo = parts[0], parts[1]
-    if owner == "oca":
-        owner = owner.upper()
     repo = removesuffix(repo, ".git")
 
     return scheme, host, owner, repo
@@ -131,7 +129,9 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
     if host != "github.com":
         raise ValueError(f"Unsupported host: {host}")
 
-    return scheme, owner, repo
+    canonical_url = f"https://{host}/{owner}/{repo}"
+    normalized_owner = owner.upper() if owner.lower() == "oca" else owner
+    return canonical_url, normalized_owner, repo
 
 
 def sparse_clone(remote_url: str, tmpdir: Path, files: list, branch: Optional[str] = None) -> None:

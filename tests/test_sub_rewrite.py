@@ -18,6 +18,7 @@ import subprocess
 import textwrap
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from oops.commands.submodules.rewrite import main
@@ -39,45 +40,62 @@ def _init_git_repo(repo: Path) -> Path:
     return repo
 
 
-def _write_gitmodules(repo: Path) -> None:
-    """
-    We emulate two submodules. Paths are deliberately 'addons/<name>' to test rewrite.
-    """
-    content = textwrap.dedent(
-        """
-        [submodule "server-ux"]
-            path = addons/server-ux
-            url = https://github.com/OCA/server-ux.git
-            branch = 17.0
-        [submodule "hr-holidays"]
-            path = addons/hr-holidays
-            url = git@github.com:odoo/odoo.git
-            branch = 17.0
-        """
-    ).lstrip()
-    (repo / ".gitmodules").write_text(content)
-    _run(["git", "add", ".gitmodules"], repo)
-    _run(["git", "commit", "-m", "add .gitmodules"], repo)
+def _make_local_remote(tmp_path: Path, name: str) -> Path:
+    """Create a minimal local git repo to use as a submodule remote."""
+    remote = tmp_path / name
+    remote.mkdir()
+    _run(["git", "init", "-q", "-b", "main"], remote)
+    _run(["git", "config", "user.email", "ci@example.com"], remote)
+    _run(["git", "config", "user.name", "CI"], remote)
+    _run(["git", "config", "receive.denyCurrentBranch", "ignore"], remote)
+    (remote / "README.md").write_text(f"# {name}\n")
+    _run(["git", "add", "README.md"], remote)
+    _run(["git", "commit", "-q", "-m", "init"], remote)
+    return remote
+
+
+def _add_submodule(repo: Path, name: str, path: str, local_remote: Path, github_url: str) -> None:
+    """Add a submodule from a local bare repo, then set its URL to the GitHub URL."""
+    _run(["git", "-c", "protocol.file.allow=always", "submodule", "add", "-q", "--name", name, str(local_remote), path], repo)
+    # Rewrite the URL to the canonical GitHub URL for testing the rewrite logic
+    _run(["git", "config", "-f", ".gitmodules", f"submodule.{name}.url", github_url], repo)
+    _run(["git", "config", f"submodule.{name}.url", github_url], repo)
+    # Create a symlink pointing into the submodule so get_symlink_map detects it.
+    # The raw readlink target must have the submodule path as parent.
+    link = repo / f"_link_{name}"
+    link.symlink_to(f"{path}/README.md")
+    _run(["git", "add", ".gitmodules", str(link)], repo)
 
 
 def test_sub_rewrite_rewrites_paths(tmp_path: Path):
     runner = CliRunner()
-    with runner.isolated_filesystem(tmp_path):
-        repo = _init_git_repo(tmp_path)
-        _write_gitmodules(repo)
+    with runner.isolated_filesystem():
+        repo_path = Path.cwd()
+        _init_git_repo(repo_path)
+
+        # Create local bare repos to avoid network calls
+        remotes = tmp_path / "remotes"
+        remotes.mkdir()
+        remote_oca = _make_local_remote(remotes, "server-ux")
+        remote_odoo = _make_local_remote(remotes, "odoo")
+
+        _add_submodule(repo_path, "server-ux", "addons/server-ux", remote_oca, "https://github.com/OCA/server-ux.git")
+        _add_submodule(repo_path, "hr-holidays", "addons/hr-holidays", remote_odoo, "git@github.com:odoo/odoo.git")
+
+        _run(["git", "commit", "-q", "-m", "add submodules"], repo_path)
 
         pr = runner.invoke(main, ["--dry-run", "--force"])
 
-        assert pr.exit_code == 0
+        assert pr.exit_code == 0, pr.output
 
         pr = runner.invoke(main, ["--force"])
-        assert pr.exit_code == 0
+        assert pr.exit_code == 0, pr.output
 
         # Verify .gitmodules paths were rewritten
-        data = (repo / ".gitmodules").read_text()
+        data = (repo_path / ".gitmodules").read_text()
         assert "path = .third-party/OCA/server-ux" in data
         assert "path = .third-party/odoo/odoo" in data
 
         # Optional: ensure a commit was created
-        log = _run(["git", "log", "-1", "--pretty=%s"], repo).stdout.strip()
-        assert "chore: rewrite submodule paths based on remote URL" in log
+        log = _run(["git", "log", "-1", "--pretty=%s"], repo_path).stdout.strip()
+        assert "chore(submodules): rewrite submodule paths to new scheme" in log

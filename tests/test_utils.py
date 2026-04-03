@@ -7,7 +7,7 @@ import pytest
 from tabulate import tabulate
 
 from oops.core.config import config
-from oops.io import tools
+from oops.io import file as io_file
 from oops.io.file import is_pull_request_path, materialize_symlink, read_and_parse
 from oops.utils.helpers import (
     clean_string,
@@ -354,7 +354,7 @@ def test_materialize_symlink_cleanup_on_failure(tmp_path, monkeypatch):
         (dst / "partial").write_text("p")
         raise RuntimeError("simulated failure")
 
-    monkeypatch.setattr(tools, "copytree", fake_copytree)
+    monkeypatch.setattr(io_file, "copytree", fake_copytree)
 
     with pytest.raises(ValueError, match=r"Failed to materialize"):
         materialize_symlink(link, dry_run=False)
