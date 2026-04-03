@@ -24,6 +24,7 @@ import re
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.exceptions import MarkersNotFound
@@ -78,7 +79,7 @@ def replace_in_readme(readme_path, header, rows_available, rows_unported) -> boo
     return True
 
 
-@click.command(
+@command(
     help=__doc__,
     name="update",
 )

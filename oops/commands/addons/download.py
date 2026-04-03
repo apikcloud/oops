@@ -19,6 +19,7 @@ import tempfile
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 
 from oops.core.messages import commit_messages
 from oops.git import update_gitignore
@@ -32,7 +33,7 @@ from oops.utils.net import parse_repository_url
 logging.basicConfig(level=logging.INFO)
 
 
-@click.command(name="download", help=__doc__)
+@command(name="download", help=__doc__)
 @click.argument("url")
 @click.argument("branch")
 @click.option("--token", envvar=["TOKEN", "GH_TOKEN", "GITHUB_TOKEN"])

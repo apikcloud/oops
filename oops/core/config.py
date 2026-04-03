@@ -201,7 +201,7 @@ def load_config() -> Config:
     found = [p for p in _CONFIG_PATHS if p.exists()]
     if not found:
         ctx = click.get_current_context(silent=True)
-        if ctx is None or ctx.resilient_parsing:
+        if ctx is not None and ctx.resilient_parsing:
             return Config()
 
         ConfigurationError.__suppress_context__ = True
@@ -231,4 +231,22 @@ def load_config() -> Config:
     return cfg
 
 
-config = load_config()
+class _LazyConfig:
+    _cfg: "Config | None" = None
+
+    def _load(self) -> Config:
+        if type(self)._cfg is None:
+            type(self)._cfg = load_config()
+        return type(self)._cfg  # type: ignore[return-value]
+
+    def __getattr__(self, name: str):
+        return getattr(self._load(), name)
+
+    def __setattr__(self, name: str, value) -> None:
+        if name == "_cfg":
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._load(), name, value)
+
+
+config: Config = _LazyConfig()  # type: ignore[assignment]

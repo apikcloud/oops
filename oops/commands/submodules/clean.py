@@ -15,13 +15,14 @@ import logging
 import shutil
 
 import click
+from oops.commands.base import command
 
 from oops.core.config import config
 from oops.git.core import GitRepository
 from oops.git.submodules import GitSubmodules
 
 
-@click.command(name="clean", help=__doc__)
+@command(name="clean", help=__doc__)
 @click.option("--reset", is_flag=True, help="Do a hard reset before")
 def main(reset: bool):
 

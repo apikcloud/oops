@@ -12,6 +12,7 @@ With a GitHub token, also shows the latest Actions workflow run.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.commands.project.common import (
     check_project,
@@ -30,7 +31,7 @@ from oops.services.github import get_latest_workflow_run
 from oops.utils.render import format_datetime, human_readable, render_table
 
 
-@click.command(name="info", help=__doc__)
+@command(name="info", help=__doc__)
 @click.option(
     "--token",
     envvar=["TOKEN", "GH_TOKEN", "GITHUB_TOKEN"],

@@ -12,6 +12,7 @@ symlinks at the repository root. Skips addons that are already present.
 import os
 
 import click
+from oops.commands.base import command
 
 from oops.core.messages import commit_messages
 from oops.git import list_available_addons
@@ -20,7 +21,7 @@ from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons_extended, relpath
 
 
-@click.command("add")
+@command("add")
 @click.argument("addons_list", type=str)
 @click.option(
     "--no-commit",

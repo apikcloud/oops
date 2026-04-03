@@ -10,6 +10,7 @@ PR flag, version, and author. Output can be formatted as text, JSON, or CSV.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.git.core import GitRepository
 from oops.utils.io import find_addons
@@ -17,7 +18,7 @@ from oops.utils.net import encode_url
 from oops.utils.render import human_readable, render_boolean, render_table
 
 
-@click.command(name="list", help=__doc__)
+@command(name="list", help=__doc__)
 @click.option(
     "--format",
     type=click.Choice(["text", "json", "csv"]),

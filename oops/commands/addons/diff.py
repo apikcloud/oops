@@ -15,6 +15,7 @@ import logging
 import os
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.config import config
@@ -30,7 +31,7 @@ def get_submodule_sha(repo, ref, path):
         return None
 
 
-@click.command(name="diff", help=__doc__)
+@command(name="diff", help=__doc__)
 @click.argument("mode", type=click.Choice(["tag", "commit"], case_sensitive=False))
 @click.argument("number", required=False, default=1)
 @click.option("-s", "--save", is_flag=True, help="Write the command in the migration file.")

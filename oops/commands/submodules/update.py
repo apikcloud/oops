@@ -12,13 +12,14 @@ by name; PR submodules can be skipped with --skip-pr.
 """
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.messages import commit_messages
 from oops.utils.git import is_pull_request
 
 
-@click.command("update", help=__doc__)
+@command("update", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")

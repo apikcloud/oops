@@ -12,6 +12,7 @@ image automatically and commits the change.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.commands.project.common import parse_odoo_version
 from oops.core.messages import commit_messages
@@ -21,7 +22,7 @@ from oops.utils.io import write_text_file
 from oops.utils.tools import ask
 
 
-@click.command(name="update", help=__doc__)
+@command(name="update", help=__doc__)
 @click.option("--force", is_flag=True, help="Don't ask for confirmation")
 def main(force: bool):  # noqa: C901
 

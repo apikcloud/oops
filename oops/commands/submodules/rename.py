@@ -12,6 +12,7 @@ Specific submodules can be targeted by name.
 """
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.messages import commit_messages
@@ -20,7 +21,7 @@ from oops.utils.io import desired_path, get_symlink_map
 from oops.utils.tools import ask
 
 
-@click.command("rename", help=__doc__)
+@command("rename", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--prompt/--no-prompt", is_flag=True, default=True, help="Prompt before renaming")

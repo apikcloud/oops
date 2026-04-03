@@ -14,6 +14,7 @@ import configparser
 import logging
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.messages import commit_messages
@@ -21,7 +22,7 @@ from oops.utils.git import is_pull_request, read_gitmodules
 from oops.utils.tools import ask
 
 
-@click.command(name="branch", help=__doc__)
+@command(name="branch", help=__doc__)
 @click.option(
     "--branch",
     "default_branch",

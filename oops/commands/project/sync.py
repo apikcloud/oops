@@ -14,6 +14,7 @@ import tempfile
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 import git
 
 from oops.core.config import config
@@ -25,7 +26,7 @@ from oops.utils.net import sparse_clone
 # ---------------------------------------------------------------------------
 
 
-@click.command("sync")
+@command("sync")
 @click.option("--dry-run", is_flag=True, help="Show the diff without applying changes.")
 @click.option("--force", "-f", is_flag=True, help="Apply changes without asking for confirmation.")
 def main(dry_run: bool, force: bool) -> None:

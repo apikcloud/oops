@@ -12,6 +12,7 @@ with --pull-request.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.git import get_last_commit
 from oops.git.core import GitRepository
@@ -19,7 +20,7 @@ from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 
 
-@click.command("show", help=__doc__)
+@command("show", help=__doc__)
 @click.option(
     "--pull-request",
     is_flag=True,

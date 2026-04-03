@@ -11,6 +11,7 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.core.messages import commit_messages
 from oops.utils.git import get_local_repo
@@ -18,7 +19,7 @@ from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons
 
 
-@click.command("compare", help=__doc__)
+@command("compare", help=__doc__)
 @click.argument("addons_list")
 @click.option(
     "--delete",

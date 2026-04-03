@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Optional
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.config import config
@@ -33,7 +34,7 @@ from oops.utils.io import (
 from oops.utils.tools import ask
 
 
-@click.command(name="rewrite", help=__doc__)
+@command(name="rewrite", help=__doc__)
 @click.option(
     "--base-dir",
     default=config.submodules.current_path,

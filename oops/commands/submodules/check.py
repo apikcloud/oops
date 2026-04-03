@@ -15,6 +15,7 @@ import configparser
 import logging
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.config import config
@@ -23,7 +24,7 @@ from oops.utils.io import check_prefix, list_symlinks
 from oops.utils.net import parse_repository_url
 
 
-@click.command(name="check", help=__doc__)
+@command(name="check", help=__doc__)
 def main():  # noqa: C901
 
     repo = Repo()

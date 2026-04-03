@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
@@ -83,7 +84,7 @@ def find_addons(submodule_dir: Path):
     is_flag=True,
     help="Indicates that the submodule is a pull request (affects naming)",
 )
-@click.command(name="add", help=__doc__)
+@command(name="add", help=__doc__)
 def main(  # noqa: C901, PLR0915, PLR0913
     url: str,
     branch: str,

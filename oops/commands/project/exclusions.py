@@ -14,6 +14,7 @@ that pre-commit hooks skip third-party addons. The file is committed unless
 import sys
 
 import click
+from oops.commands.base import command
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
@@ -21,7 +22,7 @@ from oops.git.core import GitRepository
 from oops.utils.io import find_addons, write_text_file
 
 
-@click.command(name="exclude", help=__doc__)
+@command(name="exclude", help=__doc__)
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 def main(no_commit: bool):  # noqa: C901, PLR0912
     repo = GitRepository()

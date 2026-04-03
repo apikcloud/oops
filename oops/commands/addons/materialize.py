@@ -12,6 +12,7 @@ processed; real directories are skipped.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.core.messages import commit_messages
 from oops.utils.git import get_local_repo
@@ -20,7 +21,7 @@ from oops.utils.io import materialize_symlink
 from oops.utils.render import human_readable
 
 
-@click.command("materialize", help=__doc__)
+@command("materialize", help=__doc__)
 @click.argument("addons")
 @click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")

@@ -14,6 +14,7 @@ submodules can be targeted by passing their names as arguments.
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 
 from oops.core.messages import commit_messages
 from oops.utils.compat import Optional
@@ -21,7 +22,7 @@ from oops.utils.git import get_local_repo
 from oops.utils.io import list_symlinks, relpath
 
 
-@click.command(name="prune", help=__doc__)
+@command(name="prune", help=__doc__)
 @click.option(
     "--no-commit",
     is_flag=True,

@@ -11,6 +11,7 @@ deprecated repository paths as defined in the project config.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.core.config import config
 from oops.core.messages import commit_messages
@@ -18,7 +19,7 @@ from oops.utils.git import get_local_repo
 from oops.utils.net import encode_url, parse_repository_url
 
 
-@click.command(name="fix", help=__doc__)
+@command(name="fix", help=__doc__)
 @click.option(
     "--no-commit",
     is_flag=True,

@@ -12,6 +12,7 @@ warnings also cause a non-zero exit.
 """
 
 import click
+from oops.commands.base import command
 
 from oops.commands.project.common import check_project, parse_odoo_version
 from oops.git.core import GitRepository
@@ -19,7 +20,7 @@ from oops.services.docker import check_image, parse_image_tag
 from oops.utils.render import render_table
 
 
-@click.command(name="check", help=__doc__)
+@command(name="check", help=__doc__)
 @click.option("--strict", is_flag=True, help="Do not fail on warnings")
 def main(strict: bool):  # noqa: C901
 

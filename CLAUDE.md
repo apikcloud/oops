@@ -39,11 +39,12 @@ oops/
 ├── commands/       # Click CLI entry points, grouped by domain
 │   ├── addons/     # list, add, compare, download, materialize, diff
 │   ├── manifest/   # check, fix (entry points declared but not yet implemented)
-│   ├── project/    # check, info, update, exclude
+│   ├── project/    # check, info, update, exclude, sync
 │   ├── readme/     # update (generate addon table in README.md)
 │   └── submodules/ # add, update, check, fix, prune, rename, replace, rewrite, show, branch, clean
 ├── core/
 │   ├── config.py   # Nested Config dataclasses + YAML loader (see below)
+│   ├── paths.py    # Structural path constants (repo layout)
 │   ├── models.py   # AddonInfo, CommitInfo, ImageInfo, WorkflowRunInfo
 │   ├── exceptions.py
 │   └── messages.py # All git commit message strings
@@ -89,7 +90,7 @@ Access pattern: `config.images.registries.recommended`, `config.submodules.curre
 
 ### Key Design Points
 
-- **Entry points** are declared in `pyproject.toml` under `[project.scripts]`. Each command maps to a Click function in `oops/commands/`. `oops-man-check` and `oops-man-fix` are declared but their implementation files don't exist yet.
+- **Entry points** are declared in `pyproject.toml` under `[project.scripts]`. Each command maps to a Click function in `oops/commands/`. `oops-man-check` and `oops-man-fix` are declared but their implementation files don't exist yet. `oops-i-did-it-again` is an alias for `oops-sub-clean`.
 - **Two git abstraction layers coexist**: newer commands use GitPython's `Repo` directly; older ones use the custom `GitRepository` class (`git/core.py`). Both are acceptable — don't unify unless refactoring a whole domain.
 - **`oops.git` and `oops.git.config`** are marked deprecated (`# TODO: deprecated`). Import directly from `oops.git.repository`, `oops.git.versioning`, etc. instead.
 - **Manifest parsing** uses `ast.literal_eval` (not `importlib`). Manifest normalization/rewriting uses `libcst` to preserve comments.

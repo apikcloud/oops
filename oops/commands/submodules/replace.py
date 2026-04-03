@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 from git import Repo
 
 from oops.core.config import config
@@ -23,7 +24,7 @@ from oops.utils.io import desired_path, rewrite_symlink
 from oops.utils.net import encode_url
 
 
-@click.command("replace", help=__doc__)
+@command("replace", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.argument("names", nargs=-1, required=False)
