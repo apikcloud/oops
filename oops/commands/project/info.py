@@ -12,22 +12,22 @@ With a GitHub token, also shows the latest Actions workflow run.
 """
 
 import click
-from oops.commands.base import command
+import requests
 
+from oops.commands.base import command
 from oops.commands.project.common import (
     check_project,
     parse_odoo_version,
     parse_packages,
     parse_requirements,
 )
-from oops.git import (
-    get_last_commit,
-    get_last_release,
-    get_next_releases,
-)
-from oops.git.core import GitRepository
+from oops.git.repository import get_last_commit
+from oops.git.versioning import get_last_release, get_next_releases
 from oops.services.docker import check_image, find_available_images, parse_image_tag
 from oops.services.github import get_latest_workflow_run
+from oops.utils.compat import Optional
+from oops.utils.git import get_local_repo
+from oops.utils.net import get_public_repo_url, parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
 
 
@@ -38,82 +38,106 @@ from oops.utils.render import format_datetime, human_readable, render_table
     help="GitHub token to request API, needs actions:read or repo scope."
     " Envvar is also supported: TOKEN, GH_TOKEN, GITHUB_TOKEN.",
 )
-@click.option(
-    "--minimal",
-    is_flag=True,
-    help="Show minimal output.",
-)
-def main(token: str, minimal: bool):  # noqa: C901
+@click.option("--minimal", is_flag=True, help="Show minimal output.")
+def main(token: Optional[str], minimal: bool):  # noqa: C901
 
-    repo = GitRepository()
+    repo, repo_path = get_local_repo()
 
-    warnings, errors = check_project(repo.path, strict=False)
-    packages = parse_packages(repo.path)
-    requirements = parse_requirements(repo.path)
-    odoo_version = parse_odoo_version(repo.path)
-    image_infos = parse_image_tag(odoo_version)
-    warnings += check_image(image_infos, strict=False)
+    warns, errors = check_project(repo_path, strict=False)
+
+    try:
+        packages = parse_packages(repo_path)
+    except FileNotFoundError:
+        packages = []
+
+    try:
+        requirements = parse_requirements(repo_path)
+    except FileNotFoundError:
+        requirements = []
+
+    try:
+        odoo_version = parse_odoo_version(repo_path)
+        image_info = parse_image_tag(odoo_version)
+        warns += check_image(image_info, strict=False)
+    except ValueError as e:
+        errors.append(str(e) or "Could not parse Odoo version.")
+        image_info = None
+
+    # Remote URL
+    try:
+        remote_url = repo.remote("origin").url
+        canonical_url = get_public_repo_url(remote_url)
+        _, owner, repo_name = parse_repository_url(remote_url)
+    except (ValueError, IndexError):
+        canonical_url = ""
+        owner = ""
+        repo_name = ""
+
+    # Release info
     last_release = get_last_release()
-    url, owner, repo_name = repo.get_remote_url()
-
     try:
         minor, fix, major = get_next_releases()
         next_releases = f"minor: {minor}, fix: {fix}, major: {major}"
     except ValueError:
         next_releases = "no valid release found"
 
-    if image_infos.release:
-        available_images = find_available_images(
-            release=image_infos.release,
-            version=image_infos.major_version,
-            enterprise=image_infos.enterprise,
-        )
-
-        if available_images:
-            latest = available_images[0]
-            message = (
-                f"Found {len(available_images)} available images, "
-                f"the latest is {latest.delta} days newer ({latest.release.isoformat()})"
+    # Available image updates
+    if image_info and image_info.release:
+        try:
+            available_images = find_available_images(
+                release=image_info.release,
+                version=image_info.major_version,
+                enterprise=image_info.enterprise,
             )
-        else:
-            message = "No available images found"
-
+            if available_images:
+                latest = available_images[0]
+                image_update_msg = (
+                    f"{len(available_images)} available, "
+                    f"latest is {latest.delta} days newer ({latest.release.isoformat()})"
+                )
+            else:
+                image_update_msg = "Up to date"
+        except requests.RequestException as e:
+            image_update_msg = f"Could not fetch: {e}"
+    elif image_info:
+        image_update_msg = "No release date in current image tag"
     else:
-        message = "Current odoo version does not specify a release date, cannot proceed"
+        image_update_msg = "--"
 
-    last_commit = get_last_commit()
+    last_commit = get_last_commit(str(repo_path))
 
     rows = [
-        ["Odoo version", f"{image_infos.major_version} ({image_infos.edition})"],
-        ["Date of current image", image_infos.release or "no valid release found"],
-        ["Registry", image_infos.source],
-        ["Available image(s)", message],
+        ["Odoo version", f"{image_info.major_version} ({image_info.edition})" if image_info else "--"],
+        ["Current image date", image_info.release.isoformat() if image_info and image_info.release else "--"],
+        ["Registry", image_info.source if image_info else "--"],
+        ["Available update(s)", image_update_msg],
         ["System package(s)", human_readable(packages) or "--"],
         ["Python requirement(s)", human_readable(requirements, sep=", ") or "--"],
-        ["Git:", ""],
-        ["Remote URL", url or "no remote found"],
-        ["Last release", last_release or "no valid release found"],
-        ["Next release", next_releases],
-        ["Last commit", str(last_commit) if last_commit else "no valid commit found"],
+        ["Git", ""],
+        ["Remote URL", canonical_url or "--"],
+        ["Last release", last_release or "--"],
+        ["Next releases", next_releases],
+        ["Last commit", str(last_commit) if last_commit else "--"],
     ]
 
-    if not minimal and token:
-        res = get_latest_workflow_run(owner=owner, repo=repo_name, token=token, branch="main")
+    if not minimal and token and owner and repo_name:
+        try:
+            run = get_latest_workflow_run(owner=owner, repo=repo_name, token=token, branch="main")
+            if run:
+                rows += [
+                    ["GitHub Actions", ""],
+                    ["Last run", str(run)],
+                    ["Date", f"{format_datetime(run.date)} ({run.age} days ago)"],
+                    ["URL", run.url],
+                ]
+            else:
+                warns.append("Could not fetch latest GitHub Actions workflow run.")
+        except requests.RequestException as e:
+            warns.append(f"GitHub Actions fetch failed: {e}")
 
-        if not res:
-            errors.append("Could not fetch latest GitHub Actions workflow run")
-        else:
-            rows.append(["GitHub Actions:", ""])
-            rows.append(["Last run:", str(res)])
-            rows.append(["Date", f"{format_datetime(res.date)} ({res.age} days ago)"])
-            rows.append(["URL", res.url])
-
-    if warnings:
-        for row in warnings:
-            rows.append([click.style("Warning", fg="yellow"), click.style(row, fg="yellow")])
-
-    if errors:
-        for row in errors:
-            rows.append([click.style("Error", fg="red"), click.style(row, fg="red")])
+    for msg in warns:
+        rows.append([click.style("Warning", fg="yellow"), click.style(msg, fg="yellow")])
+    for msg in errors:
+        rows.append([click.style("Error", fg="red"), click.style(msg, fg="red")])
 
     click.echo(render_table(rows))
