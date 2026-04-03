@@ -52,6 +52,7 @@ what a command does from its name alone.
 git clone https://github.com/apikcloud/oops.git
 cd oops
 uv sync --extra dev
+source .venv/bin/activate
 ```
 
 ## Quality checks
