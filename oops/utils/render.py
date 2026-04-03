@@ -6,6 +6,7 @@
 import textwrap
 from datetime import datetime
 
+import click
 from tabulate import tabulate
 
 from oops.core.config import config
@@ -82,3 +83,11 @@ def render_maintainers(manifest):
             for x in maintainers
         ]
     )
+
+
+def print_error(message: str, symbol: str = "✕") -> None:
+    click.echo(click.style(f"{symbol} {message}", fg="red"))
+
+
+def print_success(message: str, symbol: str = "✓") -> None:
+    click.echo(click.style(f"{symbol} {message}", fg="green"))

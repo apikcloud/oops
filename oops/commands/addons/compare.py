@@ -11,11 +11,12 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.
 """
 
 import click
-from oops.commands.base import command
 
+from oops.commands.base import command
 from oops.utils.git import commit, get_local_repo
 from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons
+from oops.utils.render import print_error, print_success
 
 
 @command("compare", help=__doc__)
@@ -43,9 +44,9 @@ def main(addons_list: str, delete: bool, no_commit: bool):
     changes = []
 
     for name in missing:
-        click.echo(click.style(f"- {name}", fg="red"))
+        print_error(name, "-")
     for name in additionals:
-        click.echo(click.style(f"+ {name}", fg="green"))
+        print_success(name, "+")
         if delete:
             (repo_path / name).unlink()
             changes.append(name)

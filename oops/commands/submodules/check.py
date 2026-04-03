@@ -15,26 +15,26 @@ import configparser
 import logging
 
 import click
-from git import Repo
 
 from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.git import read_gitmodules
+from oops.utils.git import get_local_repo, read_gitmodules
 from oops.utils.io import check_prefix, list_symlinks
 from oops.utils.net import parse_repository_url
+from oops.utils.render import print_error, print_success
 
 
 @command(name="check", help=__doc__)
 def main():  # noqa: C901
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     if not repo.submodules:
-        click.echo("No submodules found.")
-        raise click.Abort()
+        print_success("No submodules found.")
+        raise click.exceptions.Exit(0)
 
-    symlinks = list_symlinks(repo.working_dir)
-    broken_symlinks = list_symlinks(repo.working_dir, broken_only=True)
+    symlinks = list_symlinks(repo_path)
+    broken_symlinks = list_symlinks(repo_path, broken_only=True)
     bad_paths = []
     unused = []
     missing_branches = []
@@ -77,37 +77,37 @@ def main():  # noqa: C901
             )
 
     if "check_path" in config.submodules.checks and bad_paths:
-        click.echo(f"❌ Submodules not under {config.submodules.current_path} ({len(bad_paths)}):")
+        print_error(f"Submodules not under {config.submodules.current_path} ({len(bad_paths)}):")
         for name, path in bad_paths:
             click.echo(f"  - {name}: {path}")
         res = False
 
     if "check_symlink" in config.submodules.checks and unused:
-        click.echo("❌ Unused submodules (no symlink points to them):")
+        print_error("Unused submodules (no symlink points to them):")
         for name, path in unused:
             click.echo(f"  - {name}: {path}")
         res = False
 
     if "check_branch" in config.submodules.checks and missing_branches:
-        click.echo("❌ Submodules without branch set in .gitmodules:")
+        print_error("Submodules without branch set in .gitmodules:")
         for name, path in missing_branches:
             click.echo(f"  - {name}: {path}")
         res = False
 
     if "check_url_scheme" in config.submodules.checks and malformed_urls:
-        click.echo(f"❌ Submodules with malformed URL (not {config.submodules.force_scheme}):")
+        print_error(f"Submodules with malformed URL (not {config.submodules.force_scheme}):")
         for name, url in malformed_urls:
             click.echo(f"  - {name}: {url}")
         res = False
 
     if "check_deprecated_repo" in config.submodules.checks and deprecated_repos:
-        click.echo("❌ Submodules using deprecated repositories:")
+        print_error("Submodules using deprecated repositories:")
         for name, repo in deprecated_repos:
             click.echo(f"  - {name}: must be replaced with {repo}")
         res = False
 
     if "check_broken_symlink" in config.submodules.checks and broken_symlinks:
-        click.echo("❌ Broken symlinks found:")
+        print_error("Broken symlinks found:")
         for symlink in broken_symlinks:
             click.echo(f"  - {symlink}")
         res = False
@@ -115,8 +115,8 @@ def main():  # noqa: C901
     # TODO: add check for PRs
 
     if res:
-        click.echo(
-            f"✓ All submodules are under {config.submodules.current_path} "
+        print_success(
+            f"All submodules are under {config.submodules.current_path} "
             f"and used by at least one symlink."
         )
         raise click.exceptions.Exit(0)

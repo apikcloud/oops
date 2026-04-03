@@ -26,6 +26,8 @@ from oops.utils.render import human_readable
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 def main(addons: str, dry_run: bool, no_commit: bool):
 
+    # TODO: add option to materialize all symlinks under the addons directory
+
     repo, repo_path = get_local_repo()
 
     addons_list = str_to_list(addons)

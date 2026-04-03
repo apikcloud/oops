@@ -13,24 +13,20 @@ environment variables.
 """
 
 import logging
-import os
 import shutil
 import tempfile
 from pathlib import Path
 
 import click
-from oops.commands.base import command
 
-from oops.core.messages import commit_messages
-from oops.git import update_gitignore
-from oops.git.core import GitRepository
+from oops.commands.base import command
+from oops.git.repository import update_gitignore
 from oops.services.github import fetch_branch_zip
 from oops.utils.compat import Optional
+from oops.utils.git import commit, get_local_repo
 from oops.utils.helpers import str_to_list
 from oops.utils.io import find_addons
 from oops.utils.net import parse_repository_url
-
-logging.basicConfig(level=logging.INFO)
 
 
 @command(name="download", help=__doc__)
@@ -47,22 +43,22 @@ def main(
     addons_list: Optional[str] = None,
 ):
 
-    local_repo = GitRepository()
+    repo, repo_path = get_local_repo()
 
-    _, owner, repo = parse_repository_url(url)
+    _, owner, repo_name = parse_repository_url(url)
     addons = [] if addons_list is None else str_to_list(addons_list)
 
     options = {}
     if token:
         options["token"] = token
+
     with tempfile.TemporaryDirectory() as tmpdirname:
-        _, extracted_root = fetch_branch_zip(owner, repo, branch, tmpdirname, **options)
+        _, extracted_root = fetch_branch_zip(owner, repo_name, branch, tmpdirname, **options)
 
         if extracted_root is None:
             raise click.UsageError("Download failed.")
 
         logging.debug(extracted_root)
-        logging.debug(os.listdir(extracted_root))
 
         new_addons = []
         skipped_addons = []
@@ -71,29 +67,29 @@ def main(
                 skipped_addons.append(addon.technical_name)
                 continue
 
-            target_path = local_repo.path / addon.technical_name
+            target_path = repo_path / addon.technical_name
 
             # FIXME: check duplicates (addon already exists) and version before copying
 
             try:
-                logging.debug(f"Copy {addon.technical_name} from {addon} to {target_path}")
+                logging.debug("Copy %s from %s to %s", addon.technical_name, addon, target_path)
                 shutil.copytree(addon.path, target_path)
             except FileExistsError:
-                logging.warning(f"Skip {addon.technical_name}")
+                logging.warning("Skip %s (already exists)", addon.technical_name)
                 skipped_addons.append(addon.technical_name)
                 continue
 
             new_addons.append(addon.technical_name)
 
         if skipped_addons:
-            logging.debug(" ".join(skipped_addons))
+            logging.debug("Skipped: %s", " ".join(skipped_addons))
 
         if not new_addons:
             click.echo("No addons downloaded.")
             raise click.Abort()
 
-        logging.info(f"Addons added ({len(new_addons)}): {', '.join(new_addons)}")
+        click.echo(f"Addons downloaded ({len(new_addons)}): {', '.join(new_addons)}")
+
         if exclude:
-            update_gitignore(local_repo.gitignore, new_addons)
-            local_repo.add([local_repo.gitignore])
-            local_repo.commit(commit_messages.addons_ignored, skip_hook=True)
+            update_gitignore(repo_path / ".gitignore", new_addons)
+            commit(repo, repo_path, [".gitignore"], "addons_ignored", skip_hooks=True)

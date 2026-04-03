@@ -41,7 +41,7 @@ def main(
 
     not_found = [name for name in names if name not in repo.submodules]
     if not_found:
-        click.echo(f"❌ Submodule(s) not found: {', '.join(not_found)}")
+        click.echo(f"✕ Submodule(s) not found: {', '.join(not_found)}")
         return 1
 
     new_url = encode_url(url, config.submodules.force_scheme)
