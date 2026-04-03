@@ -32,6 +32,7 @@ def main(dry_run: bool, force: bool) -> None:
     """Synchronise files from the configured remote repository."""
 
     remote_url = config.sync.remote_url
+    branch = config.sync.branch
     files = config.sync.files
 
     if not remote_url:
@@ -53,7 +54,7 @@ def main(dry_run: bool, force: bool) -> None:
         # 1. FETCH
         click.echo(f"↓ Cloning {remote_url} …")
         try:
-            sparse_clone(remote_url, tmpdir, files)
+            sparse_clone(remote_url, tmpdir, files, branch)
         except git.GitCommandError as exc:
             raise click.ClickException(f"Clone failed: {exc.stderr.strip()}") from exc
 

@@ -134,14 +134,15 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
     return scheme, owner, repo
 
 
-def sparse_clone(remote_url: str, tmpdir: Path, files: list) -> None:
-    """Clone only the listed files/directories (sparse checkout, depth=1)."""
-    remote_repo = Repo.clone_from(
-        remote_url,
-        str(tmpdir),
-        depth=1,
-        no_checkout=True,
-    )
+def sparse_clone(remote_url: str, tmpdir: Path, files: list, branch: Optional[str] = None) -> None:
+    """Clone only the listed files/directories (sparse checkout, depth=1).
+
+    If branch is given, clones that branch; otherwise clones the default branch.
+    """
+    kwargs = {"depth": 1, "no_checkout": True}
+    if branch:
+        kwargs["branch"] = branch
+    remote_repo = Repo.clone_from(remote_url, str(tmpdir), **kwargs)
 
     # Enable sparse checkout
     with remote_repo.config_writer() as cw:

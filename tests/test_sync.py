@@ -11,15 +11,17 @@ from click.testing import CliRunner
 
 from oops.commands.project.sync import _apply, main
 from oops.utils.git import commit, show_diff
+from oops.utils.net import sparse_clone
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _make_config(remote_url="https://example.com/repo.git", files=None):
+def _make_config(remote_url="https://example.com/repo.git", files=None, branch=None):
     cfg = MagicMock()
     cfg.sync.remote_url = remote_url
+    cfg.sync.branch = branch
     cfg.sync.files = files if files is not None else ["Makefile"]
     return cfg
 
@@ -106,11 +108,58 @@ class TestMainApply:
              patch("oops.commands.project.sync.show_diff", return_value=True), \
              patch("oops.commands.project.sync._apply") as mock_apply, \
              patch("oops.commands.project.sync.commit") as mock_commit:
-            result = runner.invoke(main, ["--yes"])
+            result = runner.invoke(main, ["--force"])
 
         assert result.exit_code == 0
         mock_apply.assert_called_once()
         mock_commit.assert_called_once_with(mock_repo, tmp_path, ["Makefile"], "project_sync")
+
+    def test_branch_forwarded_to_sparse_clone(self, tmp_path):
+        mock_repo = _make_local_repo(tmp_path)
+        local_repo_rv = (mock_repo, tmp_path)
+        runner = CliRunner()
+        with patch("oops.commands.project.sync.config", _make_config(branch="main")), \
+             patch("oops.commands.project.sync.get_local_repo", return_value=local_repo_rv), \
+             patch("oops.commands.project.sync.sparse_clone") as mock_clone, \
+             patch("oops.commands.project.sync.show_diff", return_value=True), \
+             patch("oops.commands.project.sync._apply"), \
+             patch("oops.commands.project.sync.commit"):
+            runner.invoke(main, ["--force"])
+
+        _, _, _, branch_arg = mock_clone.call_args[0]
+        assert branch_arg == "main"
+
+
+# ---------------------------------------------------------------------------
+# sparse_clone
+# ---------------------------------------------------------------------------
+
+
+class TestSparseClone:
+    def _make_mock_repo(self, tmpdir):
+        """Return a mock Repo whose config_writer context manager writes to a real path."""
+        mock_repo = MagicMock()
+        git_info = tmpdir / ".git" / "info"
+        git_info.mkdir(parents=True)
+        return mock_repo
+
+    def test_clone_without_branch(self, tmp_path):
+        mock_repo = self._make_mock_repo(tmp_path)
+        with patch("oops.utils.net.Repo") as mock_repo_cls:
+            mock_repo_cls.clone_from.return_value = mock_repo
+            sparse_clone("https://example.com/repo.git", tmp_path, ["Makefile"])
+
+        call_kwargs = mock_repo_cls.clone_from.call_args[1]
+        assert "branch" not in call_kwargs
+
+    def test_clone_with_branch(self, tmp_path):
+        mock_repo = self._make_mock_repo(tmp_path)
+        with patch("oops.utils.net.Repo") as mock_repo_cls:
+            mock_repo_cls.clone_from.return_value = mock_repo
+            sparse_clone("https://example.com/repo.git", tmp_path, ["Makefile"], "develop")
+
+        call_kwargs = mock_repo_cls.clone_from.call_args[1]
+        assert call_kwargs["branch"] == "develop"
 
 
 # ---------------------------------------------------------------------------

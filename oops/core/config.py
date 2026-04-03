@@ -34,6 +34,7 @@ _SUPPORTED_VERSIONS: Final = {1}
 @dataclass
 class SyncConfig:
     remote_url: Optional[str] = None
+    branch: Optional[str] = None
     files: List[str] = field(default_factory=lambda: [])
 
 

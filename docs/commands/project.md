@@ -89,3 +89,21 @@ Write the file without committing:
 ```bash
 oops-pro-exclude --no-commit
 ```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.project.sync
+    :command: main
+    :prog_name: oops-pro-sync
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+XXX:
+
+```bash
+oops-pro-sync
+```
+```
