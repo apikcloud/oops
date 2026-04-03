@@ -15,6 +15,7 @@ import click
 
 from oops.commands.base import command
 from oops.utils.git import commit, get_local_repo, is_pull_request
+from oops.utils.render import print_success, print_warning
 
 
 @command("update", help=__doc__)
@@ -35,18 +36,18 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
         if names and submodule.name not in names:
             continue
         if not submodule.path:
-            click.echo(f"⚠️  Missing path for {submodule.name}, skipping.")
+            print_warning(f"Missing path for {submodule.name}, skipping.")
             continue
 
         if not submodule.branch:
-            click.echo(f"⏭️  No branch defined for submodule {submodule.name}, skipping.")
+            print_warning(f"No branch defined for {submodule.name}, skipping.")
             continue
 
         if skip_pr and is_pull_request(submodule):
-            click.echo(f"⏭️  Submodule {submodule.name} is a pull request, skipping.")
+            print_warning(f"Submodule {submodule.name} is a pull request, skipping.")
             continue
 
-        click.echo(f"🔄 Updating {submodule.name} to latest of '{submodule.branch}'...")
+        click.echo(f"Updating {submodule.name} to latest of '{submodule.branch}'...")
 
         if dry_run:
             continue
@@ -76,4 +77,6 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
             description="\n".join(changes),
         )
 
-    click.echo("✓ Submodules updated to their upstream branches.")
+    print_success(
+        "Submodule update complete." if not dry_run else "Dry run complete — no changes applied."
+    )

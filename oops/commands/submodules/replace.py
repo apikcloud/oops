@@ -20,6 +20,7 @@ from git import Repo
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
+from oops.utils.compat import Optional
 from oops.utils.io import desired_path, rewrite_symlink
 from oops.utils.net import encode_url
 
@@ -30,8 +31,12 @@ from oops.utils.net import encode_url
 @click.argument("names", nargs=-1, required=False)
 @click.argument("url")
 @click.argument("branch")
-def main(
-    dry_run: bool, no_commit: bool, names: tuple[str] = None, url: str = None, branch: str = None
+def main(  # noqa: C901, PLR0912
+    dry_run: bool,
+    no_commit: bool,
+    names: "Optional[tuple[str]]" = None,
+    url: "Optional[str]" = None,
+    branch: "Optional[str]" = None,
 ):
 
     repo = Repo()
