@@ -12,6 +12,7 @@ from git.config import GitConfigParser
 from oops.core.messages import commit_messages
 from oops.core.paths import PR_DIR
 from oops.utils.compat import Optional
+from oops.utils.render import print_success, print_warning
 
 
 def read_gitmodules(repo: Repo) -> GitConfigParser:
@@ -97,7 +98,7 @@ def commit(  # noqa: PLR0913
         local_repo.index.add(changes)
 
     if not local_repo.index.diff("HEAD"):
-        click.echo(click.style("⚠ Nothing to commit (index identical to HEAD).", fg="yellow"))
+        print_warning("Nothing to commit (index identical to HEAD).")
         return
 
     message = getattr(commit_messages, message_name, None)
@@ -110,7 +111,7 @@ def commit(  # noqa: PLR0913
             raise ValueError(f"Missing placeholder for commit message: {exc}") from exc
 
     commit = local_repo.index.commit(message, skip_hooks=skip_hooks)
-    click.echo(click.style(f"\n✓ Commit {commit.hexsha[:8]} — {message}", fg="green"))
+    print_success(f"Commit {commit.hexsha[:8]} — {message}")
 
 
 def get_submodule_sha(repo: Repo, ref: str, path: str) -> Optional[str]:

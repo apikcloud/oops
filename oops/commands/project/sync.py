@@ -14,12 +14,13 @@ import tempfile
 from pathlib import Path
 
 import click
-from oops.commands.base import command
 import git
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.utils.git import commit, get_local_repo, show_diff
 from oops.utils.net import sparse_clone
+from oops.utils.render import print_success
 
 # ---------------------------------------------------------------------------
 # Click command
@@ -64,12 +65,12 @@ def main(dry_run: bool, force: bool) -> None:
         has_changes = show_diff(tmpdir, files, local_repo, repo_path)
 
         if not has_changes:
-            click.echo(click.style("✓ Already up to date.", fg="green"))
-            return
+            print_success("Already up to date.")
+            raise click.exceptions.Exit(0)
 
         if dry_run:
-            click.echo(click.style("\n[dry-run] No changes applied.", fg="yellow"))
-            return
+            print_success("Finished dry run.")
+            raise click.exceptions.Exit(0)
 
         # 3. APPLY + COMMIT
         click.echo("")

@@ -85,9 +85,16 @@ def render_maintainers(manifest):
     )
 
 
-def print_error(message: str, symbol: str = "✕") -> None:
+def print_error(message: str, symbol: str = "✘") -> None:
+    """Print an error message with a red cross symbol."""
     click.echo(click.style(f"{symbol} {message}", fg="red"))
 
 
-def print_success(message: str, symbol: str = "✓") -> None:
+def print_success(message: str, symbol: str = "✔") -> None:
+    """Print a success message with a green check mark symbol."""
     click.echo(click.style(f"{symbol} {message}", fg="green"))
+
+
+def print_warning(message: str, symbol: str = "⚠") -> None:
+    """Print a warning message with a yellow warning symbol."""
+    click.echo(click.style(f"{symbol} {message}", fg="yellow"))

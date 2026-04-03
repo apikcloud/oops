@@ -88,8 +88,7 @@ class TestMainDryRun:
              patch("oops.commands.project.sync.show_diff", return_value=True):
             result = runner.invoke(main, ["--dry-run"])
         assert result.exit_code == 0
-        assert "dry-run" in result.output
-        assert "No changes applied" in result.output
+        assert "dry run" in result.output
 
 
 # ---------------------------------------------------------------------------
