@@ -761,12 +761,16 @@
 
 <h1 id="release">Release<a class="headerlink" href="#release" title="Permanent link">¶</a></h1>
 <h3 id="oops-release-prepare">oops-release-prepare<a class="headerlink" href="#oops-release-prepare" title="Permanent link">¶</a></h3>
-<p>Prepare a release by detecting modified Odoo addons and building the upgrade command.</p>
-<p>Compares the current HEAD against either the last git tag or the last N commits,
-including changes inside submodules. With --save, writes the command to a
-migration script file.</p>
+<p>Prepare a release: update CHANGELOG, write migration script, commit, and tag.</p>
+<p>Workflow:
+  1. Compute the next version (minor by default, or --major / --fix / --version).
+  2. Validate that CHANGELOG.md has a non-empty [Unreleased] (or pre-edited version) section.
+  3. Replace [Unreleased] with the versioned header and today's date (if not already replaced).
+  4. Write the migration script for addon changes since the last tag.
+  5. Commit all staged files and create an annotated git tag.</p>
+<p>Use --dry-run to preview without writing anything.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-release-prepare [OPTIONS] {tag|commit} [NUMBER]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-release-prepare [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -780,9 +784,45 @@ migration script file.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>-s</code>, <code>--save</code></td>
+<td><code>--major</code></td>
+<td>text</td>
+<td>Bump major version.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--minor</code></td>
+<td>text</td>
+<td>Bump minor version (default).</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>--fix</code></td>
+<td>text</td>
+<td>Bump fix/patch version.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--version</code></td>
+<td>text</td>
+<td>Set version manually (e.g. v1.3.0).</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--no-commit</code></td>
 <td>boolean</td>
-<td>Write the command in the migration file.</td>
+<td>Stage changes but do not commit or tag.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--no-tag</code></td>
+<td>boolean</td>
+<td>Commit but do not create a git tag.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>boolean</td>
+<td>Show planned changes without writing anything.</td>
 <td><code>False</code></td>
 </tr>
 <tr>
