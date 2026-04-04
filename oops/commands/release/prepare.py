@@ -11,14 +11,12 @@ including changes inside submodules. With --save, writes the command to a
 migration script file.
 """
 
-import os
-
 import click
 
 from oops.commands.base import command
-from oops.core.config import config
-from oops.io.file import find_modified_addons
-from oops.services.git import get_local_repo, get_submodule_sha
+from oops.io.file import get_addons_diff, make_migration_command, write_migration_script
+from oops.services.git import get_local_repo
+from oops.utils.render import print_error, print_success, print_warning
 
 
 @command(name="prepare", help=__doc__)
@@ -33,79 +31,39 @@ def main(
     repo, _ = get_local_repo()
     tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
 
+    release = None
     if tags and mode == "tag":
         base_ref = str(tags[-1])
+        release = base_ref
         click.echo(f"Last tag found : {base_ref}")
     else:
         base_ref = f"HEAD~{number}"
         click.echo(f"Search in the last {number} commit(s)")
 
-    # Newly added root-level entries (new symlinks or addon folders)
-    added_files = repo.git.diff("--name-only", "--diff-filter=A", base_ref, "HEAD").splitlines()
-    new_addons = set(find_modified_addons(added_files))
+    new_addons, updated_addons, removed_addons = get_addons_diff(repo, base_ref)
 
-    # Removed root-level entries: verify each had a manifest at base_ref
-    deleted_root = [
-        f for f in repo.git.diff("--name-only", "--diff-filter=D", base_ref, "HEAD").splitlines()
-        if "/" not in f
-    ]
-    removed_addons = []
-    for name in deleted_root:
-        try:
-            repo.git.show(f"{base_ref}:{name}/__manifest__.py")
-            removed_addons.append(name)
-        except Exception:
-            pass
-    removed_addons = sorted(removed_addons)
-
-    # All changed files across the main repo and submodules
-    diff_files = repo.git.diff("--name-only", base_ref, "HEAD").splitlines()
-    for sm in repo.submodules:
-        subrepo = sm.module()
-
-        old_sha = get_submodule_sha(repo, base_ref, str(sm.path))
-        new_sha = get_submodule_sha(repo, "HEAD", str(sm.path))
-
-        # The submodule has not changed between base_ref and HEAD.
-        if not old_sha or not new_sha or old_sha == new_sha:
-            continue
-
-        sub_diff = subrepo.git.diff("--name-only", old_sha, new_sha).splitlines()
-        diff_files.extend(f"{sm.path}/{f}" for f in sub_diff)
-
-    all_addons = set(find_modified_addons(diff_files))
-    updated_addons = all_addons - new_addons
-
-    if not all_addons and not removed_addons:
+    if not any([new_addons, updated_addons, removed_addons]):
         click.echo("No modified addon found.")
         raise click.exceptions.Exit(0)
 
-    commands = []
-
     if removed_addons:
-        click.echo(f"{len(removed_addons)} removed addon(s):")
-        click.echo("\n".join(removed_addons))
+        for addon in removed_addons:
+            print_error(addon, "-")
 
     if new_addons:
-        click.echo(f"{len(new_addons)} new addon(s):")
-        click.echo("\n".join(sorted(new_addons)))
-        commands.append(config.project.migrate_install_command.format(addons=",".join(sorted(new_addons))))
+        for addon in new_addons:
+            print_success(addon, "+")
 
     if updated_addons:
-        click.echo(f"{len(updated_addons)} updated addon(s):")
-        click.echo("\n".join(sorted(updated_addons)))
-        commands.append(config.project.migrate_command.format(addons=",".join(sorted(updated_addons))))
-
-    click.echo()
-    command = " && ".join(commands)
-    click.echo(command)
+        for addon in updated_addons:
+            print_warning(addon, "w")
 
     if save:
-        content = command
-        if removed_addons:
-            content = f"# Removed addons (manual action required): {', '.join(removed_addons)}\n{content}"
-        with open(config.project.file_migrate, mode="w", encoding="UTF-8") as file:
-            file.write(config.project.migrate_content.format(content=content))
-        # Do a chmod +x
-        st = os.stat(config.project.file_migrate)
-        os.chmod(config.project.file_migrate, st.st_mode | 0o111)
+        content = make_migration_command(
+            new_addons,
+            updated_addons,
+            removed_addons,
+            release=release,
+        )
+        click.echo(content)
+        write_migration_script(content)

@@ -21,10 +21,13 @@ from collections.abc import Generator
 from os import PathLike
 from pathlib import Path
 
+from git.repo import Repo
+
 from oops.core.config import config
 from oops.core.models import AddonInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.io.manifest import load_manifest
+from oops.services.git import get_submodule_sha
 from oops.utils.compat import Optional
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
@@ -488,3 +491,111 @@ def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
     return addons
 
 
+# ---------------------------------------------------------------------------
+# Migration
+# ---------------------------------------------------------------------------
+
+
+def get_addons_diff(repo: Repo, base_ref: str) -> "tuple[list, list, list]":
+    """Classify addon changes between base_ref and HEAD into new, updated, and removed.
+
+    Args:
+        repo: GitPython Repo object for the local repository.
+        base_ref: Git ref (tag, branch, or commit-ish) to compare against HEAD.
+
+    Returns:
+        Tuple of (new_addons, updated_addons, removed_addons), each a sorted list
+        of addon names.
+    """
+    # Newly added root-level entries (new symlinks or addon folders)
+    added_files = repo.git.diff("--name-only", "--diff-filter=A", base_ref, "HEAD").splitlines()
+    new_addons = set(find_modified_addons(added_files))
+
+    # Removed root-level entries: verify each had a manifest at base_ref
+    deleted_root = [
+        f
+        for f in repo.git.diff("--name-only", "--diff-filter=D", base_ref, "HEAD").splitlines()
+        if "/" not in f
+    ]
+    removed_addons = []
+    for name in deleted_root:
+        try:
+            repo.git.show(f"{base_ref}:{name}/__manifest__.py")
+            removed_addons.append(name)
+        except Exception:
+            pass
+    removed_addons = sorted(removed_addons)
+
+    # All changed files across the main repo and submodules
+    diff_files = repo.git.diff("--name-only", base_ref, "HEAD").splitlines()
+    for sm in repo.submodules:
+        subrepo = sm.module()
+
+        old_sha = get_submodule_sha(repo, base_ref, str(sm.path))
+        new_sha = get_submodule_sha(repo, "HEAD", str(sm.path))
+
+        # The submodule has not changed between base_ref and HEAD.
+        if not old_sha or not new_sha or old_sha == new_sha:
+            continue
+
+        sub_diff = subrepo.git.diff("--name-only", old_sha, new_sha).splitlines()
+        diff_files.extend(f"{sm.path}/{f}" for f in sub_diff)
+
+    all_addons = set(find_modified_addons(diff_files))
+    updated_addons = all_addons - new_addons
+
+    return sorted(new_addons), sorted(updated_addons), sorted(removed_addons)
+
+
+def make_migration_command(
+    new_addons: Optional[list] = None,
+    updated_addons: Optional[list] = None,
+    removed_addons: Optional[list] = None,
+    release: Optional[str] = None,
+) -> str:
+    """Build the content of a migration shell script from addon change lists.
+
+    Args:
+        new_addons: Addons to install with ``-i``.
+        updated_addons: Addons to update with ``-u``.
+        removed_addons: Addons that were removed; included as a comment only.
+        release: Release label used in the script header. Defaults to "Unreleased".
+
+    Returns:
+        Full migration script content as a string, including the shebang line.
+    """
+    remove_command = "# Removed addons (manual action required): {addons}"
+    install_command = "odoo --stop-after-init --no-http -i {addons}"
+    update_command = "odoo --stop-after-init --no-http -u {addons}"
+    template: str = "#!/bin/bash\n\n# {release} migration script\n{body}\n"
+    commands = []
+
+    if removed_addons:
+        commands.append(remove_command.format(addons=",".join(sorted(removed_addons))))
+    if new_addons:
+        commands.append(install_command.format(addons=",".join(sorted(new_addons))))
+    if updated_addons:
+        commands.append(update_command.format(addons=",".join(sorted(updated_addons))))
+
+    return template.format(body="\n".join(commands), release=release or "Unreleased")
+
+
+def write_migration_script(content: str, dry_run: bool = False) -> None:
+    """Write a migration script to the configured file path and mark it executable.
+
+    Args:
+        content: Full script content to write.
+        dry_run: If True, print to stdout instead of writing to disk. Defaults to False.
+    """
+    import click  # noqa: PLC0415
+
+    if dry_run:
+        click.echo(content)
+        return
+
+    with open(config.project.file_migrate, mode="w", encoding="UTF-8") as file:
+        file.write(content)
+
+    # Do a chmod +x
+    st = os.stat(config.project.file_migrate)
+    os.chmod(config.project.file_migrate, st.st_mode | 0o111)

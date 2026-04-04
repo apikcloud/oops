@@ -94,13 +94,6 @@ class ProjectConfig:
     file_odoo_version: str = "odoo_version.txt"
     file_migrate: str = "migrate.sh"
     pre_commit_exclude_file: str = ".pre-commit-exclusions"
-    migrate_command: str = "odoo --stop-after-init --no-http -u {addons}"
-    migrate_install_command: str = "odoo --stop-after-init --no-http -i {addons}"
-    migrate_content: str = """#!/bin/bash
-
-# Unreleased
-{content}
-"""
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +118,7 @@ class Config:
     datetime_format: str = "%Y-%m-%d %H:%M:%S"
     check_symbol: str = "✓" if os.environ.get("LANG", "").lower().endswith(".utf-8") else "[X]"
     pull_request_dir: str = "PRs"
+
 
 # ---------------------------------------------------------------------------
 # YAML loading
