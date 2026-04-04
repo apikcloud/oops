@@ -95,6 +95,7 @@ class ProjectConfig:
     file_migrate: str = "migrate.sh"
     pre_commit_exclude_file: str = ".pre-commit-exclusions"
     migrate_command: str = "odoo --stop-after-init --no-http -u {addons}"
+    migrate_install_command: str = "odoo --stop-after-init --no-http -i {addons}"
     migrate_content: str = """#!/bin/bash
 
 # Unreleased

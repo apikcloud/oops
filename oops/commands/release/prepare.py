@@ -30,7 +30,6 @@ def main(
     number: int,
     save: bool,
 ):
-    # TODO: distinguish between new modules and modified ones (install vs update)
     repo, _ = get_local_repo()
     tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
 
@@ -41,6 +40,11 @@ def main(
         base_ref = f"HEAD~{number}"
         click.echo(f"Search in the last {number} commit(s)")
 
+    # Newly added root-level entries (new symlinks or addon folders)
+    added_files = repo.git.diff("--name-only", "--diff-filter=A", base_ref, "HEAD").splitlines()
+    new_addons = set(find_modified_addons(added_files))
+
+    # All changed files across the main repo and submodules
     diff_files = repo.git.diff("--name-only", base_ref, "HEAD").splitlines()
     for sm in repo.submodules:
         subrepo = sm.module()
@@ -53,20 +57,29 @@ def main(
             continue
 
         sub_diff = subrepo.git.diff("--name-only", old_sha, new_sha).splitlines()
-
         diff_files.extend(f"{sm.path}/{f}" for f in sub_diff)
-    addons = find_modified_addons(diff_files)
 
-    if not addons:
+    all_addons = set(find_modified_addons(diff_files))
+    updated_addons = all_addons - new_addons
+
+    if not all_addons:
         click.echo("No modified addon found.")
         raise click.exceptions.Exit(0)
 
-    command = config.project.migrate_command.format(addons=",".join(addons))
+    commands = []
 
-    click.echo(f"{len(addons)} addon(s) found:")
-    click.echo("\n".join(addons))
+    if new_addons:
+        click.echo(f"{len(new_addons)} new addon(s):")
+        click.echo("\n".join(sorted(new_addons)))
+        commands.append(config.project.migrate_install_command.format(addons=",".join(sorted(new_addons))))
+
+    if updated_addons:
+        click.echo(f"{len(updated_addons)} updated addon(s):")
+        click.echo("\n".join(sorted(updated_addons)))
+        commands.append(config.project.migrate_command.format(addons=",".join(sorted(updated_addons))))
 
     click.echo()
+    command = " && ".join(commands)
     click.echo(command)
 
     if save:
