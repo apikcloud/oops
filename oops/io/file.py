@@ -13,7 +13,6 @@ Sections:
     - Addons: locating and collecting Odoo addon directories
 """
 
-
 import contextlib
 import logging
 import os
@@ -173,13 +172,13 @@ def get_symlink_map(path: str) -> dict:
     """Return a mapping of symlink parent dirs to their target names."""
 
     # FIXME: assume there is only one symlink per submodule for now
-    return {str(Path(t).parent): Path(t).name for t in list_symlinks(path)}
+    return {str(Path(t).parent): Path(t).name for t in list_symlinks(Path(path))}
 
 
 def get_symlink_complete_map(path: str) -> dict:
     res = {}
 
-    for t in list_symlinks(path):
+    for t in list_symlinks(Path(path)):
         res.setdefault(str(Path(t).parent), []).append(Path(t).name)
 
     return res

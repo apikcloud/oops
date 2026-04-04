@@ -23,8 +23,8 @@ from oops.core.messages import commit_messages
 from oops.io.file import (
     desired_path,
     ensure_parent,
-    relpath,
     find_addon_dirs,
+    relpath,
 )
 from oops.services.git import get_local_repo, read_gitmodules
 from oops.utils.helpers import str_to_list
@@ -163,7 +163,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     if auto_symlinks or addons:
         click.echo("[scan] detecting addon folders…")
-        addons_found = [addon for addon in find_addon_dirs(sub_path,with_pr=pull_request)]
+        addons_found = [addon for addon in find_addon_dirs(sub_path, with_pr=pull_request)]
         if not addons_found:
             click.echo("  no addon folders detected.")
         else:
