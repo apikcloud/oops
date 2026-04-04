@@ -9,8 +9,8 @@ Prepare a release: update CHANGELOG, write migration script, commit, and tag.
 \b
 Workflow:
   1. Compute the next version (minor by default, or --major / --fix / --version).
-  2. Validate that CHANGELOG.md has a non-empty [Unreleased] section.
-  3. Replace [Unreleased] with the versioned header and today's date.
+  2. Validate that CHANGELOG.md has a non-empty [Unreleased] (or pre-edited version) section.
+  3. Replace [Unreleased] with the versioned header and today's date (if not already replaced).
   4. Write the migration script for addon changes since the last tag.
   5. Commit all staged files and create an annotated git tag.
 
@@ -29,41 +29,56 @@ from oops.utils.versioning import get_last_release, get_next_releases, is_valid_
 
 
 def _update_changelog(text: str, version: str) -> str:
-    """Replace the [Unreleased] header in a CHANGELOG with the versioned release header.
+    """Ensure the CHANGELOG has a valid release section for version and return updated content.
+
+    Accepts two states:
+    - ``[Unreleased]`` header present: replaces it with the versioned header and today's date.
+    - Version header already present (manually pre-edited): validates it and returns text unchanged.
 
     Args:
         text: Full CHANGELOG.md content.
-        version: Version string (e.g. "v1.3.0") to substitute.
+        version: Version string (e.g. "v1.3.0") to match or substitute.
 
     Returns:
-        Updated CHANGELOG content.
+        Updated CHANGELOG content (unchanged if already manually edited).
 
     Raises:
-        click.ClickException: If no [Unreleased] section exists or it contains no entries.
+        click.ClickException: If neither ``[Unreleased]`` nor the target version section is found,
+            or if the located section contains no bullet entries.
     """
     lines = text.splitlines(keepends=True)
+    version_clean = version.lstrip("v")
 
     unreleased_idx = None
+    section_start = None
     next_section_idx = None
 
     for i, line in enumerate(lines):
-        if line.strip().lower() == "## [unreleased]":
+        stripped = line.strip()
+        if stripped.lower() == "## [unreleased]":
             unreleased_idx = i
-        elif unreleased_idx is not None and line.startswith("## [") and i > unreleased_idx:
+            section_start = i
+        elif stripped.lower().startswith(f"## [{version_clean}]"):
+            section_start = i
+        elif section_start is not None and stripped.startswith("## [") and i > section_start:
             next_section_idx = i
             break
 
-    if unreleased_idx is None:
-        raise click.ClickException("CHANGELOG.md has no [Unreleased] section.")
+    if section_start is None:
+        raise click.ClickException(
+            f"CHANGELOG.md has no [Unreleased] section and no [{version_clean}] section."
+        )
 
-    section = lines[unreleased_idx + 1 : next_section_idx]
+    section = lines[section_start + 1 : next_section_idx]
     if not any(l.strip().startswith("-") for l in section):
-        raise click.ClickException("The [Unreleased] section in CHANGELOG.md is empty.")
+        raise click.ClickException("The release section in CHANGELOG.md is empty.")
 
-    version_clean = version.lstrip("v")
-    lines[unreleased_idx] = f"## [{version_clean}] - {date.today().isoformat()}\n"
+    if unreleased_idx is not None:
+        lines[unreleased_idx] = f"## [{version_clean}] - {date.today().isoformat()}\n"
+        return "".join(lines)
 
-    return "".join(lines)
+    # Already manually edited — no substitution needed
+    return text
 
 
 @command(name="prepare", help=__doc__)
@@ -152,7 +167,7 @@ def main(
         else:
             print_warning("No addon changes detected — migration script skipped.")
     else:
-        print_warning("No commits ahead of last tag — migration script skipped.")
+        raise click.ClickException("No commits ahead of the last release. Nothing to release.")
 
     if dry_run:
         raise click.exceptions.Exit(0)
