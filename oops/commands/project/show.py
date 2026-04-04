@@ -22,13 +22,13 @@ from oops.commands.project.common import (
     parse_requirements,
 )
 from oops.git.repository import get_last_commit
-from oops.git.versioning import get_last_release, get_next_releases
 from oops.services.docker import check_image, find_available_images, parse_image_tag
 from oops.services.git import get_local_repo
 from oops.services.github import get_latest_workflow_run
 from oops.utils.compat import Optional
 from oops.utils.net import get_public_repo_url, parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
+from oops.utils.versioning import get_last_release, get_next_releases
 
 
 @command(name="show", help=__doc__)

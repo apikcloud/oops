@@ -19,7 +19,7 @@ from oops.git.submodules import (
     rename_submodule,
     update_from,
 )
-from oops.git.versioning import (
+from oops.utils.versioning import (
     get_last_release,
     get_last_tag,
     get_next_releases,
