@@ -16,14 +16,13 @@ import requests
 
 from oops.commands.base import command
 from oops.commands.project.common import check_project
-from oops.git.repository import get_last_commit
 from oops.io.file import (
     parse_odoo_version,
     parse_packages,
     parse_requirements,
 )
 from oops.services.docker import check_image, find_available_images, parse_image_tag
-from oops.services.git import get_local_repo
+from oops.services.git import get_last_commit, get_local_repo
 from oops.services.github import get_latest_workflow_run
 from oops.utils.compat import Optional
 from oops.utils.net import get_public_repo_url, parse_repository_url

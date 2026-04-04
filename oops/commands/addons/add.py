@@ -14,10 +14,9 @@ import os
 import click
 
 from oops.commands.base import command
-from oops.git import list_available_addons
 from oops.io.file import relpath
 from oops.io.manifest import find_addons_extended
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, get_local_repo, list_available_addons
 from oops.utils.helpers import str_to_list
 from oops.utils.render import print_success, print_warning
 
@@ -43,7 +42,7 @@ def main(addons_list: str, no_commit: bool):
 
     # Addons available in submodules, keyed by name
     available: dict = {
-        name: path for name, path, _ in list_available_addons(repo_path) if name in requested
+        name: path for name, path, _ in list_available_addons(repo, repo_path) if name in requested
     }
 
     missing = requested - available.keys()

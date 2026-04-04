@@ -3,6 +3,7 @@
 #
 # File: git.py — oops/services/git.py
 
+import subprocess
 from pathlib import Path, PurePosixPath
 
 import click
@@ -10,7 +11,10 @@ from git import GitCommandError, InvalidGitRepositoryError, Repo, Submodule
 from git.config import GitConfigParser
 
 from oops.core.messages import commit_messages
+from oops.core.models import CommitInfo
 from oops.core.paths import PR_DIR
+from oops.io.manifest import find_addons_extended
+from oops.io.tools import run
 from oops.utils.compat import Optional
 from oops.utils.render import print_success, print_warning
 
@@ -184,3 +188,54 @@ def get_submodule_sha(repo: Repo, ref: str, path: str) -> Optional[str]:
         return repo.git.rev_parse(f"{ref}:{path}")
     except Exception:
         return None
+
+
+def get_last_commit(path: Optional[str] = None) -> Optional[CommitInfo]:
+    """Get information about the last commit.
+
+    Args:
+        path: Optional path to git repository (uses current directory if None)
+
+    Returns:
+        CommitInfo object or None if not a git repo or no commits
+    """
+    cmd = ["git", "log", "-1", "--date=iso-strict", "--pretty=format:%h;%an;%ae;%ad;%s"]
+
+    if path:
+        cmd.insert(1, "-C")
+        cmd.insert(2, path)
+
+    try:
+        output = run(cmd, capture=True)
+
+        if not output:
+            return None
+
+        return CommitInfo.from_string(output)
+
+    except subprocess.CalledProcessError:
+        return None
+
+
+def list_available_addons(repo: Repo, repo_path: Path):
+    """Yield addons found in each initialized submodule of the repository.
+
+    Submodules that are not yet initialized on disk are initialized automatically.
+
+    Args:
+        repo: GitPython Repo object.
+        repo_path: Absolute path to the repository root.
+
+    Yields:
+        Tuple of (name, path, manifest) for each addon found in any submodule.
+    """
+    for sub in repo.submodules:
+        abs_path = repo_path / sub.path
+        if not abs_path.exists():
+            try:
+                sub.update(init=True, recursive=False)
+            except Exception:
+                continue
+            if not abs_path.exists():
+                continue
+        yield from find_addons_extended(abs_path)
