@@ -52,6 +52,7 @@ repository = "https://github.com/apikcloud/oops"
 # Sub-commands
 oops-addons-add = "oops.commands.addons.add:main"
 oops-addons-compare = "oops.commands.addons.compare:main"
+oops-addons-diff = "oops.commands.addons.diff:main"
 oops-addons-download = "oops.commands.addons.download:main"
 oops-addons-list = "oops.commands.addons.list:main"
 oops-addons-materialize = "oops.commands.addons.materialize:main"
