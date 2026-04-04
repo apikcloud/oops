@@ -14,15 +14,32 @@ from oops.utils.compat import Any, List, Optional
 
 
 def format_datetime(dt: datetime) -> str:
-    """
-    Format a datetime object as a string using the module's config.datetime_format.
+    """Format a datetime as a string using the configured datetime format.
+
+    Args:
+        dt: Datetime object to format.
+
+    Returns:
+        Formatted datetime string.
     """
 
     return dt.strftime(config.datetime_format)
 
 
 def human_readable(raw: Any, sep: str = ", ", width: Optional[int] = None) -> str:
-    """Convert a value to a human-readable string."""
+    """Convert a value to a human-readable string.
+
+    Booleans become ``yes``/``no``; collections are joined; strings are optionally
+    truncated to a maximum width.
+
+    Args:
+        raw: Value to render.
+        sep: Separator used to join collection items. Defaults to ", ".
+        width: If provided, truncate the result to this many characters. Defaults to None.
+
+    Returns:
+        Human-readable string representation of raw.
+    """
 
     if isinstance(raw, bool):
         return "yes" if raw else "no"
@@ -36,8 +53,13 @@ def human_readable(raw: Any, sep: str = ", ", width: Optional[int] = None) -> st
 
 
 def render_boolean(raw: bool) -> str:
-    """
-    Render a check mark if the terminal supports UTF-8, otherwise an 'OK'.
+    """Render a boolean as a check symbol or an empty string.
+
+    Args:
+        raw: Boolean value to render.
+
+    Returns:
+        Configured check symbol if True, empty string if False.
     """
     return config.check_symbol if raw else ""
 
@@ -45,8 +67,15 @@ def render_boolean(raw: bool) -> str:
 def render_table(
     rows: List[List[Any]], headers: Optional[List[str]] = None, index: bool = False
 ) -> str:
-    """
-    Render a table using the tabulate library.
+    """Render a list of rows as a GitHub-flavoured Markdown table.
+
+    Args:
+        rows: List of row data, where each row is a list of cell values.
+        headers: Optional column header labels.
+        index: If True, prepend a numeric row index. Defaults to False.
+
+    Returns:
+        Formatted Markdown table string.
     """
 
     options = {}
@@ -59,6 +88,15 @@ def render_table(
 
 
 def sanitize_cell(s):
+    """Collapse internal whitespace in a table cell value.
+
+    Args:
+        s: Raw cell value string.
+
+    Returns:
+        String with runs of whitespace replaced by a single space,
+        or an empty string if s is falsy.
+    """
     if not s:
         return ""
     s = " ".join(s.split())
@@ -66,6 +104,15 @@ def sanitize_cell(s):
 
 
 def render_markdown_table(header, rows):
+    """Render a plain Markdown table from a header row and data rows.
+
+    Args:
+        header: List of column header strings.
+        rows: List of rows, where each row is a list of cell strings.
+
+    Returns:
+        Markdown table string with a separator row after the header.
+    """
     table = []
     rows = [header, ["---"] * len(header)] + rows
     for row in rows:
@@ -74,6 +121,16 @@ def render_markdown_table(header, rows):
 
 
 def render_maintainers(manifest):
+    """Render maintainer GitHub avatars as inline HTML image links.
+
+    Args:
+        manifest: Odoo manifest dict containing an optional "maintainers" list of
+            GitHub usernames.
+
+    Returns:
+        HTML string of circular avatar ``<img>`` elements wrapped in ``<a>`` tags,
+        or an empty string if no maintainers are listed.
+    """
     maintainers = manifest.get("maintainers") or []
     return " ".join(
         [
@@ -86,15 +143,30 @@ def render_maintainers(manifest):
 
 
 def print_error(message: str, symbol: str = "✘") -> None:
-    """Print an error message with a red cross symbol."""
+    """Print a styled error message to the terminal in red.
+
+    Args:
+        message: Text to display.
+        symbol: Prefix symbol. Defaults to "✘".
+    """
     click.echo(click.style(f"{symbol} {message}", fg="red"))
 
 
 def print_success(message: str, symbol: str = "✔") -> None:
-    """Print a success message with a green check mark symbol."""
+    """Print a styled success message to the terminal in green.
+
+    Args:
+        message: Text to display.
+        symbol: Prefix symbol. Defaults to "✔".
+    """
     click.echo(click.style(f"{symbol} {message}", fg="green"))
 
 
 def print_warning(message: str, symbol: str = "⚠") -> None:
-    """Print a warning message with a yellow warning symbol."""
+    """Print a styled warning message to the terminal in yellow.
+
+    Args:
+        message: Text to display.
+        symbol: Prefix symbol. Defaults to "⚠".
+    """
     click.echo(click.style(f"{symbol} {message}", fg="yellow"))

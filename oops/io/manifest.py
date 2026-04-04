@@ -30,7 +30,14 @@ from oops.utils.compat import Optional, Union
 
 
 def get_manifest_path(addon_dir: str) -> Optional[str]:
-    """Return the path to the manifest file in this addon directory."""
+    """Return the path to the manifest file inside an addon directory.
+
+    Args:
+        addon_dir: Path to the addon directory to search.
+
+    Returns:
+        Absolute path to the manifest file, or None if not found.
+    """
     for manifest_name in config.manifest_names:
         manifest_path = os.path.join(addon_dir, manifest_name)
         if os.path.isfile(manifest_path):
@@ -43,9 +50,13 @@ def get_manifest_path(addon_dir: str) -> Optional[str]:
 
 
 def parse_manifest(filepath: Path) -> dict:
-    """
-    Parse an Odoo manifest file,
-    then safely convert it to a Python dict via ast.literal_eval.
+    """Parse an Odoo manifest file into a Python dict via ast.literal_eval.
+
+    Args:
+        filepath: Path to the manifest file (not the addon directory).
+
+    Returns:
+        Parsed manifest as a dict, or an empty dict if evaluation fails.
     """
     source = filepath.read_text(encoding="utf-8")
 
@@ -58,7 +69,14 @@ def parse_manifest(filepath: Path) -> dict:
 
 
 def load_manifest(addon_dir: Path) -> dict:
-    """Return the path to the manifest file in this addon directory."""
+    """Load and parse the Odoo manifest found inside an addon directory.
+
+    Args:
+        addon_dir: Path to the addon directory containing the manifest file.
+
+    Returns:
+        Parsed manifest as a dict, or an empty dict if no manifest is found.
+    """
     for manifest_name in config.manifest_names:
         manifest_path = addon_dir / manifest_name
         if manifest_path.is_file():
@@ -73,10 +91,29 @@ def load_manifest(addon_dir: Path) -> dict:
 
 
 def parse_manifest_cst(raw: str) -> cst.CSTNode:
+    """Parse a manifest source string into a libcst module node.
+
+    Args:
+        raw: Raw Python source text of the manifest file.
+
+    Returns:
+        Parsed CST module node suitable for lossless rewriting.
+    """
     return cst.parse_module(raw)
 
 
 def read_manifest(path: str) -> cst.CSTNode:
+    """Read and parse the manifest file in an addon directory as a CST node.
+
+    Args:
+        path: Path to the addon directory containing the manifest file.
+
+    Returns:
+        Parsed CST module node of the manifest file.
+
+    Raises:
+        NoManifestFound: If no manifest file exists in the given directory.
+    """
     manifest_path = get_manifest_path(path)
     if not manifest_path:
         raise NoManifestFound(f"no Odoo manifest found in {path}")
@@ -92,7 +129,16 @@ def read_manifest(path: str) -> cst.CSTNode:
 def find_addons_extended(
     addons_dir: Union[str, Path], installable_only: bool = False, names: Optional[list] = None
 ):
-    """Yield (name, path, manifest) for each addon in the given directory."""
+    """Yield (name, path, manifest) for each addon found in a directory.
+
+    Args:
+        addons_dir: Directory to scan for addon subdirectories.
+        installable_only: If True, skip addons where installable is False. Defaults to False.
+        names: If provided, only yield addons whose name is in this list.
+
+    Yields:
+        Tuple of (addon_name, addon_path, manifest_dict) for each matching addon.
+    """
 
     if isinstance(addons_dir, str):
         addons_dir = Path(addons_dir)
@@ -114,7 +160,15 @@ def find_addons_extended(
 
 
 def find_manifests(path: str, names: Optional[list] = None):
-    """Yield the path to each manifest file in the given directory."""
+    """Yield the path to each manifest file found in a directory.
+
+    Args:
+        path: Directory to scan for addon subdirectories.
+        names: If provided, only yield manifests for addons in this list.
+
+    Yields:
+        Path to each manifest file found.
+    """
 
     for name in os.listdir(path):
         addon_path = os.path.join(path, name)

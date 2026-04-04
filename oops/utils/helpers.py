@@ -9,7 +9,15 @@ from oops.utils.compat import PY38, Any, List
 
 
 def removesuffix(raw, suffix) -> str:
-    """Remove suffix from string if present (Python < 3.9 compatible)."""
+    """Remove a suffix from a string if present, compatible with Python < 3.9.
+
+    Args:
+        raw: Input string to process.
+        suffix: Suffix to strip if present.
+
+    Returns:
+        String with the suffix removed, or the original string if not present.
+    """
 
     # str.removesuffix added in 3.8
     if PY38:
@@ -18,13 +26,28 @@ def removesuffix(raw, suffix) -> str:
 
 
 def clean_string(raw: Any) -> str:
-    """Convert a value to a cleaned string (stripped, no trailing spaces)."""
+    """Convert a value to a stripped string, returning an empty string for falsy input.
+
+    Args:
+        raw: Value to convert and clean.
+
+    Returns:
+        Stripped string, or an empty string if raw is falsy.
+    """
 
     return str(raw).strip().rstrip() if raw else ""
 
 
 def str_to_list(raw: str, sep=",") -> list:
-    """Convert a separated string to a list of cleaned items."""
+    """Split a separated string into a list of cleaned, non-empty items.
+
+    Args:
+        raw: Input string to split.
+        sep: Separator character or string. Defaults to ",".
+
+    Returns:
+        List of stripped, non-empty strings.
+    """
 
     if not raw:
         return []
@@ -32,9 +55,17 @@ def str_to_list(raw: str, sep=",") -> list:
 
 
 def deep_visit(obj, prefix=""):
-    """
-    Yield flattened (path, value) pairs for recursive inspection.
-    Example: 'assets.web.assets_backend[0]' -> '/module/static/...'
+    """Yield flattened (path, value) pairs by recursively walking a nested structure.
+
+    Dict keys become dot-separated segments; list indices become ``[n]`` segments.
+    Example: ``assets.web.assets_backend[0]`` → ``"/module/static/..."``
+
+    Args:
+        obj: Nested dict, list, tuple, or scalar to walk.
+        prefix: Accumulated path prefix for the current node. Defaults to "".
+
+    Yields:
+        Tuple of (dotted_path_string, leaf_value) for each scalar encountered.
     """
     if isinstance(obj, dict):
         for k, v in obj.items():
@@ -48,7 +79,17 @@ def deep_visit(obj, prefix=""):
 
 
 def filter_and_clean(items: List[str]) -> set:
-    """Filter and clean text file"""
+    """Filter comment lines and clean inline comments from a list of strings.
+
+    Strips full-line comments (starting with ``#``), blank lines, and inline
+    comments (everything after ``#`` on a line).
+
+    Args:
+        items: Lines of text to process.
+
+    Returns:
+        Set of cleaned, non-empty, non-comment strings.
+    """
 
     def clean(item):
         if "#" not in item:
@@ -62,8 +103,16 @@ def filter_and_clean(items: List[str]) -> set:
 
 
 def date_from_string(raw: str) -> date:
-    """
-    Convert an 8-character string in YYYYMMDD format into a datetime.date object.
+    """Convert an 8-character YYYYMMDD string into a date object.
+
+    Args:
+        raw: Date string in YYYYMMDD format (exactly 8 characters).
+
+    Returns:
+        Corresponding date object.
+
+    Raises:
+        ValueError: If raw is not exactly 8 characters long.
     """
 
     if len(raw) != 8:  # noqa: PLR2004

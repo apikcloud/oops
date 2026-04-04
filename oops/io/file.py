@@ -35,13 +35,24 @@ from oops.utils.net import parse_repository_url
 
 
 def ensure_parent(path: Path):
-    """Ensure the parent directory of `path` exists."""
+    """Ensure the parent directory of a path exists, creating it if needed.
+
+    Args:
+        path: Path whose parent directory should be created.
+    """
 
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
 def is_dir_empty(p: Path) -> bool:
-    """Return True if the directory exists and is empty."""
+    """Check whether a directory exists and contains no entries.
+
+    Args:
+        p: Path to the directory to check.
+
+    Returns:
+        True if the directory exists and is empty, False otherwise.
+    """
 
     try:
         return p.is_dir() and not any(p.iterdir())
@@ -50,13 +61,29 @@ def is_dir_empty(p: Path) -> bool:
 
 
 def relpath(from_path: Path, to_path: Path) -> str:
-    """Return a relative path from `from_path` to `to_path`."""
+    """Compute a relative path from one location to another.
+
+    Args:
+        from_path: The starting directory.
+        to_path: The target path to reach.
+
+    Returns:
+        Relative path string from from_path to to_path.
+    """
 
     return os.path.relpath(to_path, start=from_path)
 
 
 def check_prefix(path: PathLike, prefix: PathLike) -> bool:
-    """Check if the given path starts with the given prefix."""
+    """Check whether a path is equal to or descends from a prefix directory.
+
+    Args:
+        path: Path to test.
+        prefix: Ancestor path to check against.
+
+    Returns:
+        True if path equals prefix or is nested inside it, False otherwise.
+    """
 
     try:
         p = Path(path).resolve()
@@ -68,7 +95,14 @@ def check_prefix(path: PathLike, prefix: PathLike) -> bool:
 
 
 def is_pull_request_path(raw: Optional[str]) -> bool:
-    """Detect if a submodule path looks like a pull request path."""
+    """Detect whether a submodule path looks like a pull request path.
+
+    Args:
+        raw: Submodule path string to inspect.
+
+    Returns:
+        True if the path matches pull-request naming conventions, False otherwise.
+    """
 
     if not raw:
         return False
@@ -82,13 +116,19 @@ def desired_path(
     prefix: Optional[str] = None,
     suffix: Optional[str] = None,
 ) -> str:
-    """
-    Return the desired local path for a git repository URL:
-    <prefix>/<owner>/<repo>/<suffix> or <prefix>/PRs/<owner>/<repo>/<suffix>
+    """Build the desired local path for a git repository URL.
 
-    If prefix is given, it is prepended to the path.
-    If pull_request is True, "PRs/" is inserted after the prefix.
-    If suffix is given, it is appended to the path.
+    Produces `<prefix>/<owner>/<repo>/<suffix>`, inserting a pull-request
+    segment after the prefix when pull_request is True.
+
+    Args:
+        url: GitHub repository URL (HTTPS or SSH).
+        pull_request: If True, insert the pull-request directory segment. Defaults to False.
+        prefix: Optional path prefix prepended before the owner segment.
+        suffix: Optional path segment appended after the repo name.
+
+    Returns:
+        Relative filesystem path derived from the repository URL components.
     """
 
     _, owner, repo = parse_repository_url(url)
@@ -115,16 +155,39 @@ def desired_path(
 
 
 def parse_text_file(content: str) -> set:
-    """Parse Python text file"""
+    """Parse a text file's content into a set of non-empty, stripped lines.
+
+    Args:
+        content: Raw file content as a string.
+
+    Returns:
+        Set of cleaned, non-empty lines.
+    """
 
     return filter_and_clean(content.splitlines())
 
 
 def read_and_parse(path: Path):
+    """Read a text file and return its non-empty, sorted lines.
+
+    Args:
+        path: Path to the text file to read.
+
+    Returns:
+        Sorted list of cleaned, non-empty lines from the file.
+    """
     return sorted(parse_text_file(path.read_text()))
 
 
 def write_text_file(path: Path, lines: list, new_line: str = "\n", add_final_newline: bool = True):
+    """Write a list of lines to a text file.
+
+    Args:
+        path: Destination file path.
+        lines: Lines to write, joined by new_line.
+        new_line: Line separator. Defaults to "\\n".
+        add_final_newline: If True, append a trailing newline. Defaults to True.
+    """
     content = new_line.join(lines)
     if add_final_newline:
         content += new_line
@@ -132,8 +195,12 @@ def write_text_file(path: Path, lines: list, new_line: str = "\n", add_final_new
 
 
 def copytree(src: Path, dst: Path, ignore_git: bool = True) -> None:
-    """
-    Copy src tree to dst. Fails if dst exists.
+    """Copy a directory tree from src to dst, preserving symlinks.
+
+    Args:
+        src: Source directory to copy.
+        dst: Destination path, must not already exist.
+        ignore_git: If True, skip .git directories. Defaults to True.
     """
 
     def _ignore(_dir, names):
@@ -150,7 +217,15 @@ def copytree(src: Path, dst: Path, ignore_git: bool = True) -> None:
 
 
 def list_symlinks(path: PathLike, broken_only: bool = False) -> "list[str]":
-    """Return a list of all symlink targets under the given path."""
+    """Collect symlink targets found recursively under a directory.
+
+    Args:
+        path: Root directory to walk.
+        broken_only: If True, only return targets of broken symlinks. Defaults to False.
+
+    Returns:
+        List of symlink target strings found under path.
+    """
 
     targets = []
     for root, dirs, files in os.walk(path):
@@ -169,13 +244,30 @@ def list_symlinks(path: PathLike, broken_only: bool = False) -> "list[str]":
 
 
 def get_symlink_map(path: str) -> dict:
-    """Return a mapping of symlink parent dirs to their target names."""
+    """Build a mapping of symlink parent directories to their single target name.
+
+    Args:
+        path: Root directory to scan for symlinks.
+
+    Returns:
+        Dict mapping each parent directory path to one target name.
+        Assumes at most one symlink per parent directory.
+    """
 
     # FIXME: assume there is only one symlink per submodule for now
     return {str(Path(t).parent): Path(t).name for t in list_symlinks(Path(path))}
 
 
 def get_symlink_complete_map(path: str) -> dict:
+    """Return a mapping of symlink parent dirs to all their target names.
+
+    Args:
+        path: Root directory to scan for symlinks.
+
+    Returns:
+        Dict mapping each parent directory path to a list of target names
+        found under it.
+    """
     res = {}
 
     for t in list_symlinks(Path(path)):
@@ -185,7 +277,16 @@ def get_symlink_complete_map(path: str) -> dict:
 
 
 def rewrite_symlink(link: Path, old_prefix: str, new_prefix: str):
-    """Rewrite a symlink if its target starts with old prefix."""
+    """Rewrite a symlink's target by replacing a path prefix.
+
+    Args:
+        link: Path to the symlink to rewrite.
+        old_prefix: Prefix to replace in the symlink target.
+        new_prefix: Replacement prefix.
+
+    Returns:
+        True if the symlink was rewritten, False if the target did not match.
+    """
 
     try:
         target = os.readlink(link)
@@ -200,8 +301,15 @@ def rewrite_symlink(link: Path, old_prefix: str, new_prefix: str):
 
 
 def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
-    """
-    Replace a symbolic link that points to a directory with a physical copy of its target.
+    """Replace a symlink pointing to a directory with a physical copy of its target.
+
+    Args:
+        symlink_path: Path to the symlink to materialize.
+        dry_run: If True, validate inputs but make no filesystem changes.
+
+    Raises:
+        ValueError: If the path does not exist, is not a symlink, its target
+            is not a directory, or materialization fails.
     """
 
     if not symlink_path.exists():
@@ -244,6 +352,16 @@ def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
 
 
 def find_modified_addons(files: list) -> list:
+    """Return the names of addons containing any of the given file paths.
+
+    Walks up each file path until a directory with an Odoo manifest is found.
+
+    Args:
+        files: List of file paths to inspect.
+
+    Returns:
+        Sorted list of addon directory names that contain at least one of the files.
+    """
     addons = set()
     for f in files:
         p = Path(f)
@@ -256,7 +374,15 @@ def find_modified_addons(files: list) -> list:
 
 
 def collect_addon_paths(addons_dir: Path) -> list:
-    """Return list of (addon_path, unported) pairs, sorted by path."""
+    """Collect (addon_path, unported) pairs from an addons directory.
+
+    Args:
+        addons_dir: Root addons directory to inspect.
+
+    Returns:
+        Sorted list of (Path, bool) pairs where the bool indicates
+        whether the addon lives under the unported subdirectory.
+    """
     paths = [(p, False) for p in addons_dir.iterdir()]
     unported = addons_dir / UNPORTED_DIR
     if unported.is_dir():
@@ -265,7 +391,16 @@ def collect_addon_paths(addons_dir: Path) -> list:
 
 
 def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None, None]:
-    """Yield all odoo addons under `root`."""
+    """Yield AddonInfo for every Odoo addon found under a root directory.
+
+    Args:
+        root: Directory to search recursively (symlinked first-level dirs are followed).
+        shallow: If True, do not recurse deeper than one level into subdirectories.
+            Defaults to False.
+
+    Yields:
+        AddonInfo for each addon directory containing a manifest file.
+    """
 
     root_parts = root.resolve().parts
 
@@ -291,11 +426,14 @@ def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None,
 
 
 def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
-    """Return a list of addon directories (containing __manifest__.py or __openerp__.py).
+    """Return all addon directories found under a root path.
 
     Args:
         root: Directory to search recursively.
-        with_pr: If True, descend into pull-request subdirectories (PR_DIR).
+        with_pr: If True, descend into pull-request subdirectories. Defaults to False.
+
+    Returns:
+        List of Path objects for each directory containing a manifest file.
     """
     addons = []
     for dirpath, dirnames, filenames in os.walk(root):

@@ -25,6 +25,11 @@ from oops.utils.render import render_table
 
 
 def warn_deprecated_registry(name):
+    """Issue a DeprecatedRegistryWarning for a known deprecated Docker registry.
+
+    Args:
+        name: Name of the deprecated registry.
+    """
     warnings.warn(
         f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
         DeprecatedRegistryWarning,
@@ -33,6 +38,11 @@ def warn_deprecated_registry(name):
 
 
 def warn_unusual_registry(name):
+    """Issue an UnusualRegistryWarning for an unrecognised Docker registry.
+
+    Args:
+        name: Name of the unusual registry.
+    """
     warnings.warn(
         f"You should use one of these registries ({', '.join(config.images.registries.recommended)}) as a replacement for '{name}'.",  # noqa: E501
         UnusualRegistryWarning,
@@ -41,15 +51,20 @@ def warn_unusual_registry(name):
 
 
 def parse_image_tag(tag: str) -> ImageInfo:
-    """
-    Parse an Odoo Docker image tag into its components.
+    """Parse an Odoo Docker image tag into its structured components.
 
-    Expected patterns:
-      <registry>/<repository>:<major>[.0][-<YYYYMMDD>][-enterprise][-legacy]
+    Expected pattern: ``<registry>/<repository>:<major>[.0][-<YYYYMMDD>][-enterprise][-legacy]``
 
-    Examples:
-      odoo:19
-      apik/odoo:19.0-20250919-enterprise
+    Examples: ``odoo:19``, ``apik/odoo:19.0-20250919-enterprise``
+
+    Args:
+        tag: Full Docker image tag string to parse.
+
+    Returns:
+        ImageInfo populated with registry, repository, version, release date, and flags.
+
+    Raises:
+        ValueError: If the tag is missing a colon separator or has an unrecognised version format.
     """
     # Defaults
     registry = "odoo"
@@ -104,6 +119,14 @@ def parse_image_tag(tag: str) -> ImageInfo:
 
 
 def fetch_odoo_images(collections: Optional[list] = None) -> list:
+    """Fetch available Odoo Docker images filtered by collection.
+
+    Args:
+        collections: List of collection names to include. Defaults to config.images.collections.
+
+    Returns:
+        List of ImageInfo objects matching the requested collections.
+    """
     # {
     #     "id": 976836335,
     #     "last_updated": "2025-09-21T13:03:37.077452Z",
@@ -134,6 +157,18 @@ def fetch_odoo_images(collections: Optional[list] = None) -> list:
 
 
 def check_image(image: ImageInfo, strict: bool = True) -> list:
+    """Check an Odoo Docker image for registry and age issues.
+
+    In strict mode, issues are raised as warnings. Otherwise they are collected
+    and returned as strings for the caller to handle.
+
+    Args:
+        image: ImageInfo to validate.
+        strict: If True, emit Python warnings directly. Defaults to True.
+
+    Returns:
+        List of warning message strings (empty when strict is True or no issues found).
+    """
     warnings = []
     recommmended = ", ".join(config.images.registries.recommended)
     if image.registry not in config.images.registries.recommended:
@@ -164,6 +199,17 @@ def check_image(image: ImageInfo, strict: bool = True) -> list:
 
 
 def find_available_images(release: date, enterprise: bool, version: float) -> list:
+    """Find Odoo images newer than a given release date that match version and edition.
+
+    Args:
+        release: Reference release date; only images with a newer release are returned.
+        enterprise: If True, filter for enterprise images; otherwise community.
+        version: Odoo major version to filter on (e.g. 18.0).
+
+    Returns:
+        List of matching ImageInfo objects sorted by release date descending,
+        each annotated with a delta attribute (days from release).
+    """
     available = fetch_odoo_images()
 
     # TODO: improve filtering, add conditions on release date
@@ -191,6 +237,15 @@ def find_available_images(release: date, enterprise: bool, version: float) -> li
 
 
 def format_available_images(images: list, include_index: bool = False) -> str:
+    """Render a list of available Odoo images as a formatted table string.
+
+    Args:
+        images: List of ImageInfo objects to display (as returned by find_available_images).
+        include_index: If True, prepend a numeric index column. Defaults to False.
+
+    Returns:
+        Formatted table string, or an empty string if images is empty.
+    """
     if not images:
         return ""
 
