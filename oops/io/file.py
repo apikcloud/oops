@@ -568,7 +568,7 @@ def make_migration_command(
     remove_command = "# Removed addons (manual action required): {addons}"
     install_command = "odoo --stop-after-init --no-http -i {addons}"
     update_command = "odoo --stop-after-init --no-http -u {addons}"
-    template: str = "#!/bin/bash\n\n# {release} migration script\n{body}\n"
+    template: str = "#!/bin/bash\n\n# [{release}] migration script\n{body}\n"
     commands = []
 
     if removed_addons:

@@ -42,6 +42,7 @@ class CommitMessages:
     pre_commit_exclude: str = "chore: update pre-commit exclusions"
     project_sync: str = "chore: sync from source-repo"
     migration_script: str = "chore: add migration script"
+    release_prepare: str = "chore: release {version}"
 
 
 commit_messages = CommitMessages()
