@@ -211,6 +211,48 @@ def copytree(src: Path, dst: Path, ignore_git: bool = True) -> None:
     shutil.copytree(src, dst, symlinks=True, ignore=_ignore)
 
 
+def parse_packages(path: Path) -> list:
+    """Read and return the sorted list of packages from the project packages file.
+
+    Args:
+        path: Project root directory containing the packages file.
+
+    Returns:
+        Sorted list of package names.
+    """
+    return read_and_parse(path / config.project.file_packages)
+
+
+def parse_requirements(path: Path) -> list:
+    """Read and return the sorted list of entries from the project requirements file.
+
+    Args:
+        path: Project root directory containing the requirements file.
+
+    Returns:
+        Sorted list of requirement strings.
+    """
+    return read_and_parse(path / config.project.file_requirements)
+
+
+def parse_odoo_version(path: Path) -> str:
+    """Read and return the Odoo version string from the project version file.
+
+    Args:
+        path: Project root directory containing the Odoo version file.
+
+    Returns:
+        Odoo version string (first non-empty line of the version file).
+
+    Raises:
+        ValueError: If the version file is empty or missing.
+    """
+    res = read_and_parse(path / config.project.file_odoo_version)
+    if not res:
+        raise ValueError()
+    return res[0]
+
+
 # ---------------------------------------------------------------------------
 # Symlinks
 # ---------------------------------------------------------------------------
@@ -444,3 +486,5 @@ def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
         if "__manifest__.py" in filenames or "__openerp__.py" in filenames:
             addons.append(Path(dirpath))
     return addons
+
+

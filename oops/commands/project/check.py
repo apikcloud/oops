@@ -14,7 +14,8 @@ warnings also cause a non-zero exit.
 import click
 
 from oops.commands.base import command
-from oops.commands.project.common import check_project, parse_odoo_version
+from oops.commands.project.common import check_project
+from oops.io.file import parse_odoo_version
 from oops.services.docker import check_image, parse_image_tag
 from oops.services.git import get_local_repo
 from oops.utils.render import render_table

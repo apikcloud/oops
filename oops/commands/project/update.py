@@ -15,9 +15,8 @@ import click
 import requests
 
 from oops.commands.base import command
-from oops.commands.project.common import parse_odoo_version
 from oops.core.config import config
-from oops.io.file import write_text_file
+from oops.io.file import parse_odoo_version, write_text_file
 from oops.io.tools import ask
 from oops.services.docker import find_available_images, format_available_images, parse_image_tag
 from oops.services.git import commit, get_local_repo

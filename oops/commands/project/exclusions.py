@@ -11,6 +11,8 @@ that pre-commit hooks skip third-party addons. The file is committed unless
 --no-commit is passed.
 """
 
+# FIXME: deprecated, to be removed in the future.
+
 import sys
 
 import click

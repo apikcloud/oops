@@ -15,13 +15,13 @@ import click
 import requests
 
 from oops.commands.base import command
-from oops.commands.project.common import (
-    check_project,
+from oops.commands.project.common import check_project
+from oops.git.repository import get_last_commit
+from oops.io.file import (
     parse_odoo_version,
     parse_packages,
     parse_requirements,
 )
-from oops.git.repository import get_last_commit
 from oops.services.docker import check_image, find_available_images, parse_image_tag
 from oops.services.git import get_local_repo
 from oops.services.github import get_latest_workflow_run
@@ -39,7 +39,7 @@ from oops.utils.versioning import get_last_release, get_next_releases
     " Envvar is also supported: TOKEN, GH_TOKEN, GITHUB_TOKEN.",
 )
 @click.option("--minimal", is_flag=True, help="Show minimal output.")
-def main(token: Optional[str], minimal: bool):  # noqa: C901
+def main(token: Optional[str], minimal: bool):  # noqa: C901, PLR0912, PLR0915
 
     repo, repo_path = get_local_repo()
 
