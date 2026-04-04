@@ -1,10 +1,10 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
-# File: diff.py — oops/commands/addons/diff.py
+# File: prepare.py — oops/commands/release/prepare.py
 
 """
-Find modified Odoo addons and print the corresponding --update command.
+Prepare a release by detecting modified Odoo addons and building the upgrade command.
 
 Compares the current HEAD against either the last git tag or the last N commits,
 including changes inside submodules. With --save, writes the command to a
@@ -21,7 +21,7 @@ from oops.io.file import find_modified_addons
 from oops.services.git import get_local_repo, get_submodule_sha
 
 
-@command(name="diff", help=__doc__)
+@command(name="prepare", help=__doc__)
 @click.argument("mode", type=click.Choice(["tag", "commit"], case_sensitive=False))
 @click.argument("number", required=False, default=1)
 @click.option("-s", "--save", is_flag=True, help="Write the command in the migration file.")
@@ -45,8 +45,8 @@ def main(
     for sm in repo.submodules:
         subrepo = sm.module()
 
-        old_sha = get_submodule_sha(repo, base_ref, sm.path)
-        new_sha = get_submodule_sha(repo, "HEAD", sm.path)
+        old_sha = get_submodule_sha(repo, base_ref, str(sm.path))
+        new_sha = get_submodule_sha(repo, "HEAD", str(sm.path))
 
         # The submodule has not changed between base_ref and HEAD.
         if not old_sha or not new_sha or old_sha == new_sha:

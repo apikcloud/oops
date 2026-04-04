@@ -53,35 +53,6 @@ oops-addons-compare "$(cat addons.txt)" --delete --no-commit
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.addons.diff
-    :command: main
-    :prog_name: oops-addons-diff
-    :depth: 2
-    :style: table
-
-**Examples:**
-
-List modified addons since the last git tag:
-
-```bash
-oops-addons-diff tag
-```
-
-List modified addons across the last 3 commits:
-
-```bash
-oops-addons-diff commit 3
-```
-
-Write the migration command to `migrate.sh`:
-
-```bash
-oops-addons-diff tag --save
-```
-
----
-
-::: mkdocs-click:commands
     :module: oops.commands.addons.download
     :command: main
     :prog_name: oops-addons-download

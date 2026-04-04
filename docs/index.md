@@ -41,6 +41,15 @@ uv pip install git+https://github.com/apikcloud/oops.git@v0.2.0
 
     [:octicons-arrow-right-24: Explore](commands/readme.md)
 
+
+-   **Release**
+
+    ---
+
+    Xxx
+
+    [:octicons-arrow-right-24: Explore](commands/release.md)
+
 -   **Submodules**
 
     ---
