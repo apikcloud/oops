@@ -28,9 +28,10 @@ from oops.core.models import AddonInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.io.manifest import load_manifest
 from oops.services.git import get_submodule_sha
-from oops.utils.compat import Optional
+from oops.utils.compat import Optional, Union
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
+from oops.utils.render import human_readable
 
 # ---------------------------------------------------------------------------
 # Path utilities
@@ -580,7 +581,7 @@ def make_migration_command(
     return template.format(body="\n".join(commands), release=release or "Unreleased")
 
 
-def write_migration_script(content: str, dry_run: bool = False) -> None:
+def write_migration_script(content: str, dry_run: bool = False) -> Optional[str]:
     """Write a migration script to the configured file path and mark it executable.
 
     Args:
@@ -591,7 +592,7 @@ def write_migration_script(content: str, dry_run: bool = False) -> None:
 
     if dry_run:
         click.echo(content)
-        return
+        return None
 
     with open(config.project.file_migrate, mode="w", encoding="UTF-8") as file:
         file.write(content)
@@ -599,3 +600,79 @@ def write_migration_script(content: str, dry_run: bool = False) -> None:
     # Do a chmod +x
     st = os.stat(config.project.file_migrate)
     os.chmod(config.project.file_migrate, st.st_mode | 0o111)
+
+    return config.project.file_migrate
+
+
+def update_gitignore(  # noqa: C901
+    file_path: Union[str, Path],
+    folders: list,
+    header: str = "# Ignored addons (auto)",
+) -> bool:
+    """Ensure given folder names are present in .gitignore under a header section.
+
+    Adds missing entries only (idempotent). Normalizes folder patterns to 'name/'.
+    Appends a header at EOF if absent, then the new folders under it.
+
+    Args:
+        file_path: Path to .gitignore file
+        folders: List of folder names to add
+        header: Header comment to use for the section
+
+    Returns:
+        True if the file was modified, False otherwise
+    """
+    p = Path(file_path)
+    lines: list[str] = []
+
+    if p.exists():
+        lines = p.read_text(encoding="utf-8").splitlines(keepends=True)
+
+    # Normalize target patterns to directory form 'name/'
+    def canon(s: str) -> str:
+        base = s.strip().strip("/").lstrip("./")
+        return f"{base}/" if base else ""
+
+    wanted = sorted({canon(f) for f in folders if canon(f)})
+
+    if not wanted:
+        return False
+
+    # Collect existing patterns (treat 'foo' and 'foo/' as duplicates)
+    existing = set()
+    for raw in lines:
+        s = raw.strip()
+        if not s or s.startswith("#"):
+            continue
+        existing.add(s.rstrip("/"))
+
+    missing = [w for w in wanted if w.rstrip("/") not in existing]
+
+    if not missing:
+        return False
+
+    # Find or create header location
+    header_line = header.strip()
+    try:
+        idx = next(i for i, line in enumerate(lines) if line.strip() == header_line)
+        insert_at = idx + 1
+        block = []
+        # Add a blank line after header if not already
+        if insert_at >= len(lines) or lines[insert_at].strip():
+            block.append("\n")
+        block += [f"{m}\n" for m in missing]
+        lines[insert_at:insert_at] = block
+    except StopIteration:
+        # Ensure file ends with a newline
+        if lines and not lines[-1].endswith("\n"):
+            lines[-1] = lines[-1] + "\n"
+        # Append header + entries at EOF
+        tail = []
+        if lines and lines[-1].strip():
+            tail.append("\n")
+        tail.append(f"{header_line}\n")
+        tail += [f"{m}\n" for m in missing]
+        lines.extend(tail)
+
+    p.write_text(human_readable(lines), encoding="utf-8")
+    return True

@@ -9,9 +9,13 @@ from dataclasses import dataclass
 @dataclass
 class CommitMessages:
     # Addons
-    new_addons: str = "chore: new addons"
+    addons_new: str = "chore: new addons"
     addons_ignored: str = "chore: ignored addons"
-    materialize_addons: str = "chore: materialize addon(s) {names}"
+    addons_materialize: str = "chore: materialize addon(s) {names}"
+    addons_update_table: str = "chore(README): update addons table"
+    addons_synchronize: str = (
+        "chore: synchronizing the repository based on the list of provided modules"
+    )
 
     # Submodules
     submodules_rewrite: str = "chore(submodules): rewrite submodule paths to new scheme"
@@ -36,13 +40,8 @@ class CommitMessages:
     # Miscellaneous
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."
     pre_commit_exclude: str = "chore: update pre-commit exclusions"
-
-    addons_update_table: str = "chore(README): update addons table"
-    addons_synchronize: str = (
-        "chore: synchronizing the repository based on the list of provided modules"
-    )
-
     project_sync: str = "chore: sync from source-repo"
+    migration_script: str = "chore: add migration script"
 
 
 commit_messages = CommitMessages()

@@ -59,6 +59,6 @@ def main(addons: str, dry_run: bool, no_commit: bool):
             repo,
             repo_path,
             [str(path) for path in changes],
-            "materialize_addons",
+            "addons_materialize",
             names=human_readable([path.name for path in changes]),
         )

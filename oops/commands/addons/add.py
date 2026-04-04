@@ -68,6 +68,6 @@ def main(addons_list: str, no_commit: bool):
         return
 
     if not no_commit:
-        commit(repo, repo_path, created, "new_addons", skip_hooks=True)
+        commit(repo, repo_path, created, "addons_new", skip_hooks=True)
     else:
         print_success(f"{len(created)} symlink(s) created.")

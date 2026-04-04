@@ -15,7 +15,7 @@ import click
 
 from oops.commands.base import command
 from oops.io.file import get_addons_diff, make_migration_command, write_migration_script
-from oops.services.git import get_local_repo
+from oops.services.git import commit, get_local_repo
 from oops.utils.render import print_error, print_success, print_warning
 
 
@@ -24,13 +24,15 @@ from oops.utils.render import print_error, print_success, print_warning
 @click.option("--ref", default=None, help="Compare against any ref or SHA.")
 @click.option("--commits", default=None, type=int, help="Compare against HEAD~N.")
 @click.option("-s", "--save", is_flag=True, help="Write the command in the migration file.")
-def main(
+@click.option("--no-commit", is_flag=True, help="Do not commit changes")
+def main(  # noqa: C901, PLR0912
     tag: str,
     ref: str,
     commits: int,
     save: bool,
+    no_commit: bool,
 ):
-    repo, _ = get_local_repo()
+    repo, repo_path = get_local_repo()
 
     # Resolve base ref and optional release label
     release = None
@@ -74,12 +76,16 @@ def main(
         for addon in updated_addons:
             print_warning(addon, "w")
 
+    content = make_migration_command(
+        new_addons,
+        updated_addons,
+        removed_addons,
+        release=release,
+    )
+    click.echo(content)
+
     if save:
-        content = make_migration_command(
-            new_addons,
-            updated_addons,
-            removed_addons,
-            release=release,
-        )
-        click.echo(content)
-        write_migration_script(content)
+        migration_script = write_migration_script(content)
+
+        if not no_commit:
+            commit(repo, repo_path, [migration_script], "migration_script", skip_hooks=True)

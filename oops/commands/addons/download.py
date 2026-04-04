@@ -20,8 +20,7 @@ from pathlib import Path
 import click
 
 from oops.commands.base import command
-from oops.git.repository import update_gitignore
-from oops.io.file import find_addons
+from oops.io.file import find_addons, update_gitignore
 from oops.services.git import commit, get_local_repo
 from oops.services.github import fetch_branch_zip
 from oops.utils.compat import Optional
