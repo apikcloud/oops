@@ -44,6 +44,20 @@ def main(
     added_files = repo.git.diff("--name-only", "--diff-filter=A", base_ref, "HEAD").splitlines()
     new_addons = set(find_modified_addons(added_files))
 
+    # Removed root-level entries: verify each had a manifest at base_ref
+    deleted_root = [
+        f for f in repo.git.diff("--name-only", "--diff-filter=D", base_ref, "HEAD").splitlines()
+        if "/" not in f
+    ]
+    removed_addons = []
+    for name in deleted_root:
+        try:
+            repo.git.show(f"{base_ref}:{name}/__manifest__.py")
+            removed_addons.append(name)
+        except Exception:
+            pass
+    removed_addons = sorted(removed_addons)
+
     # All changed files across the main repo and submodules
     diff_files = repo.git.diff("--name-only", base_ref, "HEAD").splitlines()
     for sm in repo.submodules:
@@ -62,11 +76,15 @@ def main(
     all_addons = set(find_modified_addons(diff_files))
     updated_addons = all_addons - new_addons
 
-    if not all_addons:
+    if not all_addons and not removed_addons:
         click.echo("No modified addon found.")
         raise click.exceptions.Exit(0)
 
     commands = []
+
+    if removed_addons:
+        click.echo(f"{len(removed_addons)} removed addon(s):")
+        click.echo("\n".join(removed_addons))
 
     if new_addons:
         click.echo(f"{len(new_addons)} new addon(s):")
@@ -83,8 +101,11 @@ def main(
     click.echo(command)
 
     if save:
+        content = command
+        if removed_addons:
+            content = f"# Removed addons (manual action required): {', '.join(removed_addons)}\n{content}"
         with open(config.project.file_migrate, mode="w", encoding="UTF-8") as file:
-            file.write(config.project.migrate_content.format(content=command))
+            file.write(config.project.migrate_content.format(content=content))
         # Do a chmod +x
         st = os.stat(config.project.file_migrate)
         os.chmod(config.project.file_migrate, st.st_mode | 0o111)
