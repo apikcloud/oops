@@ -10,9 +10,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Install in editable mode with dev dependencies
-pip install -e ".[dev]"
+uv sync --extra dev
 # or
-make install   # adds --break-system-packages
+make install
 
 # Lint
 make lint      # ruff check
@@ -21,7 +21,7 @@ make typecheck # pyright (soft-fail — informational only)
 # Test
 make test      # pytest -vv
 make cov       # pytest with coverage (80% minimum enforced)
-pytest -vv tests/path/to/test_file.py::TestClass::test_name  # single test
+uv run pytest -vv tests/path/to/test_file.py::TestClass::test_name  # single test
 
 # Docs
 make install-docs  # install docs dependencies
