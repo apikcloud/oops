@@ -39,6 +39,12 @@ theme:
     - content.tooltips
     - toc.follow
 
+extra:
+  version:
+    provider: mike
+    default: latest
+    alias: true
+
 plugins:
   - search
   - glightbox
