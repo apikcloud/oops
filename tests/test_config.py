@@ -86,7 +86,10 @@ class TestApply:
 # load_config
 # ---------------------------------------------------------------------------
 
-REQUIRED_YAML = "images:\n  source:\n    repository: test/repo\n    file: tags.json\n"
+REQUIRED_YAML = (
+    "images:\n  source:\n    repository: test/repo\n    file: tags.json\n"
+    "manifest:\n  author: Apik\n"
+)
 
 
 class TestValidate:
