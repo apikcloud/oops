@@ -7,7 +7,8 @@
 Check all submodules for common issues.
 
 Verifies path conventions, URL scheme, branch presence, deprecated repository
-references, unused submodules (no symlink points to them), and broken symlinks.
+references, unused submodules (no symlink points to them), broken symlinks,
+and pull-request submodules not under the configured PR directory.
 Exits non-zero if any issue is found.
 """
 
@@ -15,30 +16,33 @@ import configparser
 import logging
 
 import click
-from git import Repo
 
+from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.git import read_gitmodules
-from oops.utils.io import check_prefix, list_symlinks
+from oops.io.file import check_prefix, list_symlinks
+from oops.services.git import get_local_repo, is_pull_request, read_gitmodules
 from oops.utils.net import parse_repository_url
+from oops.utils.render import print_error, print_success, print_warning
 
 
-@click.command(name="check", help=__doc__)
-def main():  # noqa: C901
+@command(name="check", help=__doc__)
+def main():  # noqa: C901, PLR0912, PLR0915
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     if not repo.submodules:
-        click.echo("No submodules found.")
-        raise click.Abort()
+        print_success("No submodules found.")
+        raise click.exceptions.Exit(0)
 
-    symlinks = list_symlinks(repo.working_dir)
-    broken_symlinks = list_symlinks(repo.working_dir, broken_only=True)
+    symlinks = list_symlinks(repo_path)
+    broken_symlinks = list_symlinks(repo_path, broken_only=True)
     bad_paths = []
     unused = []
     missing_branches = []
     malformed_urls = []
     deprecated_repos = []
+    misplaced_prs = []
+    pr_submodules = []
 
     res = True
 
@@ -46,11 +50,11 @@ def main():  # noqa: C901
 
     for submodule in repo.submodules:
         # Check if submodule is under correct path
-        if not check_prefix(submodule.path, config.submodules.current_path):
+        if not check_prefix(str(submodule.path), str(config.submodules.current_path)):
             bad_paths.append((submodule.name, submodule.path))
 
         # Check if any symlink target mentions this path
-        if not any(submodule.path in t for t in symlinks):
+        if not any(str(submodule.path) in t for t in symlinks):
             unused.append((submodule.name, submodule.path))
 
         # Check if branch is set in .gitmodules
@@ -75,45 +79,62 @@ def main():  # noqa: C901
                 (submodule.name, config.submodules.deprecated_repositories[repository_name])
             )
 
+        # Track PR submodules
+        if is_pull_request(submodule):
+            pr_submodules.append((submodule.name, submodule.path))
+            if not check_prefix(str(submodule.path), str(config.pull_request_dir)):
+                misplaced_prs.append((submodule.name, submodule.path))
+
     if "check_path" in config.submodules.checks and bad_paths:
-        click.echo(f"❌ Submodules not under {config.submodules.current_path} ({len(bad_paths)}):")
+        print_error(f"Submodules not under {config.submodules.current_path} ({len(bad_paths)}):")
         for name, path in bad_paths:
             click.echo(f"  - {name}: {path}")
         res = False
 
     if "check_symlink" in config.submodules.checks and unused:
-        click.echo("❌ Unused submodules (no symlink points to them):")
+        print_error("Unused submodules (no symlink points to them):")
         for name, path in unused:
             click.echo(f"  - {name}: {path}")
         res = False
 
     if "check_branch" in config.submodules.checks and missing_branches:
-        click.echo("❌ Submodules without branch set in .gitmodules:")
+        print_error("Submodules without branch set in .gitmodules:")
         for name, path in missing_branches:
             click.echo(f"  - {name}: {path}")
         res = False
 
     if "check_url_scheme" in config.submodules.checks and malformed_urls:
-        click.echo(f"❌ Submodules with malformed URL (not {config.submodules.force_scheme}):")
+        print_error(f"Submodules with malformed URL (not {config.submodules.force_scheme}):")
         for name, url in malformed_urls:
             click.echo(f"  - {name}: {url}")
         res = False
 
     if "check_deprecated_repo" in config.submodules.checks and deprecated_repos:
-        click.echo("❌ Submodules using deprecated repositories:")
+        print_error("Submodules using deprecated repositories:")
         for name, repo in deprecated_repos:
             click.echo(f"  - {name}: must be replaced with {repo}")
         res = False
 
     if "check_broken_symlink" in config.submodules.checks and broken_symlinks:
-        click.echo("❌ Broken symlinks found:")
+        print_error("Broken symlinks found:")
         for symlink in broken_symlinks:
             click.echo(f"  - {symlink}")
         res = False
 
+    if pr_submodules:
+        print_warning(f"{len(pr_submodules)} pull-request submodule(s) detected:")
+        for name, path in pr_submodules:
+            click.echo(f"  - {name}: {path}")
+
+    if "check_pr" in config.submodules.checks and misplaced_prs:
+        print_error(f"PR submodules not under {config.pull_request_dir}:")
+        for name, path in misplaced_prs:
+            click.echo(f"  - {name}: {path}")
+        res = False
+
     if res:
-        click.echo(
-            f"✅ All submodules are under {config.submodules.current_path} "
+        print_success(
+            f"All submodules are under {config.submodules.current_path} "
             f"and used by at least one symlink."
         )
         raise click.exceptions.Exit(0)
