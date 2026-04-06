@@ -13,13 +13,13 @@ with --pull-request.
 
 import click
 
-from oops.git import get_last_commit
-from oops.git.core import GitRepository
+from oops.commands.base import command
+from oops.services.git import get_last_commit, get_local_repo, is_pull_request
 from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 
 
-@click.command("show", help=__doc__)
+@command("show", help=__doc__)
 @click.option(
     "--pull-request",
     is_flag=True,
@@ -27,39 +27,45 @@ from oops.utils.render import format_datetime, human_readable, render_boolean, r
 )
 def main(pull_request: bool):
 
-    # FIXME: use Repo from gitpython
-    repo = GitRepository()
+    repo, repo_path = get_local_repo()
 
-    if not repo.has_gitmodules:
-        raise click.UsageError("No .gitmodules found.")
+    if not repo.submodules:
+        raise click.UsageError("No submodules found.")
 
     rows = []
-    for submodule in repo.parse_gitmodules():
-        if pull_request is True and not submodule.pr:
+    for sub in repo.submodules:
+        if pull_request and not is_pull_request(sub):
             continue
-        canonical_url = get_public_repo_url(submodule.url) if submodule.url else ""
+
+        try:
+            canonical_url = get_public_repo_url(sub.url)
+        except (ValueError, AttributeError):
+            canonical_url = sub.url or ""
+
+        try:
+            branch = sub.branch_name
+        except Exception:
+            branch = ""
+
         row = [
-            human_readable(submodule.name, width=50),
+            human_readable(sub.name, width=50),
             canonical_url,
-            submodule.branch,
-            render_boolean(submodule.pr) or "",
+            branch,
+            render_boolean(is_pull_request(sub)),
         ]
-        last_commit = get_last_commit(submodule.path)
+
+        last_commit = get_last_commit(str(repo_path / sub.path))
         if last_commit:
-            row += [
-                format_datetime(last_commit.date),
-                last_commit.age,
-                # last_commit.author,
-                last_commit.sha,
-            ]
+            row += [format_datetime(last_commit.date), last_commit.age, last_commit.sha]
         else:
-            row += ["no commit found", "--", "--", "--"]
+            row += ["no commit found", "--", "--"]
+
         rows.append(row)
 
     if not rows:
-        raise click.UsageError("No submodules found.")
+        raise click.UsageError("No matching submodules found.")
 
-    rows = sorted(rows, key=lambda x: x[0].lower())
+    rows.sort(key=lambda x: x[0].lower())
 
     click.echo(
         render_table(

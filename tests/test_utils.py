@@ -7,14 +7,14 @@ import pytest
 from tabulate import tabulate
 
 from oops.core.config import config
-from oops.utils import tools
+from oops.io import file as io_file
+from oops.io.file import is_pull_request_path, materialize_symlink, read_and_parse
 from oops.utils.helpers import (
     clean_string,
     date_from_string,
     removesuffix,
     str_to_list,
 )
-from oops.utils.io import is_pull_request_path, materialize_symlink, read_and_parse
 from oops.utils.net import parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
 
@@ -354,7 +354,7 @@ def test_materialize_symlink_cleanup_on_failure(tmp_path, monkeypatch):
         (dst / "partial").write_text("p")
         raise RuntimeError("simulated failure")
 
-    monkeypatch.setattr(tools, "copytree", fake_copytree)
+    monkeypatch.setattr(io_file, "copytree", fake_copytree)
 
     with pytest.raises(ValueError, match=r"Failed to materialize"):
         materialize_symlink(link, dry_run=False)

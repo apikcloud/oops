@@ -1,7 +1,15 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
-# File: tools.py — oops/utils/tools.py
+# File: tools.py — oops/io/tools.py
+
+"""
+Low-level runtime utilities: user prompts and subprocess execution.
+
+Sections:
+    - User interaction: prompt helpers
+    - Subprocess: wrappers around subprocess.run and shell script execution
+"""
 
 import logging
 import os
@@ -9,6 +17,10 @@ import subprocess
 
 from oops.core.exceptions import ScriptNotFound
 from oops.utils.compat import Optional
+
+# ---------------------------------------------------------------------------
+# User interaction
+# ---------------------------------------------------------------------------
 
 
 def ask(prompt: str, default="y"):
@@ -19,6 +31,11 @@ def ask(prompt: str, default="y"):
     except EOFError:
         answer = ""
     return answer or default
+
+
+# ---------------------------------------------------------------------------
+# Subprocess
+# ---------------------------------------------------------------------------
 
 
 def get_exec_dir():
@@ -34,6 +51,18 @@ def run(
     cwd: Optional[str] = None,
     name: Optional[str] = None,
 ) -> Optional[str]:
+    """Run a subprocess command and optionally capture its output.
+
+    Args:
+        cmd: Command and arguments to execute.
+        check: If True, raise CalledProcessError on non-zero exit. Defaults to True.
+        capture: If True, capture and return stdout. Defaults to False.
+        cwd: Working directory for the subprocess. Defaults to None.
+        name: Label used in debug log output. Defaults to None.
+
+    Returns:
+        Captured stdout as a string if capture is True, otherwise None.
+    """
     kwargs: dict = dict(text=True, cwd=cwd)
     if capture:
         # assign explicitly to avoid static type checkers inferring incompatible dict value types

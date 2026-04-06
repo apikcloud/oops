@@ -17,20 +17,26 @@ from pathlib import Path
 import click
 from git import Repo
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.utils.io import desired_path, rewrite_symlink
+from oops.io.file import desired_path, rewrite_symlink
+from oops.utils.compat import Optional
 from oops.utils.net import encode_url
 
 
-@click.command("replace", help=__doc__)
+@command("replace", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.argument("names", nargs=-1, required=False)
 @click.argument("url")
 @click.argument("branch")
-def main(
-    dry_run: bool, no_commit: bool, names: tuple[str] = None, url: str = None, branch: str = None
+def main(  # noqa: C901, PLR0912
+    dry_run: bool,
+    no_commit: bool,
+    names: "Optional[tuple[str]]" = None,
+    url: "Optional[str]" = None,
+    branch: "Optional[str]" = None,
 ):
 
     repo = Repo()
@@ -40,7 +46,7 @@ def main(
 
     not_found = [name for name in names if name not in repo.submodules]
     if not_found:
-        click.echo(f"❌ Submodule(s) not found: {', '.join(not_found)}")
+        click.echo(f"✕ Submodule(s) not found: {', '.join(not_found)}")
         return 1
 
     new_url = encode_url(url, config.submodules.force_scheme)
@@ -48,7 +54,9 @@ def main(
 
     if not dry_run:
         new_name = desired_path(new_url, pull_request=False)
-        new_path = desired_path(new_url, pull_request=False, prefix=str(config.submodules.current_path))
+        new_path = desired_path(
+            new_url, pull_request=False, prefix=str(config.submodules.current_path)
+        )
 
         if new_name not in repo.submodules:
             click.echo(f"Adding new submodule '{new_url}' (branch={branch})")

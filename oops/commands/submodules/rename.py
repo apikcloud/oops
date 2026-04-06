@@ -12,15 +12,14 @@ Specific submodules can be targeted by name.
 """
 
 import click
-from git import Repo
 
-from oops.core.messages import commit_messages
-from oops.utils.git import is_pull_request
-from oops.utils.io import desired_path, get_symlink_map
-from oops.utils.tools import ask
+from oops.commands.base import command
+from oops.io.file import desired_path, get_symlink_map
+from oops.io.tools import ask
+from oops.services.git import commit, get_local_repo, is_pull_request
 
 
-@click.command("rename", help=__doc__)
+@command("rename", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--prompt/--no-prompt", is_flag=True, default=True, help="Prompt before renaming")
@@ -28,18 +27,18 @@ from oops.utils.tools import ask
     "--pull-request", "--pr", "force_pr", is_flag=True, help="Mark submodules as pull request"
 )
 @click.argument("names", nargs=-1, required=False)
-def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tuple[str] = None):
+def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tuple):
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     if not repo.submodules:
         raise click.UsageError("No .gitmodules found.")
 
-    # FIXME: assume there is only one symlink per submodule for now
+    # Assume at most one symlink per submodule
     mapping = get_symlink_map(repo.working_dir)
+    changed = False
 
     for submodule in repo.submodules:
-        # TODO: filter by names if given
         if names and submodule.name not in names:
             continue
 
@@ -51,29 +50,36 @@ def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tu
             suffix=first_symlink,
         )
 
-        if submodule.name != new_name:
-            click.echo(f"Renaming submodule '{submodule.name}' -> '{new_name}' (PR={pull_request})")
+        if submodule.name == new_name:
+            continue
 
-            if prompt:
-                ans = ask("Apply change for ? [Y/n/e] ", default="y")
-                if ans in ("n", "no"):
-                    continue
-                elif ans == "e":
-                    custom = input("Enter custom name: ").strip()
-                    if custom:
-                        new_name = custom
+        click.echo(f"Renaming '{submodule.name}' -> '{new_name}' (PR={pull_request})")
 
-            if not dry_run:
-                try:
-                    submodule.rename(new_name)
-                except Exception as err:
-                    raise click.UsageError(
-                        f"Error renaming submodule {submodule.name}: {err}"
-                    ) from err
+        if prompt:
+            ans = ask(f"Apply change for '{submodule.name}'? [Y/n/e] ", default="y")
+            if ans in ("n", "no"):
+                continue
+            elif ans == "e":
+                custom = click.prompt("Enter custom name", default=new_name)
+                if custom:
+                    new_name = custom
 
-    if not no_commit and not dry_run:
-        if repo.index.diff(repo.head.commit):
-            click.echo("Committing changes...")
-            repo.index.commit(commit_messages.submodules_rename, skip_hooks=True)
-    else:
-        click.echo("Done. Commit .gitmodules changes to share them with the team.")
+        if not dry_run:
+            try:
+                submodule.rename(new_name)
+                changed = True
+            except Exception as err:
+                raise click.UsageError(
+                    f"Error renaming submodule '{submodule.name}': {err}"
+                ) from err
+
+    if not changed:
+        click.echo(
+            "Nothing to rename." if not dry_run else "Dry run complete — no changes applied."
+        )
+        return
+
+    if not dry_run and not no_commit:
+        commit(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True)
+    elif not dry_run:
+        click.echo("Done. Commit .gitmodules to share changes with the team.")

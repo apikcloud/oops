@@ -11,43 +11,36 @@ that pre-commit hooks skip third-party addons. The file is committed unless
 --no-commit is passed.
 """
 
-import sys
-
 import click
 
+from oops.commands.base import command
 from oops.core.config import config
-from oops.core.messages import commit_messages
-from oops.git.core import GitRepository
-from oops.utils.io import find_addons, write_text_file
+from oops.io.file import find_addons, write_text_file
+from oops.services.git import commit, get_local_repo
 
 
-@click.command(name="exclude", help=__doc__)
+@command(name="exclude", help=__doc__)
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
-def main(no_commit: bool):  # noqa: C901, PLR0912
-    repo = GitRepository()
+def main(no_commit: bool):
+    repo, repo_path = get_local_repo()
 
-    if not repo.has_gitmodules:
-        click.echo("No .gitmodules found.", file=sys.stderr)
-        return 1
+    if not (repo_path / ".gitmodules").exists():
+        raise click.ClickException("No .gitmodules found.")
 
-    names = []
-    for addon in find_addons(repo.path, shallow=True):
-        if addon.symlink:
-            names.append(f"{addon.technical_name}/")
+    names = sorted(
+        addon.technical_name
+        for addon in find_addons(repo_path, shallow=True)
+        if addon.symlink
+    )
 
     if not names:
         click.echo("No symlinked addons found.")
-        raise click.Abort()
+        raise click.exceptions.Exit(0)
 
     click.echo(f"Found {len(names)} symlinked addon(s) to exclude from pre-commit")
 
-    filepath = repo.path / config.project.pre_commit_exclude_file
-    res = "|".join(sorted([f"{name}/" for name in names]))
-    write_text_file(filepath, [res])
+    filepath = repo_path / config.project.pre_commit_exclude_file
+    write_text_file(filepath, ["|".join(f"{name}/" for name in names)])
 
-    repo.add([str(filepath)])
     if not no_commit:
-        repo.commit(
-            commit_messages.pre_commit_exclude,
-            skip_hook=True,
-        )
+        commit(repo, repo_path, [str(filepath)], "pre_commit_exclude", skip_hooks=True)

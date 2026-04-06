@@ -11,46 +11,37 @@ Deletes the old and new submodule base directories (third-party and
 to restore them from .gitmodules. Use --reset to hard-reset the repo first.
 """
 
-import logging
 import shutil
 
 import click
 
+from oops.commands.base import command
 from oops.core.config import config
-from oops.git.core import GitRepository
-from oops.git.submodules import GitSubmodules
+from oops.services.git import get_local_repo
+from oops.utils.render import print_error
 
 
-@click.command(name="clean", help=__doc__)
+@command(name="clean", help=__doc__)
 @click.option("--reset", is_flag=True, help="Do a hard reset before")
 def main(reset: bool):
 
-    # FIXME: use Repo from gitpython
-    repo = GitRepository()
-    submodules = GitSubmodules()
+    repo, repo_path = get_local_repo()
 
-    if not repo.has_gitmodules:
+    if not (repo_path / ".gitmodules").exists():
         click.echo("No .gitmodules found.")
         raise click.Abort()
 
     if reset:
-        repo.reset_hard()
-
-    # FIXME: parse_gitmodules is a generator now
-    # not subs anymore
-    # subs = repo.parse_gitmodules()
-    # if not subs:
-    #     click.echo("No submodules found.")
-    #     return 0
+        repo.head.reset(index=True, working_tree=True)
 
     for path in [config.submodules.old_paths[0], config.submodules.current_path]:
-        old_base_path = repo.path / path
+        base_path = repo_path / path
 
-        if old_base_path.exists():
-            click.echo(f"[prune] removing empty dir: {old_base_path}")
+        if base_path.exists():
+            click.echo(f"[prune] removing directory: {base_path}")
             try:
-                shutil.rmtree(old_base_path)
-            except OSError as error:
-                logging.error(error)
+                shutil.rmtree(base_path)
+            except OSError as e:
+                print_error(str(e))
 
-    submodules.update()
+    repo.git.submodule("update", "--init", "--recursive")

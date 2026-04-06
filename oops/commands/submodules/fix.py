@@ -10,18 +10,15 @@ Normalises submodule URLs to the configured scheme (e.g. SSH) and replaces
 deprecated repository paths as defined in the project config.
 """
 
-from pathlib import Path
-
 import click
-from git import Repo
 
+from oops.commands.base import command
 from oops.core.config import config
-from oops.core.messages import commit_messages
-from oops.utils.io import list_symlinks
+from oops.services.git import commit, get_local_repo
 from oops.utils.net import encode_url, parse_repository_url
 
 
-@click.command(name="fix", help=__doc__)
+@command(name="fix", help=__doc__)
 @click.option(
     "--no-commit",
     is_flag=True,
@@ -33,14 +30,12 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
     # 2. Rename submodules
     # 3. Rewrite submodules
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     if not repo.submodules:
         click.echo("No submodules found.")
         raise click.Abort()
 
-    symlinks = list_symlinks(repo.working_dir)
-    broken_symlinks = list_symlinks(repo.working_dir, broken_only=True)
     new_urls = []
     # deprecated_repos = []
 
@@ -54,7 +49,9 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
 
         # Check URL scheme
         if config.submodules.force_scheme and config.submodules.force_scheme != scheme:
-            new_urls.append((submodule.name, encode_url(submodule.url, config.submodules.force_scheme)))
+            new_urls.append(
+                (submodule.name, encode_url(submodule.url, config.submodules.force_scheme))
+            )
 
         # Check deprecated repositories
         if repository_name in config.submodules.deprecated_repositories:
@@ -71,13 +68,12 @@ def main(no_commit: bool):  # noqa: C901, PLR0912
             submodule = repo.submodules[name]
             repo.git.submodule("set-url", submodule.path, new_url)
 
-        click.echo("Staging submodule URL changes...")
-        repo.index.add([Path(repo.working_dir) / ".gitmodules"])
-
-        if not no_commit and repo.index.diff("HEAD"):
+        if not no_commit:
             click.echo("Committing submodule URL changes...")
-            repo.index.commit(
-                commit_messages.submodules_fix_urls.format(
-                    description="\n".join(f"- {name}: {url}" for name, url in new_urls)
-                )
+            commit(
+                repo,
+                repo_path,
+                [".gitmodules"],
+                "submodules_fix_urls",
+                description="\n".join(f"- {name}: {url}" for name, url in new_urls),
             )

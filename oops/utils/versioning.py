@@ -1,25 +1,24 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
-# File: versioning.py — oops/git/versioning.py
+# File: versioning.py — oops/utils/versioning.py
 
-# TODO: move to utils
 
 import re
 import subprocess
 
+from oops.io.tools import run
 from oops.utils.compat import Optional
-from oops.utils.tools import run
 
 # Semantic versioning pattern: v1.2.3
 SEMVER_PATTERN = re.compile(r"^v(?P<x>0|[1-9]\d*)\.(?P<y>0|[1-9]\d*)\.(?P<z>0|[1-9]\d*)$")
 
 
 def get_last_tag() -> Optional[str]:
-    """Get the last git tag.
+    """Return the most recent git tag in the current repository.
 
     Returns:
-        Last tag name or None if no tags exist or not a git repository
+        Most recent tag name, or None if no tags exist or the command fails.
     """
     try:
         out = run(["git", "describe", "--tags", "--abbrev=0"], capture=True)
@@ -29,10 +28,10 @@ def get_last_tag() -> Optional[str]:
 
 
 def get_last_release() -> Optional[str]:
-    """Get the last git tag that looks like a semantic version (vX.Y.Z).
+    """Return the most recent git tag that matches semver format (vX.Y.Z).
 
     Returns:
-        Last release tag or None if no valid semver tag found
+        Last semver-formatted release tag, or None if none is found.
     """
     try:
         last_tag = get_last_tag()
@@ -48,16 +47,14 @@ def get_last_release() -> Optional[str]:
 
 
 def get_next_releases() -> tuple:
-    """Calculate next (normal, fix, major) release tags based on last release.
+    """Compute the next minor, patch, and major release tags from the last release.
 
     Returns:
-        Tuple of (normal, fix, major) version strings
-        - normal: bump minor version (v1.2.3 -> v1.3.0)
-        - fix: bump patch version (v1.2.3 -> v1.2.4)
-        - major: bump major version (v1.2.3 -> v2.0.0)
+        Tuple of (minor_bump, patch_bump, major_bump) version strings, e.g.
+        ``("v1.3.0", "v1.2.4", "v2.0.0")`` when the last release is ``v1.2.3``.
 
     Raises:
-        ValueError: If no valid release found or format is invalid
+        ValueError: If no valid semver release tag is found.
     """
     last_release = get_last_release()
 
@@ -79,12 +76,12 @@ def get_next_releases() -> tuple:
 
 
 def is_valid_semver(tag: str) -> bool:
-    """Check if a tag follows semantic versioning format (vX.Y.Z).
+    """Check whether a tag string follows the vX.Y.Z semver format.
 
     Args:
-        tag: Tag name to validate
+        tag: Tag name to validate.
 
     Returns:
-        True if tag is valid semver, False otherwise
+        True if the tag matches the semver pattern, False otherwise.
     """
     return bool(SEMVER_PATTERN.match(tag))

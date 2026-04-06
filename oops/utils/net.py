@@ -4,9 +4,11 @@
 # File: net.py — oops/utils/net.py
 
 import re
+from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
+from git import Repo
 
 from oops.core.config import config
 from oops.utils.compat import Optional, Tuple
@@ -14,7 +16,19 @@ from oops.utils.helpers import removesuffix
 
 
 def make_json_get(url: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> dict:
-    """Make a GET request and return the JSON response."""
+    """Perform an HTTP GET request and return the parsed JSON response.
+
+    Args:
+        url: URL to request.
+        headers: Optional HTTP headers to include.
+        params: Optional query parameters to include.
+
+    Returns:
+        Parsed JSON response as a dict.
+
+    Raises:
+        requests.HTTPError: If the response status indicates an error.
+    """
 
     options = {}
     if headers:
@@ -32,8 +46,15 @@ def make_json_get(url: str, headers: Optional[dict] = None, params: Optional[dic
     return r.json()
 
 
-def clean_url(url):
-    """Removes credentials from a URL if present and replaces http with https."""
+def clean_url(url: str) -> str:
+    """Strip credentials from a URL and normalise the scheme to https.
+
+    Args:
+        url: Raw URL string, possibly containing user:password@ credentials.
+
+    Returns:
+        Cleaned URL using https with credentials removed.
+    """
 
     # Regex to match URLs with credentials
     pattern = re.compile(r"(https?://|http://)([^@]+@)?(.+)")
@@ -45,6 +66,19 @@ def clean_url(url):
 
 
 def _parse_url(url: str) -> Tuple[str, str, str, str]:
+    """Parse a Git repository URL into its scheme, host, owner, and repo components.
+
+    Supports SCP-style SSH (``git@host:owner/repo``), ``ssh://``, and HTTP(S) forms.
+
+    Args:
+        url: Repository URL to parse.
+
+    Returns:
+        Tuple of (scheme, host, owner, repo).
+
+    Raises:
+        ValueError: If the URL is missing a host or owner/repo path segments.
+    """
     url = url.strip()
 
     # 1) SCP-like SSH form: git@host:owner/repo(.git)?
@@ -79,15 +113,25 @@ def _parse_url(url: str) -> Tuple[str, str, str, str]:
         raise ValueError(f"Malformed url (missing owner/repo): {url}")
 
     owner, repo = parts[0], parts[1]
-    if owner == "oca":
-        owner = owner.upper()
     repo = removesuffix(repo, ".git")
 
     return scheme, host, owner, repo
 
 
 def encode_url(url: str, scheme: str, suffix: bool = True) -> str:
-    """Encode a GitHub repository URL into the desired scheme (https or ssh)."""
+    """Re-encode a GitHub repository URL in a given scheme.
+
+    Args:
+        url: Source repository URL in any supported format.
+        scheme: Target scheme, either "https" or "ssh".
+        suffix: If True, append ".git" to HTTPS URLs. Defaults to True.
+
+    Returns:
+        Re-encoded URL string in the requested scheme.
+
+    Raises:
+        ValueError: If the scheme is not "https" or "ssh".
+    """
 
     _, host, owner, repo = _parse_url(url)
 
@@ -100,28 +144,31 @@ def encode_url(url: str, scheme: str, suffix: bool = True) -> str:
 
 
 def get_public_repo_url(url: str) -> str:
-    """Get the public HTTPS URL of a GitHub repository from any URL format."""
+    """Return the public HTTPS URL of a GitHub repository.
+
+    Args:
+        url: Repository URL in any supported format (HTTPS or SSH).
+
+    Returns:
+        Canonical public HTTPS URL without a .git suffix.
+    """
     return encode_url(url, "https", suffix=False)
 
 
 def parse_repository_url(url: str) -> Tuple[str, str, str]:
-    """
-    Parse any GitHub URL (HTTPS or SSH) and return:
-    (canonical_https_repo_url, owner, repo)
+    """Parse a GitHub repository URL and return its canonical form with owner and repo.
 
-    Supported examples:
-      - https://github.com/odoo/odoo
-      - https://github.com/odoo/odoo.git
-      - http://github.com/odoo/odoo/tree/19.0
-      - ssh://git@github.com/odoo/odoo.git
-      - git@github.com:odoo/odoo.git
-      - git@github.mycorp.local:team/project.git  (GH Enterprise)
+    Supported formats: HTTPS (with or without .git, with or without branch path),
+    SSH (``git@github.com:owner/repo.git``), and ``ssh://`` URLs.
+
+    Args:
+        url: GitHub repository URL to parse.
 
     Returns:
-      ("https://<host>/<owner>/<repo>", owner, repo)
+        Tuple of (canonical_https_url, owner, repo). Owner is upper-cased for OCA.
 
     Raises:
-      ValueError if the URL cannot be parsed into owner/repo.
+        ValueError: If the URL cannot be parsed or the host is not github.com.
     """
 
     scheme, host, owner, repo = _parse_url(url)
@@ -129,4 +176,35 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
     if host != "github.com":
         raise ValueError(f"Unsupported host: {host}")
 
-    return scheme, owner, repo
+    canonical_url = f"https://{host}/{owner}/{repo}"
+    normalized_owner = owner.upper() if owner.lower() == "oca" else owner
+    return canonical_url, normalized_owner, repo
+
+
+def sparse_clone(remote_url: str, tmpdir: Path, files: list, branch: Optional[str] = None) -> None:
+    """Clone a remote repository with sparse checkout limited to specific paths.
+
+    Performs a shallow clone (depth=1) and enables sparse checkout so only
+    the listed files or directories are materialised.
+
+    Args:
+        remote_url: URL of the remote repository to clone.
+        tmpdir: Local directory where the repository will be cloned.
+        files: List of file or directory patterns to include in the sparse checkout.
+        branch: Branch to clone. If None, clones the remote default branch.
+    """
+    kwargs = {"depth": 1, "no_checkout": True}
+    if branch:
+        kwargs["branch"] = branch
+    remote_repo = Repo.clone_from(remote_url, str(tmpdir), **kwargs)
+
+    # Enable sparse checkout
+    with remote_repo.config_writer() as cw:
+        cw.set_value("core", "sparseCheckout", True)
+
+    # Write the list of patterns to .git/info/sparse-checkout
+    sparse_file = tmpdir / ".git" / "info" / "sparse-checkout"
+    sparse_file.write_text("\n".join(files) + "\n", encoding="utf-8")
+
+    # Perform the actual checkout
+    remote_repo.git.checkout("HEAD")

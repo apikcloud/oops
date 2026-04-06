@@ -16,31 +16,20 @@ import sys
 from pathlib import Path
 
 import click
-from git import Repo
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.utils.git import read_gitmodules
-from oops.utils.helpers import str_to_list
-from oops.utils.io import (
+from oops.io.file import (
     desired_path,
     ensure_parent,
+    find_addon_dirs,
     relpath,
 )
+from oops.services.git import get_local_repo, read_gitmodules
+from oops.utils.helpers import str_to_list
 from oops.utils.net import parse_repository_url
 from oops.utils.render import human_readable, render_table
-
-
-def find_addons(submodule_dir: Path):
-    """Return addon directories (contain __manifest__.py or __openerp__.py)."""
-    addons = []
-    for root, dirs, files in os.walk(submodule_dir):
-        # speed: ignore .git and typical junk
-        if ".git" in dirs:
-            dirs.remove(".git")
-        if "__manifest__.py" in files or "__openerp__.py" in files:
-            addons.append(Path(root))
-    return addons
 
 
 @click.argument(
@@ -53,7 +42,7 @@ def find_addons(submodule_dir: Path):
 )
 @click.option(
     "--base-dir",
-    default=config.submodules.current_path,
+    default=lambda: config.submodules.current_path,
     help="Base dir for submodules (default: .third-party)",
 )
 @click.option(
@@ -84,7 +73,7 @@ def find_addons(submodule_dir: Path):
     is_flag=True,
     help="Indicates that the submodule is a pull request (affects naming)",
 )
-@click.command(name="add", help=__doc__)
+@command(name="add", help=__doc__)
 def main(  # noqa: C901, PLR0915, PLR0913
     url: str,
     branch: str,
@@ -100,7 +89,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
     pull_request = options["pull_request"]
     dry_run = options["dry_run"]
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
 
     # Compute target path and name
     try:
@@ -112,12 +101,12 @@ def main(  # noqa: C901, PLR0915, PLR0913
     suffix = addons_to_link[0] if addons_to_link and pull_request else None
     sub_path_str = desired_path(url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
 
-    sub_path = Path(repo.working_dir) / sub_path_str
+    sub_path = repo_path / sub_path_str
     sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
 
     # Plan summary
     rows = [
-        ["Repo Root", repo.working_dir],
+        ["Repo Root", repo_path],
         ["URL", url],
         ["Branch", branch],
         ["Submodule name", sub_name],
@@ -161,9 +150,9 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     def create_symlink(addon_dir: Path):
         link_name = f"{addon_dir.name}"
-        link_path = Path(repo.working_dir) / link_name
+        link_path = repo_path / link_name
         # Determine relative target from repo root to the addon_dir
-        target_rel = relpath(Path(repo.working_dir), addon_dir)
+        target_rel = relpath(repo_path, addon_dir)
         if link_path.exists() or link_path.is_symlink():
             click.echo(f"  [skip] {link_name} already exists")
             return
@@ -174,7 +163,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     if auto_symlinks or addons:
         click.echo("[scan] detecting addon folders…")
-        addons_found = find_addons(sub_path)
+        addons_found = [addon for addon in find_addon_dirs(sub_path, with_pr=pull_request)]
         if not addons_found:
             click.echo("  no addon folders detected.")
         else:
@@ -209,6 +198,6 @@ def main(  # noqa: C901, PLR0915, PLR0913
                 symlinks=human_readable(created_links) if created_links else 0,
             ),
         )
-        click.echo("✅ Submodule added and committed.")
+        click.echo("✓ Submodule added and committed.")
     else:
         click.echo("⚠️ Changes staged but not committed (--no-commit).")

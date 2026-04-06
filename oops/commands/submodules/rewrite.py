@@ -20,23 +20,23 @@ from pathlib import Path
 from typing import Optional
 
 import click
-from git import Repo
 
+from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
-from oops.utils.git import is_pull_request
-from oops.utils.io import (
+from oops.io.file import (
     desired_path,
     get_symlink_map,
     rewrite_symlink,
 )
-from oops.utils.tools import ask
+from oops.io.tools import ask
+from oops.services.git import get_local_repo, is_pull_request
 
 
-@click.command(name="rewrite", help=__doc__)
+@command(name="rewrite", help=__doc__)
 @click.option(
     "--base-dir",
-    default=config.submodules.current_path,
+    default=lambda: config.submodules.current_path,
     help="Base directory for rewritten paths (default: .third-party)",
 )
 @click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
@@ -51,7 +51,7 @@ def main(
     base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: Optional[tuple[str]] = None
 ):  # noqa: C901, PLR0912, PLR0915
 
-    repo = Repo()
+    repo, _ = get_local_repo()
 
     if not repo.submodules:
         click.echo("No .gitmodules found.")

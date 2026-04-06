@@ -26,9 +26,11 @@ from pathlib import Path
 import click
 from git import Repo
 
+from oops.commands.base import command
 from oops.core.exceptions import MarkersNotFound
 from oops.core.messages import commit_messages
-from oops.utils.io import collect_addon_paths, load_manifest
+from oops.io.file import collect_addon_paths
+from oops.io.manifest import load_manifest
 from oops.utils.render import render_maintainers, render_markdown_table, sanitize_cell
 
 _logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ def replace_in_readme(readme_path, header, rows_available, rows_unported) -> boo
     return True
 
 
-@click.command(
+@command(
     help=__doc__,
     name="update",
 )

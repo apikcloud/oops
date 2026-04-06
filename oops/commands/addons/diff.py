@@ -4,83 +4,88 @@
 # File: diff.py — oops/commands/addons/diff.py
 
 """
-Find modified Odoo addons and print the corresponding --update command.
+Show modified Odoo addons between a base ref and HEAD.
 
-Compares the current HEAD against either the last git tag or the last N commits,
-including changes inside submodules. With --save, writes the command to a
-migration script file.
+By default compares against the latest tag, or the penultimate tag when HEAD
+is already at the latest tag. The base can be overridden with --tag, --ref,
+or --commits. With --save, writes a migration script file.
 """
 
-import logging
-import os
-
 import click
-from git import Repo
 
-from oops.core.config import config
-from oops.utils.io import find_modified_addons
-
-logging.basicConfig(level=logging.INFO)
-
-
-def get_submodule_sha(repo, ref, path):
-    try:
-        return repo.git.rev_parse(f"{ref}:{path}")
-    except Exception:
-        return None
+from oops.commands.base import command
+from oops.io.file import get_addons_diff, make_migration_command, write_migration_script
+from oops.services.git import commit, get_local_repo
+from oops.utils.render import print_error, print_success, print_warning
 
 
-@click.command(name="diff", help=__doc__)
-@click.argument("mode", type=click.Choice(["tag", "commit"], case_sensitive=False))
-@click.argument("number", required=False, default=1)
+@command(name="diff", help=__doc__)
+@click.option("--tag", default=None, help="Compare against this specific tag.")
+@click.option("--ref", default=None, help="Compare against any ref or SHA.")
+@click.option("--commits", default=None, type=int, help="Compare against HEAD~N.")
 @click.option("-s", "--save", is_flag=True, help="Write the command in the migration file.")
-def main(
-    mode: str,
-    number: int,
+@click.option("--no-commit", is_flag=True, help="Do not commit changes")
+def main(  # noqa: C901, PLR0912
+    tag: str,
+    ref: str,
+    commits: int,
     save: bool,
+    no_commit: bool,
 ):
+    repo, repo_path = get_local_repo()
 
-    repo = Repo(".")
-    tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
-
-    if tags and mode == "tag":
-        base_ref = str(tags[-1])
-        click.echo(f"Last tag found : {base_ref}")
+    # Resolve base ref and optional release label
+    release = None
+    if ref:
+        base_ref = ref
+    elif tag:
+        base_ref = tag
+        release = tag
+    elif commits:
+        base_ref = f"HEAD~{commits}"
     else:
-        base_ref = f"HEAD~{number}"
-        click.echo(f"Search in the last {number} commit(s)")
+        # Auto-detect: latest tag, or penultimate if HEAD is already at the latest
+        all_tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+        if not all_tags:
+            raise click.ClickException("No tags found. Use --ref or --commits to specify a base.")
+        latest = all_tags[-1]
+        if repo.head.commit == latest.commit and len(all_tags) >= 2:
+            chosen = all_tags[-2]
+            click.echo(f"HEAD is at {latest} — using penultimate tag: {chosen}")
+        else:
+            chosen = latest
+            click.echo(f"Using latest tag: {chosen}")
+        base_ref = str(chosen)
+        release = base_ref
 
-    diff_files = repo.git.diff("--name-only", base_ref, "HEAD").splitlines()
-    for sm in repo.submodules:
-        subrepo = sm.module()
+    new_addons, updated_addons, removed_addons = get_addons_diff(repo, base_ref)
 
-        old_sha = get_submodule_sha(repo, base_ref, sm.path)
-        new_sha = get_submodule_sha(repo, "HEAD", sm.path)
+    if not any([new_addons, updated_addons, removed_addons]):
+        click.echo("No modified addon found.")
+        raise click.exceptions.Exit(0)
 
-        # The submodule has not changed between base_ref and HEAD.
-        if not old_sha or not new_sha or old_sha == new_sha:
-            continue
+    if removed_addons:
+        for addon in removed_addons:
+            print_error(addon, "-")
 
-        sub_diff = subrepo.git.diff("--name-only", old_sha, new_sha).splitlines()
+    if new_addons:
+        for addon in new_addons:
+            print_success(addon, "+")
 
-        diff_files.extend(f"{sm.path}/{f}" for f in sub_diff)
-    addons = find_modified_addons(diff_files)
+    if updated_addons:
+        for addon in updated_addons:
+            print_warning(addon, "w")
 
-    if not addons:
-        click.echo("No addons found")
-        return
-
-    command = config.project.migrate_command.format(addons=",".join(addons))
-
-    click.echo(f"{len(addons)} addon(s) found:")
-    click.echo("\n".join(addons))
-
-    click.echo()
-    click.echo(command)
+    content = make_migration_command(
+        new_addons,
+        updated_addons,
+        removed_addons,
+        release=release,
+    )
+    click.echo(content)
 
     if save:
-        with open(config.project.file_migrate, mode="w", encoding="UTF-8") as file:
-            file.write(config.project.migrate_content.format(content=command))
-        # Do a chmod +x
-        st = os.stat(config.project.file_migrate)
-        os.chmod(config.project.file_migrate, st.st_mode | 0o111)
+        migration_script = write_migration_script(content)
+
+        if not no_commit:
+            commit(repo, repo_path, [migration_script], "migration_script", skip_hooks=True)

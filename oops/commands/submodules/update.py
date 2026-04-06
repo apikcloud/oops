@@ -12,21 +12,22 @@ by name; PR submodules can be skipped with --skip-pr.
 """
 
 import click
-from git import Repo
 
-from oops.core.messages import commit_messages
-from oops.utils.git import is_pull_request
+from oops.commands.base import command
+from oops.services.git import commit, get_local_repo, is_pull_request
+from oops.utils.render import print_success, print_warning
 
 
-@click.command("update", help=__doc__)
+@command("update", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | None" = None):
 
-    repo = Repo()
+    repo, repo_path = get_local_repo()
     changes = []
+    files = []
 
     if not repo.submodules:
         raise click.UsageError("No .gitmodules found.")
@@ -35,18 +36,18 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
         if names and submodule.name not in names:
             continue
         if not submodule.path:
-            click.echo(f"⚠️  Missing path for {submodule.name}, skipping.")
+            print_warning(f"Missing path for {submodule.name}, skipping.")
             continue
 
         if not submodule.branch:
-            click.echo(f"⏭️  No branch defined for submodule {submodule.name}, skipping.")
+            print_warning(f"No branch defined for {submodule.name}, skipping.")
             continue
 
         if skip_pr and is_pull_request(submodule):
-            click.echo(f"⏭️  Submodule {submodule.name} is a pull request, skipping.")
+            print_warning(f"Submodule {submodule.name} is a pull request, skipping.")
             continue
 
-        click.echo(f"🔄 Updating {submodule.name} to latest of '{submodule.branch}'...")
+        click.echo(f"Updating {submodule.name} to latest of '{submodule.branch}'...")
 
         if dry_run:
             continue
@@ -63,18 +64,19 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
         sub_repo.remotes.origin.pull(branch)
 
         # Stage submodule update in parent repo
-        repo.git.add(submodule.path)
+        files.append(submodule.path)
         changes.append(f"{submodule.name} ({submodule.branch})")
 
     if not no_commit and not dry_run:
-        if not repo.index.diff(repo.head.commit):
-            click.echo("No changes to commit.")
-            raise click.exceptions.Exit(0)
-
-        click.echo("Committing changes...")
-        desc = "\n".join(changes)
-        repo.index.commit(
-            commit_messages.submodules_update.format(description=desc), skip_hooks=True
+        commit(
+            repo,
+            repo_path,
+            files,
+            "submodules_update",
+            skip_hooks=True,
+            description="\n".join(changes),
         )
 
-    click.echo("✅ Submodules updated to their upstream branches.")
+    print_success(
+        "Submodule update complete." if not dry_run else "Dry run complete — no changes applied."
+    )

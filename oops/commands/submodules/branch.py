@@ -14,14 +14,13 @@ import configparser
 import logging
 
 import click
-from git import Repo
 
-from oops.core.messages import commit_messages
-from oops.utils.git import is_pull_request, read_gitmodules
-from oops.utils.tools import ask
+from oops.commands.base import command
+from oops.io.tools import ask
+from oops.services.git import commit, get_local_repo, is_pull_request, read_gitmodules
 
 
-@click.command(name="branch", help=__doc__)
+@command(name="branch", help=__doc__)
 @click.option(
     "--branch",
     "default_branch",
@@ -39,7 +38,7 @@ from oops.utils.tools import ask
 )
 def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PLR0912
 
-    repo = Repo(".")
+    repo, repo_path = get_local_repo()
 
     if not repo.submodules:
         click.echo("No submodules found.")
@@ -87,5 +86,9 @@ def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PL
 
     if not no_commit:
         click.echo("Committing changes to .gitmodules...")
-        repo.index.add([".gitmodules"])
-        repo.index.commit(commit_messages.submodules_branch)
+        commit(
+            repo,
+            repo_path,
+            [".gitmodules"],
+            "submodules_branch",
+        )

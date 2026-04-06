@@ -27,7 +27,7 @@ dependencies = [
   "typing-extensions>=4.7; python_version<'3.8'",
   "libcst==0.4.*; python_version<'3.8'",
   "rich>=13.0",
-  "fixit>2.0",
+  "fixit>2.0; python_version>='3.9'",
   "tabulate",
   "GitPython",
 ]
@@ -61,9 +61,12 @@ oops-man-check = "oops.commands.manifest.check:main"
 oops-man-fix = "oops.commands.manifest.fix:main"
 oops-pro-check = "oops.commands.project.check:main"
 oops-pro-exclude = "oops.commands.project.exclusions:main"
-oops-pro-info = "oops.commands.project.info:main"
+oops-pro-show = "oops.commands.project.show:main"
+oops-pro-sync = "oops.commands.project.sync:main"
 oops-pro-update = "oops.commands.project.update:main"
 oops-readme-update = "oops.commands.readme.update:main"
+oops-release-create = "oops.commands.release.create:main"
+oops-release-show = "oops.commands.release.show:main"
 oops-sub-add = "oops.commands.submodules.add:main"
 oops-sub-branch = "oops.commands.submodules.branch:main"
 oops-sub-check = "oops.commands.submodules.check:main"
@@ -126,10 +129,15 @@ source = ["oops", ".venv/lib/python*/site-packages/oops"]
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright"]
 docs = [
-  "mkdocs>=1.6",
-  "mkdocs-material>=9.7",
-  "mkdocs-click>=0.9",
-  "mkdocs-glightbox>=0.5",
-  "mkdocs-redirects>=1.2",
-  "mkdocs-git-revision-date-localized-plugin>=1.5",
+  "mkdocs>=1.6; python_version>='3.9'",
+  "mkdocs-material>=9.7; python_version>='3.9'",
+  "mkdocs-click>=0.9; python_version>='3.9'",
+  "mkdocs-glightbox>=0.5; python_version>='3.9'",
+  "mkdocs-redirects>=1.2; python_version>='3.9'",
+  "mkdocs-git-revision-date-localized-plugin>=1.5; python_version>='3.9'",
+  "mkdocstrings[python]",
+  "mike>=2.1; python_version>='3.9'",
 ]
+
+[tool.uv]
+package = true

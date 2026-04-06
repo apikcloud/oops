@@ -16,7 +16,14 @@ from oops.utils.net import make_json_get
 
 
 def _get_headers(token: Optional[str]) -> dict:
-    """Return the headers to use for GitHub API requests."""
+    """Build HTTP headers for a GitHub API request.
+
+    Args:
+        token: GitHub personal access token, or None for unauthenticated requests.
+
+    Returns:
+        Dict of HTTP headers including Accept and, if provided, Authorization.
+    """
 
     res = {"Accept": "application/vnd.github+json"}
     if token:
@@ -25,7 +32,16 @@ def _get_headers(token: Optional[str]) -> dict:
 
 
 def _get_api_url(owner: str, repo: str, endpoint: str) -> str:
-    """Return the full GitHub API URL for this owner/repo/endpoint."""
+    """Build a full GitHub REST API URL for a given repository endpoint.
+
+    Args:
+        owner: Repository owner (user or organisation).
+        repo: Repository name.
+        endpoint: API path segment appended after the repo (e.g. "zipball/main").
+
+    Returns:
+        Full API URL string.
+    """
 
     return f"{config.github_api}/repos/{owner}/{repo}/{endpoint}"
 
@@ -38,9 +54,19 @@ def fetch_branch_zip(  # noqa: PLR0913
     token: Optional[str] = None,
     extract: bool = True,
 ) -> Tuple[str, Optional[str]]:
-    """
-    Download the latest zipball of `owner/repo`'s `branch`.
-    Returns (zip_path, extracted_root_or_None).
+    """Download the latest zipball of a repository branch from GitHub.
+
+    Args:
+        owner: Repository owner (user or organisation).
+        repo: Repository name.
+        branch: Branch name to download.
+        out_dir: Local directory where the zip file (and extracted content) will be written.
+        token: GitHub personal access token for private repositories. Defaults to None.
+        extract: If True, extract the zip after downloading. Defaults to True.
+
+    Returns:
+        Tuple of (zip_file_path, extracted_root_dir_or_None). The second element is
+        None when extract is False.
     """
     os.makedirs(out_dir, exist_ok=True)
     zip_path = os.path.join(out_dir, f"{repo}-{branch}.zip")
@@ -70,7 +96,17 @@ def fetch_branch_zip(  # noqa: PLR0913
 def get_latest_workflow_run(
     owner: str, repo: str, token: str, branch: Optional[str] = None
 ) -> Optional[WorkflowRunInfo]:  # pragma: no cover
-    """Fetch the latest GitHub Actions workflow run for this repo."""
+    """Fetch the most recent GitHub Actions workflow run for a repository.
+
+    Args:
+        owner: Repository owner (user or organisation).
+        repo: Repository name.
+        token: GitHub personal access token.
+        branch: If provided, filter runs to this branch. Defaults to None.
+
+    Returns:
+        WorkflowRunInfo for the latest run, or None if parsing fails.
+    """
 
     params = {"per_page": "1"}
     if branch:
