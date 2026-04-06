@@ -10,7 +10,7 @@ Runs on the host, inside an Odoo environment, and in CI/CD pipelines.
 ## Installation
 
 ```bash
-pip install git+https://github.com/apikcloud/oops.git
+uv pip install git+https://github.com/apikcloud/oops.git@v0.2.0
 ```
 
 ## Features
@@ -24,6 +24,14 @@ pip install git+https://github.com/apikcloud/oops.git
     Discover, link, compare, and materialize addons.
 
     [:octicons-arrow-right-24: Explore](commands/addons.md)
+
+-   **Manifest**
+
+    ---
+
+    Lint and auto-fix Odoo manifest files.
+
+    [:octicons-arrow-right-24: Explore](commands/manifest.md)
 
 -   **Project**
 
@@ -40,6 +48,15 @@ pip install git+https://github.com/apikcloud/oops.git
     Generate the addon inventory table in README.md.
 
     [:octicons-arrow-right-24: Explore](commands/readme.md)
+
+
+-   **Release**
+
+    ---
+
+    Prepare versioned releases, update CHANGELOG, and list release history.
+
+    [:octicons-arrow-right-24: Explore](commands/release.md)
 
 -   **Submodules**
 

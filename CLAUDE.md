@@ -10,9 +10,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Install in editable mode with dev dependencies
-pip install -e ".[dev]"
+uv sync --extra dev
 # or
-make install   # adds --break-system-packages
+make install
 
 # Lint
 make lint      # ruff check
@@ -21,7 +21,7 @@ make typecheck # pyright (soft-fail — informational only)
 # Test
 make test      # pytest -vv
 make cov       # pytest with coverage (80% minimum enforced)
-pytest -vv tests/path/to/test_file.py::TestClass::test_name  # single test
+uv run pytest -vv tests/path/to/test_file.py::TestClass::test_name  # single test
 
 # Docs
 make install-docs  # install docs dependencies
@@ -38,38 +38,41 @@ make build
 oops/
 ├── commands/       # Click CLI entry points, grouped by domain
 │   ├── addons/     # list, add, compare, download, materialize, diff
-│   ├── manifest/   # check, fix (entry points declared but not yet implemented)
-│   ├── project/    # check, info, update, exclude
+│   ├── manifest/   # check, fix — entry points declared, implementations MISSING
+│   ├── project/    # check, show, update, exclusions, sync
 │   ├── readme/     # update (generate addon table in README.md)
+│   ├── release/    # create, show
 │   └── submodules/ # add, update, check, fix, prune, rename, replace, rewrite, show, branch, clean
 ├── core/
 │   ├── config.py   # Nested Config dataclasses + YAML loader (see below)
+│   ├── paths.py    # Structural path constants (repo layout)
 │   ├── models.py   # AddonInfo, CommitInfo, ImageInfo, WorkflowRunInfo
 │   ├── exceptions.py
-│   └── messages.py # All git commit message strings
-├── git/
-│   ├── core.py        # GitRepository class — legacy abstraction (commits, staging, submodules)
-│   ├── repository.py  # Standalone helpers: get_last_commit, update_gitignore, list_available_addons
-│   ├── submodules.py
-│   ├── versioning.py
-│   └── __init__.py    # Re-exports from submodules — marked deprecated, will be removed
+│   └── messages.py # All git commit message strings (keyed by name, used by commit())
+├── io/
+│   ├── file.py     # File I/O helpers, addon discovery, migration script generation
+│   ├── manifest.py # Manifest parsing (ast.literal_eval) and libcst-based rewriting
+│   └── tools.py    # Subprocess wrappers (run())
 ├── rules/          # Fixit-based lint rules for Odoo manifests
-├── services/       # Docker and GitHub API integrations
+├── services/
+│   ├── git.py      # GitPython helpers: get_local_repo(), commit(), list_available_addons(), get_last_commit()
+│   ├── github.py   # GitHub API integration
+│   └── docker.py   # Docker image discovery and validation
 └── utils/
-    ├── io.py       # Addon discovery, manifest parsing (ast.literal_eval), symlink ops
-    ├── render.py   # Terminal output (tables, colors)
-    ├── net.py      # URL normalization
-    └── tools.py    # Subprocess wrappers
+    ├── helpers.py  # String utilities, deep_visit
+    ├── render.py   # Terminal output (tables, colors, print_success/warning/error)
+    ├── net.py      # URL normalization, sparse_clone
+    └── versioning.py # Semver helpers (get_last_release, get_next_releases, is_valid_semver)
 ```
 
 ### Config structure (`core/config.py`)
 
-`Config` is a nested dataclass loaded from `~/.oops.yaml` (global) and `.oops.yaml` (local, takes precedence). Unknown keys are silently ignored.
+`Config` is a nested dataclass loaded from `~/.oops.yaml` (global) and `.oops.yaml` (local, takes precedence). Unknown keys emit a warning but are not rejected.
 
 ```
 Config
 ├── images: ImagesConfig
-│   ├── source: ImageSourceConfig      # repository, file, .url property
+│   ├── source: ImageSourceConfig      # repository (required), file (required), .url property
 │   ├── collections: list[str]
 │   ├── registries: ImageRegistriesConfig  # recommended, deprecated, warn
 │   └── release_warn_age_days: int
@@ -79,23 +82,33 @@ Config
 │   ├── force_scheme: str              # ssh
 │   ├── deprecated_repositories: dict
 │   └── checks: list[str]
-└── project: ProjectConfig
-    ├── mandatory_files / recommended_files
-    ├── file_packages / file_requirements / file_odoo_version
-    └── migrate_command / migrate_content
+├── project: ProjectConfig
+│   ├── mandatory_files / recommended_files
+│   ├── file_packages / file_requirements / file_odoo_version / file_migrate
+│   └── pre_commit_exclude_file
+└── sync: SyncConfig
+    ├── remote_url / branch
+    └── files: list[str]
 ```
 
 Access pattern: `config.images.registries.recommended`, `config.submodules.current_path`, etc.
 
 ### Key Design Points
 
-- **Entry points** are declared in `pyproject.toml` under `[project.scripts]`. Each command maps to a Click function in `oops/commands/`. `oops-man-check` and `oops-man-fix` are declared but their implementation files don't exist yet.
-- **Two git abstraction layers coexist**: newer commands use GitPython's `Repo` directly; older ones use the custom `GitRepository` class (`git/core.py`). Both are acceptable — don't unify unless refactoring a whole domain.
-- **`oops.git` and `oops.git.config`** are marked deprecated (`# TODO: deprecated`). Import directly from `oops.git.repository`, `oops.git.versioning`, etc. instead.
-- **Manifest parsing** uses `ast.literal_eval` (not `importlib`). Manifest normalization/rewriting uses `libcst` to preserve comments.
+- **Entry points** are declared in `pyproject.toml` under `[project.scripts]`. `oops-man-check` and `oops-man-fix` are declared but have no implementation — their command files are missing. `oops-i-did-it-again` is an alias for `oops-sub-clean`.
+- **Single git abstraction layer**: all commands use GitPython's `Repo` directly plus helpers from `services/git.py`. The legacy `GitRepository` class and the entire `oops/git/` module have been removed — do not re-introduce them.
+- **`services/git.py`** is the canonical git service layer: `get_local_repo()` resolves the repo, `commit()` stages and commits using a named key from `core/messages.py`, `list_available_addons()` iterates submodules.
+- **Commit messages** are all stored as format strings in `core/messages.py` (`CommitMessages` dataclass). Always add new messages there and reference them by key in `commit()` calls.
+- **Manifest parsing** uses `ast.literal_eval` (not `importlib`). Manifest normalization/rewriting uses `libcst` to preserve comments and formatting.
 - **Fixit rules** in `rules/` enforce manifest authorship (`author = "Apik"`) and a fixed allowed-maintainers list.
 - **Version** is derived from git tags via `hatch-vcs` — no manual version bumping.
-- **Docs** live in `docs/` and are built with MkDocs + mkdocs-material. Command reference pages under `docs/commands/` are the canonical user-facing docs.
+- **Docs** live in `docs/` and are built with MkDocs + mkdocs-material. Versioned with `mike`. Command reference pages under `docs/commands/` are the canonical user-facing docs; API reference pages under `docs/reference/` are auto-generated from docstrings.
+
+### Known Limitations
+
+- Symlink detection assumes **one symlink per submodule** — commands that discover symlinks (rewrite, io/file.py) have a `FIXME` noting this.
+- `oops-man-check` and `oops-man-fix` are non-functional (declared but not implemented).
+- `oops-addons-download` does not check for duplicate addons before copying (`FIXME` in download.py).
 
 ### Key Libraries
 
@@ -104,8 +117,8 @@ Access pattern: `config.images.registries.recommended`, `config.submodules.curre
 | Click | CLI framework |
 | GitPython | Git repo operations |
 | libcst | AST-preserving manifest rewriting |
-| fixit | Custom lint rules |
-| Rich / tabulate | Terminal output |
+| fixit | Custom lint rules (py≥3.9 only) |
+| tabulate | Terminal tables |
 | Ruff | Linting + formatting (line-length=100, py37 target) |
-| Pyright | Type checking (basic mode) |
-| MkDocs + mkdocs-material | Documentation site |
+| Pyright | Type checking (basic mode, soft-fail) |
+| MkDocs + mkdocs-material + mike | Documentation site with versioning |

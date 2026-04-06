@@ -1,0 +1,3 @@
+# Manifest
+
+::: oops.io.manifest

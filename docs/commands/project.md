@@ -1,9 +1,9 @@
 # Project
 
 ::: mkdocs-click:commands
-    :module: oops.commands.project.info
+    :module: oops.commands.project.show
     :command: main
-    :prog_name: oops-pro-info
+    :prog_name: oops-pro-show
     :depth: 2
     :style: table
 
@@ -12,13 +12,13 @@
 Display the full project summary:
 
 ```bash
-oops-pro-info
+oops-pro-show
 ```
 
 Include the latest GitHub Actions run:
 
 ```bash
-oops-pro-info --token $GH_TOKEN
+oops-pro-show --token $GH_TOKEN
 ```
 
 ---
@@ -88,4 +88,33 @@ Write the file without committing:
 
 ```bash
 oops-pro-exclude --no-commit
+```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.project.sync
+    :command: main
+    :prog_name: oops-pro-sync
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Sync files from the configured remote repository with confirmation prompt:
+
+```bash
+oops-pro-sync
+```
+
+Preview the diff without applying any changes:
+
+```bash
+oops-pro-sync --dry-run
+```
+
+Apply changes without confirmation:
+
+```bash
+oops-pro-sync --force
 ```

@@ -53,35 +53,6 @@ oops-addons-compare "$(cat addons.txt)" --delete --no-commit
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.addons.diff
-    :command: main
-    :prog_name: oops-addons-diff
-    :depth: 2
-    :style: table
-
-**Examples:**
-
-List modified addons since the last git tag:
-
-```bash
-oops-addons-diff tag
-```
-
-List modified addons across the last 3 commits:
-
-```bash
-oops-addons-diff commit 3
-```
-
-Write the migration command to `migrate.sh`:
-
-```bash
-oops-addons-diff tag --save
-```
-
----
-
-::: mkdocs-click:commands
     :module: oops.commands.addons.download
     :command: main
     :prog_name: oops-addons-download
@@ -158,4 +129,45 @@ Replace a symlink with a real directory and commit:
 
 ```bash
 oops-addons-materialize my_addon
+```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.addons.diff
+    :command: main
+    :prog_name: oops-addons-diff
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Show modified addons since the latest tag:
+
+```bash
+oops-addons-diff
+```
+
+Compare against a specific tag:
+
+```bash
+oops-addons-diff --tag v1.2.0
+```
+
+Compare against the last 5 commits:
+
+```bash
+oops-addons-diff --commits 5
+```
+
+Write the migration script to `migrate.sh` and commit:
+
+```bash
+oops-addons-diff --save
+```
+
+Write the migration script without committing:
+
+```bash
+oops-addons-diff --save --no-commit
 ```
