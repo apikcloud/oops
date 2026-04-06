@@ -478,6 +478,8 @@
       
         
       
+        
+      
     
     
     
@@ -541,6 +543,34 @@
     
   
     Addons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manifest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manifest
   
 
     
@@ -2037,7 +2067,7 @@ the repo root for every addon found or for a specific list.</p>
 <td><code>--base-dir</code></td>
 <td>text</td>
 <td>Base dir for submodules (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7fe63887bb00&gt;</code></td>
+<td><code>&lt;function &lt;lambda&gt; at 0x7f9149f75d00&gt;</code></td>
 </tr>
 <tr>
 <td><code>-b</code>, <code>--branch</code></td>
@@ -2108,7 +2138,8 @@ with --pull-request.</p>
 <h3 id="oops-sub-check">oops-sub-check<a class="headerlink" href="#oops-sub-check" title="Permanent link">¶</a></h3>
 <p>Check all submodules for common issues.</p>
 <p>Verifies path conventions, URL scheme, branch presence, deprecated repository
-references, unused submodules (no symlink points to them), and broken symlinks.
+references, unused submodules (no symlink points to them), broken symlinks,
+and pull-request submodules not under the configured PR directory.
 Exits non-zero if any issue is found.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-sub-check [OPTIONS]
@@ -2408,7 +2439,7 @@ the old path. Prompts for confirmation unless --force is used.</p>
 <td><code>--base-dir</code></td>
 <td>text</td>
 <td>Base directory for rewritten paths (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7fe63876cb80&gt;</code></td>
+<td><code>&lt;function &lt;lambda&gt; at 0x7f9149f76d40&gt;</code></td>
 </tr>
 <tr>
 <td><code>-f</code>, <code>--force</code></td>

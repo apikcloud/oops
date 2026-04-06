@@ -10,10 +10,10 @@
       
       
       
-        <link rel="prev" href="../readme/">
+        <link rel="prev" href="../addons/">
       
       
-        <link rel="next" href="../submodules/">
+        <link rel="next" href="../project/">
       
       
         
@@ -24,7 +24,7 @@
     
     
       
-        <title>Release - Oops</title>
+        <title>Manifest - Oops</title>
       
     
     
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#release" class="md-skip">
+        <a href="#manifest" class="md-skip">
           Skip to content
         </a>
       
@@ -128,7 +128,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Release
+              Manifest
             
           </span>
         </div>
@@ -560,10 +560,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../manifest/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manifest
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -579,6 +606,48 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+      
+        <li class="md-nav__item">
+  <a href="#oops-man-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-man-check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oops-man-fix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-man-fix
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -644,37 +713,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Release
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../release/" class="md-nav__link">
         
   
   
@@ -690,48 +732,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
-      
-        <li class="md-nav__item">
-  <a href="#oops-release-create" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        oops-release-create
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#oops-release-show" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        oops-release-show
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1768,10 +1768,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops-release-create" class="md-nav__link">
+  <a href="#oops-man-check" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-release-create
+        oops-man-check
       
     </span>
   </a>
@@ -1779,10 +1779,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#oops-release-show" class="md-nav__link">
+  <a href="#oops-man-fix" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-release-show
+        oops-man-fix
       
     </span>
   </a>
@@ -1809,18 +1809,21 @@
   
 
 
-<h1 id="release">Release<a class="headerlink" href="#release" title="Permanent link">¶</a></h1>
-<h3 id="oops-release-create">oops-release-create<a class="headerlink" href="#oops-release-create" title="Permanent link">¶</a></h3>
-<p>Create a release: update CHANGELOG, write migration script, commit, and tag.</p>
-<p>Workflow:
-  1. Compute the next version (minor by default, or --major / --fix / --version).
-  2. Validate that CHANGELOG.md has a non-empty [Unreleased] (or pre-edited version) section.
-  3. Replace [Unreleased] with the versioned header and today's date (if not already replaced).
-  4. Write the migration script for addon changes since the last tag.
-  5. Commit all staged files and create an annotated git tag.</p>
-<p>Use --dry-run to preview without writing anything.</p>
+<h1 id="manifest">Manifest<a class="headerlink" href="#manifest" title="Permanent link">¶</a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Experimental</p>
+<p>These commands are experimental. The rule set, options, and output format
+may change in future releases.</p>
+</div>
+<hr>
+<h3 id="oops-man-check">oops-man-check<a class="headerlink" href="#oops-man-check" title="Permanent link">¶</a></h3>
+<p>[EXPERIMENTAL] Check all Odoo manifest files against the oops lint rules.</p>
+<p>Scans the repository for <strong>manifest</strong>.py files and runs the rules defined
+in oops.rules.manifest (author/maintainers, key order). Reports violations
+and exits non-zero if any are found.</p>
+<p>Use oops-man-fix to apply autofixes.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-release-create [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-man-check [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -1834,45 +1837,66 @@
 </thead>
 <tbody>
 <tr>
-<td><code>--major</code></td>
-<td>text</td>
-<td>Bump major version.</td>
+<td><code>--diff</code></td>
+<td>boolean</td>
+<td>Show the autofix diff alongside each violation.</td>
 <td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--minor</code></td>
+<td><code>--names</code></td>
 <td>text</td>
-<td>Bump minor version (default).</td>
-<td><code>True</code></td>
+<td>Comma-separated list of addon names to check.</td>
+<td>None</td>
 </tr>
 <tr>
-<td><code>--fix</code></td>
-<td>text</td>
-<td>Bump fix/patch version.</td>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
 <td><code>False</code></td>
 </tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Check all manifests in the repository:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops-man-check
+</span></code></pre></div>
+<p>Check specific addons only:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops-man-check<span class="w"> </span>--names<span class="w"> </span>sale_custom,purchase_custom
+</span></code></pre></div>
+<p>Show the suggested fix diff alongside each violation:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops-man-check<span class="w"> </span>--diff
+</span></code></pre></div>
+<hr>
+<h3 id="oops-man-fix">oops-man-fix<a class="headerlink" href="#oops-man-fix" title="Permanent link">¶</a></h3>
+<p>[EXPERIMENTAL] Apply autofixes to Odoo manifest files.</p>
+<p>Scans the repository for <strong>manifest</strong>.py files and applies all autofixable
+rules from oops.rules.manifest in place (author/maintainers, key order).
+Reports how many files were modified.</p>
+<p>Use oops-man-check to preview violations without modifying files.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops-man-fix [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
 <tr>
-<td><code>--version</code></td>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--names</code></td>
 <td>text</td>
-<td>Set version manually (e.g. v1.3.0).</td>
+<td>Comma-separated list of addon names to fix.</td>
 <td>None</td>
 </tr>
 <tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
-<td>Stage changes but do not commit or tag.</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--no-tag</code></td>
-<td>boolean</td>
-<td>Commit but do not create a git tag.</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--dry-run</code></td>
-<td>boolean</td>
-<td>Show planned changes without writing anything.</td>
+<td>Do not commit changes</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -1884,51 +1908,14 @@
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<p>Create a minor release (default):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops-release-create
+<p>Fix all manifests in the repository:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops-man-fix
 </span></code></pre></div>
-<p>Create a patch release:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops-release-create<span class="w"> </span>--fix
+<p>Fix specific addons only:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops-man-fix<span class="w"> </span>--names<span class="w"> </span>sale_custom,purchase_custom
 </span></code></pre></div>
-<p>Set the version explicitly:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops-release-create<span class="w"> </span>--version<span class="w"> </span>v2.0.0
-</span></code></pre></div>
-<p>Preview what would happen without writing anything:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops-release-create<span class="w"> </span>--dry-run
-</span></code></pre></div>
-<p>Commit without creating a tag:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops-release-create<span class="w"> </span>--no-tag
-</span></code></pre></div>
-<hr>
-<h3 id="oops-release-show">oops-release-show<a class="headerlink" href="#oops-release-show" title="Permanent link">¶</a></h3>
-<p>List all releases (semver tags) with their date and commit count.</p>
-<p>Shows each vX.Y.Z tag sorted from newest to oldest, with the tag date,
-author, and the number of commits between that release and the previous one.</p>
-<p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops-release-show [OPTIONS]
-</span></code></pre></div>
-<p><strong>Options:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--help</code></td>
-<td>boolean</td>
-<td>Show this message and exit.</td>
-<td><code>False</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Examples:</strong></p>
-<p>List all releases with their date, author and commit count:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-release-show
+<p>Preview fixes without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-man-fix<span class="w"> </span>--no-commit
 </span></code></pre></div>
 
 
@@ -1952,7 +1939,7 @@ author, and the number of commits between that release and the previous one.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 5, 2026 20:52:47 UTC"><span class="timeago" datetime="2026-04-05T20:52:47+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 5, 2026 20:52:47 UTC">2026-04-05</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 5, 2026 21:35:21 UTC"><span class="timeago" datetime="2026-04-05T21:35:21+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 5, 2026 21:35:21 UTC">2026-04-05</span>
   </span>
 
     
@@ -1962,7 +1949,7 @@ author, and the number of commits between that release and the previous one.</p>
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 4, 2026 21:11:11 UTC"><span class="timeago" datetime="2026-04-04T21:11:11+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 4, 2026 21:11:11 UTC">2026-04-04</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 5, 2026 21:35:21 UTC"><span class="timeago" datetime="2026-04-05T21:35:21+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 5, 2026 21:35:21 UTC">2026-04-05</span>
   </span>
 
     
