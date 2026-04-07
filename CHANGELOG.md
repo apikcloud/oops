@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-07
+
+### Added
+
+- `oops-odoo-download`: clone Odoo Community and Enterprise source repositories via SSH into a shared team directory configured in `~/.oops.yaml`
+- `oops-odoo-update`: update an existing checkout to the latest commit, or snapshot it at a given date (`--date YYYY-MM-DD`)
+- `oops-odoo-show`: list all local Odoo source checkouts with their current commit hash and date, grouped by version
+- `ManifestVersionBump` lint rule: enforces version bump on modified manifests; supports `strict` and `trunk` strategies (configurable via `manifest.version_bump_strategy`)
+- `OdooConfig` section in `~/.oops.yaml`: `sources_dir`, `community_url`, `enterprise_url`
+
+### Fixed
+
+- Config `_apply()` now correctly converts `Optional[Path]` fields (previously failed when the default was `None`); also expands `~` in path values
+
+### Documentation
+
+- Added command reference page for the new `odoo` command group
+- Added manifest configuration section, lint rules page, and pre-commit hooks guide
+
 ## [0.3.1] - 2026-04-07
 
 ### Fixed
