@@ -9,6 +9,7 @@ import fixit
 from fixit import Options, QualifiedRule
 
 from oops.io.manifest import find_manifests
+from oops.rules._helpers import set_lint_path
 from oops.utils.compat import List, Optional
 
 _RULES = [QualifiedRule("oops.rules.manifest")]
@@ -40,7 +41,10 @@ def run_fixit(paths: List[Path], autofix: bool, show_diff: bool = False) -> int:
     """
     options = Options(debug=False, config_file=None, rules=_RULES)
     violations = 0
-    for result in fixit.fixit_paths(paths, autofix=autofix, options=options):
-        if fixit.print_result(result, show_diff=show_diff):
-            violations += 1
+    for path in paths:
+        # Tell rules which file they're linting (fixit 2.x doesn't expose path to rules).
+        set_lint_path(path)
+        for result in fixit.fixit_file(path, autofix=autofix, options=options):
+            if fixit.print_result(result, show_diff=show_diff):
+                violations += 1
     return violations

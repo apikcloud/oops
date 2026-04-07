@@ -35,6 +35,7 @@ _SUPPORTED_VERSIONS: Final = {1}
 class ManifestConfig:
     author: str = _MISSING  # type: ignore[assignment]
     odoo_version: Optional[str] = None  # e.g. "19.0" — enforced in version check
+    version_bump_strategy: str = "off"  # "off" | "strict" | "trunk"
     allowed_maintainers: List[str] = field(default_factory=lambda: [])
     required_keys: List[str] = field(
         default_factory=lambda: [

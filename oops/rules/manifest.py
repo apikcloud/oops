@@ -90,24 +90,19 @@ from fixit import LintRule
 
 from oops.core.config import ManifestConfig
 from oops.rules._helpers import (
-    VERSION_PATTERN,
-)
-from oops.rules._helpers import (
     Elements as _Elements,
-)
-from oops.rules._helpers import (
+    VERSION_PATTERN,
     extract_kv as _extract_kv,
-)
-from oops.rules._helpers import (
+    file_at_ref as _file_at_ref,
+    get_lint_path as _get_lint_path,
+    git_repo_root as _git_repo_root,
     key_name as _key_name,
-)
-from oops.rules._helpers import (
+    last_tag as _last_tag,
     load_manifest_cfg as _load_manifest_cfg,
-)
-from oops.rules._helpers import (
+    module_version as _module_version,
+    parse_version_str as _parse_version_str,
     sort_key as _sort_key,
-)
-from oops.rules._helpers import (
+    staged_addon_manifest_relpaths as _staged_addon_manifest_relpaths,
     string_value as _string_value,
 )
 
@@ -557,3 +552,125 @@ class ManifestKeyOrder(LintRule):
                 el = el.with_changes(comma=comma)  # noqa: PLW2901
             result.append(el)
         return result
+
+
+# ---------------------------------------------------------------------------
+# Rule: ManifestVersionBump
+# ---------------------------------------------------------------------------
+
+
+class ManifestVersionBump(LintRule):
+    """Verify that the manifest version is bumped when addon files are staged.
+
+    This rule is git-aware: it reads the list of staged files from the index,
+    determines which addons are affected, and only activates for those. Addons
+    that have no staged files are silently skipped, so the rule is safe to
+    run on all manifests via ``oops-man-check``.
+
+    Two strategies are supported (set ``manifest.version_bump_strategy`` in
+    ``.oops.yaml``):
+
+    ``strict`` (default when not ``off``)
+        The staged version must be strictly greater than the version at HEAD.
+        Enforces a version bump on every commit that touches the addon.
+
+    ``trunk``
+        The staged version must be strictly greater than the version at the
+        last git tag. One bump per release cycle is sufficient — fits
+        trunk-based / squash-merge workflows.
+
+    ``off`` (default)
+        Rule is disabled. Set explicitly to activate::
+
+            manifest:
+              version_bump_strategy: strict   # or trunk
+
+    New addons (absent from the reference commit / tag) are always exempt.
+    Only the module-specific tail of the version is compared (last 3 parts
+    of the 5-part Odoo string), so migrating to a new Odoo major version
+    without bumping the module version does not trigger a false positive.
+    """
+
+    MESSAGE = "Manifest version must be bumped."
+
+    # Class-level default — overridden from config in __init__.
+    version_bump_strategy: str = "off"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._checked = False
+        self._ref_version: Optional[Tuple[int, ...]] = None
+
+        # Load strategy from config (falls back to class default "off").
+        cfg = _load_manifest_cfg()
+        strategy = cfg.version_bump_strategy if cfg is not None else self.version_bump_strategy
+
+        if strategy == "off":
+            return  # rule disabled
+
+        # Determine the git reference to compare against.
+        if strategy == "trunk":
+            ref: Optional[str] = _last_tag()
+            if ref is None:
+                return  # no tag yet, nothing to compare against
+        else:
+            ref = "HEAD"
+
+        # Identify which file we're currently linting.
+        # set_lint_path() is called by run_fixit() before fixit_file() per path.
+        path = _get_lint_path()
+        if path is None:
+            return
+
+        repo_root = _git_repo_root()
+        if repo_root is None:
+            return
+
+        try:
+            rel_path = str(path.relative_to(repo_root))
+        except ValueError:
+            return
+
+        # Only activate for manifests whose addon has staged changes.
+        if rel_path not in _staged_addon_manifest_relpaths():
+            return
+
+        # Fetch the reference manifest and extract its version.
+        ref_src = _file_at_ref(rel_path, ref)
+        if ref_src is None:
+            return  # new addon at this ref → exempt
+
+        self._ref_version = _parse_version_str(ref_src)
+
+    # -- Visitor -------------------------------------------------------------
+
+    def visit_Dict(self, node: cst.Dict) -> None:
+        # _ref_version is None when the rule is inactive (strategy="off",
+        # addon not staged, new addon, or no config).
+        if self._checked or self._ref_version is None:
+            return
+        self._checked = True
+
+        kv = _extract_kv(node)
+        version_node = kv.get("version")
+        if version_node is None:
+            return
+
+        val = _string_value(version_node)
+        if val is None:
+            return
+
+        try:
+            staged_ver: Tuple[int, ...] = tuple(int(p) for p in val.split("."))
+        except ValueError:
+            return  # unparseable — caught by OdooManifestAuthorMaintainers
+
+        if _module_version(staged_ver) <= _module_version(self._ref_version):
+            ref_str = ".".join(map(str, self._ref_version))
+            self.report(
+                version_node,
+                message=(
+                    f"Version not bumped: {val!r} must be greater than "
+                    f"{ref_str!r} (strategy: {self.version_bump_strategy!r})"
+                ),
+            )
