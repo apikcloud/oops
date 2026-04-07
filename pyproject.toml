@@ -24,6 +24,7 @@ dependencies = [
   "tomli; python_version<'3.11'",                   # from 3.11 tomllib is in stdlib
   "backports.zoneinfo; python_version<'3.9'",
   "click>=8.1",
+  "lxml>=4.9",
   "typing-extensions>=4.7; python_version<'3.8'",
   "libcst==0.4.*; python_version<'3.8'",
   "rich>=13.0",
@@ -59,6 +60,7 @@ oops-addons-materialize = "oops.commands.addons.materialize:main"
 oops-i-did-it-again = "oops.commands.submodules.clean:main"
 oops-man-check = "oops.commands.manifest.check:main"
 oops-man-fix = "oops.commands.manifest.fix:main"
+oops-mig-fix-attrs = "oops.commands.migrate.fix_attrs:main"
 oops-pro-check = "oops.commands.project.check:main"
 oops-pro-exclude = "oops.commands.project.exclusions:main"
 oops-pro-show = "oops.commands.project.show:main"
