@@ -87,6 +87,7 @@ class TestApply:
 # ---------------------------------------------------------------------------
 
 REQUIRED_YAML = (
+    "version: 1\n"
     "images:\n  source:\n    repository: test/repo\n    file: tags.json\n"
     "manifest:\n  author: Apik\n"
 )
@@ -109,6 +110,7 @@ class TestValidate:
         msg = str(exc_info.value)
         assert "images.source.repository" in msg
         assert "images.source.file" in msg
+        assert "version" in msg
 
     def test_sentinel_value(self):
         src = Config().images.source
