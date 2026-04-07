@@ -145,6 +145,7 @@ class ProjectConfig:
 
 @dataclass
 class Config:
+    version: float = _MISSING  # type: ignore[assignment]
     images: ImagesConfig = field(default_factory=ImagesConfig)
     submodules: SubmodulesConfig = field(default_factory=SubmodulesConfig)
     project: ProjectConfig = field(default_factory=ProjectConfig)
