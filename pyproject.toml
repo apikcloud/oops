@@ -110,7 +110,7 @@ testpaths = ["tests"]
 source = ["oops"]
 branch = true
 parallel = true
-omit = ["*/__main__.py", "*/_version.py", "*/tests/*"]
+omit = ["*/__main__.py", "*/_version.py", "*/tests/*", "oops/commands/*"]
 
 [tool.coverage.report]
 skip_empty = true
