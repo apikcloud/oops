@@ -1,0 +1,111 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+#
+# File: update.py — oops/commands/odoo/update.py
+
+"""
+Update Odoo Community and Enterprise source checkouts.
+
+Operates on repositories previously cloned by oops-odoo-download into:
+
+    <base_dir>/<version>/community
+    <base_dir>/<version>/enterprise
+
+The base directory is read from odoo.sources_dir in ~/.oops.yaml (or .oops.yaml)
+and can be overridden with --base-dir.
+
+Without --date, fetches and checks out the latest commit on the branch.
+
+With --date YYYY-MM-DD, fetches history back to that date and checks out
+the last commit that existed at or before midnight of that day, leaving
+the working tree in a detached-HEAD state at the chosen snapshot.
+
+Pass --enterprise to also update the Enterprise checkout.
+"""
+
+import subprocess
+from datetime import date as Date
+from pathlib import Path
+
+import click
+
+from oops.commands.base import command
+from oops.core.config import config
+from oops.utils.compat import Optional
+from oops.utils.git import update_at_date, update_latest
+from oops.utils.render import print_success, print_warning
+
+
+def _normalize_version(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """Ensure version is in X.0 format (e.g. '19' → '19.0')."""
+    return value if "." in value else f"{value}.0"
+
+
+@command(name="update", help=__doc__)
+@click.argument("version", callback=_normalize_version, is_eager=True)
+@click.option(
+    "--base-dir",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Root directory for Odoo sources. Defaults to odoo.sources_dir in config.",
+)
+@click.option(
+    "--date",
+    default=None,
+    metavar="YYYY-MM-DD",
+    help="Checkout the last commit at or before this date.",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+)
+@click.option(
+    "--enterprise/--no-enterprise",
+    "with_enterprise",
+    is_flag=True,
+    default=True,
+    help="Include or exclude Enterprise in the update.",
+)
+def main(
+    version: str,
+    base_dir: Optional[str],
+    date: Optional[Date],
+    with_enterprise: bool,
+) -> None:
+    resolved = Path(base_dir) if base_dir else config.odoo.sources_dir
+    if resolved is None:
+        raise click.UsageError(
+            "No base directory provided. Pass --base-dir or set odoo.sources_dir in ~/.oops.yaml."
+        )
+    target = resolved / version
+    date_str = date.strftime("%Y-%m-%d") if date else None
+
+    repos = {"Community": target / "community"}
+    if with_enterprise:
+        repos["Enterprise"] = target / "enterprise"
+
+    errors: list[str] = []
+
+    for label, dest in repos.items():
+        if not dest.exists():
+            print_warning(f"'{dest}' not found — run oops-odoo-download first.")
+            continue
+
+        if date_str:
+            click.echo(f"Updating {label} {version} to snapshot {date_str} in '{dest}'…")
+            try:
+                update_at_date(dest, date_str)
+                print_success(f"{label} {version} checked out at {date_str}.")
+            except (subprocess.CalledProcessError, click.ClickException) as exc:
+                msg = f"{label} update failed: {exc}"
+                errors.append(msg)
+                click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
+        else:
+            click.echo(f"Updating {label} {version} to latest in '{dest}'…")
+            try:
+                update_latest(dest)
+                print_success(f"{label} {version} updated to latest.")
+            except subprocess.CalledProcessError as exc:
+                msg = f"{label} update failed: {exc}"
+                errors.append(msg)
+                click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
+
+    if errors:
+        raise click.exceptions.Exit(1)

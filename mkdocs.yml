@@ -186,6 +186,7 @@ nav:
   - Commands:
       - Addons: commands/addons.md
       - Manifest: commands/manifest.md
+      - Odoo: commands/odoo.md
       - Project: commands/project.md
       - Readme: commands/readme.md
       - Release: commands/release.md

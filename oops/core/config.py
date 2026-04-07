@@ -9,7 +9,7 @@ import typing
 import warnings
 from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
-from typing import Final
+from typing import Final, Union
 
 import click
 import yaml
@@ -125,6 +125,13 @@ class SubmodulesConfig:
 
 
 @dataclass
+class OdooConfig:
+    sources_dir: Optional[Path] = None
+    community_url: str = "git@github.com:odoo/odoo.git"
+    enterprise_url: str = "git@github.com:odoo/enterprise.git"
+
+
+@dataclass
 class ProjectConfig:
     mandatory_files: set = field(
         default_factory=lambda: {"requirements.txt", "odoo_version.txt", "packages.txt"}
@@ -152,6 +159,7 @@ class Config:
     project: ProjectConfig = field(default_factory=ProjectConfig)
     sync: SyncConfig = field(default_factory=SyncConfig)
     manifest: ManifestConfig = field(default_factory=ManifestConfig)  # type: ignore[call-arg]
+    odoo: OdooConfig = field(default_factory=OdooConfig)
 
     # Internal / misc (not exposed in .oops.yaml)
     manifest_names: List[str] = field(
@@ -187,6 +195,15 @@ def _is_list_of_path(hint: object) -> bool:
     return getattr(hint, "__origin__", None) is list and getattr(hint, "__args__", ()) == (Path,)
 
 
+def _is_path_hint(hint: object) -> bool:
+    """Return True if *hint* is Path or Optional[Path]."""
+    if hint is Path:
+        return True
+    if getattr(hint, "__origin__", None) is Union:
+        return Path in getattr(hint, "__args__", ())
+    return False
+
+
 def _apply(obj, data: dict, path: str = "") -> None:
     """Recursively merge *data* into *obj*.
 
@@ -211,8 +228,8 @@ def _apply(obj, data: dict, path: str = "") -> None:
         attr = getattr(obj, key)
         if isinstance(value, dict) and is_dataclass(attr):
             _apply(attr, value, full_key)
-        elif isinstance(attr, Path) and isinstance(value, (str, Path)):
-            setattr(obj, key, Path(value))
+        elif _is_path_hint(hints.get(key)) and isinstance(value, (str, Path)):
+            setattr(obj, key, Path(value).expanduser())
         elif _is_list_of_path(hints.get(key)) and isinstance(value, list):
             setattr(obj, key, [Path(v) for v in value])
         elif isinstance(attr, set) and isinstance(value, (list, set)):

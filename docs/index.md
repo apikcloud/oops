@@ -33,6 +33,14 @@ uv pip install git+https://github.com/apikcloud/oops.git@v0.3.1
 
     [:octicons-arrow-right-24: Explore](commands/manifest.md)
 
+-   **Odoo**
+
+    ---
+
+    Manage Odoo sources, community and enterprise.
+
+    [:octicons-arrow-right-24: Explore](commands/odoo.md)
+
 -   **Project**
 
     ---

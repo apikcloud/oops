@@ -78,6 +78,9 @@ oops-sub-replace = "oops.commands.submodules.replace:main"
 oops-sub-rewrite = "oops.commands.submodules.rewrite:main"
 oops-sub-show = "oops.commands.submodules.show:main"
 oops-sub-update = "oops.commands.submodules.update:main"
+oops-odoo-download = "oops.commands.odoo.download:main"
+oops-odoo-show = "oops.commands.odoo.show:main"
+oops-odoo-update = "oops.commands.odoo.update:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["oops"]
