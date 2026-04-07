@@ -152,3 +152,63 @@ sync:
 | `remote_url` | str | `null` | URL of the remote repository to sync from |
 | `branch` | str | `null` | Branch to check out in the remote |
 | `files` | list[str] | `[]` | Paths to copy from the remote into the local repo |
+
+---
+
+### `manifest`
+
+Controls lint rules applied by `oops-man-check` and `oops-man-fix` to
+`__manifest__.py` files.
+
+```yaml
+manifest:
+  author: AAcmek                        # required — expected value for the 'author' field
+  odoo_version: "19.0"                  # optional — enforces version prefix (e.g. 19.0.x.y.z)
+  version_bump_strategy: trunk          # optional — version bump check strategy (default: off)
+  allowed_maintainers:
+    - alice
+    - bob
+  required_keys:
+    - name
+    - version
+    - summary
+    - website
+    - author
+    - maintainers
+    - depends
+    - data
+    - license
+    - auto_install
+    - installable
+  key_order:
+    - name
+    - summary
+    - version
+    - category
+    - author
+    - maintainers
+    - website
+    - depends
+    - data
+    - assets
+    - demo
+    - application
+    - auto_install
+    - installable
+    - license
+```
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `author` | str | **required** | Expected value for the manifest `author` field; autofixed by `oops-man-fix` |
+| `odoo_version` | str | `null` | When set, enforces the version prefix (e.g. `"19.0"` → `19.0.x.y.z`). Addons from another series are validated against the generic 5-part pattern |
+| `version_bump_strategy` | str | `off` | When to require a version bump on staged manifests: `off` (disabled), `strict` (every commit), `trunk` (once per release, relative to last tag) |
+| `allowed_maintainers` | list[str] | `[]` | GitHub handles accepted in the `maintainers` list; empty list disables the check |
+| `required_keys` | list[str] | *(see above)* | Keys that must be present in every manifest; reported individually if missing |
+| `key_order` | list[str] | *(see above)* | Canonical key order enforced by `ManifestKeyOrder`; also used as the allowed-key list by `ManifestNoExtraKeys` |
+
+!!! note "version_bump_strategy"
+    `strict` enforces a bump on every commit that touches an addon — suitable
+    for granular per-commit changelogs. `trunk` only requires the version to
+    exceed the last git tag — better for squash/rebase workflows where a single
+    bump per release cycle is enough.

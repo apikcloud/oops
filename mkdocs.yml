@@ -191,6 +191,7 @@ nav:
       - Release: commands/release.md
       - Submodules: commands/submodules.md
   - Hooks: hooks.md
+  - Lint Rules: rules.md
   - Configuration: config.md
   - Use case: use-case.md
   - Contributing: contributing.md
