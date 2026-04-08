@@ -24,9 +24,10 @@ from pathlib import Path
 from git.repo import Repo
 
 from oops.core.config import config
-from oops.core.models import AddonInfo
+from oops.core.models import AddonInfo, ImageInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.io.manifest import load_manifest
+from oops.services.docker import parse_image_tag
 from oops.services.git import get_submodule_sha
 from oops.utils.compat import Optional, Union
 from oops.utils.helpers import filter_and_clean
@@ -239,22 +240,25 @@ def parse_requirements(path: Path) -> list:
     return read_and_parse(path / config.project.file_requirements)
 
 
-def parse_odoo_version(path: Path) -> str:
-    """Read and return the Odoo version string from the project version file.
+def parse_odoo_version(path: Path) -> ImageInfo:
+    """Read and parse the Odoo version file into structured image information.
+
+    Reads the first non-empty line of the version file and parses it as a Docker image
+    tag, extracting the major version, edition, registry, release date, and flags.
 
     Args:
         path: Project root directory containing the Odoo version file.
 
     Returns:
-        Odoo version string (first non-empty line of the version file).
+        ImageInfo populated with registry, major version, edition, release date, and flags.
 
     Raises:
-        ValueError: If the version file is empty or missing.
+        ValueError: If the version file is empty, missing, or the tag format is unrecognised.
     """
     res = read_and_parse(path / config.project.file_odoo_version)
     if not res:
         raise ValueError()
-    return res[0]
+    return parse_image_tag(res[0])
 
 
 # ---------------------------------------------------------------------------

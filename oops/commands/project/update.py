@@ -18,7 +18,7 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import parse_odoo_version, write_text_file
 from oops.io.tools import ask
-from oops.services.docker import find_available_images, format_available_images, parse_image_tag
+from oops.services.docker import find_available_images, format_available_images
 from oops.services.git import commit, get_local_repo
 
 
@@ -29,8 +29,7 @@ def main(force: bool):  # noqa: C901
     repo, repo_path = get_local_repo()
 
     try:
-        current_version = parse_odoo_version(repo_path)
-        image_info = parse_image_tag(current_version)
+        image_info = parse_odoo_version(repo_path)
     except ValueError as e:
         raise click.ClickException(str(e) or "Could not parse current Odoo version.") from e
 
@@ -72,7 +71,7 @@ def main(force: bool):  # noqa: C901
         [config.project.file_odoo_version],
         "image_update",
         skip_hooks=True,
-        old=current_version,
+        old=image_info.image,
         new=new_image.image,
         days=new_image.delta,
     )

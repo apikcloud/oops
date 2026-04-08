@@ -21,7 +21,7 @@ from oops.io.file import (
     parse_packages,
     parse_requirements,
 )
-from oops.services.docker import check_image, find_available_images, parse_image_tag
+from oops.services.docker import check_image, find_available_images
 from oops.services.git import get_last_commit, get_local_repo
 from oops.services.github import get_latest_workflow_run
 from oops.utils.compat import Optional
@@ -55,8 +55,7 @@ def main(token: Optional[str], minimal: bool):  # noqa: C901, PLR0912, PLR0915
         requirements = []
 
     try:
-        odoo_version = parse_odoo_version(repo_path)
-        image_info = parse_image_tag(odoo_version)
+        image_info = parse_odoo_version(repo_path)
         warns += check_image(image_info, strict=False)
     except ValueError as e:
         errors.append(str(e) or "Could not parse Odoo version.")

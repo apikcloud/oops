@@ -16,7 +16,7 @@ import click
 from oops.commands.base import command
 from oops.commands.project.common import check_project
 from oops.io.file import parse_odoo_version
-from oops.services.docker import check_image, parse_image_tag
+from oops.services.docker import check_image
 from oops.services.git import get_local_repo
 from oops.utils.render import render_table
 
@@ -31,8 +31,7 @@ def main(strict: bool):  # noqa: C901
     warns, errors = check_project(repo_path, strict=False)
 
     try:
-        odoo_version = parse_odoo_version(repo_path)
-        image_info = parse_image_tag(odoo_version)
+        image_info = parse_odoo_version(repo_path)
         warns += check_image(image_info, strict=False)
     except ValueError as e:
         errors.append(str(e))
