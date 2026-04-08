@@ -119,16 +119,34 @@ oops-addons-list -n apikcloud/apik-addons
 
 **Examples:**
 
-Preview what would be copied without making changes:
+Preview all symlinks that would be materialized:
 
 ```bash
-oops-addons-materialize my_addon --dry-run
+oops-addons-materialize --dry-run
 ```
 
-Replace a symlink with a real directory and commit:
+Materialize all symlinks at the repository root:
 
 ```bash
-oops-addons-materialize my_addon
+oops-addons-materialize
+```
+
+Materialize only specific addons:
+
+```bash
+oops-addons-materialize --include my_addon,other_addon
+```
+
+Materialize all symlinks except specific ones:
+
+```bash
+oops-addons-materialize --exclude legacy_addon
+```
+
+Materialize without committing:
+
+```bash
+oops-addons-materialize --no-commit
 ```
 
 ---
