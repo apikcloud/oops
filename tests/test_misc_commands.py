@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from oops.commands.misc.workspace import main as workspace_main
+from oops.commands.misc.create_workspace import main as workspace_main
 
 
 # ---------------------------------------------------------------------------
