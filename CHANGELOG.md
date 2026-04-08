@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-08
+
+### Added
+
+- `oops-misc-view-doc`: open the oops documentation site in the default browser
+- `oops-misc-create-workspace`: generate a VSCode workspace file for the current Odoo project
+- CLI auto-discovers command groups at startup from the package structure
+- CLI group descriptions sourced from `__init__.py` module docstrings
+- `addons materialize`: redesigned to include all addons by default, with `--include`/`--exclude` filters
+
+### Changed
+
+- `parse_odoo_version` now returns an `ImageInfo` object
+- `normalize_version` moved to `utils/helpers`
+
+### Fixed
+
+- `remove_and_add` now uses `repo.git.add()` to correctly stage directories
+
 ## [0.4.0] - 2026-04-07
 
 ### Added
