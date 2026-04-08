@@ -11,37 +11,37 @@ authors = [{ name = "Apik" }]
 keywords = ["odoo", "git", "submodules", "manifests", "cli"]
 dynamic = ["version"]
 dependencies = [
-  "appdirs",
-  "docutils",
-  "freezegun",
-  "PyYAML",
-  "requests",
-  "twine",
-  "wheel",
-  "pyproject_dependencies ; python_version>='3.7'",
-  "typing-extensions; python_version<'3.11'",
-  "importlib-metadata; python_version<'3.10'",
-  "tomli; python_version<'3.11'",                   # from 3.11 tomllib is in stdlib
-  "backports.zoneinfo; python_version<'3.9'",
-  "click>=8.1",
-  "typing-extensions>=4.7; python_version<'3.8'",
-  "libcst==0.4.*; python_version<'3.8'",
-  "rich>=13.0",
-  "fixit>2.0; python_version>='3.9'",
-  "tabulate",
-  "GitPython",
+    "appdirs",
+    "docutils",
+    "freezegun",
+    "PyYAML",
+    "requests",
+    "twine",
+    "wheel",
+    "pyproject_dependencies ; python_version>='3.7'",
+    "typing-extensions; python_version<'3.11'",
+    "importlib-metadata; python_version<'3.10'",
+    "tomli; python_version<'3.11'",                   # from 3.11 tomllib is in stdlib
+    "backports.zoneinfo; python_version<'3.9'",
+    "click>=8.1",
+    "typing-extensions>=4.7; python_version<'3.8'",
+    "libcst==0.4.*; python_version<'3.8'",
+    "rich>=13.0",
+    "fixit>2.0; python_version>='3.9'",
+    "tabulate",
+    "GitPython",
 ]
 
 
 requires-python = ">=3.7"
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Environment :: Console",
-  "Intended Audience :: Developers",
-  "Intended Audience :: Information Technology",
-  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
-  "Operating System :: POSIX :: Linux",
-  "Programming Language :: Python",
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
 ]
 
 [project.urls]
@@ -49,6 +49,8 @@ homepage = "https://github.com/apikcloud/oops"
 repository = "https://github.com/apikcloud/oops"
 
 [project.scripts]
+# Root command
+oops = "oops.cli:main"
 # Sub-commands
 oops-addons-add = "oops.commands.addons.add:main"
 oops-addons-compare = "oops.commands.addons.compare:main"
@@ -81,6 +83,7 @@ oops-sub-update = "oops.commands.submodules.update:main"
 oops-odoo-download = "oops.commands.odoo.download:main"
 oops-odoo-show = "oops.commands.odoo.show:main"
 oops-odoo-update = "oops.commands.odoo.update:main"
+oops-misc-create-workspace = "oops.commands.misc.workspace:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["oops"]
@@ -96,7 +99,7 @@ line-length = 100
 target-version = "py37"
 lint.select = ["E", "F", "I", "B", "UP", "SIM", "PL", "C90"]
 lint.ignore = [
-  "E203", # whitespace before ':' (plays better with Black if you add it later)
+    "E203", # whitespace before ':' (plays better with Black if you add it later)
 ]
 exclude = ["tests/fixtures"]
 
@@ -120,10 +123,10 @@ skip_empty = true
 show_missing = true
 fail_under = 80
 exclude_lines = [
-  "pragma: no cover",
-  "if TYPE_CHECKING:",
-  "if __name__ == .__main__.:",
-  "raise NotImplementedError",
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
 ]
 
 [tool.coverage.paths]
@@ -132,14 +135,14 @@ source = ["oops", ".venv/lib/python*/site-packages/oops"]
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright"]
 docs = [
-  "mkdocs>=1.6; python_version>='3.9'",
-  "mkdocs-material>=9.7; python_version>='3.9'",
-  "mkdocs-click>=0.9; python_version>='3.9'",
-  "mkdocs-glightbox>=0.5; python_version>='3.9'",
-  "mkdocs-redirects>=1.2; python_version>='3.9'",
-  "mkdocs-git-revision-date-localized-plugin>=1.5; python_version>='3.9'",
-  "mkdocstrings[python]",
-  "mike>=2.1; python_version>='3.9'",
+    "mkdocs>=1.6; python_version>='3.9'",
+    "mkdocs-material>=9.7; python_version>='3.9'",
+    "mkdocs-click>=0.9; python_version>='3.9'",
+    "mkdocs-glightbox>=0.5; python_version>='3.9'",
+    "mkdocs-redirects>=1.2; python_version>='3.9'",
+    "mkdocs-git-revision-date-localized-plugin>=1.5; python_version>='3.9'",
+    "mkdocstrings[python]",
+    "mike>=2.1; python_version>='3.9'",
 ]
 
 [tool.uv]

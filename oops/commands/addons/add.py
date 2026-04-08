@@ -21,7 +21,7 @@ from oops.utils.helpers import str_to_list
 from oops.utils.render import print_success, print_warning
 
 
-@command("add")
+@command("add", help=__doc__)
 @click.argument("addons_list", type=str)
 @click.option(
     "--no-commit",
