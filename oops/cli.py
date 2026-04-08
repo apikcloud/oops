@@ -24,7 +24,7 @@ for _group_info in pkgutil.iter_modules(_commands_pkg.__path__):
         continue  # skip base.py
 
     _group_pkg = importlib.import_module(f"oops.commands.{_group_info.name}")
-    _grp = click.Group(name=_group_info.name)
+    _grp = click.Group(name=_group_info.name, help=_group_pkg.__doc__)
 
     for _cmd_info in pkgutil.iter_modules(_group_pkg.__path__):
         if _cmd_info.name in _SKIP or _cmd_info.name.startswith("_"):
