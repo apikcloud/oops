@@ -134,6 +134,7 @@ def commit(  # noqa: PLR0913
     message_name: str,
     skip_hooks: bool = False,
     remove: bool = False,
+    remove_and_add: bool = False,
     **kwargs: Optional[dict],
 ) -> None:
     """Stage files and create a commit using a named commit message template.
@@ -154,6 +155,13 @@ def commit(  # noqa: PLR0913
     changes = [str(repo_root / f) for f in files]
     if remove:
         local_repo.index.remove(changes)
+    elif remove_and_add:
+        # Remove the old index entry (e.g. a symlink), then re-add using the git
+        # CLI so that directories are staged recursively — index.add() does not
+        # walk directory trees.
+        local_repo.index.remove(changes)
+        for path in changes:
+            local_repo.git.add(path)
     else:
         local_repo.index.add(changes)
 
