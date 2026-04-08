@@ -1,6 +1,6 @@
 # oops
 
-A batteries-included development package for Odoo.
+A batteries-included development package for Odoo.  
 Runs on the host, inside an Odoo environment, and in CI/CD pipelines.
 
 - Provides commands for day-to-day development and repository maintenance

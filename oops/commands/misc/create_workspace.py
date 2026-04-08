@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
 #
-# File: workspace.py — oops/commands/misc/workspace.py
+# File: create_workspace.py — oops/commands/misc/create_workspace.py
 
 """
 Generate a VSCode workspace file for the current Odoo project.

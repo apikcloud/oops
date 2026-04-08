@@ -25,6 +25,8 @@ _MISSING: Final = object()
 
 _SUPPORTED_VERSIONS: Final = {1}
 
+DOCS_URL = "https://apikcloud.github.io/oops/"
+
 
 # ---------------------------------------------------------------------------
 # Nested config dataclasses

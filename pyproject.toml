@@ -83,7 +83,8 @@ oops-sub-update = "oops.commands.submodules.update:main"
 oops-odoo-download = "oops.commands.odoo.download:main"
 oops-odoo-show = "oops.commands.odoo.show:main"
 oops-odoo-update = "oops.commands.odoo.update:main"
-oops-misc-create-workspace = "oops.commands.misc.workspace:main"
+oops-misc-create-workspace = "oops.commands.misc.create_workspace:main"
+oops-misc-view-doc = "oops.commands.misc.view_doc:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["oops"]
