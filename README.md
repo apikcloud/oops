@@ -7,20 +7,6 @@ Runs on the host, inside an Odoo environment, and in CI/CD pipelines.
 - Ships with pre-commit hooks for seamless integration
 - Lints and auto-fixes code against a defined ruleset
 
-## Installation
-
-### From GitHub (recommended)
-```bash
-pip install git+https://github.com/apikcloud/oops.git
-```
-
-### Local development checkout
-```bash
-git clone https://github.com/apikcloud/oops.git
-cd oops
-make install
-```
-
 ## Documentation
 
 Full command reference, usage examples, and configuration guide:
