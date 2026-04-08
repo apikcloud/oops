@@ -6,6 +6,8 @@
 from collections.abc import Generator
 from datetime import date
 
+import click
+
 from oops.utils.compat import PY38, Any, List
 
 
@@ -121,3 +123,8 @@ def date_from_string(raw: str) -> date:
 
     y, m, d = int(raw[0:4]), int(raw[4:6]), int(raw[6:8])
     return date(y, m, d)
+
+
+def normalize_version(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """Ensure version is in X.0 format (e.g. '19' → '19.0')."""
+    return value if "." in value else f"{value}.0"

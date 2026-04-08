@@ -28,16 +28,12 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.utils.compat import Optional
 from oops.utils.git import clone, update_latest
+from oops.utils.helpers import normalize_version
 from oops.utils.render import print_success, print_warning
 
 
-def _normalize_version(ctx: click.Context, param: click.Parameter, value: str) -> str:
-    """Ensure version is in X.0 format (e.g. '19' → '19.0')."""
-    return value if "." in value else f"{value}.0"
-
-
 @command(name="download", help=__doc__)
-@click.argument("version", callback=_normalize_version, is_eager=True)
+@click.argument("version", callback=normalize_version, is_eager=True)
 @click.option(
     "--base-dir",
     default=None,
