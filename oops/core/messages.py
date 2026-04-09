@@ -16,21 +16,18 @@ class CommitMessages:
     addons_synchronize: str = (
         "chore: synchronizing the repository based on the list of provided modules"
     )
+    requirements_updated: str = "chore: update requirements.txt"
 
     # Submodules
     submodules_rewrite: str = "chore(submodules): rewrite submodule paths to new scheme"
     submodules_prune: str = "chore(submodules): remove unused submodules"
     submodules_rename: str = "chore(submodules): rename submodules to new naming scheme"
-    submodules_update: str = (
-        "chore(submodules): update submodules to latest upstream versions\n\n{description}"
-    )
+    submodules_update: str = "chore(submodules): update submodules to latest upstream versions\n\n{description}"
     submodules_branch: str = "chore(submodules): update .gitmodules with fixed submodule branches"
     submodules_fix_urls: str = "chore(submodules): fix submodule URLs\n\n{description}"
-    submodules_replace: str = (
-        "chore(submodules): replace submodule(s) and update symlinks\n\n{description}"
-    )
+    submodules_replace: str = "chore(submodules): replace submodule(s) and update symlinks\n\n{description}"
     submodule_add: str = """chore(submodules): add submodule {name}"
-    
+
     - url: {url}
     - branch: {branch}
     - path: {path}

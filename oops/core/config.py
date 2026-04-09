@@ -13,7 +13,6 @@ from typing import Final, Union
 
 import click
 import yaml
-
 from oops.core.exceptions import ConfigurationError
 from oops.core.paths import CONFIG_PATHS as _CONFIG_PATHS
 from oops.utils.compat import List, Optional
@@ -134,18 +133,34 @@ class OdooConfig:
 
 
 @dataclass
+class PrecommitConfig:
+    default_exclusions: List[str] = field(
+        default_factory=lambda: [
+            r"^setup/|/static/description/index\.html$",
+            ".svg$|/tests/([^/]+/)?cassettes/|^.copier-answers.yml$|^.github/|^eslint.config.cjs|^prettier.config.cjs",
+            r"^README\.md$",
+            "/static/(src/)?lib/",
+            r"^docs/_templates/.*\.html$",
+            r"readme/.*\.(rst|md)$",
+            "/build/|/dist/",
+            "/tests/samples/.*",
+            "(LICENSE.*|COPYING.*)",
+            ".third-party/",
+            "third-party/",
+        ]
+    )
+    file_precommit: str = ".pre-commit-config.yaml"
+
+
+@dataclass
 class ProjectConfig:
-    mandatory_files: set = field(
-        default_factory=lambda: {"requirements.txt", "odoo_version.txt", "packages.txt"}
-    )
-    recommended_files: set = field(
-        default_factory=lambda: {"README.md", "CODEOWNERS", "CHANGELOG.md", ".gitignore"}
-    )
+    mandatory_files: set = field(default_factory=lambda: {"requirements.txt", "odoo_version.txt", "packages.txt"})
+    recommended_files: set = field(default_factory=lambda: {"README.md", "CODEOWNERS", "CHANGELOG.md", ".gitignore"})
     file_packages: str = "packages.txt"
     file_requirements: str = "requirements.txt"
     file_odoo_version: str = "odoo_version.txt"
     file_migrate: str = "migrate.sh"
-    pre_commit_exclude_file: str = ".pre-commit-exclusions"
+    readme_file: str = "README.md"
 
 
 # ---------------------------------------------------------------------------
@@ -162,11 +177,10 @@ class Config:
     sync: SyncConfig = field(default_factory=SyncConfig)
     manifest: ManifestConfig = field(default_factory=ManifestConfig)  # type: ignore[call-arg]
     odoo: OdooConfig = field(default_factory=OdooConfig)
+    precommit: PrecommitConfig = field(default_factory=PrecommitConfig)
 
     # Internal / misc (not exposed in .oops.yaml)
-    manifest_names: List[str] = field(
-        default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"]
-    )
+    manifest_names: List[str] = field(default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"])
     default_timeout: int = 60
     github_api: str = "https://api.github.com"
     new_line: str = "\n"
@@ -251,8 +265,7 @@ def _check_version(data: dict, path: Path) -> None:
         )
     elif version not in _SUPPORTED_VERSIONS:
         raise ConfigurationError(
-            f"{path}: unsupported config version {version!r} "
-            f"(supported: {sorted(_SUPPORTED_VERSIONS)})"
+            f"{path}: unsupported config version {version!r} (supported: {sorted(_SUPPORTED_VERSIONS)})"
         )
 
 
@@ -264,9 +277,7 @@ def load_config() -> Config:
             return Config()
 
         ConfigurationError.__suppress_context__ = True
-        raise ConfigurationError(
-            "No config file found. Create ~/.oops.yaml or .oops.yaml"
-        ) from None
+        raise ConfigurationError("No config file found. Create ~/.oops.yaml or .oops.yaml") from None
 
     cfg = Config()
     for path in found:
@@ -282,9 +293,7 @@ def load_config() -> Config:
             root = m.split(".")[0]
             grouped.setdefault(root, []).append(m)
         lines = "\n".join(f"  [{section}]: {', '.join(keys)}" for section, keys in grouped.items())
-        raise ConfigurationError(
-            f"Missing required configuration:\n{lines}\nSet them in ~/.oops.yaml or .oops.yaml"
-        )
+        raise ConfigurationError(f"Missing required configuration:\n{lines}\nSet them in ~/.oops.yaml or .oops.yaml")
 
     logger.debug("Config loaded successfully")
     return cfg

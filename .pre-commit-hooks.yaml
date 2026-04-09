@@ -10,3 +10,15 @@
   entry: oops-sub-check
   language: python
   pass_filenames: false
+
+- id: oops-readme-update
+  name: Update README
+  entry: oops-readme-update
+  language: python
+  pass_filenames: false
+
+- id: oops-pro-exclude
+  name: Exclude precommit addons
+  entry: oops-pro-exclude
+  language: python
+  pass_filenames: false

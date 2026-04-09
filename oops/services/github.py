@@ -8,7 +8,6 @@ import os
 import zipfile
 
 import requests
-
 from oops.core.config import config
 from oops.core.models import WorkflowRunInfo
 from oops.utils.compat import Optional, Tuple
@@ -127,3 +126,18 @@ def get_latest_workflow_run(
         return None
 
     return res
+
+
+def get_github_user(name: str) -> str:
+    """Return an HTML fragment showing a GitHub user's avatar linked to their profile.
+
+    Args:
+        name: GitHub username (e.g. ``"alice"``).
+
+    Returns:
+        HTML ``<a>`` element wrapping a 32x32 avatar ``<img>``.
+    """
+    return (
+        f"<a href='https://github.com/{name}'>"
+        f"<img src='https://github.com/{name}.png' width='32' height='32' alt='{name}'/></a>"
+    )
