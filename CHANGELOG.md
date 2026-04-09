@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-04-09
+
+### Added
+
+- `oops-sub-init`: initialize and update all submodules recursively with configurable parallel jobs (`-j/--jobs`, default: 4)
+- `oops-pro-exclude`: generate the pre-commit exclusion list for third-party addons
+- `oops-req-check`: compare `requirements.txt` against addon manifest dependencies and exit non-zero on differences
+- `oops-req-update`: update `requirements.txt` from addon manifest `external_dependencies`
+- `oops-readme-update`: generate the addon table in README.md with version, maintainer avatars, and summary
+
+### Fixed
+
+- `oops-sub-fix`, `oops-sub-check`: URL scheme detection always triggered because `parse_repository_url` returns a canonical URL string, not the scheme — switched to `_parse_url`
+- `oops-sub-fix`: removed dead deprecated-repo replacement code; added `--dry-run`; replaced `click.Abort()` with `UsageError`; added completion messages
+- `oops-pro-exclude`: hardcoded `.pre-commit-config.yaml` path ignored the configured value
+- `oops-readme-update`: `--no-commit` flag default was inverted, preventing commits in all cases
+
 ## [0.5.0] - 2026-04-08
 
 ### Added
