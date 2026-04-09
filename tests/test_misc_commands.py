@@ -53,11 +53,11 @@ class TestCreateWorkspace:
 
     def test_workspace_file_written_at_repo_root(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             result = self._runner().invoke(workspace_main, [])
@@ -67,11 +67,11 @@ class TestCreateWorkspace:
 
     def test_workspace_file_name_matches_repo_name(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             self._runner().invoke(workspace_main, [])
@@ -80,11 +80,11 @@ class TestCreateWorkspace:
     def test_workspace_content_has_correct_structure(self, tmp_path):
         sources = tmp_path / "sources"
         cfg = _make_config_mock(sources_dir=sources)
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             self._runner().invoke(workspace_main, [])
@@ -98,11 +98,11 @@ class TestCreateWorkspace:
     def test_extra_paths_point_to_community_and_enterprise(self, tmp_path):
         sources = tmp_path / "sources"
         cfg = _make_config_mock(sources_dir=sources)
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             self._runner().invoke(workspace_main, [])
@@ -113,11 +113,11 @@ class TestCreateWorkspace:
 
     def test_success_message_contains_version(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(19.0),
         ):
             result = self._runner().invoke(workspace_main, [])
@@ -125,11 +125,11 @@ class TestCreateWorkspace:
 
     def test_workspace_file_ends_with_newline(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             self._runner().invoke(workspace_main, [])
@@ -149,11 +149,11 @@ class TestCreateWorkspaceOptions:
     def test_base_dir_option_overrides_config(self, tmp_path):
         custom_sources = tmp_path / "custom"
         cfg = _make_config_mock(sources_dir=tmp_path / "config-sources")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             self._runner().invoke(workspace_main, ["--base-dir", str(custom_sources)])
@@ -164,11 +164,11 @@ class TestCreateWorkspaceOptions:
     def test_output_option_writes_to_custom_path(self, tmp_path):
         custom_out = tmp_path / "my.code-workspace"
         cfg = _make_config_mock(sources_dir=tmp_path / "sources")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             result = self._runner().invoke(workspace_main, ["--output", str(custom_out)])
@@ -177,11 +177,11 @@ class TestCreateWorkspaceOptions:
 
     def test_no_sources_dir_and_no_base_dir_raises_usage_error(self, tmp_path):
         cfg = _make_config_mock(sources_dir=None)
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(17.0),
         ):
             result = self._runner().invoke(workspace_main, [])
@@ -200,11 +200,11 @@ class TestCreateWorkspaceVersionFallback:
 
     def test_version_from_file(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             return_value=_make_version_info(18.0),
         ):
             result = self._runner().invoke(workspace_main, [])
@@ -215,11 +215,11 @@ class TestCreateWorkspaceVersionFallback:
 
     def test_fallback_to_config_manifest_odoo_version(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources", odoo_version="16.0")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             side_effect=ValueError("no version file"),
         ):
             result = self._runner().invoke(workspace_main, [])
@@ -231,11 +231,11 @@ class TestCreateWorkspaceVersionFallback:
 
     def test_fallback_emits_warning(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources", odoo_version="16.0")
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             side_effect=ValueError("no version file"),
         ):
             result = self._runner().invoke(workspace_main, [])
@@ -243,11 +243,11 @@ class TestCreateWorkspaceVersionFallback:
 
     def test_no_version_anywhere_exits_with_error(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources", odoo_version=None)
-        with patch("oops.commands.misc.workspace.config", cfg), patch(
-            "oops.commands.misc.workspace.get_local_repo",
+        with patch("oops.commands.misc.create_workspace.config", cfg), patch(
+            "oops.commands.misc.create_workspace.get_local_repo",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.misc.workspace.parse_odoo_version",
+            "oops.commands.misc.create_workspace.parse_odoo_version",
             side_effect=ValueError("no version file"),
         ):
             result = self._runner().invoke(workspace_main, [])

@@ -262,6 +262,9 @@ class TestAddonInfo:
             root=True,
             author="Acme",
             version="1.0",
+            maintainers=[],
+            summary="",
+            external_dependencies={},
             installable=True,
         )
         assert addon.symlinked is True
@@ -276,6 +279,9 @@ class TestAddonInfo:
             root=False,
             author="Acme",
             version="1.0",
+            maintainers=[],
+            summary="",
+            external_dependencies={},
             installable=True,
         )
         assert addon.symlinked is False

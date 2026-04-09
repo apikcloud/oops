@@ -247,7 +247,7 @@ def test_render_table_with_headers():
 def test_render_table_with_index():
     rows = [["x", "y"], ["u", "v"]]
     headers = ["Col1", "Col2"]
-    expected = tabulate(rows, headers=headers, showindex=True, tablefmt="github")
+    expected = tabulate(rows, headers=headers, showindex=range(1, 3), tablefmt="github")
     assert render_table(rows, headers=headers, index=True) == expected
 
 

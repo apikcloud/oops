@@ -64,7 +64,7 @@ def main(dry_run: bool = False, no_commit: bool = False):
     if not dry_run:
         click.echo(f"Updating {precommit_file}...")
         has_update = file_updater(
-            filepath=".pre-commit-config.yaml",
+            filepath=precommit_file,
             new_inner_content=to_exclude_str,
             start_tag="# oops:exclude:start",
             end_tag="# oops:exclude:end",

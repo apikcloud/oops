@@ -26,8 +26,8 @@ from oops.utils.render import render_table
 
 @click.command(name="update", help=__doc__)
 @click.option("--dry-run", default=False, is_flag=True, help="Show what would happen, do nothing.")
-@click.option("--no-commit", default=True, is_flag=True, help="Do not commit changes.")
-def main(dry_run: bool = False, no_commit: bool = True):
+@click.option("--no-commit", default=False, is_flag=True, help="Do not commit changes.")
+def main(dry_run: bool = False, no_commit: bool = False):
 
     repo, repo_path = get_local_repo()
     readme_file = config.project.readme_file
