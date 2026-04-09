@@ -21,7 +21,7 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import check_prefix, list_symlinks
 from oops.services.git import get_local_repo, is_pull_request, read_gitmodules
-from oops.utils.net import parse_repository_url
+from oops.utils.net import _parse_url
 from oops.utils.render import print_error, print_success, print_warning
 
 
@@ -66,7 +66,7 @@ def main():  # noqa: C901, PLR0912, PLR0915
         except configparser.NoOptionError:
             missing_branches.append((submodule.name, submodule.path))
 
-        scheme, owner, repository = parse_repository_url(submodule.url)
+        scheme, _, owner, repository = _parse_url(submodule.url)
         repository_name = f"{owner}/{repository}"
 
         # Check URL scheme
