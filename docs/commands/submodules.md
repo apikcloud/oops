@@ -1,6 +1,29 @@
 # Submodules
 
 ::: mkdocs-click:commands
+    :module: oops.commands.submodules.init
+    :command: main
+    :prog_name: oops-sub-init
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Initialize all submodules with the default 4 parallel jobs:
+
+```bash
+oops-sub-init
+```
+
+Speed up initialization on a large project:
+
+```bash
+oops-sub-init --jobs 8
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.submodules.add
     :command: main
     :prog_name: oops-sub-add
@@ -77,6 +100,12 @@ oops-sub-check
     :style: table
 
 **Examples:**
+
+Preview what would be fixed without applying changes:
+
+```bash
+oops-sub-fix --dry-run
+```
 
 Fix issues and commit the result:
 
