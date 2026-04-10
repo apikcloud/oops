@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: update.py — oops/commands/readme/update.py
 
@@ -54,20 +54,18 @@ def main(dry_run: bool = False, no_commit: bool = False):
     new_content = f"Available addons\n----------------\n\n{table}\n"
 
     has_update = False
-    if not dry_run:
-        click.echo(f"Updating {readme_file}...")
-        # We keep using OCA tags, in case we want to use their tools again.
-        # Start tag: # [//]: # (addons)
-        # End tag: # [//]: # (end addons)
-        has_update = file_updater(
-            filepath=readme_file,
-            new_inner_content=new_content,
-            start_tag="[//]: # (addons)",
-            end_tag="[//]: # (end addons)",
-            padding="\n\n",
-        )
-    else:
-        click.echo(f"It would update {readme_file} with:\n{new_content}")
+
+    # We keep using OCA tags, in case we want to use their tools again.
+    # Start tag: # [//]: # (addons)
+    # End tag: # [//]: # (end addons)
+    has_update = file_updater(
+        filepath=readme_file,
+        new_inner_content=new_content,
+        start_tag="[//]: # (addons)",
+        end_tag="[//]: # (end addons)",
+        padding="\n\n",
+        dry_run=dry_run,
+    )
 
     if not no_commit and not dry_run and has_update:
         commit(repo, repo_path, [readme_file], "addons_update_table", skip_hooks=True)

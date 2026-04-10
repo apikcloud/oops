@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: models.py — oops/core/models.py
 
@@ -144,9 +144,9 @@ class AddonInfo:
     root: bool  # is it in the root of the repo?
     version: str
     author: str
-    maintainers: list[str]
+    maintainers: "list[str]"
     summary: str
-    external_dependencies: dict[str, list[str]]
+    external_dependencies: "dict[str, list[str]]"
     installable: bool
 
     @property

@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: update.py — oops/commands/requirements/update.py
 
@@ -38,15 +38,11 @@ def main(dry_run: bool, no_commit: bool):
         click.echo("No changes detected in requirements.")
         raise click.exceptions.Exit(0)
 
-    click.echo(f"Updating {requirement_file}...")
-    if dry_run:
-        click.echo("[dry-run]: \n" + python_dependencies_str)
-        raise click.exceptions.Exit(0)
-
     has_update = file_updater(
         filepath=str(requirement_file),
         new_inner_content=python_dependencies_str,
+        dry_run=dry_run,
     )
 
-    if has_update and not no_commit:
+    if has_update and not no_commit and not dry_run:
         commit(repo, repo_path, [requirement_file], "requirements_updated", skip_hooks=True)

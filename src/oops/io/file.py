@@ -25,6 +25,7 @@ from collections.abc import Generator
 from os import PathLike
 from pathlib import Path
 
+import click
 from git.repo import Repo
 from oops.core.config import config
 from oops.core.models import AddonInfo, ImageInfo
@@ -35,7 +36,7 @@ from oops.services.git import get_submodule_sha
 from oops.utils.compat import Optional, Union
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
-from oops.utils.render import human_readable
+from oops.utils.render import human_readable, print_warning
 
 # ---------------------------------------------------------------------------
 # Path utilities
@@ -307,6 +308,7 @@ def file_updater(
     end_tag: Optional[str] = None,
     padding: str = "\n",
     append_position: str | bool = "bottom",
+    dry_run: bool = False,
 ) -> bool:
     """Update a file with new content, either replacing the entire file or a section between tags.
 
@@ -325,10 +327,13 @@ def file_updater(
     """
     path = Path(filepath)
     if not path.exists():
-        os.makedirs(path.parent, exist_ok=True)
-        with open(filepath, "w") as new_file:
-            if start_tag and end_tag:
-                new_file.write(f"{start_tag}\n{new_inner_content}\n{end_tag}\n")
+        click.echo(f"File {filepath} does not exist, creating it...")
+
+        if not dry_run:
+            os.makedirs(path.parent, exist_ok=True)
+            with open(filepath, "w") as new_file:
+                if start_tag and end_tag:
+                    new_file.write(f"{start_tag}\n{new_inner_content}\n{end_tag}\n")
 
     if (start_tag and not end_tag) or (end_tag and not start_tag):
         raise ValueError(f"Targeted update for {filepath} requires BOTH start and end tags.")
@@ -356,9 +361,15 @@ def file_updater(
             new_file_content = f"{start_tag}{padding}{new_inner_content}{padding}{end_tag}"
             is_to_append = True
         else:
+            print_warning(f"Tags not found in {filepath} and append_position is False, skipping update.")
             return False
 
     if new_file_content != content:
+        click.echo(f"Updating {filepath}...")
+        if dry_run:
+            click.echo("[dry-run]: \n" + new_file_content)
+            return True
+
         if is_to_append:
             current_content = path.read_text()
             if append_position == "top":
@@ -370,6 +381,7 @@ def file_updater(
             path.write_text(new_file_content + "\n")
         return True
 
+    click.echo(f"No changes detected in {filepath}, skipping update.")
     return False
 
 
