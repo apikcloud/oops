@@ -1,13 +1,13 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: create.py — oops/commands/release/create.py
 
 """
 Create a release: update CHANGELOG, write migration script, commit, and tag.
 
-\b
 Workflow:
+
   1. Compute the next version (minor by default, or --major / --fix / --version).
   2. Validate that CHANGELOG.md has a non-empty [Unreleased] (or pre-edited version) section.
   3. Replace [Unreleased] with the versioned header and today's date (if not already replaced).
@@ -20,7 +20,6 @@ Use --dry-run to preview without writing anything.
 from datetime import date
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import get_addons_diff, make_migration_command, write_migration_script
 from oops.services.git import commit, get_local_repo
@@ -65,9 +64,7 @@ def _update_changelog(text: str, version: str) -> str:
             break
 
     if section_start is None:
-        raise click.ClickException(
-            f"CHANGELOG.md has no [Unreleased] section and no [{version_clean}] section."
-        )
+        raise click.ClickException(f"CHANGELOG.md has no [Unreleased] section and no [{version_clean}] section.")
 
     section = lines[section_start + 1 : next_section_idx]
     if not any(line.strip().startswith("-") for line in section):
@@ -83,13 +80,9 @@ def _update_changelog(text: str, version: str) -> str:
 
 @command(name="create", help=__doc__)
 @click.option("--major", "bump", flag_value="major", help="Bump major version.")
-@click.option(
-    "--minor", "bump", flag_value="minor", default=True, help="Bump minor version (default)."
-)
+@click.option("--minor", "bump", flag_value="minor", default=True, help="Bump minor version (default).")
 @click.option("--fix", "bump", flag_value="fix", help="Bump fix/patch version.")
-@click.option(
-    "--version", "version_override", default=None, help="Set version manually (e.g. v1.3.0)."
-)
+@click.option("--version", "version_override", default=None, help="Set version manually (e.g. v1.3.0).")
 @click.option("--no-commit", is_flag=True, help="Stage changes but do not commit or tag.")
 @click.option("--no-tag", is_flag=True, help="Commit but do not create a git tag.")
 @click.option("--dry-run", is_flag=True, help="Show planned changes without writing anything.")
@@ -105,9 +98,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     # 1. Resolve next version
     if version_override:
         if not is_valid_semver(version_override):
-            raise click.ClickException(
-                f"Invalid semver format: {version_override!r}. Expected vX.Y.Z."
-            )
+            raise click.ClickException(f"Invalid semver format: {version_override!r}. Expected vX.Y.Z.")
         version = version_override
     else:
         try:
@@ -140,9 +131,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     updated_changelog = _update_changelog(changelog_path.read_text(encoding="utf-8"), version)
 
     if dry_run:
-        click.echo(
-            f"[dry-run] CHANGELOG.md → ## [{version.lstrip('v')}] - {date.today().isoformat()}"
-        )
+        click.echo(f"[dry-run] CHANGELOG.md → ## [{version.lstrip('v')}] - {date.today().isoformat()}")
     else:
         changelog_path.write_text(updated_changelog, encoding="utf-8")
         print_success(f"CHANGELOG.md updated → {version}")
@@ -153,9 +142,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     if has_new_commits:
         new_addons, updated_addons, removed_addons = get_addons_diff(repo, base_ref)
         if any([new_addons, updated_addons, removed_addons]):
-            content = make_migration_command(
-                new_addons, updated_addons, removed_addons, release=version
-            )
+            content = make_migration_command(new_addons, updated_addons, removed_addons, release=version)
             if dry_run:
                 click.echo("[dry-run] Would write migration script")
                 click.echo(content)
