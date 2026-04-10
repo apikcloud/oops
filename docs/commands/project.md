@@ -8,29 +8,6 @@
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.project.show
-    :command: main
-    :prog_name: oops-pro-show
-    :depth: 2
-    :style: table
-
-**Examples:**
-
-Display the full project summary:
-
-```bash
-oops-pro-show
-```
-
-Include the latest GitHub Actions run:
-
-```bash
-oops-pro-show --token $GH_TOKEN
-```
-
----
-
-::: mkdocs-click:commands
     :module: oops.commands.project.check
     :command: main
     :prog_name: oops-pro-check
@@ -54,29 +31,6 @@ oops-pro-check --strict
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.project.update
-    :command: main
-    :prog_name: oops-pro-update
-    :depth: 2
-    :style: table
-
-**Examples:**
-
-Interactively select a new Odoo image:
-
-```bash
-oops-pro-update
-```
-
-Pick the latest image automatically without prompting:
-
-```bash
-oops-pro-update --force
-```
-
----
-
-::: mkdocs-click:commands
     :module: oops.commands.project.exclude
     :command: main
     :prog_name: oops-pro-exclude
@@ -95,6 +49,29 @@ Write the file without committing:
 
 ```bash
 oops-pro-exclude --no-commit
+```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.project.show
+    :command: main
+    :prog_name: oops-pro-show
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Display the full project summary:
+
+```bash
+oops-pro-show
+```
+
+Include the latest GitHub Actions run:
+
+```bash
+oops-pro-show --token $GH_TOKEN
 ```
 
 ---
@@ -124,4 +101,27 @@ Apply changes without confirmation:
 
 ```bash
 oops-pro-sync --force
+```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.project.update
+    :command: main
+    :prog_name: oops-pro-update
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Interactively select a new Odoo image:
+
+```bash
+oops-pro-update
+```
+
+Pick the latest image automatically without prompting:
+
+```bash
+oops-pro-update --force
 ```

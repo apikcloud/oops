@@ -72,6 +72,35 @@ oops-odoo-download 19.0 --base-dir /tmp/odoo-src
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.odoo.show
+    :command: main
+    :prog_name: oops-odoo-show
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+List all locally available Odoo source checkouts:
+
+```bash
+oops-odoo-show
+```
+
+Example output:
+
+```
+| Version | Community                             | Enterprise                            |
+|---------|---------------------------------------|---------------------------------------|
+| 17.0    | a1b2c3d4  2024-11-15 10:22:31 +0100  | e5f6g7h8  2024-11-14 18:03:12 +0100  |
+| 19.0    | 9i0j1k2l  2025-01-08 09:11:44 +0100  | —                                     |
+```
+
+A `—` in the Enterprise column means the Enterprise checkout is not present
+(run `oops-odoo-download <version> --enterprise` to add it).
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.odoo.update
     :command: main
     :prog_name: oops-odoo-update
@@ -102,32 +131,3 @@ oops-odoo-update 19.0 --date 2024-06-01 --no-enterprise
 !!! note
     `--date` uses a shallow fetch (`git fetch --shallow-since`). The first
     call for a given date may take a moment to download history.
-
----
-
-::: mkdocs-click:commands
-    :module: oops.commands.odoo.show
-    :command: main
-    :prog_name: oops-odoo-show
-    :depth: 2
-    :style: table
-
-**Examples:**
-
-List all locally available Odoo source checkouts:
-
-```bash
-oops-odoo-show
-```
-
-Example output:
-
-```
-| Version | Community                             | Enterprise                            |
-|---------|---------------------------------------|---------------------------------------|
-| 17.0    | a1b2c3d4  2024-11-15 10:22:31 +0100  | e5f6g7h8  2024-11-14 18:03:12 +0100  |
-| 19.0    | 9i0j1k2l  2025-01-08 09:11:44 +0100  | —                                     |
-```
-
-A `—` in the Enterprise column means the Enterprise checkout is not present
-(run `oops-odoo-download <version> --enterprise` to add it).

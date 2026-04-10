@@ -8,29 +8,6 @@
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.submodules.init
-    :command: main
-    :prog_name: oops-sub-init
-    :depth: 2
-    :style: table
-
-**Examples:**
-
-Initialize all submodules with the default 4 parallel jobs:
-
-```bash
-oops-sub-init
-```
-
-Speed up initialization on a large project:
-
-```bash
-oops-sub-init --jobs 8
-```
-
----
-
-::: mkdocs-click:commands
     :module: oops.commands.submodules.add
     :command: main
     :prog_name: oops-sub-add
@@ -60,24 +37,24 @@ oops-sub-add https://github.com/OCA/server-ux.git -b 18.0 --dry-run
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.submodules.show
+    :module: oops.commands.submodules.branch
     :command: main
-    :prog_name: oops-sub-show
+    :prog_name: oops-sub-branch
     :depth: 2
     :style: table
 
 **Examples:**
 
-Show all submodules with their last commit info:
+Set a default branch for all submodules missing one:
 
 ```bash
-oops-sub-show
+oops-sub-branch --branch 18.0
 ```
 
-Show only pull-request submodules:
+Skip pull-request submodules during the fix:
 
 ```bash
-oops-sub-show --pull-request
+oops-sub-branch --branch 18.0 --skip-pr
 ```
 
 ---
@@ -95,6 +72,29 @@ Run all configured checks and report issues:
 
 ```bash
 oops-sub-check
+```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.submodules.clean
+    :command: main
+    :prog_name: oops-sub-clean
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Remove stale directories and re-init submodules:
+
+```bash
+oops-sub-clean
+```
+
+Hard-reset the repo before cleaning:
+
+```bash
+oops-sub-clean --reset
 ```
 
 ---
@@ -129,30 +129,24 @@ oops-sub-fix --no-commit
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.submodules.update
+    :module: oops.commands.submodules.init
     :command: main
-    :prog_name: oops-sub-update
+    :prog_name: oops-sub-init
     :depth: 2
     :style: table
 
 **Examples:**
 
-Update all submodules to their latest upstream commit:
+Initialize all submodules with the default 4 parallel jobs:
 
 ```bash
-oops-sub-update
+oops-sub-init
 ```
 
-Update a single submodule by name:
+Speed up initialization on a large project:
 
 ```bash
-oops-sub-update apikcloud/apik-addons
-```
-
-Skip pull-request submodules:
-
-```bash
-oops-sub-update --skip-pr
+oops-sub-init --jobs 8
 ```
 
 ---
@@ -250,45 +244,51 @@ oops-sub-rewrite --base-dir .third-party --force
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.submodules.branch
+    :module: oops.commands.submodules.show
     :command: main
-    :prog_name: oops-sub-branch
+    :prog_name: oops-sub-show
     :depth: 2
     :style: table
 
 **Examples:**
 
-Set a default branch for all submodules missing one:
+Show all submodules with their last commit info:
 
 ```bash
-oops-sub-branch --branch 18.0
+oops-sub-show
 ```
 
-Skip pull-request submodules during the fix:
+Show only pull-request submodules:
 
 ```bash
-oops-sub-branch --branch 18.0 --skip-pr
+oops-sub-show --pull-request
 ```
 
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.submodules.clean
+    :module: oops.commands.submodules.update
     :command: main
-    :prog_name: oops-sub-clean
+    :prog_name: oops-sub-update
     :depth: 2
     :style: table
 
 **Examples:**
 
-Remove stale directories and re-init submodules:
+Update all submodules to their latest upstream commit:
 
 ```bash
-oops-sub-clean
+oops-sub-update
 ```
 
-Hard-reset the repo before cleaning:
+Update a single submodule by name:
 
 ```bash
-oops-sub-clean --reset
+oops-sub-update apikcloud/apik-addons
+```
+
+Skip pull-request submodules:
+
+```bash
+oops-sub-update --skip-pr
 ```
