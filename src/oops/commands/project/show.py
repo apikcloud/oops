@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: show.py — oops/commands/project/show.py
 
@@ -13,20 +13,17 @@ With a GitHub token, also shows the latest Actions workflow run.
 
 import click
 import requests
-
 from oops.commands.base import command
 from oops.commands.project.common import check_project
 from oops.io.file import (
     parse_odoo_version,
-    parse_packages,
-    parse_requirements,
 )
 from oops.services.docker import check_image, find_available_images
 from oops.services.git import get_last_commit, get_local_repo
 from oops.services.github import get_latest_workflow_run
 from oops.utils.compat import Optional
 from oops.utils.net import get_public_repo_url, parse_repository_url
-from oops.utils.render import format_datetime, human_readable, render_table
+from oops.utils.render import format_datetime, render_table
 from oops.utils.versioning import get_last_release, get_next_releases
 
 
@@ -43,16 +40,6 @@ def main(token: Optional[str], minimal: bool):  # noqa: C901, PLR0912, PLR0915
     repo, repo_path = get_local_repo()
 
     warns, errors = check_project(repo_path, strict=False)
-
-    try:
-        packages = parse_packages(repo_path)
-    except FileNotFoundError:
-        packages = []
-
-    try:
-        requirements = parse_requirements(repo_path)
-    except FileNotFoundError:
-        requirements = []
 
     try:
         image_info = parse_odoo_version(repo_path)
@@ -115,8 +102,6 @@ def main(token: Optional[str], minimal: bool):  # noqa: C901, PLR0912, PLR0915
         ],
         ["Registry", image_info.source if image_info else "--"],
         ["Available update(s)", image_update_msg],
-        ["System package(s)", human_readable(packages) or "--"],
-        ["Python requirement(s)", human_readable(requirements, sep=", ") or "--"],
         ["Git", ""],
         ["Remote URL", canonical_url or "--"],
         ["Last release", last_release or "--"],
