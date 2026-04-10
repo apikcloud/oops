@@ -503,6 +503,8 @@
       
         
       
+        
+      
     
     
     
@@ -730,17 +732,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops-pro-show" class="md-nav__link">
+  <a href="#oops.commands.project" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-pro-show
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;project
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="&nbsp;project">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#oops-pro-check" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -750,19 +753,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#oops-pro-update" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        oops-pro-update
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#oops-pro-exclude" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -772,8 +764,19 @@
   </a>
   
 </li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-pro-show" class="md-nav__link">
+    <span class="md-ellipsis">
       
-        <li class="md-nav__item">
+        oops-pro-show
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-pro-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -781,6 +784,22 @@
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-pro-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-pro-update
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -836,6 +855,34 @@
     
   
     Release
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../requirements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requirements
   
 
     
@@ -1907,17 +1954,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops-pro-show" class="md-nav__link">
+  <a href="#oops.commands.project" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-pro-show
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;project
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="&nbsp;project">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#oops-pro-check" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1927,19 +1975,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#oops-pro-update" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        oops-pro-update
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#oops-pro-exclude" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1949,8 +1986,19 @@
   </a>
   
 </li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-pro-show" class="md-nav__link">
+    <span class="md-ellipsis">
       
-        <li class="md-nav__item">
+        oops-pro-show
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-pro-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1958,6 +2006,22 @@
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-pro-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-pro-update
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1982,13 +2046,220 @@
 
 
 <h1 id="project">Project<a class="headerlink" href="#project" title="Permanent link">¶</a></h1>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="oops.commands.project"></a>
+    <div class="doc doc-contents first">
+
+        <p>Validate project configuration and manage the Odoo Docker image.</p>
+
+          
+
+
+
+
+
+<p><span class="doc-section-title">Modules:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.project.check">check</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Validate project configuration and list available Odoo Docker images.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.project.exclude">exclude</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Generate the exclusion list for pre-commit hooks in the .pre-commit-config.yaml file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.project.show">show</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Display a summary of the current project.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.project.sync">sync</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Synchronise files from a remote repository (no parent relationship).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.project.update">update</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Update odoo_version.txt to the latest available Docker image.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><hr>
+<h3 id="oops-pro-check">oops-pro-check<a class="headerlink" href="#oops-pro-check" title="Permanent link">¶</a></h3>
+<p>Validate project configuration and list available Odoo Docker images.</p>
+<p>Checks for mandatory project files, verifies the configured Odoo image, and
+reports warnings and errors. Exits non-zero if errors are found; with --strict,
+warnings also cause a non-zero exit.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-pro-check [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--strict</code></td>
+<td>boolean</td>
+<td>Treat warnings as errors</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Run project checks and report warnings and errors:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops-pro-check
+</span></code></pre></div>
+<p>Exit non-zero on warnings as well:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops-pro-check<span class="w"> </span>--strict
+</span></code></pre></div>
+<hr>
+<h3 id="oops-pro-exclude">oops-pro-exclude<a class="headerlink" href="#oops-pro-exclude" title="Permanent link">¶</a></h3>
+<p>Generate the exclusion list for pre-commit hooks in the .pre-commit-config.yaml file.
+It checks all the addons in the root of the project and if the project is not owned by Apik, it excludes the addon.</p>
+<p>The exclusion list uses a start and end tags to identify the section to update. The tags are the following:</p>
+<ul>
+<li>start: # oops:exclude:start</li>
+<li>end: # oops:exclude:end</li>
+</ul>
+<p>The tags must be placed after the "(?x)" line in the "exclude" part of the .pre-commit-config file. Like this:
+</p><div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>exclude: |
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  (?x)
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  # oops:exclude:start
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  # oops:exclude:end
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  ^setup/|/static/description/index\.html$|
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  .svg$|/tests/([^/]+/)?cassettes/|^.copier-answers.yml$|^.github/|^eslint.config.cjs|^prettier.config.cjs|
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  ^README\.md$|
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  /static/(src/)?lib/|
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  ^docs/_templates/.*\.html$|
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>  readme/.*\.(rst|md)$|
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  /build/|/dist/|
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  /tests/samples/.*|
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  (LICENSE.*|COPYING.*)|
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>  .third-party/|
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>  third-party/
+</span></code></pre></div><p></p>
+<p>Automatically, the modules to exclude will be added between the tags.</p>
+<p>If the tags are not found in the file, nothing is done.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops-pro-exclude [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--dry-run</code></td>
+<td>boolean</td>
+<td>Show what would happen, do nothing.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--no-commit</code></td>
+<td>boolean</td>
+<td>Do not commit changes.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Write the pre-commit exclusion file and commit:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops-pro-exclude
+</span></code></pre></div>
+<p>Write the file without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops-pro-exclude<span class="w"> </span>--no-commit
+</span></code></pre></div>
+<hr>
 <h3 id="oops-pro-show">oops-pro-show<a class="headerlink" href="#oops-pro-show" title="Permanent link">¶</a></h3>
 <p>Display a summary of the current project.</p>
 <p>Shows Odoo version, Docker image release date, available image updates,
 Python requirements, system packages, git remote and release info.
 With a GitHub token, also shows the latest Actions workflow run.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-pro-show [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-pro-show [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2023,139 +2294,16 @@ With a GitHub token, also shows the latest Actions workflow run.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Display the full project summary:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops-pro-show
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops-pro-show
 </span></code></pre></div>
 <p>Include the latest GitHub Actions run:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops-pro-show<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span>
-</span></code></pre></div>
-<hr>
-<h3 id="oops-pro-check">oops-pro-check<a class="headerlink" href="#oops-pro-check" title="Permanent link">¶</a></h3>
-<p>Validate project configuration and list available Odoo Docker images.</p>
-<p>Checks for mandatory project files, verifies the configured Odoo image, and
-reports warnings and errors. Exits non-zero if errors are found; with --strict,
-warnings also cause a non-zero exit.</p>
-<p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops-pro-check [OPTIONS]
-</span></code></pre></div>
-<p><strong>Options:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--strict</code></td>
-<td>boolean</td>
-<td>Treat warnings as errors</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--help</code></td>
-<td>boolean</td>
-<td>Show this message and exit.</td>
-<td><code>False</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Examples:</strong></p>
-<p>Run project checks and report warnings and errors:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops-pro-check
-</span></code></pre></div>
-<p>Exit non-zero on warnings as well:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops-pro-check<span class="w"> </span>--strict
-</span></code></pre></div>
-<hr>
-<h3 id="oops-pro-update">oops-pro-update<a class="headerlink" href="#oops-pro-update" title="Permanent link">¶</a></h3>
-<p>Update odoo_version.txt to the latest available Docker image.</p>
-<p>Queries the image registry for newer releases of the currently configured Odoo
-version and prompts the user to select one. With --force, picks the latest
-image automatically and commits the change.</p>
-<p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops-pro-update [OPTIONS]
-</span></code></pre></div>
-<p><strong>Options:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--force</code></td>
-<td>boolean</td>
-<td>Don't ask for confirmation</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--help</code></td>
-<td>boolean</td>
-<td>Show this message and exit.</td>
-<td><code>False</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Examples:</strong></p>
-<p>Interactively select a new Odoo image:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-pro-update
-</span></code></pre></div>
-<p>Pick the latest image automatically without prompting:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops-pro-update<span class="w"> </span>--force
-</span></code></pre></div>
-<hr>
-<h3 id="oops-pro-exclude">oops-pro-exclude<a class="headerlink" href="#oops-pro-exclude" title="Permanent link">¶</a></h3>
-<p>Add symlinked addons to the pre-commit exclusion file.</p>
-<p>Writes the list of symlinked addon paths to the pre-commit exclusion file so
-that pre-commit hooks skip third-party addons. The file is committed unless
---no-commit is passed.</p>
-<p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops-pro-exclude [OPTIONS]
-</span></code></pre></div>
-<p><strong>Options:</strong></p>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--no-commit</code></td>
-<td>boolean</td>
-<td>Do not commit changes</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--help</code></td>
-<td>boolean</td>
-<td>Show this message and exit.</td>
-<td><code>False</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Examples:</strong></p>
-<p>Write the pre-commit exclusion file and commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops-pro-exclude
-</span></code></pre></div>
-<p>Write the file without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-pro-exclude<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops-pro-show<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span>
 </span></code></pre></div>
 <hr>
 <h3 id="oops-pro-sync">oops-pro-sync<a class="headerlink" href="#oops-pro-sync" title="Permanent link">¶</a></h3>
 <p>Synchronise files from the configured remote repository.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops-pro-sync [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops-pro-sync [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2190,13 +2338,54 @@ that pre-commit hooks skip third-party addons. The file is committed unless
 </table>
 <p><strong>Examples:</strong></p>
 <p>Sync files from the configured remote repository with confirmation prompt:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops-pro-sync
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-pro-sync
 </span></code></pre></div>
 <p>Preview the diff without applying any changes:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops-pro-sync<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops-pro-sync<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Apply changes without confirmation:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops-pro-sync<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops-pro-sync<span class="w"> </span>--force
+</span></code></pre></div>
+<hr>
+<h3 id="oops-pro-update">oops-pro-update<a class="headerlink" href="#oops-pro-update" title="Permanent link">¶</a></h3>
+<p>Update odoo_version.txt to the latest available Docker image.</p>
+<p>Queries the image registry for newer releases of the currently configured Odoo
+version and prompts the user to select one. With --force, picks the latest
+image automatically and commits the change.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops-pro-update [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--force</code></td>
+<td>boolean</td>
+<td>Don't ask for confirmation</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Interactively select a new Odoo image:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops-pro-update
+</span></code></pre></div>
+<p>Pick the latest image automatically without prompting:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops-pro-update<span class="w"> </span>--force
 </span></code></pre></div>
 
 
@@ -2220,7 +2409,7 @@ that pre-commit hooks skip third-party addons. The file is committed unless
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 6, 2026 09:56:07 UTC"><span class="timeago" datetime="2026-04-06T09:56:07+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 6, 2026 09:56:07 UTC">2026-04-06</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 10, 2026 11:39:09 UTC"><span class="timeago" datetime="2026-04-10T11:39:09+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 10, 2026 11:39:09 UTC">2026-04-10</span>
   </span>
 
     
