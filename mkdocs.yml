@@ -54,7 +54,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [.]
+          paths: [src]
           # Load object inventories to enable cross-references to other projects.
           inventories:
             - https://docs.python.org/3/objects.inv

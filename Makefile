@@ -47,7 +47,7 @@ docs:
 	uv run mkdocs build
 
 docs-serve: install-docs
-	uv run mkdocs serve --watch oops/
+	uv run mkdocs serve --watch src/oops/
 
 clean:
 	rm -rf build dist site *.egg-info .pytest_cache .ruff_cache .mypy_cache .pyright

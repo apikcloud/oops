@@ -90,7 +90,7 @@ oops-misc-create-workspace = "oops.commands.misc.create_workspace:main"
 oops-misc-view-doc = "oops.commands.misc.view_doc:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["oops"]
+packages = ["src/oops"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -134,7 +134,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.paths]
-source = ["oops", ".venv/lib/python*/site-packages/oops"]
+source = ["src/oops", ".venv/lib/python*/site-packages/oops"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright"]
