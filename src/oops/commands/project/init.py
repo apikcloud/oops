@@ -16,7 +16,7 @@ from oops.services.git import get_local_repo
 from oops.utils.render import print_success
 
 
-@command("init")
+@command("init", help=__doc__)
 @click.option("--with-maildev", is_flag=True, default=False, help="Enable maildev service.")
 @click.option("--with-sftp", is_flag=True, default=False, help="Enable SFTP service.")
 @click.option("--no-dev", is_flag=True, default=False, help="Disable --dev=all flag.")
