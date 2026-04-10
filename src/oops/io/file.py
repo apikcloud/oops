@@ -621,6 +621,46 @@ def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
     return addons
 
 
+def get_excluded_addon_names(repo_path: Path) -> list:
+    """Return addon names that should be excluded from pre-commit checks.
+
+    An addon is excluded when it is not installable or its author does not
+    match ``config.manifest.author`` (i.e. it is a third-party addon).
+
+    Args:
+        repo_path: Root directory of the local repository.
+
+    Returns:
+        Sorted list of technical addon names to exclude.
+    """
+    res = []
+    for addon in find_addons(repo_path, shallow=True):
+        if not addon.installable or config.manifest.author.lower() not in addon.author.lower():
+            res.append(addon.technical_name)
+    return sorted(res)
+
+
+def get_filtered_addon_names(repo_path: Path) -> list:
+    """Return names of owned, installable, non-symlinked addons.
+
+    Selects addons that are directly in the repository (not symlinks to
+    third-party modules), are installable, and are authored by
+    ``config.manifest.author``. Intended as the default scope for manifest
+    lint and fix commands.
+
+    Args:
+        repo_path: Root directory of the local repository.
+
+    Returns:
+        Sorted list of technical addon names matching the criteria.
+    """
+    res = []
+    for addon in find_addons(repo_path, shallow=True):
+        if not addon.symlink and addon.installable and config.manifest.author.lower() in addon.author.lower():
+            res.append(addon.technical_name)
+    return sorted(res)
+
+
 # ---------------------------------------------------------------------------
 # Migration
 # ---------------------------------------------------------------------------

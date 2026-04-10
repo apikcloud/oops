@@ -1,24 +1,29 @@
-- id: oops-readme-update
-  name: Update addons table in README
-  always_run: true
+- id: update-readme
+  name: Update README (addons table)
   entry: oops-readme-update
   language: python
   pass_filenames: false
 
-- id: oops-submodules-check
+- id: exclude-addons
+  name: Exclude addons from pre-commit checks
+  entry: oops-pro-exclude
+  language: python
+  pass_filenames: false
+
+- id: check-project
+  name: Check project configuration
+  entry: oops-pro-check
+  language: python
+  pass_filenames: false
+
+- id: check-manifest
+  name: Check manifest files
+  entry: oops-man-check
+  language: python
+  pass_filenames: false
+
+- id: check-submodules
   name: Check submodules
   entry: oops-sub-check
-  language: python
-  pass_filenames: false
-
-- id: oops-readme-update
-  name: Update README
-  entry: oops-readme-update
-  language: python
-  pass_filenames: false
-
-- id: oops-pro-exclude
-  name: Exclude precommit addons
-  entry: oops-pro-exclude
   language: python
   pass_filenames: false

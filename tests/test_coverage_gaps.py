@@ -7,7 +7,8 @@
 
 Covers: io/file.py (file_updater, find_addons, find_addon_dirs,
 get_requirements_diff, make_migration_command, update_gitignore,
-collect_addon_paths, get_symlink_complete_map),
+collect_addon_paths, get_symlink_complete_map,
+get_excluded_addon_names, get_filtered_addon_names),
 services/github.py (get_github_user),
 io/tools.py (run_script error path).
 """
@@ -435,6 +436,150 @@ class TestGetGithubUser:
 
         result = get_github_user("bob")
         assert "https://github.com/bob" in result
+
+
+# ---------------------------------------------------------------------------
+# oops/io/file.py — get_excluded_addon_names / get_filtered_addon_names
+# ---------------------------------------------------------------------------
+
+THIRD_PARTY_MANIFEST = """\
+{
+    "name": "Third Party",
+    "version": "17.0.1.0.0",
+    "author": "OCA",
+    "installable": True,
+    "external_dependencies": {},
+    "maintainers": [],
+    "summary": "Third party addon",
+}
+"""
+
+NON_INSTALLABLE_MANIFEST = """\
+{
+    "name": "WIP Addon",
+    "version": "17.0.1.0.0",
+    "author": "Apik",
+    "installable": False,
+    "external_dependencies": {},
+    "maintainers": [],
+    "summary": "Work in progress",
+}
+"""
+
+
+class TestGetExcludedAddonNames:
+    def test_excludes_third_party(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_excluded_addon_names
+
+        _make_addon(tmp_path, "own_addon")
+        _make_addon(tmp_path, "third_party", manifest=THIRD_PARTY_MANIFEST)
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_excluded_addon_names(tmp_path)
+
+        assert "third_party" in result
+        assert "own_addon" not in result
+
+    def test_excludes_non_installable(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_excluded_addon_names
+
+        _make_addon(tmp_path, "wip_addon", manifest=NON_INSTALLABLE_MANIFEST)
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_excluded_addon_names(tmp_path)
+
+        assert "wip_addon" in result
+
+    def test_returns_sorted(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_excluded_addon_names
+
+        _make_addon(tmp_path, "zzz", manifest=THIRD_PARTY_MANIFEST)
+        _make_addon(tmp_path, "aaa", manifest=THIRD_PARTY_MANIFEST)
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_excluded_addon_names(tmp_path)
+
+        assert result == sorted(result)
+
+
+class TestGetFilteredAddonNames:
+    def test_includes_own_installable(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_filtered_addon_names
+
+        _make_addon(tmp_path, "my_addon")
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_filtered_addon_names(tmp_path)
+
+        assert "my_addon" in result
+
+    def test_excludes_third_party(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_filtered_addon_names
+
+        _make_addon(tmp_path, "third_party", manifest=THIRD_PARTY_MANIFEST)
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_filtered_addon_names(tmp_path)
+
+        assert "third_party" not in result
+
+    def test_excludes_non_installable(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_filtered_addon_names
+
+        _make_addon(tmp_path, "wip_addon", manifest=NON_INSTALLABLE_MANIFEST)
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_filtered_addon_names(tmp_path)
+
+        assert "wip_addon" not in result
+
+    def test_excludes_symlinks(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_filtered_addon_names
+
+        real = tmp_path / "src" / "my_addon"
+        _make_addon(real.parent, "my_addon")
+        link = tmp_path / "my_addon"
+        link.symlink_to(real)
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_filtered_addon_names(tmp_path)
+
+        assert "my_addon" not in result
+
+    def test_returns_sorted(self, tmp_path):
+        from unittest.mock import patch
+
+        from oops.io.file import get_filtered_addon_names
+
+        _make_addon(tmp_path, "zzz_addon")
+        _make_addon(tmp_path, "aaa_addon")
+
+        with patch("oops.io.file.config") as mock_cfg:
+            mock_cfg.manifest.author = "Apik"
+            result = get_filtered_addon_names(tmp_path)
+
+        assert result == sorted(result)
 
 
 # ---------------------------------------------------------------------------

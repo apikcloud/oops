@@ -14,9 +14,9 @@ Use oops-man-fix to apply autofixes.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.commands.manifest.common import collect_paths, run_fixit
+from oops.io.file import get_filtered_addon_names
 from oops.services.git import get_local_repo
 from oops.utils.helpers import str_to_list
 
@@ -27,7 +27,7 @@ from oops.utils.helpers import str_to_list
 def main(diff: bool, names: str) -> None:
     _, repo_path = get_local_repo()
 
-    name_filter = str_to_list(names) if names else None
+    name_filter = str_to_list(names) if names else get_filtered_addon_names(repo_path)
     paths = collect_paths(repo_path, name_filter)
 
     if not paths:

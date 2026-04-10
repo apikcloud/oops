@@ -42,7 +42,7 @@ from __future__ import annotations
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.io.file import file_updater, find_addons
+from oops.io.file import file_updater, get_excluded_addon_names
 from oops.services.git import commit, get_local_repo
 
 
@@ -52,12 +52,8 @@ from oops.services.git import commit, get_local_repo
 def main(dry_run: bool = False, no_commit: bool = False):
     repo, repo_path = get_local_repo()
 
-    addons = []
+    addons = get_excluded_addon_names(repo_path)
     precommit_file = config.precommit.file_precommit
-
-    for addon in find_addons(repo_path, shallow=True):
-        if addon.installable and config.manifest.author.lower() not in addon.author.lower():
-            addons.append(addon.technical_name)
 
     def _format_item(item: str) -> str:
         return f"  {item}/|"
