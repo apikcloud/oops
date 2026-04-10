@@ -316,8 +316,9 @@ def file_updater(
         start_tag: Start tag for targeted replacement (optional).
         end_tag: End tag for targeted replacement (optional).
         padding: Padding to add around the new content (default: newline).
-        append_position: Where to append the new content if it doesn't exist ('top' or 'bottom') (default: 'bottom'). If
-          it is not defined (False), content will not be edited if tags are missing.
+        append_position: Where to insert the tagged block when tags are absent from the file.
+            ``'top'`` prepends, ``'bottom'`` appends (default). ``False`` leaves the file
+            untouched when tags are missing.
 
     Returns:
         bool: True if the file was updated, False if no changes have been made.
