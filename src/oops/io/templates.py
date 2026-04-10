@@ -81,3 +81,11 @@ db_port = 5432
 db_user = odoo
 db_password = odoo
 """
+
+CONFIG_STARTER = """\
+# oops configuration — see https://apikcloud.github.io/oops/latest/config/
+version: 1
+
+manifest:
+  odoo_version: "19.0"
+"""
