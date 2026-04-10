@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: cli.py — oops/cli.py
 
@@ -7,7 +7,6 @@ import importlib
 import pkgutil
 
 import click
-
 import oops.commands as _commands_pkg
 
 # Modules inside a group package that are helpers, not commands.
