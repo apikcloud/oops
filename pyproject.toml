@@ -4,28 +4,23 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oops"
-description = "Set of tools to help managing Odoo addons development"
+description = "Our Odoo Project Sidekick"
 readme = "README.md"
 license = "AGPL-3.0-only"
 authors = [{ name = "Apik" }]
 keywords = ["odoo", "git", "submodules", "manifests", "cli"]
 dynamic = ["version"]
 dependencies = [
-    "appdirs",
-    "docutils",
-    "freezegun",
     "PyYAML",
     "requests",
-    "twine",
-    "wheel",
-    "pyproject_dependencies ; python_version>='3.7'",
     "typing-extensions; python_version<'3.11'",
     "importlib-metadata; python_version<'3.10'",
-    "tomli; python_version<'3.11'",                   # from 3.11 tomllib is in stdlib
+    "tomli; python_version<'3.11'",                 # from 3.11 tomllib is in stdlib
     "backports.zoneinfo; python_version<'3.9'",
     "click>=8.1",
     "typing-extensions>=4.7; python_version<'3.8'",
     "libcst==0.4.*; python_version<'3.8'",
+    "libcst; python_version>='3.8'",
     "rich>=13.0",
     "fixit>2.0; python_version>='3.9'",
     "tabulate",
@@ -138,7 +133,7 @@ exclude_lines = [
 source = ["src/oops", ".venv/lib/python*/site-packages/oops"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright"]
+dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright", "freezegun"]
 docs = [
     "mkdocs>=1.6; python_version>='3.9'",
     "mkdocs-material>=9.7; python_version>='3.9'",
