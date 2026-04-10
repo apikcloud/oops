@@ -40,12 +40,13 @@ If the tags are not found in the file, nothing is done.
 from __future__ import annotations
 
 import click
+from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import file_updater, find_addons
 from oops.services.git import commit, get_local_repo
 
 
-@click.command("exclude", help=__doc__)
+@command("exclude", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes.")
 def main(dry_run: bool = False, no_commit: bool = False):

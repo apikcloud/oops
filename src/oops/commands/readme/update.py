@@ -17,6 +17,7 @@ If the tags are not found in the file, they are automatically added at the end o
 from __future__ import annotations
 
 import click
+from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import file_updater, find_addons
 from oops.services.git import commit, get_local_repo
@@ -24,7 +25,7 @@ from oops.services.github import get_github_user
 from oops.utils.render import render_table
 
 
-@click.command(name="update", help=__doc__)
+@command(name="update", help=__doc__)
 @click.option("--dry-run", default=False, is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", default=False, is_flag=True, help="Do not commit changes.")
 def main(dry_run: bool = False, no_commit: bool = False):

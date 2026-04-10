@@ -26,13 +26,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import get_requirements_diff
 from oops.services.git import get_local_repo
 from oops.utils.render import print_error, print_success
 
 
-@click.command("check", help=__doc__)
+@command("check", help=__doc__)
 def main():
     _, repo_path = get_local_repo()
     requirement_file = Path(config.project.file_requirements)
