@@ -1,11 +1,12 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: exclude.py — oops/commands/project/exclude.py
 
 r"""
 Generate the exclusion list for pre-commit hooks in the .pre-commit-config.yaml file.
-It checks all the addons in the root of the project and if the project is not owned by Apik, it excludes the addon.
+It checks all the addons in the root of the project and if the project is not owned by `<manifest.author>`,
+it excludes the addon.
 
 The exclusion list uses a start and end tags to identify the section to update. The tags are the following:
 
@@ -13,7 +14,7 @@ The exclusion list uses a start and end tags to identify the section to update. 
 - end: # oops:exclude:end
 
 The tags must be placed after the "(?x)" line in the "exclude" part of the .pre-commit-config file. Like this:
-```text
+```yaml
 exclude: |
   (?x)
   # oops:exclude:start
@@ -50,29 +51,29 @@ from oops.services.git import commit, get_local_repo
 def main(dry_run: bool = False, no_commit: bool = False):
     repo, repo_path = get_local_repo()
 
-    items = []
+    addons = []
     precommit_file = config.precommit.file_precommit
 
     for addon in find_addons(repo_path, shallow=True):
-        if config.manifest.author.lower() not in addon.author.lower():
-            items.append(addon.technical_name)
+        if addon.installable and config.manifest.author.lower() not in addon.author.lower():
+            addons.append(addon.technical_name)
 
-    indented_items = [f"  {item}" for item in items]
-    to_exclude_str = "|\n".join(indented_items) + "|"
+    def _format_item(item: str) -> str:
+        return f"  {item}/|"
 
-    has_update = False
-    if not dry_run:
-        click.echo(f"Updating {precommit_file}...")
-        has_update = file_updater(
-            filepath=precommit_file,
-            new_inner_content=to_exclude_str,
-            start_tag="# oops:exclude:start",
-            end_tag="# oops:exclude:end",
-            padding="\n",
-            append_position=False,
-        )
-    else:
-        click.echo(f"It would update {precommit_file} with:\n{to_exclude_str}")
+    content = "\n".join(_format_item(item) for item in addons)
+
+    # TODO: make some noise if the tags are not found, to avoid confusion
+    # maybe invite the user to run sync command before?
+    has_update = file_updater(
+        filepath=precommit_file,
+        new_inner_content=content,
+        start_tag="# oops:exclude:start",
+        end_tag="# oops:exclude:end",
+        padding="\n",
+        append_position=False,
+        dry_run=dry_run,
+    )
 
     if not no_commit and not dry_run and has_update:
         commit(repo, repo_path, [precommit_file], "pre_commit_exclude", skip_hooks=True)
