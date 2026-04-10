@@ -5,9 +5,16 @@ Miscellaneous project utilities that don't belong to a specific domain group.
 ---
 
 ::: mkdocs-click:commands
-    :module: oops.commands.misc.workspace
+    :module: oops.commands.misc.create_workspace
     :command: main
     :prog_name: oops-misc-create-workspace
+    :depth: 2
+    :style: table
+
+::: mkdocs-click:commands
+    :module: oops.commands.misc.view_doc
+    :command: main
+    :prog_name: oops-misc-view-doc
     :depth: 2
     :style: table
 
