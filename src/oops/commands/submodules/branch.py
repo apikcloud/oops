@@ -16,7 +16,6 @@ import logging
 import click
 
 from oops.commands.base import command
-from oops.io.tools import ask
 from oops.services.git import commit, get_local_repo, is_pull_request, read_gitmodules
 
 
@@ -67,8 +66,9 @@ def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PL
                 to_fix.append((submodule.name, default_branch))
                 continue
 
-            res = ask(
-                f"Submodule {submodule.name} is missing branch. Please enter the branch to set: "
+            res = click.prompt(
+                f"Submodule {submodule.name} is missing branch. Enter the branch to set",
+                default="",
             )
 
             if res:

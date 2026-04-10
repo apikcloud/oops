@@ -4,10 +4,9 @@
 # File: tools.py — oops/io/tools.py
 
 """
-Low-level runtime utilities: user prompts and subprocess execution.
+Low-level runtime utilities: subprocess execution and shell script runners.
 
 Sections:
-    - User interaction: prompt helpers
     - Subprocess: wrappers around subprocess.run and shell script execution
 """
 
@@ -17,21 +16,6 @@ import subprocess
 
 from oops.core.exceptions import ScriptNotFound
 from oops.utils.compat import Optional
-
-# ---------------------------------------------------------------------------
-# User interaction
-# ---------------------------------------------------------------------------
-
-
-def ask(prompt: str, default="y"):
-    """Ask a yes/no question via input() and return their answer."""
-
-    try:
-        answer = input(prompt).strip().lower()
-    except EOFError:
-        answer = ""
-    return answer or default
-
 
 # ---------------------------------------------------------------------------
 # Subprocess

@@ -29,7 +29,6 @@ from oops.io.file import (
     get_symlink_map,
     rewrite_symlink,
 )
-from oops.io.tools import ask
 from oops.services.git import get_local_repo, is_pull_request
 
 
@@ -99,14 +98,14 @@ def main(
         if force:
             accepted.append((submodule, new_path))
         else:
-            ans = ask(
-                f"\nApply change for '{submodule.name}' ({submodule.path} -> {new_path})? [Y/n/e] ",
+            ans = click.prompt(
+                f"\nApply change for '{submodule.name}' ({submodule.path} -> {new_path})? [Y/n/e]",
                 default="y",
             )
             if ans in ("y", "yes"):
                 accepted.append((submodule, new_path))
             elif ans == "e":
-                custom = input("Enter custom target path: ").strip()
+                custom = click.prompt("Enter custom target path", default=new_path)
                 if custom:
                     accepted.append((submodule, custom))
     if not accepted:

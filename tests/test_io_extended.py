@@ -23,29 +23,12 @@ from oops.io.manifest import (
     parse_manifest_cst,
     read_manifest,
 )
-from oops.io.tools import ask, get_exec_dir, run
+from oops.io.tools import get_exec_dir, run
 
 
 # ---------------------------------------------------------------------------
 # oops/io/tools.py
 # ---------------------------------------------------------------------------
-
-
-class TestAsk:
-    def test_returns_input_when_provided(self, monkeypatch):
-        monkeypatch.setattr("builtins.input", lambda prompt: "n")
-        assert ask("Continue? ") == "n"
-
-    def test_returns_default_on_empty_input(self, monkeypatch):
-        monkeypatch.setattr("builtins.input", lambda prompt: "")
-        assert ask("Continue? ", default="y") == "y"
-
-    def test_returns_default_on_eof(self, monkeypatch):
-        def raise_eof(prompt):
-            raise EOFError
-
-        monkeypatch.setattr("builtins.input", raise_eof)
-        assert ask("Continue? ", default="y") == "y"
 
 
 class TestGetExecDir:

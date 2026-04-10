@@ -16,7 +16,6 @@ import requests
 from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import parse_odoo_version, write_text_file
-from oops.io.tools import ask
 from oops.services.docker import find_available_images, format_available_images
 from oops.services.git import commit, get_local_repo
 
@@ -50,7 +49,7 @@ def main(force: bool):  # noqa: C901
         new_image = available_images[0]
     else:
         click.echo(format_available_images(available_images, include_index=True))
-        answer = ask("Select new image [1]: ", default="1")
+        answer = click.prompt("Select new image", default="1")
         try:
             # Remove 1 to match the index as we display from 1 to n.
             answer = 1 if int(answer) <= 0 else int(answer) - 1

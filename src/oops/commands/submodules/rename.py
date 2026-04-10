@@ -15,7 +15,6 @@ import click
 
 from oops.commands.base import command
 from oops.io.file import desired_path, get_symlink_map
-from oops.io.tools import ask
 from oops.services.git import commit, get_local_repo, is_pull_request
 
 
@@ -56,7 +55,7 @@ def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tu
         click.echo(f"Renaming '{submodule.name}' -> '{new_name}' (PR={pull_request})")
 
         if prompt:
-            ans = ask(f"Apply change for '{submodule.name}'? [Y/n/e] ", default="y")
+            ans = click.prompt(f"Apply change for '{submodule.name}'? [Y/n/e]", default="y")
             if ans in ("n", "no"):
                 continue
             elif ans == "e":
