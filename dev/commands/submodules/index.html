@@ -944,6 +944,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-sub-remove" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-sub-remove
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-sub-replace" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2131,6 +2142,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-sub-remove" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-sub-remove
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-sub-replace" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2283,6 +2305,14 @@
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><span title="oops.commands.submodules.remove">remove</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Remove one or more submodules and their associated symlinks.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><span title="oops.commands.submodules.rename">rename</span></code></td>
             <td>
               <div class="doc-md-description">
@@ -2412,7 +2442,7 @@ the repo root for every addon found or for a specific list.</p>
 <td><code>--base-dir</code></td>
 <td>text</td>
 <td>Base dir for submodules (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7fb4c6245da0&gt;</code></td>
+<td><code>&lt;function &lt;lambda&gt; at 0x7f40c938c9a0&gt;</code></td>
 </tr>
 <tr>
 <td><code>-b</code>, <code>--branch</code></td>
@@ -2762,12 +2792,73 @@ Specific submodules can be targeted by name.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops-sub-rename<span class="w"> </span>--no-prompt
 </span></code></pre></div>
 <hr>
+<h3 id="oops-sub-remove">oops-sub-remove<a class="headerlink" href="#oops-sub-remove" title="Permanent link">¶</a></h3>
+<p>Remove one or more submodules and their associated symlinks.</p>
+<p>When called without arguments, displays an indexed menu of all submodules.
+Enter the index numbers (comma-separated) to select which to remove.
+Submodule names can also be passed directly as arguments.</p>
+<p>Associated symlinks pointing into the removed submodule paths are removed
+automatically. Prompts for confirmation before applying any changes.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops-sub-remove [OPTIONS] [NAMES]...
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--dry-run</code></td>
+<td>boolean</td>
+<td>Show planned changes only</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--no-commit</code></td>
+<td>boolean</td>
+<td>Do not commit changes</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>boolean</td>
+<td>Skip confirmation prompt</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Select submodules to remove from an interactive indexed menu:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops-sub-remove
+</span></code></pre></div>
+<p>Remove a specific submodule by name:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops-sub-remove<span class="w"> </span>OCA/server-ux
+</span></code></pre></div>
+<p>Preview what would be removed without making changes:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops-sub-remove<span class="w"> </span>--dry-run
+</span></code></pre></div>
+<p>Remove without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops-sub-remove<span class="w"> </span>OCA/server-ux<span class="w"> </span>--no-commit
+</span></code></pre></div>
+<hr>
 <h3 id="oops-sub-replace">oops-sub-replace<a class="headerlink" href="#oops-sub-replace" title="Permanent link">¶</a></h3>
 <p>Replace one or more submodules with a new repository.</p>
 <p>Removes the named submodules, adds the new repository as a submodule, and
 rewrites any symlinks that pointed to the old paths to point to the new one.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops-sub-replace [OPTIONS] [NAMES]... URL BRANCH
+<div class="language-text highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops-sub-replace [OPTIONS] [NAMES]... URL BRANCH
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2802,10 +2893,10 @@ rewrites any symlinks that pointed to the old paths to point to the new one.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Replace a submodule with a new repository:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops-sub-replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops-sub-replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0
 </span></code></pre></div>
 <p>Preview the replacement without making changes:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops-sub-replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops-sub-replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <hr>
 <h3 id="oops-sub-rewrite">oops-sub-rewrite<a class="headerlink" href="#oops-sub-rewrite" title="Permanent link">¶</a></h3>
@@ -2814,7 +2905,7 @@ rewrites any symlinks that pointed to the old paths to point to the new one.</p>
 .third-party), moves the submodule, and rewrites all symlinks that referenced
 the old path. Prompts for confirmation unless --force is used.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops-sub-rewrite [OPTIONS] [NAMES]...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops-sub-rewrite [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2831,7 +2922,7 @@ the old path. Prompts for confirmation unless --force is used.</p>
 <td><code>--base-dir</code></td>
 <td>text</td>
 <td>Base directory for rewritten paths (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7fb4c629aa20&gt;</code></td>
+<td><code>&lt;function &lt;lambda&gt; at 0x7f40c938e0c0&gt;</code></td>
 </tr>
 <tr>
 <td><code>-f</code>, <code>--force</code></td>
@@ -2861,10 +2952,10 @@ the old path. Prompts for confirmation unless --force is used.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Preview path rewrites without applying them:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops-sub-rewrite<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops-sub-rewrite<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Rewrite all paths non-interactively:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops-sub-rewrite<span class="w"> </span>--base-dir<span class="w"> </span>.third-party<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops-sub-rewrite<span class="w"> </span>--base-dir<span class="w"> </span>.third-party<span class="w"> </span>--force
 </span></code></pre></div>
 <hr>
 <h3 id="oops-sub-show">oops-sub-show<a class="headerlink" href="#oops-sub-show" title="Permanent link">¶</a></h3>
@@ -2873,7 +2964,7 @@ the old path. Prompts for confirmation unless --force is used.</p>
 commit age, and SHA for each submodule. Filter to PR-only submodules
 with --pull-request.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops-sub-show [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops-sub-show [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2902,10 +2993,10 @@ with --pull-request.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Show all submodules with their last commit info:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops-sub-show
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops-sub-show
 </span></code></pre></div>
 <p>Show only pull-request submodules:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops-sub-show<span class="w"> </span>--pull-request
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops-sub-show<span class="w"> </span>--pull-request
 </span></code></pre></div>
 <hr>
 <h3 id="oops-sub-update">oops-sub-update<a class="headerlink" href="#oops-sub-update" title="Permanent link">¶</a></h3>
@@ -2914,7 +3005,7 @@ with --pull-request.</p>
 the branch, and pulls the latest commits. Specific submodules can be targeted
 by name; PR submodules can be skipped with --skip-pr.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops-sub-update [OPTIONS] [NAMES]...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops-sub-update [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2955,13 +3046,13 @@ by name; PR submodules can be skipped with --skip-pr.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Update all submodules to their latest upstream commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops-sub-update
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops-sub-update
 </span></code></pre></div>
 <p>Update a single submodule by name:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops-sub-update<span class="w"> </span>apikcloud/apik-addons
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops-sub-update<span class="w"> </span>apikcloud/apik-addons
 </span></code></pre></div>
 <p>Skip pull-request submodules:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops-sub-update<span class="w"> </span>--skip-pr
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>oops-sub-update<span class="w"> </span>--skip-pr
 </span></code></pre></div>
 
 
@@ -2985,7 +3076,7 @@ by name; PR submodules can be skipped with --skip-pr.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 10, 2026 11:39:09 UTC"><span class="timeago" datetime="2026-04-10T11:39:09+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 10, 2026 11:39:09 UTC">2026-04-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 10, 2026 19:53:50 UTC"><span class="timeago" datetime="2026-04-10T19:53:50+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 10, 2026 19:53:50 UTC">2026-04-10</span>
   </span>
 
     
