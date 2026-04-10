@@ -58,7 +58,7 @@ def main(dry_run: bool = False, no_commit: bool = False):
     def _format_item(item: str) -> str:
         return f"  {item}/|"
 
-    content = "\n".join(_format_item(item) for item in addons)
+    content = "\n".join(_format_item(item) for item in addons) if addons else ""
 
     # TODO: make some noise if the tags are not found, to avoid confusion
     # maybe invite the user to run sync command before?
