@@ -31,6 +31,7 @@ from oops.core.config import config
 from oops.core.models import AddonInfo, ImageInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.io.manifest import load_manifest
+from oops.io.templates import COMPOSE_TEMPLATE, MAILDEV_ENV, MAILDEV_SERVICE, SFTP_SERVICE
 from oops.services.docker import parse_image_tag
 from oops.services.git import get_submodule_sha
 from oops.utils.compat import Optional, Union
@@ -802,3 +803,57 @@ def update_gitignore(  # noqa: C901
 
     p.write_text(human_readable(lines), encoding="utf-8")
     return True
+
+
+# ---------------------------------------------------------------------------
+# Docker
+# ---------------------------------------------------------------------------
+
+
+def build_compose(
+    image: str,
+    port: int,
+    prefix: str,
+    dev: bool,
+    with_maildev: bool,
+    with_sftp: bool,
+) -> str:
+    """Render a docker-compose.yml file from the project template.
+
+    Args:
+        image: Full Docker image reference for the Odoo service (e.g. ``registry/odoo:17.0``).
+        port: Host port to map to Odoo's internal port 8069.
+        prefix: Docker-safe volume name prefix, typically derived from the repo name.
+        dev: Whether to append ``--dev=all`` to the Odoo command.
+        with_maildev: Include the maildev SMTP catch-all service.
+        with_sftp: Include the SFTP service.
+
+    Returns:
+        Rendered docker-compose.yml content as a string, ready to write to disk.
+    """
+    return COMPOSE_TEMPLATE.format(
+        image=image,
+        port=port,
+        prefix=prefix,
+        dev_flag="" if not dev else " --dev=all",
+        maildev_env=MAILDEV_ENV if with_maildev else "",
+        maildev_service=MAILDEV_SERVICE if with_maildev else "",
+        sftp_service=SFTP_SERVICE if with_sftp else "",
+    )
+
+
+def volume_prefix(repo_path: Path) -> str:
+    """Derive a Docker-safe volume prefix from the repo directory name.
+
+    Strips a leading ``odoo-`` prefix (common convention) then
+    replaces any non-alphanumeric character with an underscore.
+
+    Examples:
+        ``odoo-my-project`` → ``my_project``
+        ``my-project``      → ``my_project``
+        ``odoo-client_v2``  → ``client_v2``
+    """
+    name = repo_path.name
+    if name.startswith("odoo-"):
+        name = name[len("odoo-") :]
+    return re.sub(r"[^a-z0-9]", "_", name.lower())

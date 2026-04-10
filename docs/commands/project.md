@@ -54,6 +54,47 @@ oops-pro-exclude --no-commit
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.project.init
+    :command: main
+    :prog_name: oops-pro-init
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Generate `docker-compose.yml` and `config/odoo.conf` for the current project:
+
+```bash
+oops-pro-init
+```
+
+Include the maildev catch-all SMTP service:
+
+```bash
+oops-pro-init --with-maildev
+```
+
+Include the SFTP service:
+
+```bash
+oops-pro-init --with-sftp
+```
+
+Disable `--dev=all` (production-like setup):
+
+```bash
+oops-pro-init --no-dev
+```
+
+Use a custom host port:
+
+```bash
+oops-pro-init --port 8072
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.project.show
     :command: main
     :prog_name: oops-pro-show
