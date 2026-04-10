@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: diff.py — oops/commands/addons/diff.py
 
@@ -12,7 +12,6 @@ or --commits. With --save, writes a migration script file.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import get_addons_diff, make_migration_command, write_migration_script
 from oops.services.git import commit, get_local_repo

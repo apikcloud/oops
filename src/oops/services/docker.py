@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: docker.py — oops/services/docker.py
 
@@ -177,8 +177,7 @@ def check_image(image: ImageInfo, strict: bool = True) -> list:
                 warn_deprecated_registry(image.registry)
             else:
                 warnings.append(
-                    f"You should use one of these registries ({recommmended})"
-                    f" as a replacement for '{image.registry}'."
+                    f"You should use one of these registries ({recommmended}) as a replacement for '{image.registry}'."
                 )
 
         if image.registry in config.images.registries.warn:
@@ -186,8 +185,7 @@ def check_image(image: ImageInfo, strict: bool = True) -> list:
                 warn_unusual_registry(image.registry)
             else:
                 warnings.append(
-                    f"You should use one of these registries ({recommmended})"
-                    f" as a replacement for '{image.registry}'."
+                    f"You should use one of these registries ({recommmended}) as a replacement for '{image.registry}'."
                 )
 
     if image.age and image.age > config.images.release_warn_age_days:

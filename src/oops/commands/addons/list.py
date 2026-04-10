@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: list.py — oops/commands/addons/list.py
 
@@ -14,7 +14,6 @@ import io
 import json
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import find_addons
 from oops.services.git import get_local_repo, is_pull_request
@@ -82,9 +81,7 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
         }
 
     # Filter submodule names if requested
-    active_paths = (
-        {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
-    )
+    active_paths = {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
 
     rows = []
     seen: set = set()

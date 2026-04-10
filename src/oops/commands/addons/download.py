@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: download.py — oops/commands/addons/download.py
 
@@ -18,7 +18,6 @@ import tempfile
 from pathlib import Path
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import find_addons, update_gitignore
 from oops.services.git import commit, get_local_repo

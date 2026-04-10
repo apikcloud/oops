@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: test_odoo_commands.py — tests/test_odoo_commands.py
 
@@ -7,12 +7,11 @@
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import click
 import pytest
 from click.testing import CliRunner
-
 from oops.commands.odoo.download import main as download_main
 from oops.commands.odoo.show import main as show_main
 from oops.commands.odoo.update import main as update_main
@@ -26,10 +25,10 @@ from oops.utils.git import (
     update_latest,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 # A minimal config mock that makes OopsCommand.invoke() happy (no file needed).
 def _make_config_mock(sources_dir=None):
@@ -61,9 +60,7 @@ class TestGit:
     def test_git_passes_multiple_args(self):
         with patch("oops.utils.git.subprocess.run") as mock_run:
             _git("fetch", "--depth", "1")
-            mock_run.assert_called_once_with(
-                ["git", "fetch", "--depth", "1"], check=True, cwd=None
-            )
+            mock_run.assert_called_once_with(["git", "fetch", "--depth", "1"], check=True, cwd=None)
 
     def test_git_output_returns_stripped_stdout(self):
         mock_result = MagicMock()
@@ -133,9 +130,7 @@ class TestRepoInfo:
 
     def test_existing_dir_returns_git_output(self, tmp_path):
         tmp_path.mkdir(exist_ok=True)
-        with patch(
-            "oops.utils.git._git_output", return_value="abc1234  2024-01-15 10:00:00 +0200"
-        ):
+        with patch("oops.utils.git._git_output", return_value="abc1234  2024-01-15 10:00:00 +0200"):
             result = repo_info(tmp_path)
         assert result == "abc1234  2024-01-15 10:00:00 +0200"
 
@@ -158,17 +153,13 @@ class TestRepoInfo:
 class TestUpdateAtDate:
     def test_normal_flow_checks_out_commit(self, tmp_path):
         commit_hash = "deadbeef1234"
-        with patch("oops.utils.git._git") as mock_git, patch(
-            "oops.utils.git._git_output", return_value=commit_hash
-        ):
+        with patch("oops.utils.git._git") as mock_git, patch("oops.utils.git._git_output", return_value=commit_hash):
             update_at_date(tmp_path, "2024-01-15")
             mock_git.assert_any_call("fetch", "--shallow-since", "2024-01-15", cwd=tmp_path)
             mock_git.assert_any_call("checkout", commit_hash, cwd=tmp_path)
 
     def test_no_commit_raises_click_exception(self, tmp_path):
-        with patch("oops.utils.git._git"), patch(
-            "oops.utils.git._git_output", return_value=""
-        ):
+        with patch("oops.utils.git._git"), patch("oops.utils.git._git_output", return_value=""):
             with pytest.raises(click.ClickException, match="No commit found at or before"):
                 update_at_date(tmp_path, "2020-01-01")
 
@@ -180,9 +171,7 @@ class TestUpdateAtDate:
             captured_calls.append((args, kwargs))
             return commit_hash
 
-        with patch("oops.utils.git._git"), patch(
-            "oops.utils.git._git_output", side_effect=fake_git_output
-        ):
+        with patch("oops.utils.git._git"), patch("oops.utils.git._git_output", side_effect=fake_git_output):
             update_at_date(tmp_path, "2024-06-30")
 
         assert len(captured_calls) == 1
@@ -209,9 +198,7 @@ class TestDownloadCommand:
             result = self._runner().invoke(download_main, ["19", "--no-enterprise"])
         # community_dir is resolved as <tmp_path>/19.0/community
         expected_community = tmp_path / "19.0" / "community"
-        mock_clone.assert_called_once_with(
-            cfg_mock.odoo.community_url, expected_community, "19.0"
-        )
+        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, expected_community, "19.0")
         assert result.exit_code == 0
 
     def test_version_with_dot_unchanged(self, tmp_path):
@@ -221,9 +208,7 @@ class TestDownloadCommand:
         ) as mock_clone:
             self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
         expected_community = tmp_path / "17.0" / "community"
-        mock_clone.assert_called_once_with(
-            cfg_mock.odoo.community_url, expected_community, "17.0"
-        )
+        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, expected_community, "17.0")
 
     def test_missing_sources_dir_raises_usage_error(self):
         """No --base-dir and config.odoo.sources_dir is None → UsageError."""
@@ -316,13 +301,9 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            self._runner().invoke(
-                download_main, ["17.0", "--no-enterprise", "--base-dir", str(custom_base)]
-            )
+            self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--base-dir", str(custom_base)])
         expected_community = custom_base / "17.0" / "community"
-        mock_clone.assert_called_once_with(
-            cfg_mock.odoo.community_url, expected_community, "17.0"
-        )
+        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, expected_community, "17.0")
 
     def test_enterprise_clone_failure_accumulates_error(self, tmp_path):
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
@@ -434,9 +415,7 @@ class TestUpdateCommand:
         with patch("oops.commands.odoo.update.config", cfg_mock), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            self._runner().invoke(
-                update_main, ["17.0", "--base-dir", str(custom_base)]
-            )
+            self._runner().invoke(update_main, ["17.0", "--base-dir", str(custom_base)])
         mock_update.assert_called_once_with(community_dir)
 
     def test_update_failure_exits_with_code_1(self, tmp_path):

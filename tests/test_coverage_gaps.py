@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: test_coverage_gaps.py — tests/test_coverage_gaps.py
 
@@ -13,9 +13,7 @@ io/tools.py (run_script error path).
 """
 
 import pytest
-
 from oops.core.paths import PR_DIR, UNPORTED_DIR
-
 
 # ---------------------------------------------------------------------------
 # Manifest fixture
@@ -117,9 +115,9 @@ class TestFileUpdater:
 
         f = tmp_path / "file.txt"
         f.write_text("no tags here")
-        assert file_updater(
-            str(f), new_inner_content="x", start_tag="# s", end_tag="# e", append_position=False
-        ) is False
+        assert (
+            file_updater(str(f), new_inner_content="x", start_tag="# s", end_tag="# e", append_position=False) is False
+        )
 
     def test_raises_with_only_start_tag(self, tmp_path):
         from oops.io.file import file_updater
@@ -387,7 +385,7 @@ class TestCollectAddonPaths:
 
         (tmp_path / "regular").mkdir()
         result = collect_addon_paths(tmp_path)
-        assert all(not u for _, u in result if _ .name != UNPORTED_DIR)
+        assert all(not u for _, u in result if _.name != UNPORTED_DIR)
 
 
 # ---------------------------------------------------------------------------

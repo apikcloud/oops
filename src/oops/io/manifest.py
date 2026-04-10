@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: manifest.py — oops/io/manifest.py
 
@@ -20,7 +20,6 @@ from collections.abc import Generator
 from pathlib import Path
 
 import libcst as cst
-
 from oops.core.config import config
 from oops.core.exceptions import NoManifestFound
 from oops.utils.compat import Optional, Union

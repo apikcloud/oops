@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: materialize.py — oops/commands/addons/materialize.py
 
@@ -15,7 +15,6 @@ Use --include to restrict to a subset, or --exclude to skip specific addons.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import materialize_symlink
 from oops.services.git import commit, get_local_repo

@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: manifest.py — oops/rules/manifest.py
 
@@ -87,22 +87,47 @@ from typing import Any, List, Optional, Tuple  # noqa: UP035
 import libcst as cst
 import libcst.matchers as m
 from fixit import LintRule
-
 from oops.core.config import ManifestConfig
 from oops.rules._helpers import (
-    Elements as _Elements,
     VERSION_PATTERN,
+)
+from oops.rules._helpers import (
+    Elements as _Elements,
+)
+from oops.rules._helpers import (
     extract_kv as _extract_kv,
+)
+from oops.rules._helpers import (
     file_at_ref as _file_at_ref,
+)
+from oops.rules._helpers import (
     get_lint_path as _get_lint_path,
+)
+from oops.rules._helpers import (
     git_repo_root as _git_repo_root,
+)
+from oops.rules._helpers import (
     key_name as _key_name,
+)
+from oops.rules._helpers import (
     last_tag as _last_tag,
+)
+from oops.rules._helpers import (
     load_manifest_cfg as _load_manifest_cfg,
+)
+from oops.rules._helpers import (
     module_version as _module_version,
+)
+from oops.rules._helpers import (
     parse_version_str as _parse_version_str,
+)
+from oops.rules._helpers import (
     sort_key as _sort_key,
+)
+from oops.rules._helpers import (
     staged_addon_manifest_relpaths as _staged_addon_manifest_relpaths,
+)
+from oops.rules._helpers import (
     string_value as _string_value,
 )
 
@@ -323,9 +348,7 @@ class OdooManifestAuthorMaintainers(LintRule):
                 # Skip the allowed-list check when the list is empty (no config).
                 self.report(
                     handle_node,
-                    message=(
-                        f"Maintainer {handle!r} is not in the allowed list: {sorted(allowed_set)}."
-                    ),
+                    message=(f"Maintainer {handle!r} is not in the allowed list: {sorted(allowed_set)}."),
                 )
 
     def _check_summary(self, kv: "dict[str, cst.BaseExpression]") -> None:
@@ -391,8 +414,7 @@ class OdooManifestAuthorMaintainers(LintRule):
         self.report(
             version_node,
             message=(
-                f"Manifest 'version' must follow {odoo_label}.<x>.<y>.<z> format "
-                f"(e.g. {example!r}), got {val!r}."
+                f"Manifest 'version' must follow {odoo_label}.<x>.<y>.<z> format (e.g. {example!r}), got {val!r}."
             ),
             replacement=replacement,
         )
@@ -493,19 +515,11 @@ class ManifestKeyOrder(LintRule):
             return
 
         current = [_key_name(e) for e in elements if isinstance(e, cst.DictElement)]
-        expected = [
-            _key_name(e) for e in self._sorted_elements(elements) if isinstance(e, cst.DictElement)
-        ]
+        expected = [_key_name(e) for e in self._sorted_elements(elements) if isinstance(e, cst.DictElement)]
         self.report(
             node,
-            message=(
-                f"Manifest keys are not in the expected order.\n"
-                f"  Current : {current}\n"
-                f"  Expected: {expected}"
-            ),
-            replacement=node.with_changes(
-                elements=self._rebuild_elements(self._sorted_elements(elements))
-            ),
+            message=(f"Manifest keys are not in the expected order.\n  Current : {current}\n  Expected: {expected}"),
+            replacement=node.with_changes(elements=self._rebuild_elements(self._sorted_elements(elements))),
         )
 
     # -- Helpers -------------------------------------------------------------

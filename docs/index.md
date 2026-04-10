@@ -1,10 +1,10 @@
-# Oops
+# oops — Our Odoo Project Sidekick
 
-A batteries-included development package for Odoo.  
+Your trusty sidekick for Odoo development — batteries included.  
 Runs on the host, inside an Odoo environment, and in CI/CD pipelines.
 
-- Provides commands for day-to-day development and repository maintenance (30+ commands)
-- Ships with pre-commit hooks for seamless integration
+- 30+ commands for day-to-day development and repository maintenance
+- Pre-commit hooks for seamless integration
 - Lints and auto-fixes code against a defined ruleset
 
 ## Installation

@@ -1,5 +1,5 @@
 # Copyright 2026 apik (https://apik.cloud).
-# License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
 # File: test_misc_commands.py — tests/test_misc_commands.py
 
@@ -10,9 +10,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-
 from oops.commands.misc.create_workspace import main as workspace_main
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -209,9 +207,7 @@ class TestCreateWorkspaceVersionFallback:
         ):
             result = self._runner().invoke(workspace_main, [])
         data = json.loads((tmp_path / f"{tmp_path.name}.code-workspace").read_text())
-        assert str(tmp_path / "sources" / "18.0" / "community") in (
-            data["settings"]["python.analysis.extraPaths"]
-        )
+        assert str(tmp_path / "sources" / "18.0" / "community") in (data["settings"]["python.analysis.extraPaths"])
 
     def test_fallback_to_config_manifest_odoo_version(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources", odoo_version="16.0")
@@ -225,9 +221,7 @@ class TestCreateWorkspaceVersionFallback:
             result = self._runner().invoke(workspace_main, [])
         assert result.exit_code == 0
         data = json.loads((tmp_path / f"{tmp_path.name}.code-workspace").read_text())
-        assert str(tmp_path / "sources" / "16.0" / "community") in (
-            data["settings"]["python.analysis.extraPaths"]
-        )
+        assert str(tmp_path / "sources" / "16.0" / "community") in (data["settings"]["python.analysis.extraPaths"])
 
     def test_fallback_emits_warning(self, tmp_path):
         cfg = _make_config_mock(sources_dir=tmp_path / "sources", odoo_version="16.0")
