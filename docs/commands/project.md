@@ -103,6 +103,18 @@ Apply changes without confirmation:
 oops-pro-sync --force
 ```
 
+Sync from a specific branch:
+
+```bash
+oops-pro-sync --branch develop
+```
+
+Sync only specific files/folders (overrides config):
+
+```bash
+oops-pro-sync -F .pre-commit-config.yaml -F .github/workflows
+```
+
 ---
 
 ::: mkdocs-click:commands
