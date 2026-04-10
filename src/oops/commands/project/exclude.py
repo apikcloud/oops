@@ -58,7 +58,7 @@ def main(dry_run: bool = False, no_commit: bool = False):
             items.append(addon.technical_name)
 
     indented_items = [f"  {item}" for item in items]
-    to_exclude_str = "|\n".join(indented_items) + "|"
+    to_exclude_str = "|\n".join(indented_items) + ("|" if items else "")
 
     has_update = False
     if not dry_run:
