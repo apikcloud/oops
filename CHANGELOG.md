@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-04-10
+
+### Added
+
+- `oops-pro-init`: scaffold a Docker Compose stack and `odoo.conf` for a new project; supports optional maildev and SFTP services (`--with-maildev`, `--with-sftp`), port override (`--port`), and dev-mode toggle (`--no-dev`)
+- `oops-pro-sync`: `--branch`/`-b` and `--files`/`-F` CLI overrides to target a specific remote branch or a custom file list at runtime
+
+### Changed
+
+- `io/file.py`: `file_updater` now accepts and propagates a `dry_run` parameter; callers no longer need manual if/else branching
+- `io/file.py`: extracted `get_excluded_addon_names` and `get_filtered_addon_names` helpers (with docstrings and unit tests) from `exclude.py`
+
+### Fixed
+
+- `oops-pro-exclude`: content formatting crashed when the addon list was non-iterable (e.g. a generator); added explicit list conversion
+- `oops-pro-exclude`: overhauled installable filtering, per-line `addon/|` format, and ensured changes are always committed
+- `oops-pro-show`: packages and requirements rows removed from the display (they duplicated data shown elsewhere)
+- CLI commands: switched to the shared `@command` decorator for consistent repo resolution and error handling
+
 ## [0.6.2] - 2026-04-10
 
 ### Documentation
