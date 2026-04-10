@@ -5,8 +5,10 @@
 
 import logging
 import os
+import subprocess
 import zipfile
 
+import click
 import requests
 from oops.core.config import config
 from oops.core.models import WorkflowRunInfo
@@ -141,3 +143,23 @@ def get_github_user(name: str) -> str:
         f"<a href='https://github.com/{name}'>"
         f"<img src='https://github.com/{name}.png' width='32' height='32' alt='{name}'/></a>"
     )
+
+
+def check_gh() -> None:
+    """Verify that gh is installed and reachable. Raises ClickException otherwise."""
+    try:
+        subprocess.run(["gh", "--version"], check=True, capture_output=True)
+    except FileNotFoundError as e:
+        raise click.ClickException("gh CLI not found. Install it from https://cli.github.com.") from e
+    except subprocess.CalledProcessError as e:
+        raise click.ClickException(f"gh --version failed (exit {e.returncode}). Check your gh installation.") from e
+
+
+def gh(*args: str) -> subprocess.CompletedProcess:
+    """Run a gh CLI command, raising ClickException on failure."""
+    try:
+        return subprocess.run(["gh", *args], check=True)
+    except subprocess.CalledProcessError as e:
+        raise click.ClickException(f"gh {args[0]} failed (exit {e.returncode})") from e
+    except FileNotFoundError as e:
+        raise click.ClickException("gh CLI not found. Install it from https://cli.github.com.") from e

@@ -3,6 +3,8 @@
 #
 # File: helpers.py — oops/utils/helpers.py
 
+import re
+import unicodedata
 from collections.abc import Generator
 from datetime import date
 
@@ -127,3 +129,17 @@ def date_from_string(raw: str) -> date:
 def normalize_version(ctx: click.Context, param: click.Parameter, value: str) -> str:
     """Ensure version is in X.0 format (e.g. '19' → '19.0')."""
     return value if "." in value else f"{value}.0"
+
+
+def slugify(name: str) -> str:
+    """Convert a human name to a lowercase, hyphen-separated ASCII slug.
+
+    Strips accents (é → e, à → a) via Unicode NFKD decomposition before
+    replacing any run of non-alphanumeric characters with a single hyphen.
+    """
+    # Decompose accented characters and drop the combining marks
+    normalized = unicodedata.normalize("NFKD", name)
+    ascii_name = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
+    slug = ascii_name.lower().strip()
+    slug = re.sub(r"[^a-z0-9]+", "-", slug)
+    return slug.strip("-")

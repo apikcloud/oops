@@ -163,6 +163,19 @@ class ProjectConfig:
     readme_file: str = "README.md"
 
 
+@dataclass
+class GithubConfig:
+    owner: Optional[str] = None  # GitHub org or user that will own the new repo
+    team: Optional[str] = None  # GitHub team granted push access after repo creation
+    template: Optional[str] = None  # "owner/repo" of the GitHub template repository
+    prefix: Optional[str] = None  # prepended to every slug, e.g. "client" → "client-my-project"
+    visibility: str = "private"  # default visibility for new repositories
+    action_repo: Optional[str] = None  # "owner/repo" of the repo holding the post-create workflow
+    action_workflow: Optional[str] = None  # workflow filename, e.g. "setup.yml"
+    action_ref: str = "main"  # branch/tag to dispatch the workflow on
+    action_inputs: dict = field(default_factory=dict)  # extra static inputs passed to the workflow
+
+
 # ---------------------------------------------------------------------------
 # Root config
 # ---------------------------------------------------------------------------
@@ -178,6 +191,7 @@ class Config:
     manifest: ManifestConfig = field(default_factory=ManifestConfig)  # type: ignore[call-arg]
     odoo: OdooConfig = field(default_factory=OdooConfig)
     precommit: PrecommitConfig = field(default_factory=PrecommitConfig)
+    github: GithubConfig = field(default_factory=GithubConfig)
 
     # Internal / misc (not exposed in .oops.yaml)
     manifest_names: List[str] = field(default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"])
