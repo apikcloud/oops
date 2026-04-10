@@ -198,6 +198,41 @@ oops-sub-rename --no-prompt
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.submodules.remove
+    :command: main
+    :prog_name: oops-sub-remove
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Select submodules to remove from an interactive indexed menu:
+
+```bash
+oops-sub-remove
+```
+
+Remove a specific submodule by name:
+
+```bash
+oops-sub-remove OCA/server-ux
+```
+
+Preview what would be removed without making changes:
+
+```bash
+oops-sub-remove --dry-run
+```
+
+Remove without committing:
+
+```bash
+oops-sub-remove OCA/server-ux --no-commit
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.submodules.replace
     :command: main
     :prog_name: oops-sub-replace
