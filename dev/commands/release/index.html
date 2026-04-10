@@ -2055,12 +2055,14 @@
 </div><hr>
 <h3 id="oops-release-create">oops-release-create<a class="headerlink" href="#oops-release-create" title="Permanent link">¶</a></h3>
 <p>Create a release: update CHANGELOG, write migration script, commit, and tag.</p>
-<p>Workflow:
-  1. Compute the next version (minor by default, or --major / --fix / --version).
-  2. Validate that CHANGELOG.md has a non-empty [Unreleased] (or pre-edited version) section.
-  3. Replace [Unreleased] with the versioned header and today's date (if not already replaced).
-  4. Write the migration script for addon changes since the last tag.
-  5. Commit all staged files and create an annotated git tag.</p>
+<p>Workflow:</p>
+<ol>
+<li>Compute the next version (minor by default, or --major / --fix / --version).</li>
+<li>Validate that CHANGELOG.md has a non-empty [Unreleased] (or pre-edited version) section.</li>
+<li>Replace [Unreleased] with the versioned header and today's date (if not already replaced).</li>
+<li>Write the migration script for addon changes since the last tag.</li>
+<li>Commit all staged files and create an annotated git tag.</li>
+</ol>
 <p>Use --dry-run to preview without writing anything.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-release-create [OPTIONS]
