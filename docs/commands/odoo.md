@@ -1,6 +1,11 @@
 # Odoo Sources
 
-Commands for managing local Odoo Community and Enterprise source checkouts.
+::: oops.commands.odoo
+    options:
+      show_root_heading: false
+      show_docstring_modules: true 
+
+---
 
 All three commands share a common **base directory** that holds one subdirectory per Odoo version:
 
@@ -21,18 +26,6 @@ odoo:
 ```
 
 All commands accept `--base-dir` to override the config value ad hoc.
-
----
-
-## Configuration
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `odoo.sources_dir` | *(required)* | Root directory that holds version subdirectories |
-| `odoo.community_url` | `git@github.com:odoo/odoo.git` | Community repository URL |
-| `odoo.enterprise_url` | `git@github.com:odoo/enterprise.git` | Enterprise repository URL |
-
-Both URL fields can be overridden to point at a fork or a mirror.
 
 ---
 

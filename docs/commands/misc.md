@@ -1,6 +1,9 @@
-# Misc
+# Miscellaneous
 
-Miscellaneous project utilities that don't belong to a specific domain group.
+::: oops.commands.misc
+    options:
+      show_root_heading: false
+      show_docstring_modules: true 
 
 ---
 
@@ -10,35 +13,6 @@ Miscellaneous project utilities that don't belong to a specific domain group.
     :prog_name: oops-misc-create-workspace
     :depth: 2
     :style: table
-
-::: mkdocs-click:commands
-    :module: oops.commands.misc.view_doc
-    :command: main
-    :prog_name: oops-misc-view-doc
-    :depth: 2
-    :style: table
-
-## Configuration
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `odoo.sources_dir` | *(required)* | Root directory holding one subdirectory per Odoo version |
-| `manifest.odoo_version` | *(optional)* | Fallback version when `odoo_version.txt` is absent |
-
-The sources directory must follow this layout (as created by `oops-odoo-download`):
-
-```
-<sources_dir>/
-└── 17.0/
-    ├── community/
-    └── enterprise/
-```
-
-**Version resolution order:**
-
-1. `odoo_version.txt` at the repository root (parsed Docker image tag → major version)
-2. `manifest.odoo_version` in `~/.oops.yaml` (with a warning)
-3. Error — the command exits if neither source provides a version
 
 **Examples:**
 
@@ -81,3 +55,12 @@ Example output file (`my-project.code-workspace`):
     }
 }
 ```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.misc.view_doc
+    :command: main
+    :prog_name: oops-misc-view-doc
+    :depth: 2
+    :style: table

@@ -6,7 +6,6 @@
 """Open the oops documentation in the default browser."""
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import DOCS_URL
 

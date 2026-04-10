@@ -1,5 +1,12 @@
 # Project
 
+::: oops.commands.project
+    options:
+      show_root_heading: false
+      show_docstring_modules: true 
+
+---
+
 ::: mkdocs-click:commands
     :module: oops.commands.project.show
     :command: main

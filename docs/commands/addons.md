@@ -1,5 +1,12 @@
 # Addons
 
+::: oops.commands.addons
+    options:
+      show_root_heading: false
+      show_docstring_modules: true 
+
+---
+
 ::: mkdocs-click:commands
     :module: oops.commands.addons.add
     :command: main

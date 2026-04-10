@@ -1,5 +1,12 @@
 # Submodules
 
+::: oops.commands.submodules
+    options:
+      show_root_heading: false
+      show_docstring_modules: true 
+
+---
+
 ::: mkdocs-click:commands
     :module: oops.commands.submodules.init
     :command: main

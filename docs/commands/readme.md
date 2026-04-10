@@ -1,5 +1,12 @@
 # Readme
 
+::: oops.commands.readme
+    options:
+      show_root_heading: false
+      show_docstring_modules: true 
+
+---
+
 ::: mkdocs-click:commands
     :module: oops.commands.readme.update
     :command: main

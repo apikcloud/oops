@@ -19,7 +19,6 @@ import json
 from pathlib import Path
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import parse_odoo_version
@@ -46,9 +45,7 @@ def main(base_dir: Optional[str], output: Optional[str]) -> None:
 
     sources_root = Path(base_dir) if base_dir else config.odoo.sources_dir
     if sources_root is None:
-        raise click.UsageError(
-            "No base directory provided. Pass --base-dir or set odoo.sources_dir in ~/.oops.yaml."
-        )
+        raise click.UsageError("No base directory provided. Pass --base-dir or set odoo.sources_dir in ~/.oops.yaml.")
 
     try:
         version = str(parse_odoo_version(repo_path).major_version)
@@ -59,9 +56,7 @@ def main(base_dir: Optional[str], output: Optional[str]) -> None:
                 f"Could not read Odoo version from {config.project.file_odoo_version}"
                 " and manifest.odoo_version is not set."
             ) from e
-        print_warning(
-            f"Could not read version from {config.project.file_odoo_version}, using {version}."
-        )
+        print_warning(f"Could not read version from {config.project.file_odoo_version}, using {version}.")
 
     odoo_path = sources_root / version
     workspace_file = Path(output) if output else repo_path / f"{repo_path.name}.code-workspace"
