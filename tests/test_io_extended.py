@@ -1,11 +1,8 @@
 """Tests for oops/io/manifest.py, oops/io/tools.py, and additional oops/io/file.py coverage."""
 
 import subprocess
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
-
 from oops.io.file import (
     check_prefix,
     ensure_parent,
@@ -23,24 +20,11 @@ from oops.io.manifest import (
     parse_manifest_cst,
     read_manifest,
 )
-from oops.io.tools import get_exec_dir, run
-
+from oops.io.tools import run
 
 # ---------------------------------------------------------------------------
 # oops/io/tools.py
 # ---------------------------------------------------------------------------
-
-
-class TestGetExecDir:
-    def test_returns_string(self):
-        d = get_exec_dir()
-        assert isinstance(d, str)
-
-    def test_contains_tools_module_dir(self):
-        import oops.io.tools as tools_mod
-        import os
-        expected = os.path.dirname(tools_mod.__file__)
-        assert get_exec_dir() == expected
 
 
 class TestRun:
@@ -115,6 +99,7 @@ class TestLoadManifest:
 class TestParseManifestCst:
     def test_parses_to_module(self):
         import libcst as cst
+
         node = parse_manifest_cst(MANIFEST_SRC)
         assert isinstance(node, cst.Module)
 
@@ -122,12 +107,14 @@ class TestParseManifestCst:
 class TestReadManifest:
     def test_reads_manifest_from_addon_dir(self, tmp_path):
         import libcst as cst
+
         (tmp_path / "__manifest__.py").write_text(MANIFEST_SRC)
         node = read_manifest(str(tmp_path))
         assert isinstance(node, cst.Module)
 
     def test_raises_no_manifest_found(self, tmp_path):
         from oops.core.exceptions import NoManifestFound
+
         with pytest.raises(NoManifestFound):
             read_manifest(str(tmp_path))
 

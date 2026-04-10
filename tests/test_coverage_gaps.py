@@ -10,7 +10,6 @@ get_requirements_diff, make_migration_command, update_gitignore,
 collect_addon_paths, get_symlink_complete_map,
 get_excluded_addon_names, get_filtered_addon_names),
 services/github.py (get_github_user),
-io/tools.py (run_script error path).
 """
 
 import pytest
@@ -580,17 +579,3 @@ class TestGetFilteredAddonNames:
             result = get_filtered_addon_names(tmp_path)
 
         assert result == sorted(result)
-
-
-# ---------------------------------------------------------------------------
-# oops/io/tools.py — run_script error path
-# ---------------------------------------------------------------------------
-
-
-class TestRunScript:
-    def test_raises_script_not_found(self):
-        from oops.core.exceptions import ScriptNotFound
-        from oops.io.tools import run_script
-
-        with pytest.raises(ScriptNotFound):
-            run_script("nonexistent_script_xyz.sh")
