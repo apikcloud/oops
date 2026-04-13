@@ -14,6 +14,7 @@ _SKIP = {"common"}
 
 
 @click.group()
+@click.version_option(package_name="oops")
 def main():
     pass
 
