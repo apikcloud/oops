@@ -699,6 +699,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-misc-edit-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-misc-edit-config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-misc-new-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-misc-new-project
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-misc-view-doc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1944,6 +1966,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-misc-edit-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-misc-edit-config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-misc-new-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-misc-new-project
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-misc-view-doc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2019,6 +2063,14 @@
             <td>
               <div class="doc-md-description">
                 <p>Open an oops configuration file in the default editor.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.misc.new_project">new_project</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Create a new GitHub repository from a template and clone it locally.</p>
               </div>
             </td>
           </tr>
@@ -2133,10 +2185,119 @@ and can be overridden with --base-dir.</p>
 </span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="p">}</span>
 </span></code></pre></div>
 <hr>
+<h3 id="oops-misc-edit-config">oops-misc-edit-config<a class="headerlink" href="#oops-misc-edit-config" title="Permanent link">¶</a></h3>
+<p>Open an oops configuration file in the default editor.</p>
+<p>Opens ~/.oops.yaml (global) by default, or .oops.yaml in the current
+directory (local) when --local is passed. Creates the file with a starter
+template if it does not exist yet.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops-misc-edit-config [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--local</code></td>
+<td>text</td>
+<td>Edit the local config (.oops.yaml in the current directory)</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--global</code></td>
+<td>text</td>
+<td>Edit the global config (~/.oops.yaml) [default]</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Open the global config in the default editor:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops-misc-edit-config
+</span></code></pre></div>
+<p>Open the local project config instead:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-misc-edit-config<span class="w"> </span>--local
+</span></code></pre></div>
+<hr>
+<h3 id="oops-misc-new-project">oops-misc-new-project<a class="headerlink" href="#oops-misc-new-project" title="Permanent link">¶</a></h3>
+<p>Create a new GitHub repository from a template and clone it locally.</p>
+<p>Prompts for a project name, slugifies it, asks for confirmation, then
+delegates to the gh CLI to create the repository and optionally trigger
+a workflow_dispatch event on a separate "action repository".</p>
+<p>Reads default template, owner, visibility, and action settings from
+github in ~/.oops.yaml. All values can be overridden with CLI options.</p>
+<p>Requires gh to be authenticated (run 'gh auth login' if needed).</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops-misc-new-project [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--no-clone</code></td>
+<td>boolean</td>
+<td>Create the repo but do not clone it</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Experimental</p>
+<p>This command requires <code>gh</code> to be authenticated (<code>gh auth login</code>) and a
+<code>github</code> section in <code>~/.oops.yaml</code>. Behaviour may change in future releases.</p>
+</div>
+<p><strong>Configuration (<code>~/.oops.yaml</code>):</strong></p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">github</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="s">"apikcloud/odoo-repository-template"</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">owner</span><span class="p">:</span><span class="w"> </span><span class="s">"apikcloud"</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">visibility</span><span class="p">:</span><span class="w"> </span><span class="s">"private"</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="s">"odoo"</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="s">"developers"</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="nt">action_repo</span><span class="p">:</span><span class="w"> </span><span class="s">"apikcloud/workflows"</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">  </span><span class="nt">action_workflow</span><span class="p">:</span><span class="w"> </span><span class="s">"update.yml"</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="nt">action_inputs</span><span class="p">:</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">    </span><span class="nt">branch</span><span class="p">:</span><span class="w"> </span><span class="s">"main"</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">    </span><span class="nt">update</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span></code></pre></div>
+<p><strong>Examples:</strong></p>
+<p>Create a new project (prompts for name, slugifies, confirms):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops-misc-new-project
+</span></code></pre></div>
+<p>Create without cloning locally:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-misc-new-project<span class="w"> </span>--no-clone
+</span></code></pre></div>
+<hr>
 <h3 id="oops-misc-view-doc">oops-misc-view-doc<a class="headerlink" href="#oops-misc-view-doc" title="Permanent link">¶</a></h3>
 <p>Open the oops documentation in the default browser.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops-misc-view-doc [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops-misc-view-doc [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2179,7 +2340,7 @@ and can be overridden with --base-dir.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 10, 2026 11:34:15 UTC"><span class="timeago" datetime="2026-04-10T11:34:15+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 10, 2026 11:34:15 UTC">2026-04-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 10, 2026 20:30:32 UTC"><span class="timeago" datetime="2026-04-10T20:30:32+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 10, 2026 20:30:32 UTC">2026-04-10</span>
   </span>
 
     
