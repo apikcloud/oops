@@ -12,18 +12,17 @@ warnings also cause a non-zero exit.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.commands.project.common import check_project
 from oops.io.file import parse_odoo_version
 from oops.services.docker import check_image
 from oops.services.git import get_local_repo
-from oops.utils.render import render_table
+from oops.utils.render import print_error, print_success, print_warning
 
 
 @command(name="check", help=__doc__)
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
-def main(strict: bool):  # noqa: C901
+def main(strict: bool):
 
     _, repo_path = get_local_repo()
 
@@ -36,14 +35,13 @@ def main(strict: bool):  # noqa: C901
     except ValueError as e:
         errors.append(str(e))
 
-    rows = []
     for msg in warns:
-        rows.append([click.style("Warning", fg="yellow"), click.style(msg, fg="yellow")])
+        print_warning(msg)
     for msg in errors:
-        rows.append([click.style("Error", fg="red"), click.style(msg, fg="red")])
-
-    if rows:
-        click.echo(render_table(rows))
+        print_error(msg)
 
     if errors or (strict and warns):
         raise click.exceptions.Exit(1)
+
+    if not warns and not errors:
+        print_success("Check completed without errors")
