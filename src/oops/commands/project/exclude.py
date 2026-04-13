@@ -49,7 +49,8 @@ from oops.services.git import commit, get_local_repo
 @command("exclude", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes.")
-def main(dry_run: bool = False, no_commit: bool = False):
+@click.option("--hook", is_flag=True, help="Raise an error if a commit is made (pre-commit)")
+def main(dry_run: bool = False, no_commit: bool = False, hook: bool = False):
     repo, repo_path = get_local_repo()
 
     addons = get_excluded_addon_names(repo_path)
@@ -74,3 +75,6 @@ def main(dry_run: bool = False, no_commit: bool = False):
 
     if not no_commit and not dry_run and has_update:
         commit(repo, repo_path, [precommit_file], "pre_commit_exclude", skip_hooks=True)
+
+        if hook:
+            raise click.ClickException("The list of exclusions has been updated, please run pre-commit again")
