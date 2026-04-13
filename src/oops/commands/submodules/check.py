@@ -14,12 +14,12 @@ Exits non-zero if any issue is found.
 
 import configparser
 import logging
+from pathlib import PurePosixPath
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import config
-from oops.io.file import check_prefix, list_symlinks
+from oops.io.file import check_prefix, desired_path, list_symlinks
 from oops.services.git import get_local_repo, is_pull_request, read_gitmodules
 from oops.utils.net import _parse_url
 from oops.utils.render import print_error, print_success, print_warning
@@ -75,15 +75,27 @@ def main():  # noqa: C901, PLR0912, PLR0915
 
         # Check deprecated repositories
         if repository_name in config.submodules.deprecated_repositories:
-            deprecated_repos.append(
-                (submodule.name, config.submodules.deprecated_repositories[repository_name])
-            )
+            deprecated_repos.append((submodule.name, config.submodules.deprecated_repositories[repository_name]))
 
         # Track PR submodules
         if is_pull_request(submodule):
             pr_submodules.append((submodule.name, submodule.path))
-            if not check_prefix(str(submodule.path), str(config.pull_request_dir)):
-                misplaced_prs.append((submodule.name, submodule.path))
+
+            # Recalculate expected path via desired_path and compare, ignoring suffix
+            try:
+                expected = PurePosixPath(
+                    desired_path(
+                        submodule.url,
+                        pull_request=True,
+                        prefix=str(config.submodules.current_path),
+                    )
+                )
+                actual = PurePosixPath(submodule.path)
+                # actual must be a child of expected (suffix required — points to a specific addon)
+                if expected not in actual.parents:
+                    misplaced_prs.append((submodule.name, submodule.path))
+            except ValueError:
+                logging.debug(f"Could not compute desired path for {submodule.name!r}, skipping check_pr")
 
     if "check_path" in config.submodules.checks and bad_paths:
         print_error(f"Submodules not under {config.submodules.current_path} ({len(bad_paths)}):")
@@ -123,8 +135,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
 
     if pr_submodules:
         print_warning(f"{len(pr_submodules)} pull-request submodule(s) detected:")
-        for name, path in pr_submodules:
-            click.echo(f"  - {name}: {path}")
+        for name, _ in pr_submodules:
+            click.echo(f"  - {name}")
 
     if "check_pr" in config.submodules.checks and misplaced_prs:
         print_error(f"PR submodules not under {config.pull_request_dir}:")
@@ -133,10 +145,8 @@ def main():  # noqa: C901, PLR0912, PLR0915
         res = False
 
     if res:
-        print_success(
-            f"All submodules are under {config.submodules.current_path} "
-            f"and used by at least one symlink."
-        )
+        print_success(f"{len(config.submodules.checks)} check(s) completed without errors for submodules")
         raise click.exceptions.Exit(0)
     else:
-        raise click.UsageError("Submodule check failed. Please fix the above issues.")
+        print_error("Submodule check failed. Please fix the above issues.")
+        raise click.exceptions.Exit(1)
