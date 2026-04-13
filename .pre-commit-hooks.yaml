@@ -20,7 +20,9 @@
   name: Check manifest files
   entry: oops-man-check
   language: python
-  pass_filenames: false
+  types: [python]
+  pass_filenames: true
+  files: (__manifest__\.py|__openerp__\.py|__terp__\.py)$
 
 - id: check-submodules
   name: Check submodules
