@@ -28,10 +28,16 @@ Check all manifests in the repository:
 oops-man-check
 ```
 
-Check specific addons only:
+Check specific addons by name:
 
 ```bash
-oops-man-check --names sale_custom,purchase_custom
+oops-man-check sale_custom purchase_custom
+```
+
+Check from a directory (resolves the manifest automatically):
+
+```bash
+oops-man-check path/to/sale_custom
 ```
 
 Show the suggested fix diff alongside each violation:

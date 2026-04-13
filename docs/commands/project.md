@@ -51,6 +51,12 @@ Write the file without committing:
 oops-pro-exclude --no-commit
 ```
 
+Run as a pre-commit hook (raises an error if the exclusion list changed, prompting a re-run):
+
+```bash
+oops-pro-exclude --hook
+```
+
 ---
 
 ::: mkdocs-click:commands
