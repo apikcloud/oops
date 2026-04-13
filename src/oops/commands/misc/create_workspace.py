@@ -64,8 +64,6 @@ def main(base_dir: Optional[str], output: Optional[str]) -> None:
     workspace = {
         "folders": [{"path": "."}],
         "settings": {
-            # "[xml]": {"editor.semanticHighlighting.enabled": False},
-            # "[python]": {"editor.semanticHighlighting.enabled": True},
             "python.analysis.extraPaths": [
                 str(odoo_path / "community"),
                 str(odoo_path / "enterprise"),
@@ -74,7 +72,6 @@ def main(base_dir: Optional[str], output: Optional[str]) -> None:
                 str(odoo_path / "community"),
                 str(odoo_path / "enterprise"),
             ],
-            # "python.languageServer": "None",
         },
     }
 
