@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-04-13
+
+### Added
+
+- `oops --version`: display the installed package version
+- `oops-sub-remove`: remove a submodule via an indexed interactive menu
+- `oops-misc-new-project`: create a new GitHub repository from a template, clone locally, and trigger the update workflow
+- `oops-misc-edit-config`: open the global or local `.oops.yaml` in the default editor
+- `oops-pro-exclude`: `--hook` flag raises an error when the exclusion list was updated, prompting pre-commit to re-run
+- `oops-man-check`: accepts addon names, manifest file paths, or addon directories — unified CLI and pre-commit entry point; `--names` option and separate `oops-man-precommit` entry point removed
+
+### Changed
+
+- `oops-pro-check`: output now uses `print_warning` / `print_error` / `print_success` helpers instead of a table
+
+### Fixed
+
+- `oops-sub-check`: fixed false positive on PR submodule placement check
+
+### Documentation
+
+- Hooks page updated with remote repo config and corrected `pass_filenames` examples
+- Command reference: fixed stale `--names` example for `oops-man-check` and added `--hook` example for `oops-pro-exclude`
+
 ## [0.7.0] - 2026-04-10
 
 ### Added
