@@ -10,6 +10,6 @@ Runs on the host, inside an Odoo environment, and in CI/CD pipelines.
 ## Installation
 
 ```bash
-uv pip install git+https://github.com/apikcloud/oops.git@v0.8.0
+uv tool install git+https://github.com/apikcloud/oops.git@v0.9.0
 ```
 

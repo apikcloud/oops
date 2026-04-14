@@ -121,12 +121,6 @@ Download only specific addons:
 oops-addons-download https://github.com/OCA/server-ux.git 18.0 --addons mass_editing
 ```
 
-Use a GitHub token for private repositories:
-
-```bash
-oops-addons-download https://github.com/OCA/server-ux.git 18.0 --token $GH_TOKEN
-```
-
 ---
 
 ::: mkdocs-click:commands

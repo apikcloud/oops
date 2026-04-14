@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-04-14
+
+### Added
+
+- `oops-misc-create-workspace`: new `--without-download` flag to skip automatic Odoo source download when sources are missing
+
+### Changed
+
+- `oops-misc-create-workspace`: automatically invokes `oops-odoo-download` to fetch missing Odoo sources before generating the workspace file; use `--without-download` to opt out
+- `oops-misc-create-workspace`: workspace Python analysis paths now reflect the project edition (community-only vs enterprise)
+- `oops-misc-create-workspace`, `oops-odoo-download`, `oops-odoo-update`: removed `--base-dir` option; source directory is now always resolved from `odoo.sources_dir` via `get_odoo_sources_dirs`
+- `oops-addons-download`: replaced GitHub API ZIP download with SSH `git clone` (depth=1, no token required)
+- `oops-addons-download`: gitignore entries now managed with a `file_updater` tagged block (`# oops:addons:start` / `# oops:addons:end`), accumulating entries across runs
+
+### Fixed
+
+- `oops-addons-download`: `update_gitignore` silently corrupted `.gitignore` by writing a comma-joined string instead of line-by-line entries
+
 ## [0.8.0] - 2026-04-13
 
 ### Added
