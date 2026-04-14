@@ -2097,6 +2097,10 @@ manifests.</p>
 </span></code></pre></div>
 <hr>
 <h3 id="oops-requirements-update">oops-requirements-update<a class="headerlink" href="#oops-requirements-update" title="Permanent link">¶</a></h3>
+<p>Update the requirements file of the project depending on the python dependencies found in the project.
+It checks the python dependencies in each manifest of the root addons.</p>
+<p>The whole content of the requirements file is replaced by the python dependencies found in the project.</p>
+<p>By default, a commit is automatically done to push the changes. Use --no-commit to avoid this behaviour.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops-requirements-update [OPTIONS]
 </span></code></pre></div>
