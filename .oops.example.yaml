@@ -1,19 +1,34 @@
 version: 1
+
+# ---------------------------------------------------------------------------
+# Docker images
+# ---------------------------------------------------------------------------
 images:
   source:
-    repository: "organization/repository"
-    file: "images.json"
+    repository: "organization/images"   # GitHub repo hosting the image list
+    file: "tags.json"                    # path to the JSON file within that repo
+  collections:
+    - "production"
+    - "staging"
   registries:
+    recommended:
+      - "myregistry"
+    deprecated:
+      - "oldregistry"
     warn:
       - "odoo"
+  release_warn_age_days: 30          # warn when image is older than N days
 
+# ---------------------------------------------------------------------------
+# Git submodules
+# ---------------------------------------------------------------------------
 submodules:
   current_path: ".third-party"
   old_paths:
     - "third-party"
-
-  force_scheme: "ssh"
-
+  force_scheme: "ssh"                # rewrite all remote URLs to SSH
+  deprecated_repositories:
+    organization/old-repo: "organization/new-repo"
   checks:
     - "check_path"
     - "check_branch"
@@ -21,16 +36,114 @@ submodules:
     - "check_url_scheme"
     - "check_deprecated_repo"
     - "check_broken_symlink"
+    - "check_pr"                     # enforce PR submodules under pull_request_dir
 
+# ---------------------------------------------------------------------------
+# Manifest lint
+# ---------------------------------------------------------------------------
+manifest:
+  author: "MyCompany"                # required — enforced by lint rules
+  odoo_version: "17.0"               # enforced in version format checks
+  version_bump_strategy: "trunk"     # "off" | "strict" | "trunk"
+  allowed_maintainers:
+    - github-username
+    - bot-account
+  required_keys:
+    - name
+    - version
+    - summary
+    - website
+    - author
+    - maintainers
+    - depends
+    - data
+    - license
+    - auto_install
+    - installable
+  key_order:
+    - name
+    - summary
+    - version
+    - category
+    - author
+    - maintainers
+    - website
+    - depends
+    - data
+    - assets
+    - demo
+    - application
+    - auto_install
+    - installable
+    - license
+
+# ---------------------------------------------------------------------------
+# Project structure
+# ---------------------------------------------------------------------------
 project:
   mandatory_files:
+    - ".gitignore"
+    - ".pre-commit-config.yaml"
+    - "CHANGELOG.md"
+    - "odoo_version.txt"
+    - "packages.txt"
     - "requirements.txt"
   recommended_files:
     - "README.md"
     - "CODEOWNERS"
-    - "CHANGELOG.md"
-    - ".gitignore"
+  file_packages: "packages.txt"
+  file_requirements: "requirements.txt"
+  file_odoo_version: "odoo_version.txt"
+  file_migrate: "migrate.sh"
+  readme_file: "README.md"
+
+# ---------------------------------------------------------------------------
+# File sync (oops-pro-sync)
+# ---------------------------------------------------------------------------
 sync:
-  remote_url: "git@github.com:organization/repository.git"
+  remote_url: "git@github.com:organization/odoo-repository-template.git"
+  branch: "main"
   files:
+    - ".editorconfig"
+    - ".github"
+    - ".gitignore"
     - ".pre-commit-config.yaml"
+    - ".ruff.toml"
+    - ".vscode"
+
+# ---------------------------------------------------------------------------
+# Odoo sources (oops-odoo-*)
+# ---------------------------------------------------------------------------
+odoo:
+  sources_dir: "~/odoo-sources"
+  community_url: "git@github.com:odoo/odoo.git"
+  enterprise_url: "git@github.com:odoo/enterprise.git"
+
+# ---------------------------------------------------------------------------
+# Pre-commit exclusions (oops-pro-exclude)
+# ---------------------------------------------------------------------------
+precommit:
+  file_precommit: ".pre-commit-config.yaml"
+  default_exclusions:
+    - '^setup/|/static/description/index\.html$'
+    - '.svg$|/tests/([^/]+/)?cassettes/'
+    - '^README\.md$'
+    - '/static/(src/)?lib/'
+    - '/build/|/dist/'
+    - '.third-party/'
+
+# ---------------------------------------------------------------------------
+# GitHub integration (oops-misc-new-project)
+# ---------------------------------------------------------------------------
+github:
+  owner: "organization"
+  team: "developers"
+  template: "organization/odoo-repository-template"
+  prefix: "odoo"                     # repo slug will be "odoo-<project-name>"
+  visibility: "private"
+  action_repo: "organization/workflows"
+  action_workflow: "setup.yml"
+  action_ref: "main"
+  action_inputs:
+    branch: "main"
+    update: false
