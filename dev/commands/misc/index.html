@@ -721,6 +721,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-misc-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-misc-usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-misc-view-doc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1988,6 +1999,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-misc-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops-misc-usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-misc-view-doc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2071,6 +2093,14 @@
             <td>
               <div class="doc-md-description">
                 <p>Create a new GitHub repository from a template and clone it locally.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.misc.usage">usage</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Show oops command usage counters from the local stats file.</p>
               </div>
             </td>
           </tr>
@@ -2290,10 +2320,41 @@ github in ~/.oops.yaml. All values can be overridden with CLI options.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops-misc-new-project<span class="w"> </span>--no-clone
 </span></code></pre></div>
 <hr>
+<h3 id="oops-misc-usage">oops-misc-usage<a class="headerlink" href="#oops-misc-usage" title="Permanent link">¶</a></h3>
+<p>Show oops command usage counters from the local stats file.</p>
+<p>Reads ~/.local/share/oops/stats.jsonl and prints a table of invocation
+counts per command, sorted from most to least used.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-misc-usage [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Show per-command invocation counts:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops-misc-usage
+</span></code></pre></div>
+<hr>
 <h3 id="oops-misc-view-doc">oops-misc-view-doc<a class="headerlink" href="#oops-misc-view-doc" title="Permanent link">¶</a></h3>
 <p>Open the oops documentation in the default browser.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-misc-view-doc [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops-misc-view-doc [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2336,7 +2397,7 @@ github in ~/.oops.yaml. All values can be overridden with CLI options.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 14, 2026 15:45:22 UTC"><span class="timeago" datetime="2026-04-14T15:45:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 14, 2026 15:45:22 UTC">2026-04-14</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 14, 2026 20:00:53 UTC"><span class="timeago" datetime="2026-04-14T20:00:53+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 14, 2026 20:00:53 UTC">2026-04-14</span>
   </span>
 
     
