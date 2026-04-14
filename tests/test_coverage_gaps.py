@@ -6,7 +6,7 @@
 """Targeted tests to reach the 80% coverage threshold.
 
 Covers: io/file.py (file_updater, find_addons, find_addon_dirs,
-get_requirements_diff, make_migration_command, update_gitignore,
+get_requirements_diff, make_migration_command,
 collect_addon_paths, get_symlink_complete_map,
 get_excluded_addon_names, get_filtered_addon_names),
 services/github.py (get_github_user),
@@ -298,59 +298,6 @@ class TestGetRequirementsDiff:
         has_changes, new_lines, _ = get_requirements_diff(req, tmp_path)
         # Only the header comment line
         assert len(new_lines) == 1
-
-
-# ---------------------------------------------------------------------------
-# oops/io/file.py — update_gitignore
-# ---------------------------------------------------------------------------
-
-
-class TestUpdateGitignore:
-    def test_creates_file_when_missing(self, tmp_path):
-        from oops.io.file import update_gitignore
-
-        f = tmp_path / ".gitignore"
-        assert update_gitignore(f, ["addon_a"]) is True
-        assert "addon_a/" in f.read_text()
-
-    def test_appends_missing_entries(self, tmp_path):
-        from oops.io.file import update_gitignore
-
-        f = tmp_path / ".gitignore"
-        f.write_text("existing/\n")
-        assert update_gitignore(f, ["new_addon"]) is True
-        assert "new_addon/" in f.read_text()
-
-    def test_idempotent_when_already_present(self, tmp_path):
-        from oops.io.file import update_gitignore
-
-        f = tmp_path / ".gitignore"
-        f.write_text("addon_a/\n")
-        assert update_gitignore(f, ["addon_a"]) is False
-
-    def test_empty_folders_returns_false(self, tmp_path):
-        from oops.io.file import update_gitignore
-
-        assert update_gitignore(tmp_path / ".gitignore", []) is False
-
-    def test_inserts_under_existing_header(self, tmp_path):
-        from oops.io.file import update_gitignore
-
-        f = tmp_path / ".gitignore"
-        header = "# Ignored addons (auto)"
-        f.write_text(f"{header}\n")
-        assert update_gitignore(f, ["new_addon"], header=header) is True
-        text = f.read_text()
-        assert "new_addon/" in text
-        assert text.index(header) < text.index("new_addon/")
-
-    def test_normalizes_trailing_slash(self, tmp_path):
-        from oops.io.file import update_gitignore
-
-        f = tmp_path / ".gitignore"
-        f.write_text("addon_a/\n")
-        # Passing without slash should still be recognized as a duplicate
-        assert update_gitignore(f, ["addon_a/"]) is False
 
 
 # ---------------------------------------------------------------------------
