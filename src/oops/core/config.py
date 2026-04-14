@@ -165,6 +165,12 @@ class ProjectConfig:
 
 
 @dataclass
+class StatsConfig:
+    enabled: bool = False
+    endpoint: Optional[str] = None
+
+
+@dataclass
 class GithubConfig:
     owner: Optional[str] = None  # GitHub org or user that will own the new repo
     team: Optional[str] = None  # GitHub team granted push access after repo creation
@@ -193,6 +199,7 @@ class Config:
     odoo: OdooConfig = field(default_factory=OdooConfig)
     precommit: PrecommitConfig = field(default_factory=PrecommitConfig)
     github: GithubConfig = field(default_factory=GithubConfig)
+    stats: StatsConfig = field(default_factory=StatsConfig)
 
     # Internal / misc (not exposed in .oops.yaml)
     manifest_names: List[str] = field(default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"])

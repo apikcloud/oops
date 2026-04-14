@@ -5,8 +5,8 @@ version: 1
 # ---------------------------------------------------------------------------
 images:
   source:
-    repository: "organization/images"   # GitHub repo hosting the image list
-    file: "tags.json"                    # path to the JSON file within that repo
+    repository: "organization/images" # GitHub repo hosting the image list
+    file: "tags.json" # path to the JSON file within that repo
   collections:
     - "production"
     - "staging"
@@ -17,7 +17,7 @@ images:
       - "oldregistry"
     warn:
       - "odoo"
-  release_warn_age_days: 30          # warn when image is older than N days
+  release_warn_age_days: 30 # warn when image is older than N days
 
 # ---------------------------------------------------------------------------
 # Git submodules
@@ -26,7 +26,7 @@ submodules:
   current_path: ".third-party"
   old_paths:
     - "third-party"
-  force_scheme: "ssh"                # rewrite all remote URLs to SSH
+  force_scheme: "ssh" # rewrite all remote URLs to SSH
   deprecated_repositories:
     organization/old-repo: "organization/new-repo"
   checks:
@@ -36,15 +36,15 @@ submodules:
     - "check_url_scheme"
     - "check_deprecated_repo"
     - "check_broken_symlink"
-    - "check_pr"                     # enforce PR submodules under pull_request_dir
+    - "check_pr" # enforce PR submodules under pull_request_dir
 
 # ---------------------------------------------------------------------------
 # Manifest lint
 # ---------------------------------------------------------------------------
 manifest:
-  author: "MyCompany"                # required — enforced by lint rules
-  odoo_version: "17.0"               # enforced in version format checks
-  version_bump_strategy: "trunk"     # "off" | "strict" | "trunk"
+  author: "MyCompany" # required — enforced by lint rules
+  odoo_version: "17.0" # enforced in version format checks
+  version_bump_strategy: "trunk" # "off" | "strict" | "trunk"
   allowed_maintainers:
     - github-username
     - bot-account
@@ -126,11 +126,11 @@ precommit:
   file_precommit: ".pre-commit-config.yaml"
   default_exclusions:
     - '^setup/|/static/description/index\.html$'
-    - '.svg$|/tests/([^/]+/)?cassettes/'
+    - ".svg$|/tests/([^/]+/)?cassettes/"
     - '^README\.md$'
-    - '/static/(src/)?lib/'
-    - '/build/|/dist/'
-    - '.third-party/'
+    - "/static/(src/)?lib/"
+    - "/build/|/dist/"
+    - ".third-party/"
 
 # ---------------------------------------------------------------------------
 # GitHub integration (oops-misc-new-project)
@@ -139,7 +139,7 @@ github:
   owner: "organization"
   team: "developers"
   template: "organization/odoo-repository-template"
-  prefix: "odoo"                     # repo slug will be "odoo-<project-name>"
+  prefix: "odoo" # repo slug will be "odoo-<project-name>"
   visibility: "private"
   action_repo: "organization/workflows"
   action_workflow: "setup.yml"
@@ -147,3 +147,9 @@ github:
   action_inputs:
     branch: "main"
     update: false
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+stats:
+  enabled: false

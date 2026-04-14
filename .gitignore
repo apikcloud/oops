@@ -166,3 +166,5 @@ cython_debug/
 .oops.yml
 
 .codegraph/
+.claude/
+CLAUDE.md
