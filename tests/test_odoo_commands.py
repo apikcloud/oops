@@ -189,38 +189,48 @@ class TestDownloadCommand:
     def _runner(self):
         return CliRunner()
 
+    def _patch_dirs(self, community_dir, enterprise_dir=None):
+        if enterprise_dir is None:
+            enterprise_dir = community_dir.parent / "enterprise"
+        return patch(
+            "oops.commands.odoo.download.get_odoo_sources_dirs",
+            return_value=(community_dir, enterprise_dir),
+        )
+
     def test_version_normalization_short_form(self, tmp_path):
         """'19' should be treated as '19.0'."""
+        community_dir = tmp_path / "19.0" / "community"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
             result = self._runner().invoke(download_main, ["19", "--no-enterprise"])
-        # community_dir is resolved as <tmp_path>/19.0/community
-        expected_community = tmp_path / "19.0" / "community"
-        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, expected_community, "19.0")
+        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "19.0")
         assert result.exit_code == 0
 
     def test_version_with_dot_unchanged(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
             self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
-        expected_community = tmp_path / "17.0" / "community"
-        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, expected_community, "17.0")
+        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "17.0")
 
     def test_missing_sources_dir_raises_usage_error(self):
-        """No --base-dir and config.odoo.sources_dir is None → UsageError."""
-        cfg_mock = _make_config_mock(sources_dir=None)
-        with patch("oops.commands.odoo.download.config", cfg_mock):
+        import click as _click
+        with patch(
+            "oops.commands.odoo.download.get_odoo_sources_dirs",
+            side_effect=_click.UsageError("No base directory provided."),
+        ):
             result = self._runner().invoke(download_main, ["17.0"])
         assert result.exit_code != 0
         assert "No base directory provided" in result.output
 
     def test_clone_community_when_dir_does_not_exist(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
             result = self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
@@ -231,7 +241,7 @@ class TestDownloadCommand:
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
             result = self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
@@ -243,7 +253,7 @@ class TestDownloadCommand:
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.update_latest"
         ) as mock_update:
             result = self._runner().invoke(download_main, ["17.0", "--update", "--no-enterprise"])
@@ -251,9 +261,11 @@ class TestDownloadCommand:
         assert result.exit_code == 0
 
     def test_enterprise_cloned_by_default(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         clone_calls = []
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)
         ):
             result = self._runner().invoke(download_main, ["17.0"])
@@ -264,9 +276,10 @@ class TestDownloadCommand:
         assert result.exit_code == 0
 
     def test_no_enterprise_flag_clones_community_only(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         clone_calls = []
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)
         ):
             self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
@@ -275,8 +288,10 @@ class TestDownloadCommand:
 
     def test_clone_failure_exits_with_code_1(self, tmp_path):
         """Exit(1) is raised when errors accumulate (both repos attempted by default)."""
+        community_dir = tmp_path / "17.0" / "community"
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.download.clone",
             side_effect=subprocess.CalledProcessError(1, "git"),
         ):
@@ -286,33 +301,37 @@ class TestDownloadCommand:
     def test_community_clone_failure_no_enterprise_no_exit_code_1(self, tmp_path):
         """Community-only clone failure does not raise Exit(1) — execution returns
         before the error-check block (which is after the enterprise section)."""
+        community_dir = tmp_path / "17.0" / "community"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone",
             side_effect=subprocess.CalledProcessError(1, "git"),
         ):
             result = self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
         assert result.exit_code == 0
 
-    def test_base_dir_option_overrides_config(self, tmp_path):
-        """--base-dir should be used even when config has a sources_dir."""
-        cfg_mock = _make_config_mock(sources_dir=Path("/some/other/path"))
-        custom_base = tmp_path / "custom"
+    def test_get_odoo_sources_dirs_called_with_version(self, tmp_path):
+        """get_odoo_sources_dirs receives the normalised version string."""
+        community_dir = tmp_path / "17.0" / "community"
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
         with patch("oops.commands.odoo.download.config", cfg_mock), patch(
-            "oops.commands.odoo.download.clone"
-        ) as mock_clone:
-            self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--base-dir", str(custom_base)])
-        expected_community = custom_base / "17.0" / "community"
-        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, expected_community, "17.0")
+            "oops.commands.odoo.download.get_odoo_sources_dirs",
+            return_value=(community_dir, enterprise_dir),
+        ) as mock_dirs, patch("oops.commands.odoo.download.clone"):
+            self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
+        mock_dirs.assert_called_once_with("17.0")
 
     def test_enterprise_clone_failure_accumulates_error(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
 
         def fake_clone(url, dest, branch):
             if "enterprise" in str(dest):
                 raise subprocess.CalledProcessError(1, "git")
 
-        with patch("oops.commands.odoo.download.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.download.clone", side_effect=fake_clone
         ):
             result = self._runner().invoke(download_main, ["17.0"])
@@ -328,11 +347,18 @@ class TestUpdateCommand:
     def _runner(self):
         return CliRunner()
 
+    def _patch_dirs(self, community_dir, enterprise_dir=None):
+        if enterprise_dir is None:
+            enterprise_dir = community_dir.parent / "enterprise"
+        return patch(
+            "oops.commands.odoo.update.get_odoo_sources_dirs",
+            return_value=(community_dir, enterprise_dir),
+        )
+
     def test_version_normalization(self, tmp_path):
         community_dir = tmp_path / "19.0" / "community"
         community_dir.mkdir(parents=True)
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
+        with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["19"])
@@ -340,8 +366,11 @@ class TestUpdateCommand:
         assert result.exit_code == 0
 
     def test_missing_sources_dir_raises_usage_error(self):
-        cfg_mock = _make_config_mock(sources_dir=None)
-        with patch("oops.commands.odoo.update.config", cfg_mock):
+        import click as _click
+        with patch(
+            "oops.commands.odoo.update.get_odoo_sources_dirs",
+            side_effect=_click.UsageError("No base directory provided."),
+        ):
             result = self._runner().invoke(update_main, ["17.0"])
         assert result.exit_code != 0
         assert "No base directory provided" in result.output
@@ -349,8 +378,7 @@ class TestUpdateCommand:
     def test_update_latest_called_without_date(self, tmp_path):
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
+        with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["17.0"])
@@ -360,8 +388,7 @@ class TestUpdateCommand:
     def test_update_at_date_called_with_date_flag(self, tmp_path):
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
+        with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_at_date"
         ) as mock_uad:
             result = self._runner().invoke(update_main, ["17.0", "--date", "2024-01-15"])
@@ -373,8 +400,7 @@ class TestUpdateCommand:
         enterprise_dir = tmp_path / "17.0" / "enterprise"
         community_dir.mkdir(parents=True)
         enterprise_dir.mkdir(parents=True)
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
+        with self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["17.0"])
@@ -387,8 +413,8 @@ class TestUpdateCommand:
     def test_no_enterprise_flag_updates_community_only(self, tmp_path):
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
+        with self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["17.0", "--no-enterprise"])
@@ -397,9 +423,11 @@ class TestUpdateCommand:
         assert result.exit_code == 0
 
     def test_dest_not_found_prints_warning_and_continues(self, tmp_path):
-        """If community dir does not exist, warn and continue (no crash, exit 0)."""
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
+        """If dirs do not exist on disk, warn and continue (no crash, exit 0)."""
+        community_dir = tmp_path / "17.0" / "community"
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
+        # Dirs intentionally not created — should trigger the not-found warning
+        with self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["17.0"])
@@ -407,22 +435,23 @@ class TestUpdateCommand:
         assert "not found" in result.output
         assert result.exit_code == 0
 
-    def test_base_dir_option_used(self, tmp_path):
-        custom_base = tmp_path / "sources"
-        community_dir = custom_base / "17.0" / "community"
+    def test_get_odoo_sources_dirs_called_with_version(self, tmp_path):
+        """get_odoo_sources_dirs receives the normalised version string."""
+        community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
-        cfg_mock = _make_config_mock(sources_dir=Path("/ignored"))
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
-            "oops.commands.odoo.update.update_latest"
-        ) as mock_update:
-            self._runner().invoke(update_main, ["17.0", "--base-dir", str(custom_base)])
-        mock_update.assert_called_once_with(community_dir)
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
+        with patch(
+            "oops.commands.odoo.update.get_odoo_sources_dirs",
+            return_value=(community_dir, enterprise_dir),
+        ) as mock_dirs, patch("oops.commands.odoo.update.update_latest"):
+            self._runner().invoke(update_main, ["17.0", "--no-enterprise"])
+        mock_dirs.assert_called_once_with("17.0")
 
     def test_update_failure_exits_with_code_1(self, tmp_path):
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.update.config", cfg_mock), patch(
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
+        with self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.update.update_latest",
             side_effect=subprocess.CalledProcessError(1, "git"),
         ):
