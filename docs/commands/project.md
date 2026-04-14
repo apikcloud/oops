@@ -68,7 +68,7 @@ oops-pro-exclude --hook
 
 **Examples:**
 
-Generate `docker-compose.yml` and `config/odoo.conf` for the current project:
+Generate `docker-compose.yml`, `.config/odoo.conf`, and a VSCode workspace file for the current project:
 
 ```bash
 oops-pro-init
@@ -96,6 +96,12 @@ Use a custom host port:
 
 ```bash
 oops-pro-init --port 8072
+```
+
+Skip generating the VSCode workspace file:
+
+```bash
+oops-pro-init --without-workspace
 ```
 
 ---

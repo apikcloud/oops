@@ -4,12 +4,14 @@
 # File: models.py — oops/core/models.py
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from oops.utils.compat import Optional
 from oops.utils.helpers import date_from_string
 from oops.utils.render import format_datetime
+
+UTC = timezone.utc
 
 
 @dataclass

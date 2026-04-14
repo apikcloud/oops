@@ -3,7 +3,17 @@
 #
 # File: init.py — src/oops/commands/project/init.py
 
-"""Generate docker-compose.yml and config/odoo.conf in the current repository."""
+"""
+Bootstrap a new Odoo project in the current repository.
+
+Reads the Docker image reference from odoo_version.txt, then writes:
+
+  - docker-compose.yml  — Compose stack (Odoo + Postgres, optional maildev/SFTP)
+  - .config/odoo.conf   — Odoo server configuration file
+  - <repo>.code-workspace — VSCode workspace with Odoo analysis paths (skipped with --without-workspace)
+
+Prompts before overwriting any existing file.
+"""
 
 from __future__ import annotations
 
@@ -21,7 +31,16 @@ from oops.utils.render import print_success
 @click.option("--with-sftp", is_flag=True, default=False, help="Enable SFTP service.")
 @click.option("--no-dev", is_flag=True, default=False, help="Disable --dev=all flag.")
 @click.option("--port", default=8069, show_default=True, help="Host port mapped to Odoo.")
-def main(with_maildev: bool, with_sftp: bool, no_dev: bool, port: int) -> None:
+@click.option("--without-workspace", is_flag=True, default=False, help="Don't generate a VSCode workspace file.")
+@click.pass_context
+def main(
+    ctx: click.Context,
+    with_maildev: bool,
+    with_sftp: bool,
+    no_dev: bool,
+    port: int,
+    without_workspace: bool,
+) -> None:
     _, repo_path = get_local_repo()
 
     try:
@@ -32,6 +51,7 @@ def main(with_maildev: bool, with_sftp: bool, no_dev: bool, port: int) -> None:
         ) from error
 
     compose_content = build_compose(
+        odoo_version=image_info.major_version,
         image=image_info.image,
         port=port,
         prefix=volume_prefix(repo_path),
@@ -56,3 +76,8 @@ def main(with_maildev: bool, with_sftp: bool, no_dev: bool, port: int) -> None:
 
     print_success("docker-compose.yml")
     print_success(".config/odoo.conf")
+
+    if not without_workspace:
+        from oops.commands.misc.create_workspace import main as create_workspace
+
+        ctx.invoke(create_workspace)

@@ -36,6 +36,7 @@ DOCS_URL = "https://apikcloud.github.io/oops/"
 class ManifestConfig:
     author: str = _MISSING  # type: ignore[assignment]
     odoo_version: Optional[str] = None  # e.g. "19.0" — enforced in version check
+    edition: str = "enterprise"  # "community" | "enterprise"
     version_bump_strategy: str = "off"  # "off" | "strict" | "trunk"
     allowed_maintainers: List[str] = field(default_factory=lambda: [])
     required_keys: List[str] = field(

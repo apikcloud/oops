@@ -25,7 +25,7 @@ services:
       - .:/mnt/extra-addons:rw
       - {prefix}_odoo:/var/lib/odoo
   postgres:
-    image: postgres:16.0
+    image: {postgres_image}
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=odoo

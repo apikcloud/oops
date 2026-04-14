@@ -11,8 +11,7 @@ Operates on repositories previously cloned by oops-odoo-download into:
     <base_dir>/<version>/community
     <base_dir>/<version>/enterprise
 
-The base directory is read from odoo.sources_dir in ~/.oops.yaml (or .oops.yaml)
-and can be overridden with --base-dir.
+The sources directory is read from odoo.sources_dir in ~/.oops.yaml.
 
 Without --date, fetches and checks out the latest commit on the branch.
 
@@ -25,12 +24,10 @@ Pass --enterprise to also update the Enterprise checkout.
 
 import subprocess
 from datetime import date as Date
-from pathlib import Path
 
 import click
-
 from oops.commands.base import command
-from oops.core.config import config
+from oops.io.file import get_odoo_sources_dirs
 from oops.utils.compat import Optional
 from oops.utils.git import update_at_date, update_latest
 from oops.utils.helpers import normalize_version
@@ -39,12 +36,6 @@ from oops.utils.render import print_success, print_warning
 
 @command(name="update", help=__doc__)
 @click.argument("version", callback=normalize_version, is_eager=True)
-@click.option(
-    "--base-dir",
-    default=None,
-    type=click.Path(file_okay=False),
-    help="Root directory for Odoo sources. Defaults to odoo.sources_dir in config.",
-)
 @click.option(
     "--date",
     default=None,
@@ -61,22 +52,16 @@ from oops.utils.render import print_success, print_warning
 )
 def main(
     version: str,
-    base_dir: Optional[str],
     date: Optional[Date],
     with_enterprise: bool,
 ) -> None:
-    resolved = Path(base_dir) if base_dir else config.odoo.sources_dir
-    if resolved is None:
-        raise click.UsageError(
-            "No base directory provided. Pass --base-dir or set odoo.sources_dir in ~/.oops.yaml."
-        )
-    target = resolved / version
-    date_str = date.strftime("%Y-%m-%d") if date else None
+    community_dir, enterprise_dir = get_odoo_sources_dirs(version)
 
-    repos = {"Community": target / "community"}
+    repos = {"Community": community_dir}
     if with_enterprise:
-        repos["Enterprise"] = target / "enterprise"
+        repos["Enterprise"] = enterprise_dir
 
+    date_str = date.strftime("%Y-%m-%d") if date else None
     errors: list[str] = []
 
     for label, dest in repos.items():

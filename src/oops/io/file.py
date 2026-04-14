@@ -851,6 +851,7 @@ def update_gitignore(  # noqa: C901
 
 
 def build_compose(
+    odoo_version: float,
     image: str,
     port: int,
     prefix: str,
@@ -861,6 +862,9 @@ def build_compose(
     """Render a docker-compose.yml file from the project template.
 
     Args:
+        odoo_version: Numeric Odoo major version (e.g. ``17.0``). Used to select
+            the appropriate Postgres image (``pgvector`` for 19+, plain ``postgres``
+            for earlier versions).
         image: Full Docker image reference for the Odoo service (e.g. ``registry/odoo:17.0``).
         port: Host port to map to Odoo's internal port 8069.
         prefix: Docker-safe volume name prefix, typically derived from the repo name.
@@ -876,6 +880,7 @@ def build_compose(
         port=port,
         prefix=prefix,
         dev_flag="" if not dev else " --dev=all",
+        postgres_image="pgvector/pgvector:pg16" if odoo_version >= 19 else "postgres:16.0",
         maildev_env=MAILDEV_ENV if with_maildev else "",
         maildev_service=MAILDEV_SERVICE if with_maildev else "",
         sftp_service=SFTP_SERVICE if with_sftp else "",
@@ -897,3 +902,40 @@ def volume_prefix(repo_path: Path) -> str:
     if name.startswith("odoo-"):
         name = name[len("odoo-") :]
     return re.sub(r"[^a-z0-9]", "_", name.lower())
+
+
+# ---------------------------------------------------------------------------
+# Miscellaneous
+# ---------------------------------------------------------------------------
+
+
+def get_odoo_sources_dirs(version: str, base_dir: Optional[Path] = None) -> tuple[Path, Path]:
+    """Resolve the community and enterprise source directories for a given Odoo version.
+
+    The base directory is taken from ``base_dir`` when provided, otherwise falls back
+    to ``odoo.sources_dir`` in ``~/.oops.yaml``. The version sub-directory is created
+    if it does not exist yet.
+
+    Args:
+        version: Odoo version string used as the sub-directory name (e.g. ``"17.0"``).
+        base_dir: Optional explicit root for Odoo sources. Overrides the config value.
+
+    Returns:
+        A ``(community_dir, enterprise_dir)`` tuple of :class:`~pathlib.Path` objects
+        pointing to the ``community`` and ``enterprise`` sub-directories under
+        ``<base_dir>/<version>/``.  The paths are returned regardless of whether they
+        exist on disk — the caller is responsible for checking existence.
+
+    Raises:
+        click.UsageError: When neither ``base_dir`` nor ``odoo.sources_dir`` is set.
+    """
+    resolved = base_dir or config.odoo.sources_dir
+    if resolved is None:
+        raise click.UsageError("No base directory provided. Set odoo.sources_dir in ~/.oops.yaml.")
+    target = resolved / version
+    target.mkdir(parents=True, exist_ok=True)
+
+    community_dir = target / "community"
+    enterprise_dir = target / "enterprise"
+
+    return community_dir, enterprise_dir

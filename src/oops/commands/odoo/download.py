@@ -6,27 +6,23 @@
 """
 Download (or update) Odoo Community and Enterprise source code.
 
-Clones Community and Enterprise (when --enterprise is passed) from GitHub
-using SSH into:
+Clones Community and Enterprise from GitHub using SSH into:
 
-    <base_dir>/<version>/community
-    <base_dir>/<version>/enterprise
+    <sources_dir>/<version>/community
+    <sources_dir>/<version>/enterprise
 
-The base directory is read from odoo.sources_dir in ~/.oops.yaml (or .oops.yaml)
-and can be overridden with --base-dir.
+The sources directory is read from odoo.sources_dir in ~/.oops.yaml.
 
 If a directory already exists the clone step is skipped.  Pass --update to
 pull the latest changes instead.
 """
 
 import subprocess
-from pathlib import Path
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import config
-from oops.utils.compat import Optional
+from oops.io.file import get_odoo_sources_dirs
 from oops.utils.git import clone, update_latest
 from oops.utils.helpers import normalize_version
 from oops.utils.render import print_success, print_warning
@@ -34,40 +30,22 @@ from oops.utils.render import print_success, print_warning
 
 @command(name="download", help=__doc__)
 @click.argument("version", callback=normalize_version, is_eager=True)
-@click.option(
-    "--base-dir",
-    default=None,
-    type=click.Path(file_okay=False, writable=True),
-    help="Root directory for Odoo sources. Defaults to odoo.sources_dir in config.",
-)
-@click.option(
-    "--update", "do_update", is_flag=True, help="Pull latest changes if repos already exist."
-)
+@click.option("--update", "do_update", is_flag=True, help="Pull latest changes if repos already exist.")
 @click.option(
     "--enterprise/--no-enterprise",
     "with_enterprise",
     is_flag=True,
     default=True,
-    help="Include or exclude Enterprise in the update.",
+    help="Include or exclude Enterprise sources.",
 )
 def main(  # noqa: C901, PLR0912
     version: str,
-    base_dir: Optional[str],
     do_update: bool,
     with_enterprise: bool,
 ) -> None:
-    resolved = Path(base_dir) if base_dir else config.odoo.sources_dir
-    if resolved is None:
-        raise click.UsageError(
-            "No base directory provided. Pass --base-dir or set odoo.sources_dir in ~/.oops.yaml."
-        )
-    target = resolved / version
-    target.mkdir(parents=True, exist_ok=True)
-
-    community_dir = target / "community"
-    enterprise_dir = target / "enterprise"
 
     errors: list[str] = []
+    community_dir, enterprise_dir = get_odoo_sources_dirs(version)
 
     # --- Community ---
     if community_dir.exists():
@@ -80,10 +58,7 @@ def main(  # noqa: C901, PLR0912
                 errors.append(f"Community update failed: {exc}")
                 click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
         else:
-            print_warning(
-                f"'{community_dir}' already exists — "
-                "skipping Community clone (use --update to pull)."
-            )
+            print_warning(f"'{community_dir}' already exists — skipping Community clone (use --update to pull).")
     else:
         click.echo(f"Cloning Odoo Community {version} into '{community_dir}'…")
         try:
@@ -107,10 +82,7 @@ def main(  # noqa: C901, PLR0912
                 errors.append(f"Enterprise update failed: {exc}")
                 click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
         else:
-            print_warning(
-                f"'{enterprise_dir}' already exists — "
-                "skipping Enterprise clone (use --update to pull)."
-            )
+            print_warning(f"'{enterprise_dir}' already exists — skipping Enterprise clone (use --update to pull).")
     else:
         click.echo(f"Cloning Odoo Enterprise {version} into '{enterprise_dir}'…")
         try:

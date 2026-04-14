@@ -22,12 +22,6 @@ Generate a workspace file for the current project:
 oops-misc-create-workspace
 ```
 
-Use a custom sources root (overrides `odoo.sources_dir`):
-
-```bash
-oops-misc-create-workspace --base-dir ~/my-odoo-sources
-```
-
 Write the workspace file to a specific path:
 
 ```bash
@@ -51,7 +45,7 @@ Example output file (`my-project.code-workspace`):
         "python.autoComplete.extraPaths": [
             "~/odoo-sources/17.0/community",
             "~/odoo-sources/17.0/enterprise"
-        ],
+        ]
     }
 }
 ```

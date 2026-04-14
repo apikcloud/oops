@@ -7,7 +7,7 @@
 
 ---
 
-All three commands share a common **base directory** that holds one subdirectory per Odoo version:
+The `download` and `update` commands share a common **sources directory** that holds one subdirectory per Odoo version:
 
 ```
 <sources_dir>/
@@ -18,14 +18,12 @@ All three commands share a common **base directory** that holds one subdirectory
     └── community/
 ```
 
-The base directory is configured once in `~/.oops.yaml` and shared across the team:
+The sources directory is configured once in `~/.oops.yaml` and shared across the team:
 
 ```yaml
 odoo:
   sources_dir: ~/odoo-sources
 ```
-
-All commands accept `--base-dir` to override the config value ad hoc.
 
 ---
 
@@ -63,12 +61,6 @@ oops-odoo-download 19.0 --update
 oops-odoo-download 19.0 --update --no-enterprise
 ```
 
-Use a custom base directory (overrides config):
-
-```bash
-oops-odoo-download 19.0 --base-dir /tmp/odoo-src
-```
-
 ---
 
 ::: mkdocs-click:commands
@@ -96,7 +88,7 @@ Example output:
 ```
 
 A `—` in the Enterprise column means the Enterprise checkout is not present
-(run `oops-odoo-download <version> --enterprise` to add it).
+(run `oops-odoo-download <version>` to add it — Enterprise is included by default).
 
 ---
 
