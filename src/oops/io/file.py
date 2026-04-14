@@ -284,7 +284,7 @@ def get_requirements_diff(requirement_file: Path, repo_path: Path) -> tuple[bool
         - ``new_lines``: Sorted list of dependency lines to write.
         - ``diff``: Raw output from :func:`difflib.ndiff`.
     """
-    python_dependencies = ["# Requirements generated from manifests external_dependencies:"]
+    python_dependencies = ["# generated from manifests external_dependencies"]
     for addon in find_addons(repo_path, shallow=True):
         python_dependencies.extend(addon.external_dependencies.get("python", []))
 

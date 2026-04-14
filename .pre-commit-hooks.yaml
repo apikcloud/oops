@@ -24,6 +24,12 @@
   pass_filenames: true
   files: (__manifest__\.py|__openerp__\.py|__terp__\.py)$
 
+- id: check-requirements
+  name: Check Python requirements
+  entry: oops-req-check
+  language: python
+  pass_filenames: false
+
 - id: check-submodules
   name: Check submodules
   entry: oops-sub-check

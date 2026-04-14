@@ -41,7 +41,7 @@ def main():
     has_changes, _, diff = get_requirements_diff(requirement_file, repo_path)
 
     if not has_changes:
-        click.echo("No changes detected in requirements.")
+        print_success("No changes detected in requirements.")
         raise click.exceptions.Exit(0)
 
     click.echo(f"Changes for {requirement_file}:")
