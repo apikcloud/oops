@@ -119,6 +119,23 @@ oops-misc-new-project --no-clone
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.misc.usage
+    :command: main
+    :prog_name: oops-misc-usage
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Show per-command invocation counts:
+
+```bash
+oops-misc-usage
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.misc.view_doc
     :command: main
     :prog_name: oops-misc-view-doc
