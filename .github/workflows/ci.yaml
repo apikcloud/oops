@@ -1,8 +1,6 @@
 name: CI
 
 on:
-  pull_request:
-    types: [closed] # déclenché à la fermeture d'une PR (ajoutez un if au job pour n'exécuter que si merged)
   release:
     types: [published]
   workflow_dispatch:
@@ -13,30 +11,46 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          enable-caching: true
+          cache-dependency-glob: "pyproject.toml"
 
       - name: Install
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[dev]"
+        run: make install
 
       - name: Lint (ruff)
-        run: ruff check .
+        run: make lint
 
       - name: Type-check (pyright)
-        run: pyright || true  # don’t block early; tighten later
+        run: make typecheck
 
       - name: Run tests
-        run: pytest -q
+        run: make test
+  update-dotfiles:
+    needs: [test]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: apikcloud/dotfiles
+          token: ${{ secrets.BOT_TOKEN }}
+
+      - name: Update oops version
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          sed -i "s|git+https://github.com/apikcloud/oops.git@.*|git+https://github.com/apikcloud/oops.git@${VERSION}|" .chezmoidata/packages.yaml
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .chezmoidata/packages.yaml
+          git commit -m "chore: bump oops to ${{ github.event.release.tag_name }}"
+          git push
