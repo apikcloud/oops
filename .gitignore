@@ -167,4 +167,5 @@ cython_debug/
 
 .codegraph/
 .claude/
+thoughts/
 CLAUDE.md
