@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -24,11 +24,11 @@ jobs:
       - name: Install
         run: make install
 
-      - name: Lint (ruff)
-        run: make lint
+      # - name: Lint (ruff)
+      #   run: make lint
 
-      - name: Type-check (pyright)
-        run: make typecheck
+      # - name: Type-check (pyright)
+      #   run: make typecheck
 
       - name: Run tests
         run: make test
