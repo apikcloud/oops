@@ -2,11 +2,9 @@
 oops/services/git.py, and additional oops/io/file.py utility functions."""
 
 from datetime import date, datetime, timezone
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # oops/utils/render.py
@@ -394,7 +392,8 @@ class TestCleanUrl:
 
 class TestMakeJsonGet:
     def test_passes_headers_and_params(self):
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from oops.utils.net import make_json_get
 
         mock_response = MagicMock()
@@ -482,6 +481,7 @@ class TestGetLastCommit:
 
     def test_returns_none_on_error(self):
         import subprocess
+
         from oops.services.git import get_last_commit
         with patch("oops.services.git.run", side_effect=subprocess.CalledProcessError(128, "git")):
             result = get_last_commit()
@@ -527,8 +527,8 @@ class TestCopytree:
 
 class TestParsePackages:
     def test_reads_packages_file(self, tmp_path, monkeypatch):
-        from oops.io.file import parse_packages
         from oops.core.config import config
+        from oops.io.file import parse_packages
         pkg_file = tmp_path / config.project.file_packages
         pkg_file.write_text("pkg_a\npkg_b\n")
         result = parse_packages(tmp_path)

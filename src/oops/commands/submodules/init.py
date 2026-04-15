@@ -12,7 +12,6 @@ parallel across N worker jobs.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.services.git import get_local_repo
 from oops.utils.render import print_success

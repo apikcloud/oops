@@ -7,7 +7,6 @@ from pathlib import PurePosixPath
 
 from oops.io.file import desired_path
 
-
 PREFIX = ".third-party"
 PR_URL = "git@github.com:owner/myrepo.git"
 

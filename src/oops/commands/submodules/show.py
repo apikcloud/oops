@@ -12,7 +12,6 @@ with --pull-request.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.services.git import get_last_commit, get_local_repo, is_pull_request
 from oops.utils.net import get_public_repo_url

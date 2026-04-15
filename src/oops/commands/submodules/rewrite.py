@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Optional
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages

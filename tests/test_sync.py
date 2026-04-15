@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 import git as gitlib
 import pytest
 from click.testing import CliRunner
-
 from oops.commands.project.sync import _apply, main
 from oops.services.git import commit, show_diff
 from oops.utils.net import sparse_clone

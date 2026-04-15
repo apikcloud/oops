@@ -1,14 +1,10 @@
 """Tests for oops/rules/_helpers.py."""
 
-from functools import lru_cache
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import libcst as cst
-import pytest
-
 from oops.rules._helpers import (
-    VERSION_PATTERN,
     _addon_root_of,
     _find_manifest_rel,
     _staged_files,
@@ -26,7 +22,6 @@ from oops.rules._helpers import (
     staged_addon_manifest_relpaths,
     string_value,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers to clear lru_cache between tests

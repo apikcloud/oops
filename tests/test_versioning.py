@@ -1,19 +1,15 @@
 """Tests for oops/utils/versioning.py and oops/services/github.py."""
 
 import subprocess
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from oops.utils.versioning import (
-    SEMVER_PATTERN,
     get_last_release,
     get_last_tag,
     get_next_releases,
     is_valid_semver,
 )
-
 
 # ---------------------------------------------------------------------------
 # is_valid_semver

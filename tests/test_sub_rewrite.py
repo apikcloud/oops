@@ -18,7 +18,6 @@ import subprocess
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from oops.commands.submodules.rewrite import main
 
 

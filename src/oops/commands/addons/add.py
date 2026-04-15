@@ -12,7 +12,6 @@ symlinks at the repository root. Skips addons that are already present.
 import os
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import relpath
 from oops.io.manifest import find_addons_extended

@@ -14,7 +14,6 @@ import configparser
 import logging
 
 import click
-
 from oops.commands.base import command
 from oops.services.git import commit, get_local_repo, is_pull_request, read_gitmodules
 

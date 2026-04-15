@@ -7,7 +7,6 @@ from pathlib import Path
 
 import fixit
 from fixit import Options, QualifiedRule
-
 from oops.io.manifest import find_manifests
 from oops.rules._helpers import set_lint_path
 from oops.utils.compat import List, Optional

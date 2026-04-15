@@ -16,7 +16,6 @@ and can be overridden with --base-dir.
 from pathlib import Path
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import config
 from oops.utils.compat import Optional

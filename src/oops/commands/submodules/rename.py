@@ -12,7 +12,6 @@ Specific submodules can be targeted by name.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import desired_path, get_symlink_map
 from oops.services.git import commit, get_local_repo, is_pull_request

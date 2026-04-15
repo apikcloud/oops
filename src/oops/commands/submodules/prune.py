@@ -14,7 +14,6 @@ submodules can be targeted by passing their names as arguments.
 from pathlib import Path
 
 import click
-
 from oops.commands.base import command
 from oops.core.messages import commit_messages
 from oops.io.file import list_symlinks, relpath

@@ -14,7 +14,6 @@ to restore them from .gitmodules. Use --reset to hard-reset the repo first.
 import shutil
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import config
 from oops.services.git import get_local_repo

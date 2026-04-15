@@ -1,7 +1,6 @@
 # tests/test_cli_smoke.py
 
 from click.testing import CliRunner
-
 from oops.cli import main
 
 

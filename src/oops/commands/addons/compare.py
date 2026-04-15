@@ -11,7 +11,6 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.io.file import find_addons
 from oops.services.git import commit, get_local_repo

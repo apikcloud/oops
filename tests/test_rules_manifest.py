@@ -1,11 +1,8 @@
 """Tests for oops/rules/manifest.py — direct visitor testing without fixit runner."""
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import libcst as cst
-import pytest
-
 from oops.rules.manifest import (
     ManifestKeyOrder,
     ManifestNoExtraKeys,
@@ -13,7 +10,6 @@ from oops.rules.manifest import (
     ManifestVersionBump,
     OdooManifestAuthorMaintainers,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -4,8 +4,6 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
-from tabulate import tabulate
-
 from oops.core.config import config
 from oops.io import file as io_file
 from oops.io.file import is_pull_request_path, materialize_symlink, read_and_parse
@@ -17,6 +15,7 @@ from oops.utils.helpers import (
 )
 from oops.utils.net import parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
+from tabulate import tabulate
 
 
 @pytest.mark.parametrize(

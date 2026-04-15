@@ -12,7 +12,6 @@ automatically — use ``oops-sub-replace`` for those.
 """
 
 import click
-
 from oops.commands.base import command
 from oops.core.config import config
 from oops.services.git import commit, get_local_repo

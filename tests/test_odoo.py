@@ -2,7 +2,6 @@ from datetime import date
 from unittest.mock import patch
 
 import pytest
-
 from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
 from oops.core.models import ImageInfo
 from oops.services.docker import (
