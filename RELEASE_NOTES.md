@@ -4,6 +4,24 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.12.0] - 2026-04-16
+
+Small quality-of-life improvements and a bug fix in the project initialisation.
+
+### ✨ What's new
+
+- **`oops requirements check --no-fail`**: you can now run the requirements check without blocking your workflow — differences are still displayed, but the command exits successfully
+
+### 🔄 Changes
+
+- **`oops project exclude`**: the pre-commit flag has been renamed from `--hook` to `--fail` for consistency with other commands
+
+### 🐛 Fixes
+
+- `oops project init`: the generated `docker-compose.yml` now correctly mounts `./.config` instead of `./config` for the Odoo configuration directory
+
+---
+
 ## [0.11.0] - 2026-04-16
 
 Improved workspace generation and a more ergonomic submodule workflow.
