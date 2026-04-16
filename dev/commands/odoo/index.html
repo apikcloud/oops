@@ -719,7 +719,7 @@
   <a href="#oops-odoo-download" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-odoo-download
+        oops odoo download
       
     </span>
   </a>
@@ -730,7 +730,7 @@
   <a href="#oops-odoo-show" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-odoo-show
+        oops odoo show
       
     </span>
   </a>
@@ -741,7 +741,7 @@
   <a href="#oops-odoo-update" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-odoo-update
+        oops odoo update
       
     </span>
   </a>
@@ -1947,7 +1947,7 @@
   <a href="#oops-odoo-download" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-odoo-download
+        oops odoo download
       
     </span>
   </a>
@@ -1958,7 +1958,7 @@
   <a href="#oops-odoo-show" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-odoo-show
+        oops odoo show
       
     </span>
   </a>
@@ -1969,7 +1969,7 @@
   <a href="#oops-odoo-update" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-odoo-update
+        oops odoo update
       
     </span>
   </a>
@@ -2096,7 +2096,7 @@
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">sources_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">~/odoo-sources</span>
 </span></code></pre></div>
 <hr>
-<h3 id="oops-odoo-download">oops-odoo-download<a class="headerlink" href="#oops-odoo-download" title="Permanent link">¶</a></h3>
+<h3 id="oops-odoo-download">oops odoo download<a class="headerlink" href="#oops-odoo-download" title="Permanent link">¶</a></h3>
 <p>Download (or update) Odoo Community and Enterprise source code.</p>
 <p>Clones Community and Enterprise from GitHub using SSH into:</p>
 <div class="language-text highlight"><pre><span></span><code>&lt;sources_dir&gt;/&lt;version&gt;/community
@@ -2106,7 +2106,7 @@
 <p>If a directory already exists the clone step is skipped.  Pass --update to
 pull the latest changes instead.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops-odoo-download [OPTIONS] VERSION
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops odoo download [OPTIONS] VERSION
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2141,26 +2141,26 @@ pull the latest changes instead.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Clone Community and Enterprise for Odoo 19 (Enterprise is included by default):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops-odoo-download<span class="w"> </span><span class="m">19</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>download<span class="w"> </span><span class="m">19</span>.0
 </span></code></pre></div>
 <p>The short form <code>19</code> is also accepted and normalised to <code>19.0</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops-odoo-download<span class="w"> </span><span class="m">19</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>download<span class="w"> </span><span class="m">19</span>
 </span></code></pre></div>
 <p>Clone Community only, skipping Enterprise:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops-odoo-download<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--no-enterprise
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>download<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--no-enterprise
 </span></code></pre></div>
 <p>Update existing checkouts to the latest commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops-odoo-download<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--update
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>oops-odoo-download<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--update<span class="w"> </span>--no-enterprise
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>download<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--update
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>oops<span class="w"> </span>odoo<span class="w"> </span>download<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--update<span class="w"> </span>--no-enterprise
 </span></code></pre></div>
 <hr>
-<h3 id="oops-odoo-show">oops-odoo-show<a class="headerlink" href="#oops-odoo-show" title="Permanent link">¶</a></h3>
+<h3 id="oops-odoo-show">oops odoo show<a class="headerlink" href="#oops-odoo-show" title="Permanent link">¶</a></h3>
 <p>List locally available Odoo source checkouts.</p>
 <p>Scans the sources directory for version folders and shows, for each version,
 the current commit hash and author date for Community and Enterprise.</p>
 <p>The sources directory is configured via odoo.sources_dir in ~/.oops.yaml.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-odoo-show [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops odoo show [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2183,7 +2183,7 @@ the current commit hash and author date for Community and Enterprise.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>List all locally available Odoo source checkouts:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops-odoo-show
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>show
 </span></code></pre></div>
 <p>Example output:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>| Version | Community                             | Enterprise                            |
@@ -2192,9 +2192,9 @@ the current commit hash and author date for Community and Enterprise.</p>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>| 19.0    | 9i0j1k2l  2025-01-08 09:11:44 +0100  | —                                     |
 </span></code></pre></div>
 <p>A <code>—</code> in the Enterprise column means the Enterprise checkout is not present
-(run <code>oops-odoo-download &lt;version&gt;</code> to add it — Enterprise is included by default).</p>
+(run <code>oops odoo download &lt;version&gt;</code> to add it — Enterprise is included by default).</p>
 <hr>
-<h3 id="oops-odoo-update">oops-odoo-update<a class="headerlink" href="#oops-odoo-update" title="Permanent link">¶</a></h3>
+<h3 id="oops-odoo-update">oops odoo update<a class="headerlink" href="#oops-odoo-update" title="Permanent link">¶</a></h3>
 <p>Update Odoo Community and Enterprise source checkouts.</p>
 <p>Operates on repositories previously cloned by oops-odoo-download into:</p>
 <div class="language-text highlight"><pre><span></span><code>&lt;base_dir&gt;/&lt;version&gt;/community
@@ -2207,7 +2207,7 @@ the last commit that existed at or before midnight of that day, leaving
 the working tree in a detached-HEAD state at the chosen snapshot.</p>
 <p>Pass --enterprise to also update the Enterprise checkout.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops-odoo-update [OPTIONS] VERSION
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops odoo update [OPTIONS] VERSION
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2242,14 +2242,14 @@ the working tree in a detached-HEAD state at the chosen snapshot.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Pull the latest commit on the branch (Enterprise included by default):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-odoo-update<span class="w"> </span><span class="m">19</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>update<span class="w"> </span><span class="m">19</span>.0
 </span></code></pre></div>
 <p>Update Community only, skipping Enterprise:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops-odoo-update<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--no-enterprise
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>update<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--no-enterprise
 </span></code></pre></div>
 <p>Checkout the state of the codebase as of a given date (detached HEAD):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops-odoo-update<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--date<span class="w"> </span><span class="m">2024</span>-06-01
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>oops-odoo-update<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--date<span class="w"> </span><span class="m">2024</span>-06-01<span class="w"> </span>--no-enterprise
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops<span class="w"> </span>odoo<span class="w"> </span>update<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--date<span class="w"> </span><span class="m">2024</span>-06-01
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>oops<span class="w"> </span>odoo<span class="w"> </span>update<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--date<span class="w"> </span><span class="m">2024</span>-06-01<span class="w"> </span>--no-enterprise
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2278,7 +2278,7 @@ call for a given date may take a moment to download history.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 14, 2026 15:45:22 UTC"><span class="timeago" datetime="2026-04-14T15:45:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 14, 2026 15:45:22 UTC">2026-04-14</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 16, 2026 10:21:29 UTC"><span class="timeago" datetime="2026-04-16T10:21:29+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 16, 2026 10:21:29 UTC">2026-04-16</span>
   </span>
 
     

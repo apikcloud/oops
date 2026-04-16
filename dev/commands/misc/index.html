@@ -691,7 +691,7 @@
   <a href="#oops-misc-create-workspace" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-create-workspace
+        oops misc create-workspace
       
     </span>
   </a>
@@ -702,7 +702,7 @@
   <a href="#oops-misc-edit-config" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-edit-config
+        oops misc edit-config
       
     </span>
   </a>
@@ -713,7 +713,7 @@
   <a href="#oops-misc-new-project" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-new-project
+        oops misc new-project
       
     </span>
   </a>
@@ -724,7 +724,7 @@
   <a href="#oops-misc-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-usage
+        oops misc usage
       
     </span>
   </a>
@@ -735,7 +735,7 @@
   <a href="#oops-misc-view-doc" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-view-doc
+        oops misc view-doc
       
     </span>
   </a>
@@ -1969,7 +1969,7 @@
   <a href="#oops-misc-create-workspace" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-create-workspace
+        oops misc create-workspace
       
     </span>
   </a>
@@ -1980,7 +1980,7 @@
   <a href="#oops-misc-edit-config" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-edit-config
+        oops misc edit-config
       
     </span>
   </a>
@@ -1991,7 +1991,7 @@
   <a href="#oops-misc-new-project" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-new-project
+        oops misc new-project
       
     </span>
   </a>
@@ -2002,7 +2002,7 @@
   <a href="#oops-misc-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-usage
+        oops misc usage
       
     </span>
   </a>
@@ -2013,7 +2013,7 @@
   <a href="#oops-misc-view-doc" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops-misc-view-doc
+        oops misc view-doc
       
     </span>
   </a>
@@ -2143,7 +2143,7 @@
     </div>
 
 </div><hr>
-<h3 id="oops-misc-create-workspace">oops-misc-create-workspace<a class="headerlink" href="#oops-misc-create-workspace" title="Permanent link">¶</a></h3>
+<h3 id="oops-misc-create-workspace">oops misc create-workspace<a class="headerlink" href="#oops-misc-create-workspace" title="Permanent link">¶</a></h3>
 <p>Generate a VSCode workspace file for the current Odoo project.</p>
 <p>Reads the Odoo version from odoo_version.txt at the repository root,
 falling back to manifest.odoo_version in config, then writes a
@@ -2151,7 +2151,7 @@ falling back to manifest.odoo_version in config, then writes a
 Python analysis paths pointing to the local Odoo sources.</repo-name></p>
 <p>The sources directory is read from odoo.sources_dir in ~/.oops.yaml.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops-misc-create-workspace [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops misc create-workspace [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2192,13 +2192,13 @@ Python analysis paths pointing to the local Odoo sources.</repo-name></p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Generate a workspace file for the current project:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops-misc-create-workspace
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>create-workspace
 </span></code></pre></div>
 <p>Write the workspace file to a specific path:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops-misc-create-workspace<span class="w"> </span>--output<span class="w"> </span>/tmp/review.code-workspace
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>create-workspace<span class="w"> </span>--output<span class="w"> </span>/tmp/review.code-workspace
 </span></code></pre></div>
 <p>Include the Odoo sources as folders in the workspace (useful for navigation and go-to-definition):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops-misc-create-workspace<span class="w"> </span>--include-sources
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>create-workspace<span class="w"> </span>--include-sources
 </span></code></pre></div>
 <p>Example output file (<code>my-project.code-workspace</code>):</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
@@ -2230,13 +2230,13 @@ Python analysis paths pointing to the local Odoo sources.</repo-name></p>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">}</span>
 </span></code></pre></div>
 <hr>
-<h3 id="oops-misc-edit-config">oops-misc-edit-config<a class="headerlink" href="#oops-misc-edit-config" title="Permanent link">¶</a></h3>
+<h3 id="oops-misc-edit-config">oops misc edit-config<a class="headerlink" href="#oops-misc-edit-config" title="Permanent link">¶</a></h3>
 <p>Open an oops configuration file in the default editor.</p>
 <p>Opens ~/.oops.yaml (global) by default, or .oops.yaml in the current
 directory (local) when --local is passed. Creates the file with a starter
 template if it does not exist yet.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops-misc-edit-config [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops misc edit-config [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2271,13 +2271,13 @@ template if it does not exist yet.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Open the global config in the default editor:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-misc-edit-config
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>edit-config
 </span></code></pre></div>
 <p>Open the local project config instead:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops-misc-edit-config<span class="w"> </span>--local
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>edit-config<span class="w"> </span>--local
 </span></code></pre></div>
 <hr>
-<h3 id="oops-misc-new-project">oops-misc-new-project<a class="headerlink" href="#oops-misc-new-project" title="Permanent link">¶</a></h3>
+<h3 id="oops-misc-new-project">oops misc new-project<a class="headerlink" href="#oops-misc-new-project" title="Permanent link">¶</a></h3>
 <p>Create a new GitHub repository from a template and clone it locally.</p>
 <p>Prompts for a project name, slugifies it, asks for confirmation, then
 delegates to the gh CLI to create the repository and optionally trigger
@@ -2286,7 +2286,7 @@ a workflow_dispatch event on a separate "action repository".</p>
 github in ~/.oops.yaml. All values can be overridden with CLI options.</p>
 <p>Requires gh to be authenticated (run 'gh auth login' if needed).</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops-misc-new-project [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops misc new-project [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2333,18 +2333,18 @@ github in ~/.oops.yaml. All values can be overridden with CLI options.</p>
 </span></code></pre></div>
 <p><strong>Examples:</strong></p>
 <p>Create a new project (prompts for name, slugifies, confirms):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-misc-new-project
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>new-project
 </span></code></pre></div>
 <p>Create without cloning locally:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops-misc-new-project<span class="w"> </span>--no-clone
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>new-project<span class="w"> </span>--no-clone
 </span></code></pre></div>
 <hr>
-<h3 id="oops-misc-usage">oops-misc-usage<a class="headerlink" href="#oops-misc-usage" title="Permanent link">¶</a></h3>
+<h3 id="oops-misc-usage">oops misc usage<a class="headerlink" href="#oops-misc-usage" title="Permanent link">¶</a></h3>
 <p>Show oops command usage counters from the local stats file.</p>
 <p>Reads ~/.local/share/oops/stats.jsonl and prints a table of invocation
 counts per command, sorted from most to least used.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops-misc-usage [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops misc usage [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2367,13 +2367,13 @@ counts per command, sorted from most to least used.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Show per-command invocation counts:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops-misc-usage
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops<span class="w"> </span>misc<span class="w"> </span>usage
 </span></code></pre></div>
 <hr>
-<h3 id="oops-misc-view-doc">oops-misc-view-doc<a class="headerlink" href="#oops-misc-view-doc" title="Permanent link">¶</a></h3>
+<h3 id="oops-misc-view-doc">oops misc view-doc<a class="headerlink" href="#oops-misc-view-doc" title="Permanent link">¶</a></h3>
 <p>Open the oops documentation in the default browser.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops-misc-view-doc [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops misc view-doc [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2416,7 +2416,7 @@ counts per command, sorted from most to least used.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 16, 2026 09:06:24 UTC"><span class="timeago" datetime="2026-04-16T09:06:24+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 16, 2026 09:06:24 UTC">2026-04-16</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 16, 2026 10:21:29 UTC"><span class="timeago" datetime="2026-04-16T10:21:29+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 16, 2026 10:21:29 UTC">2026-04-16</span>
   </span>
 
     
