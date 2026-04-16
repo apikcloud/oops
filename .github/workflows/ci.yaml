@@ -1,8 +1,9 @@
 name: CI
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -34,7 +35,7 @@ jobs:
         run: make test
   update-dotfiles:
     needs: [test]
-    if: github.event_name == 'release'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +45,7 @@ jobs:
 
       - name: Update oops version
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${{ github.ref_name }}"
           sed -i "s|git+https://github.com/apikcloud/oops.git@.*|git+https://github.com/apikcloud/oops.git@${VERSION}|" .chezmoidata/packages.yaml
 
       - name: Commit & push
@@ -52,5 +53,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .chezmoidata/packages.yaml
-          git commit -m "chore: bump oops to ${{ github.event.release.tag_name }}"
+          git commit -m "chore: bump oops to ${{ github.ref_name }}"
           git push
