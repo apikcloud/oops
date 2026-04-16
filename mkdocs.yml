@@ -198,6 +198,8 @@ nav:
   - Configuration: config.md
   - Use case: use-case.md
   - Contributing: contributing.md
+  - Changelog: changelog.md
+  - Release Notes: release-notes.md
   - Reference:
       - Core:
           - Config: reference/core/config.md

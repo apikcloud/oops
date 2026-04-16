@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-04-16
+
+### Added
+
+- `oops misc create-workspace`, `oops project init`: new `--include-sources` flag to include the Odoo source directories as workspace folders (useful for navigation and go-to-definition)
+
+### Changed
+
+- `oops submodules add`: branch is now a required positional argument (before the URL); added `-y/--yes` to skip the confirmation prompt, automatic URL scheme normalisation from `submodules.force_scheme`, and pre-flight check for stale `.git/modules` directories
+- `oops submodules add`: symlink creation extracted to a reusable `create_symlink` helper in `io/file.py`
+- CLI documentation and entry points renamed from `oops-group-cmd` hyphenated format to `oops group cmd` subcommand format; shortcut binaries (`oops-check-manifest`, `oops-fix-manifest`, etc.) updated accordingly
+
+### Fixed
+
+- `oops odoo show`: removed the `--base-dir` option; the sources directory is now always resolved from `odoo.sources_dir` in config
+
 ## [0.10.0] - 2026-04-14
 
 ### Added
