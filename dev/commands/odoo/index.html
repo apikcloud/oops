@@ -2158,8 +2158,7 @@ pull the latest changes instead.</p>
 <p>List locally available Odoo source checkouts.</p>
 <p>Scans the sources directory for version folders and shows, for each version,
 the current commit hash and author date for Community and Enterprise.</p>
-<p>The sources directory is read from odoo.sources_dir in ~/.oops.yaml
-and can be overridden with --base-dir.</p>
+<p>The sources directory is configured via odoo.sources_dir in ~/.oops.yaml.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops-odoo-show [OPTIONS]
 </span></code></pre></div>
@@ -2174,12 +2173,6 @@ and can be overridden with --base-dir.</p>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>--base-dir</code></td>
-<td>directory</td>
-<td>Root directory for Odoo sources. Defaults to odoo.sources_dir in config.</td>
-<td>None</td>
-</tr>
 <tr>
 <td><code>--help</code></td>
 <td>boolean</td>

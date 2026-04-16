@@ -2347,6 +2347,12 @@ it excludes the addon.</p>
 <td><code>False</code></td>
 </tr>
 <tr>
+<td><code>--include-sources</code></td>
+<td>boolean</td>
+<td>Include the Odoo sources as folders in the workspace.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
 <td><code>--help</code></td>
 <td>boolean</td>
 <td>Show this message and exit.</td>
@@ -2373,6 +2379,9 @@ it excludes the addon.</p>
 <p>Skip generating the VSCode workspace file:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops-pro-init<span class="w"> </span>--without-workspace
 </span></code></pre></div>
+<p>Include the Odoo sources as folders in the generated workspace:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops-pro-init<span class="w"> </span>--include-sources
+</span></code></pre></div>
 <hr>
 <h3 id="oops-pro-show">oops-pro-show<a class="headerlink" href="#oops-pro-show" title="Permanent link">¶</a></h3>
 <p>Display a summary of the current project.</p>
@@ -2380,7 +2389,7 @@ it excludes the addon.</p>
 Python requirements, system packages, git remote and release info.
 With a GitHub token, also shows the latest Actions workflow run.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops-pro-show [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops-pro-show [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2415,16 +2424,16 @@ With a GitHub token, also shows the latest Actions workflow run.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Display the full project summary:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops-pro-show
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops-pro-show
 </span></code></pre></div>
 <p>Include the latest GitHub Actions run:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops-pro-show<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops-pro-show<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span>
 </span></code></pre></div>
 <hr>
 <h3 id="oops-pro-sync">oops-pro-sync<a class="headerlink" href="#oops-pro-sync" title="Permanent link">¶</a></h3>
 <p>Synchronise files from the configured remote repository.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops-pro-sync [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops-pro-sync [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2471,19 +2480,19 @@ With a GitHub token, also shows the latest Actions workflow run.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Sync files from the configured remote repository with confirmation prompt:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops-pro-sync
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>oops-pro-sync
 </span></code></pre></div>
 <p>Preview the diff without applying any changes:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>oops-pro-sync<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>oops-pro-sync<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Apply changes without confirmation:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>oops-pro-sync<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>oops-pro-sync<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Sync from a specific branch:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>oops-pro-sync<span class="w"> </span>--branch<span class="w"> </span>develop
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>oops-pro-sync<span class="w"> </span>--branch<span class="w"> </span>develop
 </span></code></pre></div>
 <p>Sync only specific files/folders (overrides config):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>oops-pro-sync<span class="w"> </span>-F<span class="w"> </span>.pre-commit-config.yaml<span class="w"> </span>-F<span class="w"> </span>.github/workflows
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops-pro-sync<span class="w"> </span>-F<span class="w"> </span>.pre-commit-config.yaml<span class="w"> </span>-F<span class="w"> </span>.github/workflows
 </span></code></pre></div>
 <hr>
 <h3 id="oops-pro-update">oops-pro-update<a class="headerlink" href="#oops-pro-update" title="Permanent link">¶</a></h3>
@@ -2492,7 +2501,7 @@ With a GitHub token, also shows the latest Actions workflow run.</p>
 version and prompts the user to select one. With --force, picks the latest
 image automatically and commits the change.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops-pro-update [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops-pro-update [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -2521,10 +2530,10 @@ image automatically and commits the change.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Interactively select a new Odoo image:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops-pro-update
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops-pro-update
 </span></code></pre></div>
 <p>Pick the latest image automatically without prompting:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops-pro-update<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops-pro-update<span class="w"> </span>--force
 </span></code></pre></div>
 
 
@@ -2548,7 +2557,7 @@ image automatically and commits the change.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 14, 2026 15:45:22 UTC"><span class="timeago" datetime="2026-04-14T15:45:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 14, 2026 15:45:22 UTC">2026-04-14</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 16, 2026 09:06:24 UTC"><span class="timeago" datetime="2026-04-16T09:06:24+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 16, 2026 09:06:24 UTC">2026-04-16</span>
   </span>
 
     
