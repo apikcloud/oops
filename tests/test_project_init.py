@@ -142,6 +142,48 @@ class TestProjectInitWorkspace:
         assert result.exit_code == 0
         mock_ws.assert_not_called()
 
+    def test_include_sources_forwarded_to_workspace(self, tmp_path):
+        runner = CliRunner()
+        with patch(
+            "oops.commands.project.init.get_local_repo",
+            return_value=_make_local_repo(tmp_path),
+        ), patch(
+            "oops.commands.project.init.parse_odoo_version",
+            return_value=_make_image_info(),
+        ), patch(
+            "oops.commands.project.init.build_compose",
+            return_value=_COMPOSE,
+        ), patch(
+            "oops.commands.project.init.run"
+        ), patch(
+            "oops.commands.misc.create_workspace.main"
+        ) as mock_ws:
+            result = runner.invoke(init_main, ["--include-sources"])
+        assert result.exit_code == 0, result.output
+        mock_ws.assert_called_once()
+        assert mock_ws.call_args.kwargs.get("include_sources") is True
+
+    def test_include_sources_defaults_to_false(self, tmp_path):
+        runner = CliRunner()
+        with patch(
+            "oops.commands.project.init.get_local_repo",
+            return_value=_make_local_repo(tmp_path),
+        ), patch(
+            "oops.commands.project.init.parse_odoo_version",
+            return_value=_make_image_info(),
+        ), patch(
+            "oops.commands.project.init.build_compose",
+            return_value=_COMPOSE,
+        ), patch(
+            "oops.commands.project.init.run"
+        ), patch(
+            "oops.commands.misc.create_workspace.main"
+        ) as mock_ws:
+            result = runner.invoke(init_main, [])
+        assert result.exit_code == 0, result.output
+        mock_ws.assert_called_once()
+        assert mock_ws.call_args.kwargs.get("include_sources") is False
+
 
 # ---------------------------------------------------------------------------
 # TestProjectInitBuildCompose — odoo_version and options forwarding

@@ -32,6 +32,9 @@ from oops.utils.render import print_success
 @click.option("--no-dev", is_flag=True, default=False, help="Disable --dev=all flag.")
 @click.option("--port", default=8069, show_default=True, help="Host port mapped to Odoo.")
 @click.option("--without-workspace", is_flag=True, default=False, help="Don't generate a VSCode workspace file.")
+@click.option(
+    "--include-sources", is_flag=True, default=False, help="Include the Odoo sources as folders in the workspace."
+)
 @click.pass_context
 def main(
     ctx: click.Context,
@@ -40,6 +43,7 @@ def main(
     no_dev: bool,
     port: int,
     without_workspace: bool,
+    include_sources: bool,
 ) -> None:
     _, repo_path = get_local_repo()
 
@@ -80,4 +84,4 @@ def main(
     if not without_workspace:
         from oops.commands.misc.create_workspace import main as create_workspace
 
-        ctx.invoke(create_workspace)
+        ctx.invoke(create_workspace, include_sources=include_sources)

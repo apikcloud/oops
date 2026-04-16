@@ -104,6 +104,12 @@ Skip generating the VSCode workspace file:
 oops-pro-init --without-workspace
 ```
 
+Include the Odoo sources as folders in the generated workspace:
+
+```bash
+oops-pro-init --include-sources
+```
+
 ---
 
 ::: mkdocs-click:commands

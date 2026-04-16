@@ -34,8 +34,11 @@ from oops.utils.render import print_success, print_warning
     help="Workspace file path. Defaults to <repo-name>.code-workspace at repo root.",
 )
 @click.option("--without-download", is_flag=True, default=False, help="Don't download Odoo sources if missing.")
+@click.option(
+    "--include-sources", is_flag=True, default=False, help="Include the Odoo sources as folders in the workspace."
+)
 @click.pass_context
-def main(ctx: click.Context, output: Optional[str], without_download: bool) -> None:
+def main(ctx: click.Context, output: Optional[str], without_download: bool, include_sources: bool) -> None:
     _, repo_path = get_local_repo()
 
     try:
@@ -67,8 +70,11 @@ def main(ctx: click.Context, output: Optional[str], without_download: bool) -> N
     paths = [str(community_dir)]
     if enterprise:
         paths.append(str(enterprise_dir))
+    folders = [{"path": "."}]
+    if include_sources:
+        folders += [{"path": path} for path in paths]
     workspace = {
-        "folders": [{"path": "."}],
+        "folders": folders,
         "settings": {
             "python.analysis.extraPaths": paths,
             "python.autoComplete.extraPaths": paths,

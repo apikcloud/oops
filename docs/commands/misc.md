@@ -28,6 +28,12 @@ Write the workspace file to a specific path:
 oops-misc-create-workspace --output /tmp/review.code-workspace
 ```
 
+Include the Odoo sources as folders in the workspace (useful for navigation and go-to-definition):
+
+```bash
+oops-misc-create-workspace --include-sources
+```
+
 Example output file (`my-project.code-workspace`):
 
 ```json
@@ -47,6 +53,19 @@ Example output file (`my-project.code-workspace`):
             "~/odoo-sources/17.0/enterprise"
         ]
     }
+}
+```
+
+With `--include-sources`, the Odoo source directories are added as workspace folders:
+
+```json
+{
+    "folders": [
+        {"path": "."},
+        {"path": "~/odoo-sources/17.0/community"},
+        {"path": "~/odoo-sources/17.0/enterprise"}
+    ],
+    "settings": { "..." }
 }
 ```
 
