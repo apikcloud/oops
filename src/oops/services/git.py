@@ -134,7 +134,7 @@ def commit(  # noqa: PLR0913
     skip_hooks: bool = False,
     remove: bool = False,
     remove_and_add: bool = False,
-    **kwargs: Optional[dict],
+    **kwargs: object,
 ) -> None:
     """Stage files and create a commit using a named commit message template.
 

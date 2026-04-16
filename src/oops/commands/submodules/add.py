@@ -18,26 +18,23 @@ import click
 from git import GitCommandError
 from oops.commands.base import command
 from oops.core.config import config
-from oops.core.messages import commit_messages
 from oops.io.file import (
     desired_path,
     ensure_parent,
     find_addon_dirs,
     relpath,
 )
-from oops.services.git import get_local_repo, read_gitmodules
+from oops.services.git import commit, get_local_repo, read_gitmodules
 from oops.utils.helpers import str_to_list
-from oops.utils.net import parse_repository_url
+from oops.utils.net import encode_url, parse_repository_url
 from oops.utils.render import human_readable, print_error, print_success, print_warning, render_table
 
 
 @click.argument(
-    "url",
+    "branch",
 )
-@click.option(
-    "-b",
-    "--branch",
-    help="Branch to track for the submodule (e.g., 18.0)",
+@click.argument(
+    "url",
 )
 @click.option(
     "--base-dir",
@@ -93,6 +90,8 @@ def main(  # noqa: C901, PLR0915, PLR0913
     # Compute target path and name
     try:
         _, owner, repo_name = parse_repository_url(url)
+        if config.submodules.force_scheme:
+            url = encode_url(url, config.submodules.force_scheme)
     except ValueError as e:
         print_error(str(e))
         raise click.exceptions.Exit(1) from e
@@ -105,7 +104,6 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     # Plan summary
     rows = [
-        ["Repo Root", repo_path],
         ["URL", url],
         ["Branch", branch],
         ["Submodule name", sub_name],
@@ -113,12 +111,17 @@ def main(  # noqa: C901, PLR0915, PLR0913
         ["Auto symlinks", human_readable(auto_symlinks)],
         ["Addons", addons or ""],
         ["Commit at the end", human_readable(not no_commit)],
-        ["Dry-run", human_readable(dry_run)],
     ]
     click.echo(render_table(rows))
 
+    # Dry-run stops here
     if dry_run:
         print_warning("This is a dry run. No changes will be made.")
+        raise click.Abort()
+
+    # Ask user
+    ans = click.prompt("Apply changes? [Y/n]", default="y")
+    if ans in ("n", "no"):
         raise click.Abort()
 
     # Safety: prevent overwrite
@@ -130,7 +133,10 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     # Add submodule
     click.echo("[add] git submodule add")
-    # FIXME: check if git submodule folder exists before trying to create (.git/modules/<org>/<repo>)
+    git_modules_path = repo_path / ".git" / "modules" / sub_name
+    if git_modules_path.exists():
+        print_error(f"Git module directory already exists: {git_modules_path}")
+        raise click.exceptions.Exit(1)
     try:
         repo.create_submodule(
             name=sub_name,
@@ -151,6 +157,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
         gitmodules.set_value(f'submodule "{sub_name}"', "branch", branch)
 
     created_links = []
+    changes = []
 
     def create_symlink(addon_dir: Path):
         link_name = f"{addon_dir.name}"
@@ -163,7 +170,7 @@ def main(  # noqa: C901, PLR0915, PLR0913
         os.symlink(target_rel, link_path)
         created_links.append(link_name)
         # Stage symlink
-        repo.index.add([link_name])
+        changes.append(link_name)
 
     if auto_symlinks or addons:
         click.echo("[scan] detecting addon folders…")
@@ -184,18 +191,21 @@ def main(  # noqa: C901, PLR0915, PLR0913
                 click.echo(f"Addons not found: {human_readable(diff)}")
 
     # Stage .gitmodules and submodule path
-    repo.index.add([".gitmodules", sub_path_str])
+    changes += [".gitmodules", sub_path_str]
 
     if not no_commit:
-        repo.index.commit(
-            commit_messages.submodule_add.format(
-                name=sub_name,
-                url=url,
-                branch=branch,
-                path=sub_path_str,
-                symlinks=human_readable(created_links) if created_links else 0,
-            ),
+        commit(
+            repo,
+            repo_path,
+            changes,
+            "submodule_add",
+            name=sub_name,
+            url=url,
+            branch=branch,
+            path=sub_path_str,
+            symlinks=human_readable(created_links) if created_links else 0,
         )
         print_success("Submodule added and committed.")
     else:
+        repo.index.add([str(repo_path / f) for f in changes])
         print_warning("Changes staged but not committed (--no-commit).")
