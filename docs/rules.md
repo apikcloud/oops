@@ -1,7 +1,7 @@
 # Lint Rules
 
 `oops` ships [fixit](https://github.com/Instagram/Fixit) rules for `__manifest__.py` files. They run via
-`oops-man-check` (report only) and `oops-man-fix` (apply autofixes).
+`oops-check-manifest` (report only) and `oops-fix-manifest` (apply autofixes).
 
 All rules are in the `oops.rules.manifest` module and are auto-discovered —
 no registration needed.
@@ -45,7 +45,7 @@ Reorders keys in place, preserving comments and trailing commas. Keys not in
 !!! note "Two-pass fix"
     When both `ManifestKeyOrder` and `OdooManifestAuthorMaintainers` have
     fixes to apply on the same file, `ManifestKeyOrder` wins the first pass
-    (it replaces the whole dict node). Run `oops-man-fix` a second time to
+    (it replaces the whole dict node). Run `oops-fix-manifest` a second time to
     apply the remaining fixes.
 
 ### `ManifestVersionBump`

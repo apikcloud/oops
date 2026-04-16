@@ -30,7 +30,7 @@ odoo:
 ::: mkdocs-click:commands
     :module: oops.commands.odoo.download
     :command: main
-    :prog_name: oops-odoo-download
+    :prog_name: oops odoo download
     :depth: 2
     :style: table
 
@@ -39,26 +39,26 @@ odoo:
 Clone Community and Enterprise for Odoo 19 (Enterprise is included by default):
 
 ```bash
-oops-odoo-download 19.0
+oops odoo download 19.0
 ```
 
 The short form `19` is also accepted and normalised to `19.0`:
 
 ```bash
-oops-odoo-download 19
+oops odoo download 19
 ```
 
 Clone Community only, skipping Enterprise:
 
 ```bash
-oops-odoo-download 19.0 --no-enterprise
+oops odoo download 19.0 --no-enterprise
 ```
 
 Update existing checkouts to the latest commit:
 
 ```bash
-oops-odoo-download 19.0 --update
-oops-odoo-download 19.0 --update --no-enterprise
+oops odoo download 19.0 --update
+oops odoo download 19.0 --update --no-enterprise
 ```
 
 ---
@@ -66,7 +66,7 @@ oops-odoo-download 19.0 --update --no-enterprise
 ::: mkdocs-click:commands
     :module: oops.commands.odoo.show
     :command: main
-    :prog_name: oops-odoo-show
+    :prog_name: oops odoo show
     :depth: 2
     :style: table
 
@@ -75,7 +75,7 @@ oops-odoo-download 19.0 --update --no-enterprise
 List all locally available Odoo source checkouts:
 
 ```bash
-oops-odoo-show
+oops odoo show
 ```
 
 Example output:
@@ -88,14 +88,14 @@ Example output:
 ```
 
 A `—` in the Enterprise column means the Enterprise checkout is not present
-(run `oops-odoo-download <version>` to add it — Enterprise is included by default).
+(run `oops odoo download <version>` to add it — Enterprise is included by default).
 
 ---
 
 ::: mkdocs-click:commands
     :module: oops.commands.odoo.update
     :command: main
-    :prog_name: oops-odoo-update
+    :prog_name: oops odoo update
     :depth: 2
     :style: table
 
@@ -104,20 +104,20 @@ A `—` in the Enterprise column means the Enterprise checkout is not present
 Pull the latest commit on the branch (Enterprise included by default):
 
 ```bash
-oops-odoo-update 19.0
+oops odoo update 19.0
 ```
 
 Update Community only, skipping Enterprise:
 
 ```bash
-oops-odoo-update 19.0 --no-enterprise
+oops odoo update 19.0 --no-enterprise
 ```
 
 Checkout the state of the codebase as of a given date (detached HEAD):
 
 ```bash
-oops-odoo-update 19.0 --date 2024-06-01
-oops-odoo-update 19.0 --date 2024-06-01 --no-enterprise
+oops odoo update 19.0 --date 2024-06-01
+oops odoo update 19.0 --date 2024-06-01 --no-enterprise
 ```
 
 !!! note

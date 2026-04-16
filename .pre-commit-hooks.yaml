@@ -1,24 +1,24 @@
 - id: update-readme
   name: Update README (addons table)
-  entry: oops-readme-update
+  entry: oops-update-readme
   language: python
   pass_filenames: false
 
 - id: exclude-addons
   name: Exclude addons from pre-commit checks
-  entry: oops-pro-exclude
+  entry: oops-exclude-addons
   language: python
   pass_filenames: false
 
 - id: check-project
   name: Check project configuration
-  entry: oops-pro-check
+  entry: oops-check-project
   language: python
   pass_filenames: false
 
 - id: check-manifest
   name: Check manifest files
-  entry: oops-man-check
+  entry: oops-check-manifest
   language: python
   types: [python]
   pass_filenames: true
@@ -26,12 +26,12 @@
 
 - id: check-requirements
   name: Check Python requirements
-  entry: oops-req-check
+  entry: oops-check-requirements
   language: python
   pass_filenames: false
 
 - id: check-submodules
   name: Check submodules
-  entry: oops-sub-check
+  entry: oops-check-submodules
   language: python
   pass_filenames: false

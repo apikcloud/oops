@@ -93,7 +93,7 @@ submodules:
 | `old_paths` | list[path] | `[third-party]` | Legacy paths that trigger a migration warning |
 | `force_scheme` | str | `ssh` | URL scheme enforced on all submodules (`ssh` or `https`) |
 | `deprecated_repositories` | dict | `{}` | Map of `old-repo: new-repo` redirects |
-| `checks` | list[str] | *(all)* | Checks to run with `oops-sub-check` (remove entries to skip) |
+| `checks` | list[str] | *(all)* | Checks to run with `oops submodules check` (remove entries to skip) |
 
 Available checks: `check_path`, `check_branch`, `check_symlink`,
 `check_url_scheme`, `check_deprecated_repo`, `check_broken_symlink`, `check_pr`.
@@ -124,19 +124,19 @@ project:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `mandatory_files` | list[str] | `[requirements.txt, odoo_version.txt, packages.txt]` | Files whose absence is reported as an error by `oops-pro-check` |
+| `mandatory_files` | list[str] | `[requirements.txt, odoo_version.txt, packages.txt]` | Files whose absence is reported as an error by `oops project check` |
 | `recommended_files` | list[str] | `[README.md, CODEOWNERS, CHANGELOG.md, .gitignore]` | Files whose absence is reported as a warning |
 | `file_packages` | str | `packages.txt` | APT packages file |
 | `file_requirements` | str | `requirements.txt` | Python requirements file |
 | `file_odoo_version` | str | `odoo_version.txt` | File containing the active Odoo version string |
-| `file_migrate` | str | `migrate.sh` | Migration script written by `oops-addons-diff --save` and `oops-release-create` |
-| `pre_commit_exclude_file` | str | `.pre-commit-exclusions` | Exclusion pattern file written by `oops-pro-exclude` |
+| `file_migrate` | str | `migrate.sh` | Migration script written by `oops addons diff --save` and `oops release create` |
+| `pre_commit_exclude_file` | str | `.pre-commit-exclusions` | Exclusion pattern file written by `oops project exclude` |
 
 ---
 
 ### `sync`
 
-Source repository for `oops-pro-sync`.
+Source repository for `oops project sync`.
 
 ```yaml
 sync:
@@ -157,7 +157,7 @@ sync:
 
 ### `manifest`
 
-Controls lint rules applied by `oops-man-check` and `oops-man-fix` to
+Controls lint rules applied by `oops-check-manifest` and `oops-fix-manifest` to
 `__manifest__.py` files.
 
 ```yaml
@@ -200,7 +200,7 @@ manifest:
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `author` | str | **required** | Expected value for the manifest `author` field; autofixed by `oops-man-fix` |
+| `author` | str | **required** | Expected value for the manifest `author` field; autofixed by `oops-fix-manifest` |
 | `odoo_version` | str | `null` | When set, enforces the version prefix (e.g. `"19.0"` → `19.0.x.y.z`). Addons from another series are validated against the generic 5-part pattern |
 | `version_bump_strategy` | str | `off` | When to require a version bump on staged manifests: `off` (disabled), `strict` (every commit), `trunk` (once per release, relative to last tag) |
 | `allowed_maintainers` | list[str] | `[]` | GitHub handles accepted in the `maintainers` list; empty list disables the check |

@@ -12,7 +12,7 @@ with the expected layout under `.third-party/PRs/`.
 **Step 1** — Mark and rename the affected submodules:
 
 ```bash
-oops-sub-rename --pull-request sub_1 sub_2
+oops submodules rename --pull-request sub_1 sub_2
 ```
 
 This reads the submodule URL, detects the PR context, and renames each entry
@@ -21,7 +21,7 @@ in `.gitmodules` to the `PRs/<ORG>/<REPO>/<ADDON>` convention.
 **Step 2** — Move them to the correct path:
 
 ```bash
-oops-sub-rewrite --force
+oops submodules rewrite --force
 ```
 
 This relocates the submodule directories under `.third-party/` and rewrites

@@ -16,7 +16,7 @@
 ::: mkdocs-click:commands
     :module: oops.commands.manifest.check
     :command: main
-    :prog_name: oops-man-check
+    :prog_name: oops manifest check
     :depth: 2
     :style: table
 
@@ -25,25 +25,25 @@
 Check all manifests in the repository:
 
 ```bash
-oops-man-check
+oops manifest check
 ```
 
 Check specific addons by name:
 
 ```bash
-oops-man-check sale_custom purchase_custom
+oops manifest check sale_custom purchase_custom
 ```
 
 Check from a directory (resolves the manifest automatically):
 
 ```bash
-oops-man-check path/to/sale_custom
+oops manifest check path/to/sale_custom
 ```
 
 Show the suggested fix diff alongside each violation:
 
 ```bash
-oops-man-check --diff
+oops manifest check --diff
 ```
 
 ---
@@ -51,7 +51,7 @@ oops-man-check --diff
 ::: mkdocs-click:commands
     :module: oops.commands.manifest.fix
     :command: main
-    :prog_name: oops-man-fix
+    :prog_name: oops manifest fix
     :depth: 2
     :style: table
 
@@ -60,17 +60,17 @@ oops-man-check --diff
 Fix all manifests in the repository:
 
 ```bash
-oops-man-fix
+oops manifest fix
 ```
 
 Fix specific addons only:
 
 ```bash
-oops-man-fix --names sale_custom,purchase_custom
+oops manifest fix --names sale_custom,purchase_custom
 ```
 
 Preview fixes without committing:
 
 ```bash
-oops-man-fix --no-commit
+oops manifest fix --no-commit
 ```

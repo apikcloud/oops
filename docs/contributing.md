@@ -13,9 +13,9 @@ Issues and pull requests are welcome on [GitHub](https://github.com/apikcloud/oo
 
 ## Command Naming
 
-Commands follow a three-part structure:
+Commands are subcommands of the root `oops` CLI, grouped by scope:
 
-    oops-<scope>-<verb>
+    oops <scope> <verb>
 
 ### Scopes
 
@@ -24,9 +24,9 @@ Each scope covers a well-defined area of responsibility:
 | Scope | Responsibility |
 |---|---|
 | `addons` | Odoo addon lifecycle (listing, downloading, diffing…) |
-| `sub` | Git submodule management |
+| `submodules` | Git submodule management |
 | `readme` | README generation and maintenance |
-| `pro` | Project-level metadata and configuration |
+| `project` | Project-level metadata and configuration |
 
 ### Verbs
 

@@ -10,7 +10,7 @@
 ::: mkdocs-click:commands
     :module: oops.commands.addons.add
     :command: main
-    :prog_name: oops-addons-add
+    :prog_name: oops addons add
     :depth: 2
     :style: table
 
@@ -19,13 +19,13 @@
 Add `mass_editing` and `web_notify` from any tracked submodule:
 
 ```bash
-oops-addons-add mass_editing,web_notify
+oops addons add mass_editing,web_notify
 ```
 
 Stage the symlinks without committing:
 
 ```bash
-oops-addons-add sale_management --no-commit
+oops addons add sale_management --no-commit
 ```
 
 ---
@@ -33,7 +33,7 @@ oops-addons-add sale_management --no-commit
 ::: mkdocs-click:commands
     :module: oops.commands.addons.compare
     :command: main
-    :prog_name: oops-addons-compare
+    :prog_name: oops addons compare
     :depth: 2
     :style: table
 
@@ -42,19 +42,19 @@ oops-addons-add sale_management --no-commit
 Check which addons from a list are missing or extra in the repo root:
 
 ```bash
-oops-addons-compare "sale,purchase,account"
+oops addons compare "sale,purchase,account"
 ```
 
 Remove extra local symlinks not in the provided list:
 
 ```bash
-oops-addons-compare "sale,purchase" --delete
+oops addons compare "sale,purchase" --delete
 ```
 
 Compare against a file and skip the commit:
 
 ```bash
-oops-addons-compare "$(cat addons.txt)" --delete --no-commit
+oops addons compare "$(cat addons.txt)" --delete --no-commit
 ```
 
 ---
@@ -62,7 +62,7 @@ oops-addons-compare "$(cat addons.txt)" --delete --no-commit
 ::: mkdocs-click:commands
     :module: oops.commands.addons.diff
     :command: main
-    :prog_name: oops-addons-diff
+    :prog_name: oops addons diff
     :depth: 2
     :style: table
 
@@ -71,31 +71,31 @@ oops-addons-compare "$(cat addons.txt)" --delete --no-commit
 Show modified addons since the latest tag:
 
 ```bash
-oops-addons-diff
+oops addons diff
 ```
 
 Compare against a specific tag:
 
 ```bash
-oops-addons-diff --tag v1.2.0
+oops addons diff --tag v1.2.0
 ```
 
 Compare against the last 5 commits:
 
 ```bash
-oops-addons-diff --commits 5
+oops addons diff --commits 5
 ```
 
 Write the migration script to `migrate.sh` and commit:
 
 ```bash
-oops-addons-diff --save
+oops addons diff --save
 ```
 
 Write the migration script without committing:
 
 ```bash
-oops-addons-diff --save --no-commit
+oops addons diff --save --no-commit
 ```
 
 ---
@@ -103,7 +103,7 @@ oops-addons-diff --save --no-commit
 ::: mkdocs-click:commands
     :module: oops.commands.addons.download
     :command: main
-    :prog_name: oops-addons-download
+    :prog_name: oops addons download
     :depth: 2
     :style: table
 
@@ -112,13 +112,13 @@ oops-addons-diff --save --no-commit
 Download all addons from a branch:
 
 ```bash
-oops-addons-download https://github.com/OCA/server-ux.git 18.0
+oops addons download https://github.com/OCA/server-ux.git 18.0
 ```
 
 Download only specific addons:
 
 ```bash
-oops-addons-download https://github.com/OCA/server-ux.git 18.0 --addons mass_editing
+oops addons download https://github.com/OCA/server-ux.git 18.0 --addons mass_editing
 ```
 
 ---
@@ -126,7 +126,7 @@ oops-addons-download https://github.com/OCA/server-ux.git 18.0 --addons mass_edi
 ::: mkdocs-click:commands
     :module: oops.commands.addons.list
     :command: main
-    :prog_name: oops-addons-list
+    :prog_name: oops addons list
     :depth: 2
     :style: table
 
@@ -135,19 +135,19 @@ oops-addons-download https://github.com/OCA/server-ux.git 18.0 --addons mass_edi
 Display the addon table:
 
 ```bash
-oops-addons-list
+oops addons list
 ```
 
 Export as JSON for scripting:
 
 ```bash
-oops-addons-list --format json
+oops addons list --format json
 ```
 
 Limit to a single submodule:
 
 ```bash
-oops-addons-list -n apikcloud/apik-addons
+oops addons list -n apikcloud/apik-addons
 ```
 
 ---
@@ -155,7 +155,7 @@ oops-addons-list -n apikcloud/apik-addons
 ::: mkdocs-click:commands
     :module: oops.commands.addons.materialize
     :command: main
-    :prog_name: oops-addons-materialize
+    :prog_name: oops addons materialize
     :depth: 2
     :style: table
 
@@ -164,29 +164,29 @@ oops-addons-list -n apikcloud/apik-addons
 Preview all symlinks that would be materialized:
 
 ```bash
-oops-addons-materialize --dry-run
+oops addons materialize --dry-run
 ```
 
 Materialize all symlinks at the repository root:
 
 ```bash
-oops-addons-materialize
+oops addons materialize
 ```
 
 Materialize only specific addons:
 
 ```bash
-oops-addons-materialize --include my_addon,other_addon
+oops addons materialize --include my_addon,other_addon
 ```
 
 Materialize all symlinks except specific ones:
 
 ```bash
-oops-addons-materialize --exclude legacy_addon
+oops addons materialize --exclude legacy_addon
 ```
 
 Materialize without committing:
 
 ```bash
-oops-addons-materialize --no-commit
+oops addons materialize --no-commit
 ```

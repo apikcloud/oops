@@ -10,7 +10,7 @@
 ::: mkdocs-click:commands
     :module: oops.commands.readme.update
     :command: main
-    :prog_name: oops-readme-update
+    :prog_name: oops readme update
     :depth: 2
     :style: table
 
@@ -19,11 +19,11 @@
 Update the addons table and commit if changed:
 
 ```bash
-oops-readme-update
+oops readme update
 ```
 
 Update without committing:
 
 ```bash
-oops-readme-update --no-commit
+oops readme update --no-commit
 ```

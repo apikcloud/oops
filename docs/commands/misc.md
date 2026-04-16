@@ -10,7 +10,7 @@
 ::: mkdocs-click:commands
     :module: oops.commands.misc.create_workspace
     :command: main
-    :prog_name: oops-misc-create-workspace
+    :prog_name: oops misc create-workspace
     :depth: 2
     :style: table
 
@@ -19,19 +19,19 @@
 Generate a workspace file for the current project:
 
 ```bash
-oops-misc-create-workspace
+oops misc create-workspace
 ```
 
 Write the workspace file to a specific path:
 
 ```bash
-oops-misc-create-workspace --output /tmp/review.code-workspace
+oops misc create-workspace --output /tmp/review.code-workspace
 ```
 
 Include the Odoo sources as folders in the workspace (useful for navigation and go-to-definition):
 
 ```bash
-oops-misc-create-workspace --include-sources
+oops misc create-workspace --include-sources
 ```
 
 Example output file (`my-project.code-workspace`):
@@ -74,7 +74,7 @@ With `--include-sources`, the Odoo source directories are added as workspace fol
 ::: mkdocs-click:commands
     :module: oops.commands.misc.edit_config
     :command: main
-    :prog_name: oops-misc-edit-config
+    :prog_name: oops misc edit-config
     :depth: 2
     :style: table
 
@@ -83,13 +83,13 @@ With `--include-sources`, the Odoo source directories are added as workspace fol
 Open the global config in the default editor:
 
 ```bash
-oops-misc-edit-config
+oops misc edit-config
 ```
 
 Open the local project config instead:
 
 ```bash
-oops-misc-edit-config --local
+oops misc edit-config --local
 ```
 
 ---
@@ -97,7 +97,7 @@ oops-misc-edit-config --local
 ::: mkdocs-click:commands
     :module: oops.commands.misc.new_project
     :command: main
-    :prog_name: oops-misc-new-project
+    :prog_name: oops misc new-project
     :depth: 2
     :style: table
 
@@ -126,13 +126,13 @@ github:
 Create a new project (prompts for name, slugifies, confirms):
 
 ```bash
-oops-misc-new-project
+oops misc new-project
 ```
 
 Create without cloning locally:
 
 ```bash
-oops-misc-new-project --no-clone
+oops misc new-project --no-clone
 ```
 
 ---
@@ -140,7 +140,7 @@ oops-misc-new-project --no-clone
 ::: mkdocs-click:commands
     :module: oops.commands.misc.usage
     :command: main
-    :prog_name: oops-misc-usage
+    :prog_name: oops misc usage
     :depth: 2
     :style: table
 
@@ -149,7 +149,7 @@ oops-misc-new-project --no-clone
 Show per-command invocation counts:
 
 ```bash
-oops-misc-usage
+oops misc usage
 ```
 
 ---
@@ -157,6 +157,6 @@ oops-misc-usage
 ::: mkdocs-click:commands
     :module: oops.commands.misc.view_doc
     :command: main
-    :prog_name: oops-misc-view-doc
+    :prog_name: oops misc view-doc
     :depth: 2
     :style: table

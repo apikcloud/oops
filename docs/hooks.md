@@ -34,9 +34,9 @@ Runs on changed manifest files only (`pass_filenames: true`).
 repos:
   - repo: local
     hooks:
-      - id: oops-man-check
+      - id: oops-check-manifest
         name: Odoo manifest lint
-        entry: oops-man-check
+        entry: oops-check-manifest
         language: system
         types: [python]
         files: (__manifest__\.py|__openerp__\.py)$
@@ -45,23 +45,23 @@ repos:
 
 ### With autofix
 
-Prepend `oops-man-fix` to apply autofixes before the check runs.
+Prepend `oops-fix-manifest` to apply autofixes before the check runs.
 `--no-commit` leaves the fixed files staged for the regular commit.
 
 ```yaml
 repos:
   - repo: local
     hooks:
-      - id: oops-man-fix
+      - id: oops-fix-manifest
         name: Odoo manifest autofix
-        entry: oops-man-fix --no-commit
+        entry: oops-fix-manifest --no-commit
         language: system
         files: (__manifest__\.py|__openerp__\.py)$
         pass_filenames: false
 
-      - id: oops-man-check
+      - id: oops-check-manifest
         name: Odoo manifest lint
-        entry: oops-man-check
+        entry: oops-check-manifest
         language: system
         types: [python]
         files: (__manifest__\.py|__openerp__\.py)$
@@ -70,5 +70,5 @@ repos:
 
 !!! note "Two-pass autofix"
     When both key-order and author fixes are needed on the same file, run
-    `oops-man-fix` twice: the first pass reorders keys, the second applies
+    `oops-fix-manifest` twice: the first pass reorders keys, the second applies
     the remaining fixes. See [Lint Rules](rules.md#manifestkeyorder) for details.
