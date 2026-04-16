@@ -21,7 +21,7 @@ services:
       - PASSWORD=odoo
 {maildev_env}\
     volumes:
-      - ./config:/etc/odoo:rw
+      - ./.config:/etc/odoo:rw
       - .:/mnt/extra-addons:rw
       - {prefix}_odoo:/var/lib/odoo
   postgres:
