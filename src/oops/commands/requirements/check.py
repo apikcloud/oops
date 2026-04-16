@@ -34,7 +34,8 @@ from oops.utils.render import print_error, print_success
 
 
 @command("check", help=__doc__)
-def main():
+@click.option("--no-fail", is_flag=True, default=False, help="Exit 0 even when changes are detected.")
+def main(no_fail):
     _, repo_path = get_local_repo()
     requirement_file = Path(config.project.file_requirements)
 
@@ -51,4 +52,4 @@ def main():
         elif line.startswith("+ "):
             print_success(line, symbol="")
 
-    raise click.exceptions.Exit(1)
+    raise click.exceptions.Exit(0 if no_fail else 1)

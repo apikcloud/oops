@@ -54,7 +54,7 @@ oops project exclude --no-commit
 Run as a pre-commit hook (raises an error if the exclusion list changed, prompting a re-run):
 
 ```bash
-oops project exclude --hook
+oops project exclude --fail
 ```
 
 ---
