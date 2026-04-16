@@ -19,19 +19,19 @@
 Add a submodule and create symlinks for all its addons automatically:
 
 ```bash
-oops-sub-add https://github.com/OCA/server-ux.git -b 18.0 --auto-symlinks
+oops-sub-add https://github.com/OCA/server-ux.git 18.0 --auto-symlinks
 ```
 
 Add a submodule and symlink only specific addons:
 
 ```bash
-oops-sub-add https://github.com/OCA/server-ux.git -b 18.0 --addons mass_editing,web_notify
+oops-sub-add https://github.com/OCA/server-ux.git 18.0 --addons mass_editing,web_notify
 ```
 
 Preview planned actions without touching the repository:
 
 ```bash
-oops-sub-add https://github.com/OCA/server-ux.git -b 18.0 --dry-run
+oops-sub-add https://github.com/OCA/server-ux.git 18.0 --dry-run
 ```
 
 ---
