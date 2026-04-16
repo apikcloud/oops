@@ -2403,27 +2403,33 @@ the repo root for every addon found or for a specific list.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>-y</code>, <code>--yes</code></td>
+<td>boolean</td>
+<td>Skip confirmation prompt</td>
+<td><code>False</code></td>
+</tr>
+<tr>
 <td><code>--pull-request</code></td>
 <td>boolean</td>
-<td>Indicates that the submodule is a pull request (affects naming)</td>
+<td>Indicates that the submodule is a pull request (affects naming and path)</td>
 <td><code>False</code></td>
 </tr>
 <tr>
 <td><code>--dry-run</code></td>
 <td>boolean</td>
-<td>Show planned actions only</td>
+<td>Show planned actions only, make no changes</td>
 <td><code>False</code></td>
 </tr>
 <tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
-<td>Do not commit automatically at the end</td>
+<td>Stage changes but do not commit automatically</td>
 <td><code>False</code></td>
 </tr>
 <tr>
 <td><code>--addons</code></td>
 <td>text</td>
-<td>List of addons for which to create symlinks (default: '')</td>
+<td>Comma-separated list of addon names for which to create symlinks</td>
 <td>None</td>
 </tr>
 <tr>
@@ -2433,16 +2439,10 @@ the repo root for every addon found or for a specific list.</p>
 <td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--name</code></td>
-<td>text</td>
-<td>Optional submodule name (defaults to '<org>/<repo>')</repo></org></td>
-<td>None</td>
-</tr>
-<tr>
 <td><code>--base-dir</code></td>
 <td>text</td>
 <td>Base dir for submodules (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7fb6ad2840e0&gt;</code></td>
+<td><code>&lt;function &lt;lambda&gt; at 0x7f1fbb5e0040&gt;</code></td>
 </tr>
 <tr>
 <td><code>--help</code></td>
@@ -2916,7 +2916,7 @@ the old path. Prompts for confirmation unless --force is used.</p>
 <td><code>--base-dir</code></td>
 <td>text</td>
 <td>Base directory for rewritten paths (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7fb6ad4496c0&gt;</code></td>
+<td><code>&lt;function &lt;lambda&gt; at 0x7f1fbb5a1940&gt;</code></td>
 </tr>
 <tr>
 <td><code>-f</code>, <code>--force</code></td>
