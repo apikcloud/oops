@@ -152,7 +152,7 @@ def print_error(message: str, symbol: str = "✘") -> None:
         message: Text to display.
         symbol: Prefix symbol. Defaults to "✘".
     """
-    click.echo(click.style(f"{symbol} {message}", fg="red"))
+    click.echo(click.style(f"{symbol} {message}", fg="red"), err=True)
 
 
 def print_success(message: str, symbol: str = "✔") -> None:

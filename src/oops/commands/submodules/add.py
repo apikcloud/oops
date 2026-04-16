@@ -12,10 +12,10 @@ the repo root for every addon found or for a specific list.
 """
 
 import os
-import sys
 from pathlib import Path
 
 import click
+from git import GitCommandError
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.messages import commit_messages
@@ -28,7 +28,7 @@ from oops.io.file import (
 from oops.services.git import get_local_repo, read_gitmodules
 from oops.utils.helpers import str_to_list
 from oops.utils.net import parse_repository_url
-from oops.utils.render import human_readable, render_table
+from oops.utils.render import human_readable, print_error, print_success, print_warning, render_table
 
 
 @click.argument(
@@ -94,8 +94,8 @@ def main(  # noqa: C901, PLR0915, PLR0913
     try:
         _, owner, repo_name = parse_repository_url(url)
     except ValueError as e:
-        click.echo(f"Error: {e}")
-        sys.exit(1)
+        print_error(str(e))
+        raise click.exceptions.Exit(1) from e
 
     suffix = addons_to_link[0] if addons_to_link and pull_request else None
     sub_path_str = desired_path(url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
@@ -118,24 +118,29 @@ def main(  # noqa: C901, PLR0915, PLR0913
     click.echo(render_table(rows))
 
     if dry_run:
-        click.echo("⚠️ This is a dry run. No changes will be made.")
+        print_warning("This is a dry run. No changes will be made.")
         raise click.Abort()
 
     # Safety: prevent overwrite
     if sub_path.exists():
-        click.echo(f"Error: destination already exists: {sub_path_str}", file=sys.stderr)
-        sys.exit(1)
+        print_error(f"Destination already exists: {sub_path_str}")
+        raise click.exceptions.Exit(1)
 
     ensure_parent(sub_path)
 
     # Add submodule
     click.echo("[add] git submodule add")
-    repo.create_submodule(
-        name=sub_name,
-        path=sub_path_str,
-        url=url,
-        branch=branch,
-    )
+    # FIXME: check if git submodule folder exists before trying to create (.git/modules/<org>/<repo>)
+    try:
+        repo.create_submodule(
+            name=sub_name,
+            path=sub_path_str,
+            url=url,
+            branch=branch,
+        )
+    except GitCommandError as exc:
+        print_error(f"Failed to add submodule: {exc}")
+        raise click.exceptions.Exit(1) from exc
 
     # Pin branch in .gitmodules (redundant but explicit)
     click.echo("[config] record branch in .gitmodules")
@@ -166,15 +171,9 @@ def main(  # noqa: C901, PLR0915, PLR0913
         if not addons_found:
             click.echo("  no addon folders detected.")
         else:
-            click.echo(
-                f"  found {len(addons_found)} addon folder(s). Creating symlinks at repo root…"
-            )
+            click.echo(f"  found {len(addons_found)} addon folder(s). Creating symlinks at repo root…")
 
-            source = (
-                addons_found
-                if auto_symlinks
-                else filter(lambda item: item.name in addons_to_link, addons_found)
-            )
+            source = addons_found if auto_symlinks else filter(lambda item: item.name in addons_to_link, addons_found)
 
             for addon_dir in source:
                 create_symlink(addon_dir)
@@ -197,6 +196,6 @@ def main(  # noqa: C901, PLR0915, PLR0913
                 symlinks=human_readable(created_links) if created_links else 0,
             ),
         )
-        click.echo("✓ Submodule added and committed.")
+        print_success("Submodule added and committed.")
     else:
-        click.echo("⚠️ Changes staged but not committed (--no-commit).")
+        print_warning("Changes staged but not committed (--no-commit).")
