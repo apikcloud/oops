@@ -410,6 +410,33 @@ def file_updater(
 # ---------------------------------------------------------------------------
 
 
+def create_symlink(
+    addon_dir: Path,
+    repo_path: Path,
+) -> Optional[str]:
+    """Create a symlink at the repo root pointing to an addon directory.
+
+    Skips creation if a file or symlink with the same name already exists at
+    the repo root, printing a warning in that case.
+
+    Args:
+        addon_dir: Path to the addon directory to link.
+        repo_path: Repository root where the symlink will be created.
+
+    Returns:
+        The symlink name (stem of addon_dir) if created, or None if skipped.
+    """
+    link_name = addon_dir.name
+    link_path = repo_path / link_name
+    target_rel = relpath(repo_path, addon_dir)
+    if link_path.exists() or link_path.is_symlink():
+        click.echo(f"  [skip] {link_name} already exists")
+        return None
+    os.symlink(target_rel, link_path)
+
+    return link_name
+
+
 def list_symlinks(path: PathLike, broken_only: bool = False) -> list[str]:
     """Collect symlink targets found recursively under a directory.
 

@@ -11,39 +11,23 @@ Clones the repository as a submodule under the base directory (default:
 the repo root for every addon found or for a specific list.
 """
 
-import os
-from pathlib import Path
-
 import click
 from git import GitCommandError
 from oops.commands.base import command
 from oops.core.config import config
-from oops.io.file import (
-    desired_path,
-    ensure_parent,
-    find_addon_dirs,
-    relpath,
-)
+from oops.io.file import create_symlink, desired_path, ensure_parent, find_addon_dirs
 from oops.services.git import commit, get_local_repo, read_gitmodules
 from oops.utils.helpers import str_to_list
 from oops.utils.net import encode_url, parse_repository_url
 from oops.utils.render import human_readable, print_error, print_success, print_warning, render_table
 
 
-@click.argument(
-    "branch",
-)
-@click.argument(
-    "url",
-)
+@click.argument("branch")
+@click.argument("url")
 @click.option(
     "--base-dir",
     default=lambda: config.submodules.current_path,
     help="Base dir for submodules (default: .third-party)",
-)
-@click.option(
-    "--name",
-    help="Optional submodule name (defaults to '<ORG>/<REPO>')",
 )
 @click.option(
     "--auto-symlinks",
@@ -52,44 +36,48 @@ from oops.utils.render import human_readable, print_error, print_success, print_
 )
 @click.option(
     "--addons",
-    help="List of addons for which to create symlinks (default: '')",
+    help="Comma-separated list of addon names for which to create symlinks",
 )
 @click.option(
     "--no-commit",
     is_flag=True,
-    help="Do not commit automatically at the end",
+    help="Stage changes but do not commit automatically",
 )
 @click.option(
     "--dry-run",
     is_flag=True,
-    help="Show planned actions only",
+    help="Show planned actions only, make no changes",
 )
 @click.option(
     "--pull-request",
     is_flag=True,
-    help="Indicates that the submodule is a pull request (affects naming)",
+    help="Indicates that the submodule is a pull request (affects naming and path)",
+)
+@click.option(
+    "-y",
+    "--yes",
+    is_flag=True,
+    help="Skip confirmation prompt",
 )
 @command(name="add", help=__doc__)
-def main(  # noqa: C901, PLR0915, PLR0913
+def main(  # noqa: PLR0913
     url: str,
     branch: str,
     base_dir: str,
-    name: str,
     addons: str,
-    **options,
-):
-
+    auto_symlinks: bool,
+    no_commit: bool,
+    dry_run: bool,
+    pull_request: bool,
+    yes: bool,
+) -> None:
     addons_to_link = str_to_list(addons) if addons else []
-    auto_symlinks = options["auto_symlinks"]
-    no_commit = options["no_commit"]
-    pull_request = options["pull_request"]
-    dry_run = options["dry_run"]
 
     repo, repo_path = get_local_repo()
 
-    # Compute target path and name
+    # Validate URL and optionally normalise scheme
     try:
-        _, owner, repo_name = parse_repository_url(url)
+        parse_repository_url(url)
         if config.submodules.force_scheme:
             url = encode_url(url, config.submodules.force_scheme)
     except ValueError as e:
@@ -98,7 +86,6 @@ def main(  # noqa: C901, PLR0915, PLR0913
 
     suffix = addons_to_link[0] if addons_to_link and pull_request else None
     sub_path_str = desired_path(url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
-
     sub_path = repo_path / sub_path_str
     sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
 
@@ -114,90 +101,68 @@ def main(  # noqa: C901, PLR0915, PLR0913
     ]
     click.echo(render_table(rows))
 
-    # Dry-run stops here
     if dry_run:
         print_warning("This is a dry run. No changes will be made.")
         raise click.Abort()
 
-    # Ask user
-    ans = click.prompt("Apply changes? [Y/n]", default="y")
-    if ans in ("n", "no"):
+    if not yes and not click.confirm("Apply changes?", default=True):
         raise click.Abort()
 
-    # Safety: prevent overwrite
+    # Safety checks before touching anything
     if sub_path.exists():
         print_error(f"Destination already exists: {sub_path_str}")
+        raise click.exceptions.Exit(1)
+
+    git_modules_path = repo_path / ".git" / "modules" / sub_name
+    if git_modules_path.exists():
+        print_error(f"Git module directory already exists: {git_modules_path}")
         raise click.exceptions.Exit(1)
 
     ensure_parent(sub_path)
 
     # Add submodule
     click.echo("[add] git submodule add")
-    git_modules_path = repo_path / ".git" / "modules" / sub_name
-    if git_modules_path.exists():
-        print_error(f"Git module directory already exists: {git_modules_path}")
-        raise click.exceptions.Exit(1)
     try:
-        repo.create_submodule(
-            name=sub_name,
-            path=sub_path_str,
-            url=url,
-            branch=branch,
-        )
+        repo.create_submodule(name=sub_name, path=sub_path_str, url=url, branch=branch)
     except GitCommandError as exc:
         print_error(f"Failed to add submodule: {exc}")
         raise click.exceptions.Exit(1) from exc
 
-    # Pin branch in .gitmodules (redundant but explicit)
-    click.echo("[config] record branch in .gitmodules")
+    # Pin branch in .gitmodules
+    gitmodules = read_gitmodules(repo)
+    click.echo(f"[config] setting branch {branch!r} for {sub_name!r}…")
+    gitmodules.set_value(f'submodule "{sub_name}"', "branch", branch)
 
-    if branch:
-        gitmodules = read_gitmodules(repo)
-        click.echo(f"Setting branch {branch!r} for submodule {sub_name!r}...")
-        gitmodules.set_value(f'submodule "{sub_name}"', "branch", branch)
-
+    # Create symlinks
+    staged_files = []
     created_links = []
-    changes = []
-
-    def create_symlink(addon_dir: Path):
-        link_name = f"{addon_dir.name}"
-        link_path = repo_path / link_name
-        # Determine relative target from repo root to the addon_dir
-        target_rel = relpath(repo_path, addon_dir)
-        if link_path.exists() or link_path.is_symlink():
-            click.echo(f"  [skip] {link_name} already exists")
-            return
-        os.symlink(target_rel, link_path)
-        created_links.append(link_name)
-        # Stage symlink
-        changes.append(link_name)
 
     if auto_symlinks or addons:
         click.echo("[scan] detecting addon folders…")
-        addons_found = [addon for addon in find_addon_dirs(sub_path, with_pr=pull_request)]
+        addons_found = find_addon_dirs(sub_path, with_pr=pull_request)
         if not addons_found:
             click.echo("  no addon folders detected.")
         else:
             click.echo(f"  found {len(addons_found)} addon folder(s). Creating symlinks at repo root…")
-
-            source = addons_found if auto_symlinks else filter(lambda item: item.name in addons_to_link, addons_found)
-
-            for addon_dir in source:
-                create_symlink(addon_dir)
+            candidates = addons_found if auto_symlinks else [a for a in addons_found if a.name in addons_to_link]
+            for addon_dir in candidates:
+                link_name = create_symlink(addon_dir, repo_path)
+                if link_name:
+                    staged_files.append(link_name)
+                    created_links.append(link_name)
 
         if addons:
-            diff = set(addons_to_link).difference(set(created_links))
-            if diff:
-                click.echo(f"Addons not found: {human_readable(diff)}")
+            missing = set(addons_to_link) - set(created_links)
+            if missing:
+                print_warning(f"Addons not found: {human_readable(missing)}")
 
-    # Stage .gitmodules and submodule path
-    changes += [".gitmodules", sub_path_str]
+    staged_files += [".gitmodules", sub_path_str]
 
     if not no_commit:
         commit(
             repo,
             repo_path,
-            changes,
+            staged_files,
             "submodule_add",
             name=sub_name,
             url=url,
@@ -207,5 +172,5 @@ def main(  # noqa: C901, PLR0915, PLR0913
         )
         print_success("Submodule added and committed.")
     else:
-        repo.index.add([str(repo_path / f) for f in changes])
+        repo.index.add([str(repo_path / f) for f in staged_files])
         print_warning("Changes staged but not committed (--no-commit).")
