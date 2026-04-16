@@ -47,6 +47,7 @@ def main(  # noqa: C901, PLR0912
     errors: list[str] = []
     community_dir, enterprise_dir = get_odoo_sources_dirs(version)
 
+    # TODO: refactor, keep only a single loop
     # --- Community ---
     if community_dir.exists():
         if do_update:
@@ -56,6 +57,7 @@ def main(  # noqa: C901, PLR0912
                 print_success(f"Community {version} updated.")
             except subprocess.CalledProcessError as exc:
                 errors.append(f"Community update failed: {exc}")
+                # TODO: replace by print_error, include err=True?
                 click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
         else:
             print_warning(f"'{community_dir}' already exists — skipping Community clone (use --update to pull).")
@@ -66,6 +68,7 @@ def main(  # noqa: C901, PLR0912
             print_success(f"Community {version} cloned.")
         except subprocess.CalledProcessError as exc:
             errors.append(f"Community clone failed: {exc}")
+            # TODO: replace by print_error, include err=True?
             click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
 
     # --- Enterprise ---
@@ -80,6 +83,7 @@ def main(  # noqa: C901, PLR0912
                 print_success(f"Enterprise {version} updated.")
             except subprocess.CalledProcessError as exc:
                 errors.append(f"Enterprise update failed: {exc}")
+                # TODO: replace by print_error, include err=True?
                 click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
         else:
             print_warning(f"'{enterprise_dir}' already exists — skipping Enterprise clone (use --update to pull).")
@@ -90,6 +94,7 @@ def main(  # noqa: C901, PLR0912
             print_success(f"Enterprise {version} cloned.")
         except subprocess.CalledProcessError as exc:
             errors.append(f"Enterprise clone failed: {exc}")
+            # TODO: replace by print_error, include err=True?
             click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
 
     if errors:

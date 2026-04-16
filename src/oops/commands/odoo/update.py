@@ -77,6 +77,7 @@ def main(
             except (subprocess.CalledProcessError, click.ClickException) as exc:
                 msg = f"{label} update failed: {exc}"
                 errors.append(msg)
+                # TODO: replace by print_error, include err=True?
                 click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
         else:
             click.echo(f"Updating {label} {version} to latest in '{dest}'…")
@@ -86,6 +87,7 @@ def main(
             except subprocess.CalledProcessError as exc:
                 msg = f"{label} update failed: {exc}"
                 errors.append(msg)
+                # TODO: replace by print_error, include err=True?
                 click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
 
     if errors:

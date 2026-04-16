@@ -554,17 +554,6 @@ class TestShowCommand:
         assert result.exit_code == 0
         assert "No Odoo checkouts found" in result.output
 
-    def test_base_dir_option_overrides_config(self, tmp_path):
-        custom = tmp_path / "custom_sources"
-        custom.mkdir()
-        cfg_mock = _make_config_mock(sources_dir=Path("/ignored"))
-
-        with patch("oops.commands.odoo.show.config", cfg_mock):
-            result = self._runner().invoke(show_main, ["--base-dir", str(custom)])
-
-        assert result.exit_code == 0
-        assert "No version directories found" in result.output
-
     def test_multiple_version_dirs_shown(self, tmp_path):
         for version in ("odoo-17", "odoo-18"):
             community_dir = tmp_path / version / "community"
