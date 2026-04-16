@@ -1,3 +1,8 @@
+---
+hide:
+  - toc
+---
+
 # Release Notes
 
 This page summarises what's new, improved, or fixed in each version of `oops`.

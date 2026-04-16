@@ -288,9 +288,9 @@ def compute_root_drift(
     Returns:
         Tuple ``(missing_at_root, extra_at_root)`` of sorted module names.
         - ``missing_at_root``: names in ``installed_modules`` but not present
-          at the root (no symlink, no local dir).
+            at the root (no symlink, no local dir).
         - ``extra_at_root``: names present at the root but absent from
-          ``installed_modules`` (these will not be scanned by the KB build).
+            ``installed_modules`` (these will not be scanned by the KB build).
     """
     installed = set(installed_modules)
     at_root = {a.technical_name for a in find_addons(repo_path, shallow=True)}

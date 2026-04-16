@@ -28,6 +28,7 @@ theme:
     - navigation.instant.prefetch
     - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.top
     - navigation.indexes
@@ -181,6 +182,7 @@ markdown_extensions:
   - pymdownx.mark # Text highlighting
   - pymdownx.tilde # Subscript and strikethrough
   - toc: # Table of contents
+      toc_depth: 3
       permalink: true
   - pymdownx.tasklist: # Task lists
       custom_checkbox: true
@@ -189,25 +191,27 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Commands:
-      - Addons: commands/addons.md
-      - Manifest: commands/manifest.md
-      - Misc: commands/misc.md
-      - Odoo: commands/odoo.md
-      - Project: commands/project.md
-      - Readme: commands/readme.md
-      - Release: commands/release.md
-      - Requirements: commands/requirements.md
-      - Submodules: commands/submodules.md
-  - Hooks: hooks.md
-  - Lint Rules: rules.md
-  - Configuration: config.md
-  - Use case: use-case.md
+  - User guide:
+      - Quick start: guide/quickstart.md
+      - Commands:
+          - Addons: guide/commands/addons.md
+          - Manifest: guide/commands/manifest.md
+          - Misc: guide/commands/misc.md
+          - Odoo: guide/commands/odoo.md
+          - Project: guide/commands/project.md
+          - Readme: guide/commands/readme.md
+          - Release: guide/commands/release.md
+          - Requirements: guide/commands/requirements.md
+          - Submodules: guide/commands/submodules.md
+      - Hooks: guide/hooks.md
+      - Lint Rules: guide/rules.md
+      - Configuration: guide/config.md
+      - Use case: guide/use-case.md
   - Contributing: contributing.md
-  - Changelog: changelog.md
-  - Release Notes: release-notes.md
   - Reference:
       - Method Classification: reference/method-classification.md
+      - Commands:
+          - Base: reference/commands/base.md
       - Core:
           - Config: reference/core/config.md
           - Exceptions: reference/core/exceptions.md
@@ -216,16 +220,32 @@ nav:
           - Paths: reference/core/paths.md
       - IO:
           - File: reference/io/file.md
+          - Installed Modules: reference/io/installed_modules.md
           - Manifest: reference/io/manifest.md
+          - Python Imports: reference/io/python_imports.md
+          - Refactor: reference/io/refactor.md
+          - Templates: reference/io/templates.md
           - Tools: reference/io/tools.md
+      - KB:
+          - reference/kb/index.md
+          - Build: reference/kb/build.md
+          - Resolve: reference/kb/resolve.md
+          - Scanner: reference/kb/scanner.md
+          - Store: reference/kb/store.md
       - Services:
           - Docker: reference/services/docker.md
           - Git: reference/services/git.md
           - GitHub: reference/services/github.md
+          - Stats: reference/services/stats.md
       - Utils:
+          - Compat: reference/utils/compat.md
+          - Git: reference/utils/git.md
           - Helpers: reference/utils/helpers.md
           - Net: reference/utils/net.md
           - Render: reference/utils/render.md
           - Versioning: reference/utils/versioning.md
       - Rules:
           - Manifest: reference/rules/manifest.md
+  - What's new?:
+      - Release Notes: news/release-notes.md
+      - Changelog: news/changelog.md

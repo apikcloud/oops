@@ -160,3 +160,42 @@ oops misc usage
     :prog_name: oops misc view-doc
     :depth: 2
     :style: table
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.misc.build_global
+    :command: main
+    :prog_name: oops misc build-kb
+    :depth: 2
+    :style: table
+
+!!! warning "Experimental"
+    This command is part of the KB pipeline. Its interface may change without
+    notice between releases. The same warning is printed at runtime.
+
+**Examples:**
+
+Build the global KB for the current project's Odoo version (auto-detected from `odoo_version.txt`):
+
+```bash
+oops misc build-kb
+```
+
+Build for a specific Odoo version:
+
+```bash
+oops misc build-kb --version 18.0
+```
+
+Write the database to a custom cache directory (default is `~/.cache/oops/kb/`):
+
+```bash
+oops misc build-kb --version 17.0 --cache-dir /tmp/kb
+```
+
+Show the addons roots being scanned in detail:
+
+```bash
+oops misc build-kb --verbose
+```

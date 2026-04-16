@@ -1,0 +1,3 @@
+# Resolve
+
+::: oops.kb.resolve

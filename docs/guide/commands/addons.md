@@ -37,6 +37,10 @@ oops addons add sale_management --no-commit
     :depth: 2
     :style: table
 
+!!! warning "Experimental"
+    This command is part of the KB pipeline. Its interface may change without
+    notice between releases. The same warning is printed at runtime.
+
 **Examples:**
 
 Print a text summary of a single module:
@@ -224,4 +228,55 @@ Materialize without committing:
 
 ```bash
 oops addons materialize --no-commit
+```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.addons.refactor
+    :command: main
+    :prog_name: oops addons refactor
+    :depth: 2
+    :style: table
+
+!!! warning "Experimental"
+    This command is part of the KB pipeline. Its interface may change without
+    notice between releases. The same warning is printed at runtime.
+
+**Examples:**
+
+Rewrite a single module on a dedicated `refactor/doc-<module>` branch with one commit:
+
+```bash
+oops addons refactor my_module
+```
+
+Rewrite several modules in one run (one commit per module on `refactor/doc-multi`):
+
+```bash
+oops addons refactor my_module other_module
+```
+
+Preview the changes without writing any file:
+
+```bash
+oops addons refactor my_module --dry-run
+```
+
+Stay on the current branch and skip the commit (edits are staged):
+
+```bash
+oops addons refactor my_module --no-branch --no-commit
+```
+
+Force a project KB rebuild before running:
+
+```bash
+oops addons refactor my_module --refresh
+```
+
+Use an external KB database (skips the project-KB freshness check and `--refresh`):
+
+```bash
+oops addons refactor my_module --kb /path/to/project_kb.db
 ```
