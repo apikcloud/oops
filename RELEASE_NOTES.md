@@ -4,6 +4,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.12.1] - 2026-04-23
+
+A targeted bug fix for the `oops submodules add` command.
+
+### 🐛 Fixes
+
+- `oops submodules add`: fixed an issue where incorrect file paths were staged after adding a new submodule
+
+---
+
 ## [0.12.0] - 2026-04-16
 
 Small quality-of-life improvements and a bug fix in the project initialisation.
