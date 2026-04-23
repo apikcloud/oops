@@ -156,13 +156,15 @@ def main(  # noqa: PLR0913
             if missing:
                 print_warning(f"Addons not found: {human_readable(missing)}")
 
-    staged_files += [".gitmodules", sub_path_str]
+    staged_files += [".gitmodules"]
+
+    print(staged_files)
 
     if not no_commit:
         commit(
             repo,
             repo_path,
-            staged_files,
+            [str(repo_path / f) for f in staged_files],
             "submodule_add",
             name=sub_name,
             url=url,
