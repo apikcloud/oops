@@ -4,6 +4,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.12.2] - 2026-04-27
+
+A small fix in the release tooling.
+
+### 🐛 Fixes
+
+- Fixed an issue where generated changelog section headers were missing the `v` prefix in version numbers
+
+---
+
 ## [0.12.1] - 2026-04-23
 
 A targeted bug fix for the `oops submodules add` command.
