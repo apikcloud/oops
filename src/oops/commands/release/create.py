@@ -46,7 +46,6 @@ def _update_changelog(text: str, version: str) -> str:
             or if the located section contains no bullet entries.
     """
     lines = text.splitlines(keepends=True)
-    version_clean = version.lstrip("v")
 
     unreleased_idx = None
     section_start = None
@@ -57,21 +56,21 @@ def _update_changelog(text: str, version: str) -> str:
         if stripped.lower() == "## [unreleased]":
             unreleased_idx = i
             section_start = i
-        elif stripped.lower().startswith(f"## [{version_clean}]"):
+        elif stripped.lower().startswith(f"## [{version}]"):
             section_start = i
         elif section_start is not None and stripped.startswith("## [") and i > section_start:
             next_section_idx = i
             break
 
     if section_start is None:
-        raise click.ClickException(f"CHANGELOG.md has no [Unreleased] section and no [{version_clean}] section.")
+        raise click.ClickException(f"CHANGELOG.md has no [Unreleased] section and no [{version}] section.")
 
     section = lines[section_start + 1 : next_section_idx]
     if not any(line.strip().startswith("-") for line in section):
         raise click.ClickException("The release section in CHANGELOG.md is empty.")
 
     if unreleased_idx is not None:
-        lines[unreleased_idx] = f"## [{version_clean}] - {date.today().isoformat()}\n"
+        lines[unreleased_idx] = f"## [{version}] - {date.today().isoformat()}\n"
         return "".join(lines)
 
     # Already manually edited — no substitution needed

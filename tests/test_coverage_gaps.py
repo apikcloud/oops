@@ -526,3 +526,81 @@ class TestGetFilteredAddonNames:
             result = get_filtered_addon_names(tmp_path)
 
         assert result == sorted(result)
+
+
+# ---------------------------------------------------------------------------
+# oops/commands/release/create.py — _update_changelog
+# ---------------------------------------------------------------------------
+
+
+class TestUpdateChangelog:
+    from datetime import date
+
+    TODAY = date.today().isoformat()
+
+    CHANGELOG_WITH_UNRELEASED = """\
+## [Unreleased]
+- Add feature X
+- Fix bug Y
+
+## [v1.2.0] - 2026-01-01
+- Previous release
+"""
+
+    CHANGELOG_PRE_EDITED = f"""\
+## [v1.3.0] - {TODAY}
+- Add feature X
+
+## [v1.2.0] - 2026-01-01
+- Previous release
+"""
+
+    CHANGELOG_EMPTY_UNRELEASED = """\
+## [Unreleased]
+
+## [v1.2.0] - 2026-01-01
+- Previous release
+"""
+
+    CHANGELOG_NO_SECTION = """\
+## [v1.2.0] - 2026-01-01
+- Previous release
+"""
+
+    def test_replaces_unreleased_with_versioned_header(self):
+        from oops.commands.release.create import _update_changelog
+
+        result = _update_changelog(self.CHANGELOG_WITH_UNRELEASED, "v1.3.0")
+
+        assert f"## [v1.3.0] - {self.TODAY}" in result
+        assert "## [Unreleased]" not in result
+        assert "- Add feature X" in result
+
+    def test_version_keeps_v_prefix_in_header(self):
+        from oops.commands.release.create import _update_changelog
+
+        result = _update_changelog(self.CHANGELOG_WITH_UNRELEASED, "v1.3.0")
+
+        assert "## [v1.3.0]" in result
+        assert "## [1.3.0]" not in result
+
+    def test_pre_edited_changelog_returned_unchanged(self):
+        from oops.commands.release.create import _update_changelog
+
+        result = _update_changelog(self.CHANGELOG_PRE_EDITED, "v1.3.0")
+
+        assert result == self.CHANGELOG_PRE_EDITED
+
+    def test_raises_when_no_unreleased_and_no_version_section(self):
+        import click
+        from oops.commands.release.create import _update_changelog
+
+        with pytest.raises(click.ClickException, match=r"\[v1\.3\.0\]"):
+            _update_changelog(self.CHANGELOG_NO_SECTION, "v1.3.0")
+
+    def test_raises_when_section_is_empty(self):
+        import click
+        from oops.commands.release.create import _update_changelog
+
+        with pytest.raises(click.ClickException, match="empty"):
+            _update_changelog(self.CHANGELOG_EMPTY_UNRELEASED, "v1.3.0")
