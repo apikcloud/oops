@@ -71,6 +71,10 @@ class ManifestConfig:
             "auto_install",
             "installable",
             "license",
+            "pre_init_hook",
+            "post_init_hook",
+            "uninstall_hook",
+            "post_load",
         ]
     )
 
