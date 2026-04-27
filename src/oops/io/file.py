@@ -778,6 +778,8 @@ def make_migration_command(
     Returns:
         Full migration script content as a string, including the shebang line.
     """
+
+    # TODO: check content
     remove_command = "# Removed addons (manual action required): {addons}"
     install_command = "odoo --stop-after-init --no-http -i {addons}"
     update_command = "odoo --stop-after-init --no-http -u {addons}"

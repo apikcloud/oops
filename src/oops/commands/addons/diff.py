@@ -75,15 +75,15 @@ def main(  # noqa: C901, PLR0912
         for addon in updated_addons:
             print_warning(addon, "w")
 
-    content = make_migration_command(
-        new_addons,
-        updated_addons,
-        removed_addons,
-        release=release,
-    )
-    click.echo(content)
-
     if save:
+        content = make_migration_command(
+            new_addons,
+            updated_addons,
+            removed_addons,
+            release=release,
+        )
+        click.echo(content)
+
         migration_script = write_migration_script(content)
 
         if not no_commit:
