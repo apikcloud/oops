@@ -4,6 +4,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.12.3] - 2026-04-27
+
+A small fix for the addons workflow.
+
+### 🐛 Fixes
+
+- `oops addons`: fixed an issue where the migration command was printed even when no file was saved
+
+---
+
 ## [0.12.2] - 2026-04-27
 
 A small fix in the release tooling.
