@@ -45,6 +45,9 @@ extra:
     default: latest
     alias: true
 
+hooks:
+  - docs/hooks.py
+
 plugins:
   - search
   - glightbox
