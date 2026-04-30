@@ -133,6 +133,7 @@ def commit(  # noqa: PLR0913
     message_name: str,
     skip_hooks: bool = False,
     remove: bool = False,
+    already_staged: bool=False,
     remove_and_add: bool = False,
     **kwargs: object,
 ) -> None:
@@ -145,6 +146,8 @@ def commit(  # noqa: PLR0913
         message_name: Attribute name on commit_messages holding the message template.
         skip_hooks: If True, bypass pre-commit hooks. Defaults to False.
         remove: If True, remove files from the index instead of adding them. Defaults to False.
+        already_staged: If True, the index process is skipped and only the commit part is done.
+        remove_and_add:
         **kwargs: Optional format arguments interpolated into the commit message template.
 
     Raises:
@@ -152,7 +155,11 @@ def commit(  # noqa: PLR0913
     """
 
     changes = [str(repo_root / f) for f in files]
-    if remove:
+
+    if already_staged:
+        # Skip as files are already in the index (only for submodule updates).
+        pass
+    elif remove:
         local_repo.index.remove(changes)
     elif remove_and_add:
         # Remove the old index entry (e.g. a symlink), then re-add using the git
