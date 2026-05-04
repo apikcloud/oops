@@ -14,7 +14,7 @@ by name; PR submodules can be skipped with --skip-pr.
 import click
 from oops.commands.base import command
 from oops.services.git import commit, get_local_repo, is_pull_request
-from oops.utils.render import print_success, print_warning
+from oops.utils.render import print_warning
 
 
 @command("update", help=__doc__)
@@ -23,7 +23,6 @@ from oops.utils.render import print_success, print_warning
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | None" = None):
-
     repo, repo_path = get_local_repo()
     changes = []
     files = []
@@ -51,6 +50,7 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
         if dry_run:
             continue
 
+        # TODO: try to replace by submodule_update()
         sub_repo = submodule.module()
         branch = submodule.branch_name
 
@@ -62,7 +62,9 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
         # Pull latest commits
         sub_repo.remotes.origin.pull(branch)
 
-        # Stage submodule update in parent repo
+        # Stage with "git" to ensure it works properly for submodules.
+        repo.git.add(submodule.path)
+
         files.append(submodule.path)
         changes.append(f"{submodule.name} ({submodule.branch})")
 
@@ -73,9 +75,6 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
             files,
             "submodules_update",
             skip_hooks=True,
+            already_staged=True,
             description="\n".join(changes),
         )
-
-    print_success(
-        "Submodule update complete." if not dry_run else "Dry run complete — no changes applied."
-    )
