@@ -265,9 +265,9 @@ class TestDownloadCommand:
         enterprise_dir = tmp_path / "17.0" / "enterprise"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         clone_calls = []
-        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir, enterprise_dir), patch(
-            "oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)
-        ):
+        with patch("oops.commands.odoo.download.config", cfg_mock), \
+                self._patch_dirs(community_dir, enterprise_dir), \
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
             result = self._runner().invoke(download_main, ["17.0"])
         assert len(clone_calls) == 2
         cloned_dests = [c[1] for c in clone_calls]
@@ -291,10 +291,9 @@ class TestDownloadCommand:
         community_dir = tmp_path / "17.0" / "community"
         enterprise_dir = tmp_path / "17.0" / "enterprise"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir, enterprise_dir), patch(
-            "oops.commands.odoo.download.clone",
-            side_effect=subprocess.CalledProcessError(1, "git"),
-        ):
+        with patch("oops.commands.odoo.download.config", cfg_mock), \
+                self._patch_dirs(community_dir, enterprise_dir), \
+                patch("oops.commands.odoo.download.clone", side_effect=subprocess.CalledProcessError(1, "git")):
             result = self._runner().invoke(download_main, ["17.0"])
         assert result.exit_code == 1
 
@@ -331,9 +330,9 @@ class TestDownloadCommand:
             if "enterprise" in str(dest):
                 raise subprocess.CalledProcessError(1, "git")
 
-        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir, enterprise_dir), patch(
-            "oops.commands.odoo.download.clone", side_effect=fake_clone
-        ):
+        with patch("oops.commands.odoo.download.config", cfg_mock), \
+                self._patch_dirs(community_dir, enterprise_dir), \
+                patch("oops.commands.odoo.download.clone", side_effect=fake_clone):
             result = self._runner().invoke(download_main, ["17.0"])
         assert result.exit_code == 1
 

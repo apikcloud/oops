@@ -453,10 +453,8 @@ class TestManifestVersionBump:
 
     def test_init_disabled_when_path_not_set(self):
         """__init__ should return early if lint path is not set."""
-        with (
-            patch("oops.rules.manifest._load_manifest_cfg") as mock_cfg,
-            patch("oops.rules.manifest._get_lint_path", return_value=None),
-        ):
+        with patch("oops.rules.manifest._load_manifest_cfg") as mock_cfg, \
+                patch("oops.rules.manifest._get_lint_path", return_value=None):
             cfg_mock = MagicMock()
             cfg_mock.version_bump_strategy = "strict"
             mock_cfg.return_value = cfg_mock
@@ -470,19 +468,17 @@ class TestManifestVersionBump:
         manifest_path.write_text('{"version": "16.0.1.0.0"}')
         rel_path = "my_addon/__manifest__.py"
 
-        with (
-            patch("oops.rules.manifest._load_manifest_cfg") as mock_cfg,
-            patch("oops.rules.manifest._get_lint_path", return_value=manifest_path),
-            patch("oops.rules.manifest._git_repo_root", return_value=tmp_path),
-            patch(
-                "oops.rules.manifest._staged_addon_manifest_relpaths",
-                return_value=frozenset({rel_path}),
-            ),
-            patch(
-                "oops.rules.manifest._file_at_ref",
-                return_value='{"version": "16.0.1.0.0"}',
-            ),
-        ):
+        with patch("oops.rules.manifest._load_manifest_cfg") as mock_cfg, \
+                patch("oops.rules.manifest._get_lint_path", return_value=manifest_path), \
+                patch("oops.rules.manifest._git_repo_root", return_value=tmp_path), \
+                patch(
+                    "oops.rules.manifest._staged_addon_manifest_relpaths",
+                    return_value=frozenset({rel_path}),
+                ), \
+                patch(
+                    "oops.rules.manifest._file_at_ref",
+                    return_value='{"version": "16.0.1.0.0"}',
+                ):
             cfg_mock = MagicMock()
             cfg_mock.version_bump_strategy = "strict"
             mock_cfg.return_value = cfg_mock
@@ -491,10 +487,8 @@ class TestManifestVersionBump:
 
     def test_init_trunk_no_tag_disables_rule(self):
         """__init__ with trunk strategy and no tag leaves rule inactive."""
-        with (
-            patch("oops.rules.manifest._load_manifest_cfg") as mock_cfg,
-            patch("oops.rules.manifest._last_tag", return_value=None),
-        ):
+        with patch("oops.rules.manifest._load_manifest_cfg") as mock_cfg, \
+                patch("oops.rules.manifest._last_tag", return_value=None):
             cfg_mock = MagicMock()
             cfg_mock.version_bump_strategy = "trunk"
             mock_cfg.return_value = cfg_mock

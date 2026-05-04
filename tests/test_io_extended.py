@@ -263,7 +263,7 @@ class TestParseTextFile:
 
     def test_empty_lines_excluded(self):
         result = parse_text_file("\n\n\n")
-        assert result == set()
+        assert result == list()
 
 
 class TestWriteTextFile:

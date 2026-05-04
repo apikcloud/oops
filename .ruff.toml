@@ -12,6 +12,7 @@ select = [
     "UP",   # Pyupgrade
     "C90",  # McCabe complexity
 ]
+ignore = ["UP037"]
 
 exclude = ["setup/*", "__pycache__"]
 
