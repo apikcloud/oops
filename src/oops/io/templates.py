@@ -80,6 +80,7 @@ db_host = postgres
 db_port = 5432
 db_user = odoo
 db_password = odoo
+admin_passwd = odoo
 """
 
 CONFIG_STARTER = """\
