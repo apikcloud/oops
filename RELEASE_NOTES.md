@@ -4,6 +4,20 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.13.0] - 2026-05-04
+
+A new feature for project initialisation and an internal fix.
+
+### ✨ What's new
+
+- **Default admin password**: `oops project init` now sets a default admin password in the generated stack configuration
+
+### 🐛 Fixes
+
+- Updated internal submodule reference
+
+---
+
 ## [0.12.3] - 2026-04-27
 
 A small fix for the addons workflow.
