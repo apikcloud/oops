@@ -29,6 +29,22 @@ PR_DIR = "PRs"  # pull-request addon symlink directory
 UNPORTED_DIR = "__unported__"  # unported addons directory inside an addon path
 
 # ---------------------------------------------------------------------------
+# KB cache (project-local)
+# ---------------------------------------------------------------------------
+
+CACHE_DIR_NAME = ".oops-cache"
+
+
+def project_kb_path(repo_root: Path) -> Path:
+    """Return the path of the project KB database for a given repo root.
+
+    Returns:
+        ``<repo_root>/.oops-cache/kb.db`` (does not check for existence).
+    """
+    return repo_root / CACHE_DIR_NAME / "kb.db"
+
+
+# ---------------------------------------------------------------------------
 # Stats / usage-tracking data directory
 # ---------------------------------------------------------------------------
 

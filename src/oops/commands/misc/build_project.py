@@ -23,8 +23,9 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.paths import CACHE_DIR_NAME
 from oops.io.file import parse_odoo_version
-from oops.kb import setup_kb_logging
+from oops.kb import console, setup_kb_logging
 from oops.kb.scanner import (
     resolve_symlink_tiers,
     scan_module,
@@ -32,11 +33,6 @@ from oops.kb.scanner import (
 )
 from oops.kb.store import KBReader, write_project_kb
 from oops.services.git import get_local_repo
-from rich.console import Console
-
-console = Console()
-
-CACHE_DIR_NAME = ".oops-cache"
 
 
 def _load_modules_list(modules_file: Path) -> set[str] | None:

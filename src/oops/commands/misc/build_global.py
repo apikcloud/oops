@@ -25,13 +25,10 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.io.file import get_odoo_sources_dirs, parse_odoo_version
-from oops.kb import setup_kb_logging
+from oops.kb import console, setup_kb_logging
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
 from oops.services.git import get_local_repo
-from rich.console import Console
-
-console = Console()
 
 
 @command("kb-build-global")

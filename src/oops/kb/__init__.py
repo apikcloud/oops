@@ -3,14 +3,14 @@
 #
 # File: __init__.py — oops/kb/__init__.py
 
-"""Knowledge Base package: scanner, store, and resolver for Odoo symbol indexing."""
+"""Knowledge Base package: scanner, store, resolver, and shared rich console."""
 
 import logging
 
 from rich.console import Console
 from rich.logging import RichHandler
 
-_console = Console()
+console = Console()
 
 
 def setup_kb_logging(verbose: bool) -> None:
@@ -18,5 +18,5 @@ def setup_kb_logging(verbose: bool) -> None:
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(message)s",
-        handlers=[RichHandler(console=_console, show_path=False, markup=True)],
+        handlers=[RichHandler(console=console, show_path=False, markup=True)],
     )

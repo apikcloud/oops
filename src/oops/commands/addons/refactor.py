@@ -34,15 +34,11 @@ from pathlib import Path
 import click
 from git import GitCommandError
 from oops.commands.base import command
+from oops.core.paths import project_kb_path
 from oops.io.refactor import analyse_file, rewrite_file
-from oops.kb import setup_kb_logging
+from oops.kb import console, setup_kb_logging
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
-from rich.console import Console
-
-console = Console()
-
-CACHE_DIR_NAME = ".oops-cache"
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +88,7 @@ def main(  # noqa: C901, PLR0912
     if kb_path is None:
         search = module_path
         while search != search.parent:
-            candidate = search / CACHE_DIR_NAME / "kb.db"
+            candidate = project_kb_path(search)
             if candidate.exists():
                 kb_path = candidate
                 break
