@@ -54,6 +54,10 @@ oops-check-requirements = "oops.commands.requirements.check:main"
 oops-update-readme = "oops.commands.readme.update:main"
 oops-exclude-addons = "oops.commands.project.exclude:main"
 oops-fix-manifest = "oops.commands.manifest.fix:main"
+# KB commands
+oops-kb-build-global  = "oops.commands.misc.build_global:main"
+oops-kb-build-project = "oops.commands.misc.build_project:main"
+oops-refactor         = "oops.commands.addons.refactor:main"
 # Special command ;)
 oops-i-did-it-again = "oops.commands.submodules.clean:main"
 

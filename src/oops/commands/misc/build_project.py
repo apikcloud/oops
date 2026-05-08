@@ -1,3 +1,8 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
+#
+# File: build_project.py — oops/commands/misc/build_project.py
+
 """oops-kb-build-project — build the project KB for a client repository.
 
 Merges the global KB with third-party and apik modules found via symlink
@@ -16,6 +21,7 @@ import sys
 from pathlib import Path
 
 import click
+from oops.kb import setup_kb_logging
 from oops.kb.scanner import (
     resolve_symlink_tiers,
     scan_module,
@@ -23,20 +29,10 @@ from oops.kb.scanner import (
 )
 from oops.kb.store import KBReader, write_project_kb
 from rich.console import Console
-from rich.logging import RichHandler
 
 console = Console()
 
 CACHE_DIR_NAME = ".oops-cache"
-
-
-def _setup_logging(verbose: bool) -> None:
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        handlers=[RichHandler(console=console, show_path=False, markup=True)],
-    )
 
 
 def _load_modules_list(modules_file: Path) -> set[str] | None:
@@ -44,7 +40,7 @@ def _load_modules_list(modules_file: Path) -> set[str] | None:
     if not modules_file.exists():
         return None
     lines = modules_file.read_text(encoding="utf-8").splitlines()
-    return {l.strip() for l in lines if l.strip() and not l.startswith("#")}
+    return {ln.strip() for ln in lines if ln.strip() and not ln.startswith("#")}
 
 
 def _default_global_kb(version: str) -> Path:
@@ -103,7 +99,7 @@ def main(
 
     Output: <REPO_PATH>/.oops-cache/kb_project_<version>.db
     """
-    _setup_logging(verbose)
+    setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
     repo_path = repo_path.resolve()
@@ -141,8 +137,6 @@ def main(
         # Re-export global data as a scan result so write_project_kb can ingest it.
         global_modules = kb.get_modules()
         global_symbols = []
-        for model_row in kb.get_model_symbols(model=""):
-            pass  # handled below via raw query
         # Use a raw query to get all symbols efficiently.
         rows = kb._con.execute(
             "SELECT model, name, kind, origin, module, source_file, source_line FROM symbols"

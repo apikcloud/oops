@@ -1,3 +1,8 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
+#
+# File: refactor.py — oops/commands/addons/refactor.py
+
 """oops-refactor — apply section headers and docstring skeletons to a custom module.
 
 Operates on a single module at a time. Reads the project KB, classifies every
@@ -25,7 +30,6 @@ from __future__ import annotations
 
 import ast
 import logging
-import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,13 +37,13 @@ from typing import Any
 
 import click
 import libcst as cst
+from oops.kb import setup_kb_logging
 from oops.kb.resolve import (
     format_source_line,
     resolve_symbol,
 )
 from oops.kb.store import KBReader
 from rich.console import Console
-from rich.logging import RichHandler
 
 console = Console()
 
@@ -87,12 +91,6 @@ _FIELD_TYPES = {
 }
 
 _ODOO_BASE_CLASSES = {"Model", "TransientModel", "AbstractModel"}
-
-# Regex to detect any existing section header variant.
-_HEADER_RE = re.compile(
-    r"^\s*#\s*[-=#+*]{2,}\s*([A-Z][A-Z\s]+?)\s*[-=#+*]{0,}\s*(?:#\s*)?$",
-    re.IGNORECASE,
-)
 
 
 def _make_header(name: str) -> str:
@@ -460,7 +458,7 @@ def _build_docstring_stmt(
         expr = cst.parse_expression(raw_str)
     except cst.ParserSyntaxError:
         # Absolute fallback: single-line docstring
-        first = next((l for l in lines if l.strip()), "TODO")
+        first = next((ln for ln in lines if ln.strip()), "TODO")
         expr = cst.parse_expression(f'"""{first.strip()}"""')
     return cst.SimpleStatementLine(body=[cst.Expr(value=expr)])
 
@@ -623,7 +621,7 @@ def _append_section(
     first = items[0]
     existing = list(getattr(first, "leading_lines", []))
     # Strip existing blank lines to avoid double-blank.
-    stripped = [l for l in existing if l.comment is not None]
+    stripped = [ln for ln in existing if ln.comment is not None]
     new_leading = header_lines + stripped
     try:
         first = first.with_changes(leading_lines=new_leading)
@@ -651,50 +649,9 @@ def _strip_leading_lines(stmt: cst.BaseStatement) -> cst.BaseStatement:
         return stmt
 
 
-def _has_header_in_leading_lines(stmt: cst.BaseStatement) -> bool:
-    """Return True if any leading_lines comment looks like a section header."""
-    if not hasattr(stmt, "leading_lines"):
-        return False
-    for line in stmt.leading_lines:
-        if line.comment:
-            val = line.comment.value  # e.g. "# === COMPUTE METHODS === #"
-            # Strip the leading # and check
-            inner = val.lstrip("#").strip()
-            if re.match(r"^={3,}.*={3,}.*#?\s*$", inner) or re.match(r"^===\s+[A-Z]", val):
-                return True
-    return False
-
-
 # ---------------------------------------------------------------------------
 # CST predicate helpers
 # ---------------------------------------------------------------------------
-
-
-def _is_section_header_stmt(stmt: cst.BaseStatement) -> bool:
-    """Detect a standalone comment line that looks like a section header."""
-    if not isinstance(stmt, cst.SimpleStatementLine):
-        return False
-    # Check leading_lines for a comment matching our header pattern.
-    for line in stmt.leading_lines:
-        if line.comment:
-            text = line.comment.value  # includes the '#'
-            if _HEADER_RE.match(text.lstrip("#").strip() and text or ""):
-                return True
-    # A line that has ONLY a comment in leading_lines and an empty body (pass)?
-    # More reliable: check if the entire line is "# === ... === #"
-    # We check the `body` for a trailing comment or the line itself.
-    if hasattr(stmt, "trailing_whitespace"):
-        tw = stmt.trailing_whitespace
-        if tw and tw.comment and _HEADER_RE.match(tw.comment.value):
-            return True
-    return False
-
-
-def _comment_line_is_header(comment_val: str) -> bool:
-    text = comment_val.lstrip("#").strip()
-    return bool(_HEADER_RE.match(comment_val)) or bool(
-        re.match(r"^[-=#+*]{2,}\s*[A-Z][A-Z\s]+\s*[-=#+*]{0,}$", text, re.IGNORECASE)
-    )
 
 
 def _is_class_docstring(stmt: cst.BaseStatement) -> bool:
@@ -788,15 +745,6 @@ def git_commit_file(repo_path: Path, file_path: Path, message: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _setup_logging(verbose: bool) -> None:
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        handlers=[RichHandler(console=console, show_path=False, markup=True)],
-    )
-
-
 @click.command("refactor")
 @click.argument(
     "module_path",
@@ -828,7 +776,7 @@ def _setup_logging(verbose: bool) -> None:
     help="Print what would be changed without writing any file.",
 )
 @click.option("--verbose", "-v", is_flag=True, default=False)
-def main(
+def main(  # noqa: C901, PLR0912
     module_path: Path,
     kb_path: Path | None,
     version: str,
@@ -841,7 +789,7 @@ def main(
     Applies canonical section headers and minimal docstring skeletons to all
     model files, then commits the result on a dedicated git branch.
     """
-    _setup_logging(verbose)
+    setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
     module_path = module_path.resolve()

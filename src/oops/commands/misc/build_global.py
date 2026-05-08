@@ -1,3 +1,8 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
+#
+# File: build_global.py — oops/commands/misc/build_global.py
+
 """oops-kb-build-global — build the global Odoo KB (once per version).
 
 Scans Odoo community (addons/ + odoo/addons/) and enterprise sources,
@@ -18,21 +23,12 @@ import logging
 from pathlib import Path
 
 import click
+from oops.kb import setup_kb_logging
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
 from rich.console import Console
-from rich.logging import RichHandler
 
 console = Console()
-
-
-def _setup_logging(verbose: bool) -> None:
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        handlers=[RichHandler(console=console, show_path=False, markup=True)],
-    )
 
 
 @click.command("kb-build-global")
@@ -73,7 +69,7 @@ def main(
     Run this once per Odoo version. The resulting database is shared across
     all projects on the same version.
     """
-    _setup_logging(verbose)
+    setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
     # Resolve output path.
