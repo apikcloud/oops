@@ -36,7 +36,11 @@ from oops.io.refactor import (
 )
 from oops.kb.scanner import (
     get_model_names as _get_model_names,
+)
+from oops.kb.scanner import (
     is_field_assignment as _is_field,
+)
+from oops.kb.scanner import (
     is_odoo_model_class as _is_odoo_class,
 )
 from oops.kb.store import KBReader, write_project_kb

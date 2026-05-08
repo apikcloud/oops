@@ -15,15 +15,21 @@ from pathlib import Path
 from oops.kb.scanner import (
     _extract_string_value,
     _parse_file,
-    get_model_names as _get_model_names,
-    is_field_assignment as _is_field_assignment,
-    is_odoo_model_class as _is_odoo_model_class,
     odoo_addons_roots,
     parse_manifest,
     resolve_symlink_tiers,
     scan_module,
     scan_tier,
     tier_root_from_real_path,
+)
+from oops.kb.scanner import (
+    get_model_names as _get_model_names,
+)
+from oops.kb.scanner import (
+    is_field_assignment as _is_field_assignment,
+)
+from oops.kb.scanner import (
+    is_odoo_model_class as _is_odoo_model_class,
 )
 
 # ---------------------------------------------------------------------------

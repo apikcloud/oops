@@ -40,7 +40,6 @@ from oops.kb import console, setup_kb_logging
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
 
-
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
