@@ -14,10 +14,10 @@ from pathlib import Path
 
 from oops.kb.scanner import (
     _extract_string_value,
-    _get_model_names,
-    _is_field_assignment,
-    _is_odoo_model_class,
     _parse_file,
+    get_model_names as _get_model_names,
+    is_field_assignment as _is_field_assignment,
+    is_odoo_model_class as _is_odoo_model_class,
     odoo_addons_roots,
     parse_manifest,
     resolve_symlink_tiers,

@@ -23,19 +23,21 @@ from oops.io.refactor import (
     _classify_method,
     _detect_super,
     _get_decorator_names,
-    _get_model_names,
     _has_class_docstring,
     _has_docstring,
     _is_class_docstring,
-    _is_field,
     _is_field_stmt_cst,
-    _is_odoo_class,
     _is_private_attr_stmt,
     _make_header,
     _method_docstring_lines,
     _strip_leading_lines,
     analyse_file,
     rewrite_file,
+)
+from oops.kb.scanner import (
+    get_model_names as _get_model_names,
+    is_field_assignment as _is_field,
+    is_odoo_model_class as _is_odoo_class,
 )
 from oops.kb.store import KBReader, write_project_kb
 

@@ -22,6 +22,12 @@ from oops.kb.resolve import (
     format_source_line,
     resolve_symbol,
 )
+from oops.kb.scanner import (
+    FIELD_TYPES,
+    get_model_names,
+    is_field_assignment,
+    is_odoo_model_class,
+)
 from oops.kb.store import KBReader
 
 # ---------------------------------------------------------------------------
@@ -41,31 +47,6 @@ METHOD_SECTIONS = [
 ]
 
 CRUD_NAMES = {"create", "write", "unlink", "copy", "name_search", "_search"}
-
-_FIELD_TYPES = {
-    "Binary",
-    "Boolean",
-    "Char",
-    "Date",
-    "Datetime",
-    "Float",
-    "Html",
-    "Image",
-    "Integer",
-    "Many2many",
-    "Many2one",
-    "Many2oneReference",
-    "Monetary",
-    "One2many",
-    "Properties",
-    "PropertiesDefinition",
-    "Reference",
-    "Selection",
-    "Serialized",
-    "Text",
-}
-
-_ODOO_BASE_CLASSES = {"Model", "TransientModel", "AbstractModel"}
 
 
 def _make_header(name: str) -> str:
@@ -107,50 +88,6 @@ class ClassInfo:
 # ---------------------------------------------------------------------------
 # AST analysis
 # ---------------------------------------------------------------------------
-
-
-def _is_odoo_class(node: ast.ClassDef) -> bool:
-    for base in node.bases:
-        name = base.attr if isinstance(base, ast.Attribute) else getattr(base, "id", None)
-        if name in _ODOO_BASE_CLASSES:
-            return True
-    return False
-
-
-def _get_model_names(node: ast.ClassDef) -> tuple[str | None, list[str]]:
-    _name = None
-    _inherit: list[str] = []
-    for stmt in node.body:
-        if not isinstance(stmt, ast.Assign):
-            continue
-        for t in stmt.targets:
-            if not isinstance(t, ast.Name):
-                continue
-            val = stmt.value
-            if t.id == "_name":
-                if isinstance(val, ast.Constant) and isinstance(val.value, str):
-                    _name = val.value
-            elif t.id == "_inherit":
-                if isinstance(val, ast.Constant) and isinstance(val.value, str):
-                    _inherit = [val.value]
-                elif isinstance(val, ast.List):
-                    _inherit = [e.value for e in val.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
-    return _name, _inherit
-
-
-def _is_field(stmt: ast.stmt) -> tuple[str, int] | None:
-    if not isinstance(stmt, ast.Assign):
-        return None
-    if len(stmt.targets) != 1 or not isinstance(stmt.targets[0], ast.Name):
-        return None
-    val = stmt.value
-    if isinstance(val, ast.Call):
-        func = val.func
-        attr = func.attr if isinstance(func, ast.Attribute) else None
-        name = func.id if isinstance(func, ast.Name) else None
-        if (attr or name) in _FIELD_TYPES:
-            return stmt.targets[0].id, stmt.lineno
-    return None
 
 
 def _has_docstring(func_node: ast.FunctionDef) -> bool:
@@ -264,10 +201,10 @@ def analyse_file(
     for node in ast.walk(tree):
         if not isinstance(node, ast.ClassDef):
             continue
-        if not _is_odoo_class(node):
+        if not is_odoo_model_class(node):
             continue
 
-        _name, _inherit = _get_model_names(node)
+        _name, _inherit = get_model_names(node)
         target_models = [_name] if _name else _inherit
         if not target_models:
             continue
@@ -287,7 +224,7 @@ def analyse_file(
         ci._needs_class_docstring = is_new_model and not has_class_doc  # type: ignore[attr-defined]
 
         for stmt in node.body:
-            fld = _is_field(stmt)
+            fld = is_field_assignment(stmt)
             if fld:
                 fname, lineno = fld
                 kb_entries = kb.get_symbol(model_name, fname, "field")
@@ -663,9 +600,9 @@ def _is_field_stmt_cst(stmt: cst.BaseStatement) -> bool:
             val = small.value
             if isinstance(val, cst.Call):
                 func = val.func
-                if isinstance(func, cst.Attribute) and func.attr.value in _FIELD_TYPES:
+                if isinstance(func, cst.Attribute) and func.attr.value in FIELD_TYPES:
                     return True
-                if isinstance(func, cst.Name) and func.value in _FIELD_TYPES:
+                if isinstance(func, cst.Name) and func.value in FIELD_TYPES:
                     return True
     return False
 

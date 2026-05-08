@@ -81,7 +81,7 @@ def _extract_string_value(node: ast.expr) -> str | None:
     return None
 
 
-def _is_odoo_model_class(node: ast.ClassDef) -> bool:
+def is_odoo_model_class(node: ast.ClassDef) -> bool:
     """Return True if the class directly subclasses an Odoo model base."""
     for base in node.bases:
         name = None
@@ -94,7 +94,7 @@ def _is_odoo_model_class(node: ast.ClassDef) -> bool:
     return False
 
 
-def _get_model_names(class_node: ast.ClassDef) -> tuple[str | None, list[str]]:
+def get_model_names(class_node: ast.ClassDef) -> tuple[str | None, list[str]]:
     """Extract _name and _inherit values from a class body.
 
     Returns:
@@ -122,7 +122,7 @@ def _get_model_names(class_node: ast.ClassDef) -> tuple[str | None, list[str]]:
     return _name, _inherit
 
 
-def _is_field_assignment(stmt: ast.stmt) -> tuple[str, int] | None:
+def is_field_assignment(stmt: ast.stmt) -> tuple[str, int] | None:
     """If stmt assigns a fields.XXX, return (field_name, line_no). Else None."""
     if not isinstance(stmt, ast.Assign):
         return None
@@ -233,10 +233,10 @@ def scan_module(
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
-            if not _is_odoo_model_class(node):
+            if not is_odoo_model_class(node):
                 continue
 
-            _name, _inherit = _get_model_names(node)
+            _name, _inherit = get_model_names(node)
 
             # Determine which Odoo model(s) this class contributes to.
             target_models: list[str] = []
@@ -248,7 +248,7 @@ def scan_module(
             for model_name in target_models:
                 for stmt in node.body:
                     # fields
-                    field = _is_field_assignment(stmt)
+                    field = is_field_assignment(stmt)
                     if field:
                         fname, lineno = field
                         result["symbols"].append(
