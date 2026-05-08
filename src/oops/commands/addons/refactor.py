@@ -755,13 +755,7 @@ def git_commit_file(repo_path: Path, file_path: Path, message: str) -> bool:
     "kb_path",
     default=None,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help=("Path to the project KB database. Defaults to auto-detection from nearest .oops-cache directory."),
-)
-@click.option(
-    "--version",
-    default="17.0",
-    show_default=True,
-    help="Odoo version — used to locate the project KB when --kb is not given.",
+    help="Path to the project KB database. Defaults to auto-detection from nearest .oops-cache/kb.db.",
 )
 @click.option(
     "--branch/--no-branch",
@@ -779,7 +773,6 @@ def git_commit_file(repo_path: Path, file_path: Path, message: str) -> bool:
 def main(  # noqa: C901, PLR0912
     module_path: Path,
     kb_path: Path | None,
-    version: str,
     branch: bool,
     dry_run: bool,
     verbose: bool,
@@ -799,7 +792,7 @@ def main(  # noqa: C901, PLR0912
     if kb_path is None:
         search = module_path
         while search != search.parent:
-            candidate = search / CACHE_DIR_NAME / f"kb_project_{version}.db"
+            candidate = search / CACHE_DIR_NAME / "kb.db"
             if candidate.exists():
                 kb_path = candidate
                 break

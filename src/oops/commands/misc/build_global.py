@@ -9,7 +9,7 @@ Scans Odoo community (addons/ + odoo/addons/) and enterprise sources from the
 standard oops source directories (config.odoo.sources_dir/<version>/), and
 produces a SQLite database stored at:
 
-    <cache_dir>/kb_global_<version>.db
+    <cache_dir>/<version>.db
 
 where <cache_dir> defaults to ~/.cache/oops/kb/.
 
@@ -24,10 +24,11 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.io.file import get_odoo_sources_dirs
+from oops.io.file import get_odoo_sources_dirs, parse_odoo_version
 from oops.kb import setup_kb_logging
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
+from oops.services.git import get_local_repo
 from rich.console import Console
 
 console = Console()
@@ -36,19 +37,21 @@ console = Console()
 @command("kb-build-global")
 @click.option(
     "--version",
-    default="17.0",
-    show_default=True,
-    help="Odoo version string used in the output filename.",
+    default=None,
+    help=(
+        "Odoo version string (e.g. 17.0). "
+        "Defaults to the version declared in the current project's odoo_version.txt."
+    ),
 )
 @click.option(
     "--cache-dir",
     default=None,
     type=click.Path(file_okay=False, path_type=Path),
-    help="Directory where kb_global_<version>.db is written. Defaults to ~/.cache/oops/kb/.",
+    help="Directory where <version>.db is written. Defaults to ~/.cache/oops/kb/.",
 )
 @click.option("--verbose", "-v", is_flag=True, default=False)
 def main(
-    version: str,
+    version: str | None,
     cache_dir: Path | None,
     verbose: bool,
 ) -> None:
@@ -61,12 +64,23 @@ def main(
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
+    if version is None:
+        try:
+            _, repo_path = get_local_repo()
+            image_info = parse_odoo_version(repo_path)
+            version = str(image_info.major_version)
+        except (click.ClickException, ValueError):
+            raise click.UsageError(
+                "Could not detect Odoo version from odoo_version.txt. "
+                "Use --version to specify it explicitly."
+            ) from None
+
     community_dir, enterprise_dir = get_odoo_sources_dirs(version)
 
     if cache_dir is None:
         cache_dir = Path.home() / ".cache" / "oops" / "kb"
     cache_dir.mkdir(parents=True, exist_ok=True)
-    db_path = cache_dir / f"kb_global_{version}.db"
+    db_path = cache_dir / f"{version}.db"
 
     console.rule(f"[bold]oops kb-build-global[/bold] — Odoo {version}")
 

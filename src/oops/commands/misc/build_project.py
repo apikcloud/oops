@@ -8,8 +8,9 @@
 Merges the global KB with third-party and apik modules found via symlink
 resolution, filtered to the installed module list, and writes:
 
-    <repo>/.oops-cache/kb_project_<version>.db
+    <repo>/.oops-cache/kb.db
 
+The Odoo version is read from the project's odoo_version.txt file.
 The global KB path is resolved automatically from ~/.cache/oops/kb/ unless
 overridden with --global-kb.
 """
@@ -21,6 +22,8 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.config import config
+from oops.io.file import parse_odoo_version
 from oops.kb import setup_kb_logging
 from oops.kb.scanner import (
     resolve_symlink_tiers,
@@ -45,21 +48,15 @@ def _load_modules_list(modules_file: Path) -> set[str] | None:
 
 
 def _default_global_kb(version: str) -> Path:
-    return Path.home() / ".cache" / "oops" / "kb" / f"kb_global_{version}.db"
+    return Path.home() / ".cache" / "oops" / "kb" / f"{version}.db"
 
 
 @command("kb-build-project")
 @click.option(
-    "--version",
-    default="17.0",
-    show_default=True,
-    help="Odoo version string — used to locate the global KB and name the output file.",
-)
-@click.option(
     "--global-kb",
     default=None,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="Path to the global KB database. Defaults to ~/.cache/oops/kb/kb_global_<version>.db.",
+    help="Path to the global KB database. Defaults to ~/.cache/oops/kb/<version>.db.",
 )
 @click.option(
     "--modules",
@@ -78,7 +75,6 @@ def _default_global_kb(version: str) -> Path:
 )
 @click.option("--verbose", "-v", is_flag=True, default=False)
 def main(
-    version: str,
     global_kb: Path | None,
     modules_file: Path | None,
     slug: str | None,
@@ -90,12 +86,23 @@ def main(
     apik modules detected from symlinks in the repository, filtered to the
     installed module list.
 
-    Output: <repo>/.oops-cache/kb_project_<version>.db
+    The Odoo version is read from the project's odoo_version.txt file.
+
+    Output: <repo>/.oops-cache/kb.db
     """
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
     _, repo_path = get_local_repo()
+
+    try:
+        image_info = parse_odoo_version(repo_path)
+        version = str(image_info.major_version)
+    except ValueError:
+        raise click.UsageError(
+            f"Could not read Odoo version from {config.project.file_odoo_version}."
+        ) from None
+
     project = slug or repo_path.name
 
     if global_kb is None:
@@ -107,7 +114,7 @@ def main(
 
     cache_dir = repo_path / CACHE_DIR_NAME
     cache_dir.mkdir(parents=True, exist_ok=True)
-    db_path = cache_dir / f"kb_project_{version}.db"
+    db_path = cache_dir / "kb.db"
 
     console.rule(f"[bold]oops kb-build-project[/bold] — {project} / Odoo {version}")
 
