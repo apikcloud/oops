@@ -12,10 +12,9 @@ import textwrap
 from pathlib import Path
 
 import libcst as cst
-import pytest
 from click.testing import CliRunner
-
-from oops.commands.addons.refactor import (
+from oops.commands.addons.refactor import main
+from oops.io.refactor import (
     ClassInfo,
     SymbolInfo,
     _append_section,
@@ -36,11 +35,9 @@ from oops.commands.addons.refactor import (
     _method_docstring_lines,
     _strip_leading_lines,
     analyse_file,
-    main,
     rewrite_file,
 )
 from oops.kb.store import KBReader, write_project_kb
-
 
 # ---------------------------------------------------------------------------
 # Shared test fixtures / source snippets

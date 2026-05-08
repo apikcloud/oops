@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import logging
 
-import pytest
-
 from oops.kb.resolve import (
     TIER_PRECEDENCE,
     _tier_rank,
@@ -18,7 +16,6 @@ from oops.kb.resolve import (
     format_source_line,
     resolve_symbol,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
