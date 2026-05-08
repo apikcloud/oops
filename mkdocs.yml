@@ -71,6 +71,9 @@ plugins:
               # useful when merging such docstrings into their parent class'.
               ignore_init_summary: true
 
+            # Force griffe to parse every docstring as Google-style.
+            docstring_style: google
+
             # Tables are generally too large, lists will fix this.
             docstring_section_style: table
 
@@ -204,6 +207,7 @@ nav:
   - Changelog: changelog.md
   - Release Notes: release-notes.md
   - Reference:
+      - Method Classification: reference/method-classification.md
       - Core:
           - Config: reference/core/config.md
           - Exceptions: reference/core/exceptions.md

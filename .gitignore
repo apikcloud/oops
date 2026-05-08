@@ -165,6 +165,9 @@ cython_debug/
 .oops.yaml
 .oops.yml
 
+# Oops KB cache (project-level, must not be committed)
+.oops-cache/
+
 .codegraph/
 .claude/
 thoughts/
