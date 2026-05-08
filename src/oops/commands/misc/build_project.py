@@ -17,10 +17,10 @@ overridden with --global-kb.
 from __future__ import annotations
 
 import logging
-import sys
 from pathlib import Path
 
 import click
+from oops.commands.base import command
 from oops.kb import setup_kb_logging
 from oops.kb.scanner import (
     resolve_symlink_tiers,
@@ -28,6 +28,7 @@ from oops.kb.scanner import (
     tier_root_from_real_path,
 )
 from oops.kb.store import KBReader, write_project_kb
+from oops.services.git import get_local_repo
 from rich.console import Console
 
 console = Console()
@@ -47,12 +48,7 @@ def _default_global_kb(version: str) -> Path:
     return Path.home() / ".cache" / "oops" / "kb" / f"kb_global_{version}.db"
 
 
-@click.command("kb-build-project")
-@click.argument(
-    "repo_path",
-    default=".",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-)
+@command("kb-build-project")
 @click.option(
     "--version",
     default="17.0",
@@ -63,7 +59,7 @@ def _default_global_kb(version: str) -> Path:
     "--global-kb",
     default=None,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help=("Path to the global KB database. Defaults to ~/.cache/oops/kb/kb_global_<version>.db."),
+    help="Path to the global KB database. Defaults to ~/.cache/oops/kb/kb_global_<version>.db.",
 )
 @click.option(
     "--modules",
@@ -82,37 +78,33 @@ def _default_global_kb(version: str) -> Path:
 )
 @click.option("--verbose", "-v", is_flag=True, default=False)
 def main(
-    repo_path: Path,
     version: str,
     global_kb: Path | None,
     modules_file: Path | None,
     slug: str | None,
     verbose: bool,
 ) -> None:
-    """Build the project Knowledge Base for the Odoo client repository at REPO_PATH.
-
-    REPO_PATH defaults to the current directory.
+    """Build the project Knowledge Base for the current repository.
 
     Merges the global KB (Odoo community + enterprise) with third-party and
     apik modules detected from symlinks in the repository, filtered to the
     installed module list.
 
-    Output: <REPO_PATH>/.oops-cache/kb_project_<version>.db
+    Output: <repo>/.oops-cache/kb_project_<version>.db
     """
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
-    repo_path = repo_path.resolve()
+    _, repo_path = get_local_repo()
     project = slug or repo_path.name
 
-    # Resolve global KB.
     if global_kb is None:
         global_kb = _default_global_kb(version)
     if not global_kb.exists():
-        console.print(f"[red]✗[/red] Global KB not found: {global_kb}\nRun [bold]oops-kb-build-global[/bold] first.")
-        sys.exit(1)
+        raise click.ClickException(
+            f"Global KB not found: {global_kb}\nRun oops-kb-build-global first."
+        )
 
-    # Output path inside the repo cache.
     cache_dir = repo_path / CACHE_DIR_NAME
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / f"kb_project_{version}.db"
@@ -134,10 +126,8 @@ def main(
     with KBReader(global_kb) as kb:
         global_meta = kb.get_meta()
         global_sources = kb.get_sources()
-        # Re-export global data as a scan result so write_project_kb can ingest it.
         global_modules = kb.get_modules()
         global_symbols = []
-        # Use a raw query to get all symbols efficiently.
         rows = kb._con.execute(
             "SELECT model, name, kind, origin, module, source_file, source_line FROM symbols"
         ).fetchall()
@@ -170,7 +160,6 @@ def main(
         log.info("Scanning [cyan]%s[/cyan] tier (%d modules)…", origin, len(modules_in_tier))
         scanned = 0
 
-        # Determine tier_root from the first resolved path.
         tier_root = None
         for _mod_name, real_path in modules_in_tier:
             tier_root = tier_root_from_real_path(origin, real_path)

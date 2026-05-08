@@ -5,13 +5,13 @@
 
 """oops-kb-build-global — build the global Odoo KB (once per version).
 
-Scans Odoo community (addons/ + odoo/addons/) and enterprise sources,
+Scans Odoo community (addons/ + odoo/addons/) and enterprise sources from the
+standard oops source directories (config.odoo.sources_dir/<version>/), and
 produces a SQLite database stored at:
 
     <cache_dir>/kb_global_<version>.db
 
-where <cache_dir> defaults to ~/.cache/oops/kb/ and can be overridden
-with --cache-dir to share the global KB across multiple project repos.
+where <cache_dir> defaults to ~/.cache/oops/kb/.
 
 The global KB is version-specific and shared across all projects on the
 same Odoo version — it should never be stored inside a project repository.
@@ -23,6 +23,8 @@ import logging
 from pathlib import Path
 
 import click
+from oops.commands.base import command
+from oops.io.file import get_odoo_sources_dirs
 from oops.kb import setup_kb_logging
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
@@ -31,19 +33,7 @@ from rich.console import Console
 console = Console()
 
 
-@click.command("kb-build-global")
-@click.option(
-    "--odoo-path",
-    required=True,
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    help="Root of the Odoo community repository (addons/ and odoo/addons/ are auto-detected).",
-)
-@click.option(
-    "--enterprise-path",
-    default=None,
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    help="Root of the Odoo enterprise repository (optional).",
-)
+@command("kb-build-global")
 @click.option(
     "--version",
     default="17.0",
@@ -54,25 +44,25 @@ console = Console()
     "--cache-dir",
     default=None,
     type=click.Path(file_okay=False, path_type=Path),
-    help=("Directory where kb_global_<version>.db is written. Defaults to ~/.cache/oops/kb/."),
+    help="Directory where kb_global_<version>.db is written. Defaults to ~/.cache/oops/kb/.",
 )
 @click.option("--verbose", "-v", is_flag=True, default=False)
 def main(
-    odoo_path: Path,
-    enterprise_path: Path | None,
     version: str,
     cache_dir: Path | None,
     verbose: bool,
 ) -> None:
     """Build the global Knowledge Base from Odoo community + enterprise sources.
 
-    Run this once per Odoo version. The resulting database is shared across
-    all projects on the same version.
+    Reads Odoo sources from the standard oops source directories. Run this once
+    per Odoo version. The resulting database is shared across all projects on
+    the same version.
     """
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
-    # Resolve output path.
+    community_dir, enterprise_dir = get_odoo_sources_dirs(version)
+
     if cache_dir is None:
         cache_dir = Path.home() / ".cache" / "oops" / "kb"
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -84,19 +74,19 @@ def main(
     sources: dict[str, str] = {}
 
     # --- Odoo community ---
-    addons_roots = odoo_addons_roots(odoo_path)
+    addons_roots = odoo_addons_roots(community_dir)
     for root in addons_roots:
         log.info("Scanning [cyan]odoo[/cyan]: %s", root)
         result = scan_tier(root, "odoo")
         scan_results.append(result)
-    sources["odoo"] = str(odoo_path)
+    sources["odoo"] = str(community_dir)
 
     # --- Enterprise (optional) ---
-    if enterprise_path:
-        log.info("Scanning [cyan]enterprise[/cyan]: %s", enterprise_path)
-        result = scan_tier(enterprise_path, "enterprise")
+    if enterprise_dir.exists():
+        log.info("Scanning [cyan]enterprise[/cyan]: %s", enterprise_dir)
+        result = scan_tier(enterprise_dir, "enterprise")
         scan_results.append(result)
-        sources["enterprise"] = str(enterprise_path)
+        sources["enterprise"] = str(enterprise_dir)
 
     # --- Write ---
     log.info("Writing global KB → %s", db_path)
