@@ -29,13 +29,15 @@ What the tool does NOT do
 from __future__ import annotations
 
 import logging
-import subprocess
 from pathlib import Path
 
 import click
+from git import GitCommandError
+from oops.commands.base import command
 from oops.io.refactor import analyse_file, rewrite_file
 from oops.kb import setup_kb_logging
 from oops.kb.store import KBReader
+from oops.services.git import commit, get_local_repo
 from rich.console import Console
 
 console = Console()
@@ -44,38 +46,11 @@ CACHE_DIR_NAME = ".oops-cache"
 
 
 # ---------------------------------------------------------------------------
-# Git helpers
-# ---------------------------------------------------------------------------
-
-
-def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(["git"] + args, cwd=str(cwd), capture_output=True, text=True)
-
-
-def git_create_branch(repo_path: Path, branch_name: str) -> bool:
-    result = _git(["checkout", "-b", branch_name], cwd=repo_path)
-    if result.returncode != 0:
-        logging.getLogger(__name__).error("git checkout -b %s failed:\n%s", branch_name, result.stderr)
-        return False
-    logging.getLogger(__name__).info("Created branch: %s", branch_name)
-    return True
-
-
-def git_commit_file(repo_path: Path, file_path: Path, message: str) -> bool:
-    _git(["add", str(file_path)], cwd=repo_path)
-    result = _git(["commit", "-m", message], cwd=repo_path)
-    if result.returncode != 0:
-        logging.getLogger(__name__).warning("git commit failed for %s:\n%s", file_path, result.stderr)
-        return False
-    return True
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 
-@click.command("refactor")
+@command("refactor", help=__doc__)
 @click.argument(
     "module_path",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
@@ -107,11 +82,6 @@ def main(  # noqa: C901, PLR0912
     dry_run: bool,
     verbose: bool,
 ) -> None:
-    """Refactor the Odoo custom module at MODULE_PATH.
-
-    Applies canonical section headers and minimal docstring skeletons to all
-    model files, then commits the result on a dedicated git branch.
-    """
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
@@ -137,13 +107,6 @@ def main(  # noqa: C901, PLR0912
 
     log.info("Using KB: %s", kb_path)
 
-    # Locate repo root.
-    repo_path = module_path.parent
-    while repo_path != repo_path.parent:
-        if (repo_path / ".git").exists():
-            break
-        repo_path = repo_path.parent
-
     console.rule(f"[bold]oops refactor[/bold] — {module_name}")
 
     with KBReader(kb_path) as kb:
@@ -151,10 +114,22 @@ def main(  # noqa: C901, PLR0912
 
         # --- Git branch ---
         branch_name = f"refactor/doc-{module_name}"
+        local_repo = None
+        repo_path = None
         if branch and not dry_run:
-            if not git_create_branch(repo_path, branch_name):
-                console.print("[yellow]⚠[/yellow] Could not create branch — continuing without git.")
+            try:
+                local_repo, repo_path = get_local_repo()
+            except click.ClickException:
+                console.print("[yellow]⚠[/yellow] Could not locate git repository — continuing without git.")
                 branch = False
+            else:
+                try:
+                    local_repo.git.checkout("-b", branch_name)
+                    log.info("Created branch: %s", branch_name)
+                except GitCommandError as exc:
+                    console.print("[yellow]⚠[/yellow] Could not create branch — continuing without git.")
+                    log.debug("git checkout -b failed: %s", exc)
+                    branch = False
 
         # --- Process model files ---
         models_dir = module_path / "models"
@@ -211,9 +186,15 @@ def main(  # noqa: C901, PLR0912
             log.info("  [green]✓[/green] Rewritten: %s", rel)
             total_rewrites += 1
 
-            if branch:
-                msg = f"refactor({module_name}): add sections and docstrings to {rel}"
-                git_commit_file(repo_path, py_file, msg)
+            if branch and local_repo is not None and repo_path is not None:
+                commit(
+                    local_repo,
+                    repo_path,
+                    [str(py_file.relative_to(repo_path))],
+                    "refactor_per_file",
+                    module=module_name,
+                    rel=str(rel),
+                )
 
         if not dry_run:
             console.print(f"\n[green]✓[/green] Done — {total_rewrites} file(s) rewritten.")

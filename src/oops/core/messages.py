@@ -42,6 +42,7 @@ class CommitMessages:
     migration_script: str = "chore: add migration script"
     release_create: str = "chore: release {version}"
     manifest_update: str = "chore: update manifest(s)"
+    refactor_per_file: str = "refactor({module}): add sections and docstrings to {rel}"
 
 
 commit_messages = CommitMessages()
