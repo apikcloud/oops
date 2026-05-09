@@ -23,9 +23,9 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.core.paths import CACHE_DIR_NAME
+from oops.core.paths import CACHE_DIR_NAME, global_kb_path
 from oops.io.file import parse_odoo_version
-from oops.kb import console, setup_kb_logging
+from oops.kb import setup_kb_logging
 from oops.kb.scanner import (
     resolve_symlink_tiers,
     scan_module,
@@ -33,6 +33,7 @@ from oops.kb.scanner import (
 )
 from oops.kb.store import KBReader, write_project_kb
 from oops.services.git import get_local_repo
+from oops.utils.render import print_rule, print_success
 
 
 def _load_modules_list(modules_file: Path) -> set[str] | None:
@@ -44,7 +45,7 @@ def _load_modules_list(modules_file: Path) -> set[str] | None:
 
 
 def _default_global_kb(version: str) -> Path:
-    return Path.home() / ".cache" / "oops" / "kb" / f"{version}.db"
+    return global_kb_path(version)
 
 
 @command("kb-build-project")
@@ -112,7 +113,7 @@ def main(
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / "kb.db"
 
-    console.rule(f"[bold]oops kb-build-project[/bold] — {project} / Odoo {version}")
+    print_rule(f"oops kb-build-project — {project} / Odoo {version}")
 
     # Load module filter.
     allowed_modules: set[str] | None = None
@@ -160,7 +161,7 @@ def main(
         if not modules_in_tier:
             continue
 
-        log.info("Scanning [cyan]%s[/cyan] tier (%d modules)…", origin, len(modules_in_tier))
+        log.info("Scanning %s tier (%d modules)…", origin, len(modules_in_tier))
         scanned = 0
 
         tier_root = None
@@ -207,6 +208,6 @@ def main(
         scan_results=[global_scan] + project_scan_results,
     )
 
-    console.print(f"\n[green]✓[/green] Project KB ready: [bold]{db_path}[/bold]")
-    console.print(f"  Project : {project}")
-    console.print(f"  Scope   : {len(scope)} modules")
+    print_success(f"Project KB ready: {db_path}")
+    click.echo(f"  Project : {project}")
+    click.echo(f"  Scope   : {len(scope)} modules")

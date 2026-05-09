@@ -44,6 +44,27 @@ def project_kb_path(repo_root: Path) -> Path:
     return repo_root / CACHE_DIR_NAME / "kb.db"
 
 
+def global_kb_dir() -> Path:
+    """Return the default global KB cache directory.
+
+    Returns:
+        ``~/.cache/oops/kb`` (does not check for existence).
+    """
+    return Path.home() / ".cache" / "oops" / "kb"
+
+
+def global_kb_path(version: str) -> Path:
+    """Return the path of the global KB database for a given Odoo version.
+
+    Args:
+        version: Odoo version string, e.g. ``'17.0'``.
+
+    Returns:
+        ``~/.cache/oops/kb/<version>.db`` (does not check for existence).
+    """
+    return global_kb_dir() / f"{version}.db"
+
+
 # ---------------------------------------------------------------------------
 # Stats / usage-tracking data directory
 # ---------------------------------------------------------------------------

@@ -3,20 +3,18 @@
 #
 # File: __init__.py — oops/kb/__init__.py
 
-"""Knowledge Base package: scanner, store, resolver, and shared rich console."""
+"""Knowledge Base package: scanner, store, resolver, and shared logging setup."""
 
 import logging
 
-from rich.console import Console
-from rich.logging import RichHandler
-
-console = Console()
-
 
 def setup_kb_logging(verbose: bool) -> None:
-    """Configure root logging with a Rich handler for KB commands."""
+    """Configure root logging for KB commands.
+
+    Args:
+        verbose: If True, set level to DEBUG; otherwise INFO.
+    """
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(message)s",
-        handlers=[RichHandler(console=console, show_path=False, markup=True)],
     )

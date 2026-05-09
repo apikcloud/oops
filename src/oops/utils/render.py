@@ -173,3 +173,12 @@ def print_warning(message: str, symbol: str = "⚠") -> None:
         symbol: Prefix symbol. Defaults to "⚠".
     """
     click.echo(click.style(f"{symbol} {message}", fg="yellow"))
+
+
+def print_rule(text: str) -> None:
+    """Print a styled section banner to the terminal.
+
+    Args:
+        text: Header text to display.
+    """
+    click.echo(click.style(f"\n── {text} ──", bold=True))

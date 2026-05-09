@@ -24,11 +24,13 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.paths import global_kb_dir
 from oops.io.file import get_odoo_sources_dirs, parse_odoo_version
-from oops.kb import console, setup_kb_logging
+from oops.kb import setup_kb_logging
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
 from oops.services.git import get_local_repo
+from oops.utils.render import print_rule, print_success
 
 
 @command("kb-build-global")
@@ -75,11 +77,11 @@ def main(
     community_dir, enterprise_dir = get_odoo_sources_dirs(version)
 
     if cache_dir is None:
-        cache_dir = Path.home() / ".cache" / "oops" / "kb"
+        cache_dir = global_kb_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / f"{version}.db"
 
-    console.rule(f"[bold]oops kb-build-global[/bold] — Odoo {version}")
+    print_rule(f"oops kb-build-global — Odoo {version}")
 
     scan_results = []
     sources: dict[str, str] = {}
@@ -87,14 +89,14 @@ def main(
     # --- Odoo community ---
     addons_roots = odoo_addons_roots(community_dir)
     for root in addons_roots:
-        log.info("Scanning [cyan]odoo[/cyan]: %s", root)
+        log.info("Scanning odoo: %s", root)
         result = scan_tier(root, "odoo")
         scan_results.append(result)
     sources["odoo"] = str(community_dir)
 
     # --- Enterprise (optional) ---
     if enterprise_dir.exists():
-        log.info("Scanning [cyan]enterprise[/cyan]: %s", enterprise_dir)
+        log.info("Scanning enterprise: %s", enterprise_dir)
         result = scan_tier(enterprise_dir, "enterprise")
         scan_results.append(result)
         sources["enterprise"] = str(enterprise_dir)
@@ -108,4 +110,4 @@ def main(
         scan_results=scan_results,
     )
 
-    console.print(f"\n[green]✓[/green] Global KB ready: [bold]{db_path}[/bold]")
+    print_success(f"Global KB ready: {db_path}")

@@ -36,9 +36,10 @@ from git import GitCommandError
 from oops.commands.base import command
 from oops.core.paths import project_kb_path
 from oops.io.refactor import analyse_file, rewrite_file
-from oops.kb import console, setup_kb_logging
+from oops.kb import setup_kb_logging
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
+from oops.utils.render import print_error, print_rule, print_success, print_warning
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -94,15 +95,12 @@ def main(  # noqa: C901, PLR0912
             search = search.parent
 
     if kb_path is None or not kb_path.exists():
-        console.print(
-            "[red]✗[/red] Project KB not found.\n"
-            "Run [bold]oops-kb-build-project[/bold] first, or pass [bold]--kb[/bold]."
-        )
+        print_error("Project KB not found.\nRun oops-kb-build-project first, or pass --kb.")
         raise SystemExit(1)
 
     log.info("Using KB: %s", kb_path)
 
-    console.rule(f"[bold]oops refactor[/bold] — {module_name}")
+    print_rule(f"oops refactor — {module_name}")
 
     with KBReader(kb_path) as kb:
         modules_index = kb.get_modules()
@@ -115,26 +113,26 @@ def main(  # noqa: C901, PLR0912
             try:
                 local_repo, repo_path = get_local_repo()
             except click.ClickException:
-                console.print("[yellow]⚠[/yellow] Could not locate git repository — continuing without git.")
+                print_warning("Could not locate git repository — continuing without git.")
                 branch = False
             else:
                 try:
                     local_repo.git.checkout("-b", branch_name)
                     log.info("Created branch: %s", branch_name)
                 except GitCommandError as exc:
-                    console.print("[yellow]⚠[/yellow] Could not create branch — continuing without git.")
+                    print_warning("Could not create branch — continuing without git.")
                     log.debug("git checkout -b failed: %s", exc)
                     branch = False
 
         # --- Process model files ---
         models_dir = module_path / "models"
         if not models_dir.is_dir():
-            console.print(f"[yellow]⚠[/yellow] No models/ directory found in {module_path}")
+            print_warning(f"No models/ directory found in {module_path}")
             return
 
         py_files = sorted(models_dir.rglob("*.py"))
         if not py_files:
-            console.print("[yellow]⚠[/yellow] No .py files found in models/")
+            print_warning("No .py files found in models/")
             return
 
         total_rewrites = 0
@@ -155,7 +153,7 @@ def main(  # noqa: C901, PLR0912
                 n_nodoc = sum(1 for s in ci.symbols if s.kind == "method" and not s.has_docstring)
                 n_override = sum(1 for s in ci.symbols if s.is_override)
                 log.info(
-                    "  [cyan]%s[/cyan] (%s): %d fields, %d methods (%d need docstring, %d overrides)",
+                    "  %s (%s): %d fields, %d methods (%d need docstring, %d overrides)",
                     ci.class_name,
                     model_tag,
                     n_fields,
@@ -167,7 +165,7 @@ def main(  # noqa: C901, PLR0912
             if dry_run:
                 new_source = rewrite_file(py_file, classes)
                 if new_source != py_file.read_text(encoding="utf-8"):
-                    console.print(f"  [dim]would rewrite[/dim] {rel}")
+                    click.echo(f"  would rewrite {rel}")
                 continue
 
             original = py_file.read_text(encoding="utf-8", errors="replace")
@@ -178,7 +176,7 @@ def main(  # noqa: C901, PLR0912
                 continue
 
             py_file.write_text(new_source, encoding="utf-8")
-            log.info("  [green]✓[/green] Rewritten: %s", rel)
+            log.info("  Rewritten: %s", rel)
             total_rewrites += 1
 
             if branch and local_repo is not None and repo_path is not None:
@@ -192,6 +190,6 @@ def main(  # noqa: C901, PLR0912
                 )
 
         if not dry_run:
-            console.print(f"\n[green]✓[/green] Done — {total_rewrites} file(s) rewritten.")
+            print_success(f"Done — {total_rewrites} file(s) rewritten.")
             if branch and total_rewrites:
-                console.print(f"  Branch: [bold]{branch_name}[/bold]")
+                click.echo(f"  Branch: {branch_name}")

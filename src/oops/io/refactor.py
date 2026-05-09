@@ -9,13 +9,10 @@ Reads model files, classifies fields and methods against a project KB, and
 rewrites class bodies to apply canonical section headers and Google-style
 docstring skeletons. Pure file-I/O — no git, no CLI."""
 
-from __future__ import annotations
-
 import ast
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import libcst as cst
 from oops.kb.resolve import (
@@ -29,6 +26,7 @@ from oops.kb.scanner import (
     is_odoo_model_class,
 )
 from oops.kb.store import KBReader
+from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -66,19 +64,19 @@ class SymbolInfo:
     lineno: int
     has_docstring: bool = False
     has_super: bool = False
-    super_methods: list[str] = field(default_factory=list)
-    kb_entry: dict[str, Any] | None = None
+    super_methods: List[str] = field(default_factory=lambda: [])
+    kb_entry: Optional[Dict[str, Any]] = None
     is_override: bool = False  # in KB but no super()
 
 
 @dataclass
 class ClassInfo:
     class_name: str
-    model_name: str | None
-    inherit: list[str]
+    model_name: Optional[str]
+    inherit: List[str]
     is_new_model: bool
     lineno: int
-    symbols: list[SymbolInfo] = field(default_factory=list)
+    symbols: List[SymbolInfo] = field(default_factory=lambda: [])
 
     @property
     def is_inherit(self) -> bool:
@@ -108,7 +106,7 @@ def _has_class_docstring(class_node: ast.ClassDef) -> bool:
     return False
 
 
-def _get_decorator_names(func_node: ast.FunctionDef) -> list[str]:
+def _get_decorator_names(func_node: ast.FunctionDef) -> List[str]:
     names = []
     for dec in func_node.decorator_list:
         if isinstance(dec, ast.Name):
@@ -125,7 +123,7 @@ def _get_decorator_names(func_node: ast.FunctionDef) -> list[str]:
     return names
 
 
-def _classify_method(name: str, decorator_names: list[str]) -> str:
+def _classify_method(name: str, decorator_names: List[str]) -> str:
     if name in CRUD_NAMES:
         return "CRUD METHODS"
     if any(d in ("api.depends", "depends") for d in decorator_names):
@@ -149,7 +147,7 @@ def _classify_method(name: str, decorator_names: list[str]) -> str:
 class _SuperDetector(cst.CSTVisitor):
     def __init__(self) -> None:
         self.has_super = False
-        self.super_methods: list[str] = []
+        self.super_methods: List[str] = []
 
     def visit_Call(self, node: cst.Call) -> None:
         if (
@@ -162,7 +160,7 @@ class _SuperDetector(cst.CSTVisitor):
             self.super_methods.append(node.func.attr.value)
 
 
-def _detect_super(source: str, func_name: str) -> tuple[bool, list[str]]:
+def _detect_super(source: str, func_name: str) -> Tuple[bool, List[str]]:
     try:
         tree = cst.parse_module(source)
     except cst.ParserSyntaxError:
@@ -186,9 +184,9 @@ def _detect_super(source: str, func_name: str) -> tuple[bool, list[str]]:
 def analyse_file(
     py_file: Path,
     kb: KBReader,
-    modules_index: dict[str, Any],
+    modules_index: Dict[str, Any],
     custom_module: str,
-) -> list[ClassInfo]:
+) -> List[ClassInfo]:
     source = py_file.read_text(encoding="utf-8", errors="replace")
     try:
         tree = ast.parse(source, filename=str(py_file))
@@ -196,7 +194,7 @@ def analyse_file(
         logging.getLogger(__name__).warning("Syntax error in %s: %s", py_file, exc)
         return []
 
-    results: list[ClassInfo] = []
+    results: List[ClassInfo] = []
 
     for node in ast.walk(tree):
         if not isinstance(node, ast.ClassDef):
@@ -279,7 +277,7 @@ def analyse_file(
 # ---------------------------------------------------------------------------
 
 
-def _method_docstring_lines(sym: SymbolInfo) -> list[str]:
+def _method_docstring_lines(sym: SymbolInfo) -> List[str]:
     """Return the inner lines of a method docstring (no triple quotes)."""
     if sym.kb_entry:
         src = format_source_line(sym.kb_entry)
@@ -336,7 +334,7 @@ def _method_docstring_lines(sym: SymbolInfo) -> list[str]:
         ]
 
 
-def _class_docstring_lines(ci: ClassInfo) -> list[str]:
+def _class_docstring_lines(ci: ClassInfo) -> List[str]:
     model = ci.model_name or "unknown.model"
     return [
         "",
@@ -354,7 +352,7 @@ def _class_docstring_lines(ci: ClassInfo) -> list[str]:
 
 
 def _build_docstring_stmt(
-    lines: list[str],
+    lines: List[str],
     indent_spaces: int = 8,
 ) -> cst.SimpleStatementLine:
     """Build a CST statement for a triple-quoted docstring.
@@ -375,7 +373,7 @@ def _build_docstring_stmt(
     return cst.SimpleStatementLine(body=[cst.Expr(value=expr)])
 
 
-def _build_header_leading_line(section_name: str) -> list[cst.EmptyLine]:
+def _build_header_leading_line(section_name: str) -> List[cst.EmptyLine]:
     """Return EmptyLines to attach as leading_lines to the first stmt of a section."""
     return [
         cst.EmptyLine(),  # blank line before header
@@ -389,7 +387,7 @@ def _build_header_leading_line(section_name: str) -> list[cst.EmptyLine]:
 
 
 class _ModelRewriter(cst.CSTTransformer):
-    def __init__(self, classes: list[ClassInfo]) -> None:
+    def __init__(self, classes: List[ClassInfo]) -> None:
         self._classes = {ci.class_name: ci for ci in classes}
         self._log = logging.getLogger(__name__)
 
@@ -422,14 +420,14 @@ class _ModelRewriter(cst.CSTTransformer):
         method_cursor = 0
 
         # Buckets.
-        private_attrs: list[cst.BaseStatement] = []
-        field_buckets: dict[str, list[cst.BaseStatement]] = {
+        private_attrs: List[cst.BaseStatement] = []
+        field_buckets: Dict[str, List[cst.BaseStatement]] = {
             "INHERITED FIELDS": [],
             "NEW FIELDS": [],
             "BASE FIELDS": [],
         }
-        method_buckets: dict[str, list[cst.BaseStatement]] = {s: [] for s in METHOD_SECTIONS}
-        unclassified: list[cst.BaseStatement] = []
+        method_buckets: Dict[str, List[cst.BaseStatement]] = {s: [] for s in METHOD_SECTIONS}
+        unclassified: List[cst.BaseStatement] = []
 
         for stmt in stmts:
             # Strip ALL leading_lines (including any section headers embedded there)
@@ -472,13 +470,13 @@ class _ModelRewriter(cst.CSTTransformer):
             unclassified.append(stmt)
 
         # Class docstring for new models (if not already present).
-        class_doc_stmts: list[cst.BaseStatement] = []
+        class_doc_stmts: List[cst.BaseStatement] = []
         if getattr(ci, "_needs_class_docstring", False):
             doc_stmt = _build_docstring_stmt(_class_docstring_lines(ci), indent_spaces=body_indent)
             class_doc_stmts.append(doc_stmt)
 
         # Reassemble.
-        new_stmts: list[cst.BaseStatement] = []
+        new_stmts: List[cst.BaseStatement] = []
 
         # 1. Class docstring (new models) then private attrs.
         new_stmts.extend(class_doc_stmts)
@@ -523,8 +521,8 @@ class _ModelRewriter(cst.CSTTransformer):
 
 def _append_section(
     name: str,
-    items: list[cst.BaseStatement],
-    target: list[cst.BaseStatement],
+    items: List[cst.BaseStatement],
+    target: List[cst.BaseStatement],
 ) -> None:
     """Append items to target, adding a header on the first item's leading_lines."""
     if not items:
@@ -612,7 +610,7 @@ def _is_field_stmt_cst(stmt: cst.BaseStatement) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def rewrite_file(py_file: Path, classes: list[ClassInfo]) -> str:
+def rewrite_file(py_file: Path, classes: List[ClassInfo]) -> str:
     source = py_file.read_text(encoding="utf-8", errors="replace")
     if not classes:
         return source

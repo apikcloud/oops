@@ -23,16 +23,13 @@ idx_symbols_module  on symbols(module)
 idx_modules_origin  on modules(origin)
 """
 
-from __future__ import annotations
-
 import json
 import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
-log = logging.getLogger(__name__)
+from oops.utils.compat import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -100,8 +97,8 @@ def _connect(db_path: Path) -> sqlite3.Connection:
 def write_global_kb(
     db_path: Path,
     odoo_version: str,
-    sources: dict[str, str],
-    scan_results: list[dict[str, Any]],
+    sources: Dict[str, str],
+    scan_results: List[Dict[str, Any]],
 ) -> None:
     """Write (or overwrite) a global KB database.
 
@@ -126,9 +123,9 @@ def write_project_kb(
     db_path: Path,
     odoo_version: str,
     project: str,
-    scope: list[str],
-    sources: dict[str, str],
-    scan_results: list[dict[str, Any]],
+    scope: List[str],
+    sources: Dict[str, str],
+    scan_results: List[Dict[str, Any]],
 ) -> None:
     """Write (or overwrite) a project KB database.
 
@@ -155,10 +152,10 @@ def _write_kb(
     db_path: Path,
     layer: str,
     odoo_version: str,
-    project: str | None,
-    scope: list[str] | None,
-    sources: dict[str, str],
-    scan_results: list[dict[str, Any]],
+    project: Optional[str],
+    scope: Optional[List[str]],
+    sources: Dict[str, str],
+    scan_results: List[Dict[str, Any]],
 ) -> None:
     """Internal: write all KB data to db_path, replacing any previous content."""
     con = _connect(db_path)
@@ -232,7 +229,7 @@ def _log_stats(db_path: Path) -> None:
     n_fld = con.execute("SELECT COUNT(*) FROM symbols WHERE kind='field'").fetchone()[0]
     n_mth = con.execute("SELECT COUNT(*) FROM symbols WHERE kind='method'").fetchone()[0]
     con.close()
-    log.info(
+    logging.info(
         "KB written → %s  [%d modules | %d symbols: %d fields, %d methods]",
         db_path,
         n_mod,
@@ -265,7 +262,7 @@ class KBReader:
     def close(self) -> None:
         self._con.close()
 
-    def __enter__(self) -> KBReader:
+    def __enter__(self) -> "KBReader":
         return self
 
     def __exit__(self, *_: Any) -> None:
@@ -273,14 +270,14 @@ class KBReader:
 
     # --- meta ---
 
-    def get_meta(self) -> dict[str, str]:
+    def get_meta(self) -> Dict[str, str]:
         """Return all meta key/value pairs."""
         rows = self._con.execute("SELECT key, value FROM meta").fetchall()
         return {r["key"]: r["value"] for r in rows}
 
     # --- modules ---
 
-    def get_modules(self) -> dict[str, dict[str, Any]]:
+    def get_modules(self) -> Dict[str, Dict[str, Any]]:
         """Return all modules as { name: {origin, depends: [str,...]} }."""
         rows = self._con.execute("SELECT name, origin, depends FROM modules").fetchall()
         return {
@@ -302,7 +299,7 @@ class KBReader:
         model: str,
         name: str,
         kind: str,
-    ) -> list[dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         """Return all KB entries for a symbol (may span multiple modules).
 
         Args:
@@ -341,8 +338,8 @@ class KBReader:
     def get_model_symbols(
         self,
         model: str,
-        kind: str | None = None,
-    ) -> list[dict[str, Any]]:
+        kind: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """Return all symbols defined on a model across all upstream modules.
 
         Args:
@@ -371,7 +368,7 @@ class KBReader:
             ).fetchall()
         return [dict(r) for r in rows]
 
-    def get_sources(self) -> dict[str, str]:
+    def get_sources(self) -> Dict[str, str]:
         """Return { origin: path } for all indexed source roots."""
         rows = self._con.execute("SELECT origin, path FROM sources").fetchall()
         return {r["origin"]: r["path"] for r in rows}

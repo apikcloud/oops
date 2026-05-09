@@ -5,20 +5,22 @@
 
 """AST-based scanner for Odoo source trees.
 
-Produces raw dicts consumed by store.py for persistence.
-No I/O other than reading source files — all path resolution
-and tier detection is the caller's responsibility.
+Sections:
+    - Constants: ODOO_BASE_CLASSES, FIELD_TYPES, tier marker helpers
+    - AST helpers: parse, extract, classify Odoo model nodes
+    - Manifest parsing: delegated to oops.io.manifest
+    - Scanning: scan_module, scan_tier, odoo_addons_roots
+    - Symlink resolution: resolve_symlink_tiers, tier_root_from_real_path
 """
-
-from __future__ import annotations
 
 import ast
 import logging
-import os
 from pathlib import Path
-from typing import Any
+from typing import Set
 
-log = logging.getLogger(__name__)
+from oops.core.config import config
+from oops.io.manifest import load_manifest
+from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -49,30 +51,31 @@ FIELD_TYPES = {
     "Text",
 }
 
-# Marker strings used to identify tier roots from symlink real paths.
-TIER_MARKERS = {
-    "third-party": "/.third-party/",
-    "apik": "/apik-addons/",
-}
+def _tier_markers() -> dict:
+    """Build tier path markers from config.submodules paths."""
+    return {
+        "third-party": f"/{config.submodules.current_path}/",
+        "apik": f"/{config.submodules.apik_path}/",
+    }
 
 # ---------------------------------------------------------------------------
 # AST helpers
 # ---------------------------------------------------------------------------
 
 
-def _parse_file(path: Path) -> ast.Module | None:
+def _parse_file(path: Path) -> Optional[ast.Module]:
     """Parse a Python source file into an AST. Returns None on failure."""
     try:
         source = path.read_text(encoding="utf-8", errors="replace")
         return ast.parse(source, filename=str(path))
     except SyntaxError as exc:
-        log.warning("Syntax error in %s: %s", path, exc)
+        logging.warning("Syntax error in %s: %s", path, exc)
     except Exception as exc:
-        log.warning("Cannot read %s: %s", path, exc)
+        logging.warning("Cannot read %s: %s", path, exc)
     return None
 
 
-def _extract_string_value(node: ast.expr) -> str | None:
+def _extract_string_value(node: ast.expr) -> Optional[str]:
     """Return the str value of a Constant or single-element List node."""
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value
@@ -94,14 +97,14 @@ def is_odoo_model_class(node: ast.ClassDef) -> bool:
     return False
 
 
-def get_model_names(class_node: ast.ClassDef) -> tuple[str | None, list[str]]:
+def get_model_names(class_node: ast.ClassDef) -> Tuple[Optional[str], List[str]]:
     """Extract _name and _inherit values from a class body.
 
     Returns:
         (_name value or None, list of _inherit values — empty if absent)
     """
-    _name: str | None = None
-    _inherit: list[str] = []
+    _name: Optional[str] = None
+    _inherit: List[str] = []
 
     for stmt in class_node.body:
         if not isinstance(stmt, ast.Assign):
@@ -122,7 +125,7 @@ def get_model_names(class_node: ast.ClassDef) -> tuple[str | None, list[str]]:
     return _name, _inherit
 
 
-def is_field_assignment(stmt: ast.stmt) -> tuple[str, int] | None:
+def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int]]:
     """If stmt assigns a fields.XXX, return (field_name, line_no). Else None."""
     if not isinstance(stmt, ast.Assign):
         return None
@@ -136,36 +139,6 @@ def is_field_assignment(stmt: ast.stmt) -> tuple[str, int] | None:
         if isinstance(func, ast.Name) and func.id in FIELD_TYPES:
             return stmt.targets[0].id, stmt.lineno
     return None
-
-
-# ---------------------------------------------------------------------------
-# Manifest parsing
-# ---------------------------------------------------------------------------
-
-
-def parse_manifest(manifest_path: Path) -> list[str]:
-    """Extract the 'depends' list from an Odoo __manifest__.py via AST.
-
-    Pure structural extraction — no eval(). Returns [] on any failure.
-    """
-    try:
-        source = manifest_path.read_text(encoding="utf-8", errors="replace")
-        tree = ast.parse(source, filename=str(manifest_path))
-    except (SyntaxError, OSError) as exc:
-        log.debug("Cannot parse manifest %s: %s", manifest_path, exc)
-        return []
-
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Dict):
-            continue
-        for key, value in zip(node.keys, node.values):
-            if not (isinstance(key, ast.Constant) and key.value == "depends"):
-                continue
-            if isinstance(value, ast.List):
-                return [elt.value for elt in value.elts if isinstance(elt, ast.Constant) and isinstance(elt.value, str)]
-        break  # only inspect the top-level dict
-
-    return []
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +167,7 @@ def scan_module(
     module_dir: Path,
     origin: str,
     tier_root: Path,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Scan a single Odoo module directory.
 
     Args:
@@ -206,13 +179,10 @@ def scan_module(
         A ScanResult dict with keys 'modules' and 'symbols'.
     """
     module_name = module_dir.name
-    result: dict[str, Any] = {"modules": {}, "symbols": []}
+    result: Dict[str, Any] = {"modules": {}, "symbols": []}
 
     # --- manifest ---
-    manifest_path = module_dir / "__manifest__.py"
-    if not manifest_path.exists():
-        manifest_path = module_dir / "__openerp__.py"
-    depends = parse_manifest(manifest_path) if manifest_path.exists() else []
+    depends = load_manifest(module_dir).get("depends", [])
     result["modules"][module_name] = {"origin": origin, "depends": depends}
 
     # --- models ---
@@ -239,7 +209,7 @@ def scan_module(
             _name, _inherit = get_model_names(node)
 
             # Determine which Odoo model(s) this class contributes to.
-            target_models: list[str] = []
+            target_models: List[str] = []
             if _name:
                 target_models = [_name]
             elif _inherit:
@@ -283,8 +253,8 @@ def scan_module(
 def scan_tier(
     tier_root: Path,
     origin: str,
-    allowed_modules: set[str] | None = None,
-) -> dict[str, Any]:
+    allowed_modules: Optional[Set[str]] = None,
+) -> Dict[str, Any]:
     """Scan all addon modules under tier_root.
 
     Args:
@@ -295,10 +265,10 @@ def scan_tier(
     Returns:
         Merged ScanResult for all scanned modules.
     """
-    merged: dict[str, Any] = {"modules": {}, "symbols": []}
+    merged: Dict[str, Any] = {"modules": {}, "symbols": []}
 
     if not tier_root.is_dir():
-        log.warning("Tier root not found, skipping: %s", tier_root)
+        logging.warning("Tier root not found, skipping: %s", tier_root)
         return merged
 
     count = 0
@@ -307,10 +277,7 @@ def scan_tier(
             continue
         if allowed_modules and entry.name not in allowed_modules:
             continue
-        manifest = entry / "__manifest__.py"
-        if not manifest.exists():
-            manifest = entry / "__openerp__.py"
-        if not manifest.exists():
+        if not load_manifest(entry):
             continue
 
         result = scan_module(entry, origin, tier_root)
@@ -318,11 +285,11 @@ def scan_tier(
         merged["symbols"].extend(result["symbols"])
         count += 1
 
-    log.info("  [%s] %s → %d modules", origin, tier_root, count)
+    logging.info("  [%s] %s → %d modules", origin, tier_root, count)
     return merged
 
 
-def odoo_addons_roots(odoo_path: Path) -> list[Path]:
+def odoo_addons_roots(odoo_path: Path) -> List[Path]:
     """Return the two standard addons roots inside an Odoo community tree.
 
     Odoo community keeps modules in two places:
@@ -334,15 +301,15 @@ def odoo_addons_roots(odoo_path: Path) -> list[Path]:
     candidates = [odoo_path / "addons", odoo_path / "odoo" / "addons"]
     roots = [p for p in candidates if p.is_dir()]
     if not roots:
-        log.warning("No addons/ or odoo/addons/ found under %s — using path directly.", odoo_path)
+        logging.warning("No addons/ or odoo/addons/ found under %s — using path directly.", odoo_path)
         roots = [odoo_path]
     return roots
 
 
 def resolve_symlink_tiers(
     repo_path: Path,
-    allowed_modules: set[str] | None = None,
-) -> dict[str, list[tuple[str, Path]]]:
+    allowed_modules: Optional[Set[str]] = None,
+) -> Dict[str, List[Tuple[str, Path]]]:
     """Walk repo_path for symlinks and map each to its tier + real path.
 
     Returns:
@@ -353,18 +320,16 @@ def resolve_symlink_tiers(
     - '/apik-addons/'   → 'apik'
     Unrecognised symlinks are logged and skipped.
     """
-    tiers: dict[str, list[tuple[str, Path]]] = {
-        "third-party": [],
-        "apik": [],
-    }
+    markers = _tier_markers()
+    tiers: Dict[str, List[Tuple[str, Path]]] = {origin: [] for origin in markers}
 
     # Search at depth 1 under repo_path and its immediate non-hidden children.
-    candidates: list[Path] = [repo_path]
+    candidates: List[Path] = [repo_path]
     for child in repo_path.iterdir():
         if child.is_dir() and not child.name.startswith("."):
             candidates.append(child)
 
-    seen_real: set[Path] = set()
+    seen_real: Set[Path] = set()
 
     for search_dir in candidates:
         if not search_dir.is_dir():
@@ -376,7 +341,7 @@ def resolve_symlink_tiers(
         for entry in entries:
             if not entry.is_symlink():
                 continue
-            real = Path(os.path.realpath(entry))
+            real = entry.resolve()
             if real in seen_real:
                 continue
             seen_real.add(real)
@@ -387,13 +352,13 @@ def resolve_symlink_tiers(
 
             real_str = str(real)
             matched = False
-            for origin, marker in TIER_MARKERS.items():
+            for origin, marker in markers.items():
                 if marker in real_str or marker.replace("/", "\\") in real_str:
                     tiers[origin].append((module_name, real))
                     matched = True
                     break
             if not matched:
-                log.warning(
+                logging.warning(
                     "Symlink %s → %s does not match any known tier root, skipping.",
                     entry,
                     real,
@@ -402,7 +367,7 @@ def resolve_symlink_tiers(
     return tiers
 
 
-def tier_root_from_real_path(origin: str, real_path: Path) -> Path | None:
+def tier_root_from_real_path(origin: str, real_path: Path) -> Optional[Path]:
     """Derive the tier root directory from a module's real path.
 
     e.g. /repo/.third-party/sale-workflow/sale_order_type
@@ -410,7 +375,7 @@ def tier_root_from_real_path(origin: str, real_path: Path) -> Path | None:
 
     Returns None if the marker is not found in the path.
     """
-    marker = TIER_MARKERS.get(origin)
+    marker = _tier_markers().get(origin)
     if not marker:
         return None
     real_str = str(real_path)

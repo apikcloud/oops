@@ -235,7 +235,7 @@ class TestResolveSymbol:
     def test_no_warning_when_module_is_in_chain(self, caplog):
         index = _index(("my_module", "apik", ["sale"]), ("sale", "odoo", []))
         entries = [_entry("sale", origin="odoo")]
-        with caplog.at_level(logging.WARNING, logger="oops.kb.resolve"):
+        with caplog.at_level(logging.WARNING):
             resolve_symbol(entries, "my_module", index)
         assert not caplog.messages
 

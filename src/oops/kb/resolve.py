@@ -21,13 +21,10 @@ Algorithm
    tier order and emit a warning.
 """
 
-from __future__ import annotations
-
 import logging
 from collections import deque
-from typing import Any
 
-log = logging.getLogger(__name__)
+from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
 # Static tier precedence used as tie-breaker (lower index = higher precedence).
 TIER_PRECEDENCE = ["third-party", "apik", "enterprise", "odoo"]
@@ -43,8 +40,8 @@ def _tier_rank(origin: str) -> int:
 
 def build_depends_chain(
     module: str,
-    modules_index: dict[str, dict[str, Any]],
-) -> list[str]:
+    modules_index: Dict[str, Dict[str, Any]],
+) -> List[str]:
     """Return the ordered transitive dependency list of a module (BFS).
 
     The result is ordered from most specific (direct depends of `module`)
@@ -60,9 +57,9 @@ def build_depends_chain(
         Ordered list of module names, closest first.
         Modules absent from the index are silently skipped.
     """
-    visited: set[str] = {module}
-    chain: list[str] = []
-    queue: deque[str] = deque()
+    visited = {module}
+    chain: List[str] = []
+    queue: deque = deque()
 
     # Seed with direct depends.
     for dep in modules_index.get(module, {}).get("depends", []):
@@ -84,10 +81,10 @@ def build_depends_chain(
 
 
 def resolve_symbol(
-    entries: list[dict[str, Any]],
+    entries: List[Dict[str, Any]],
     custom_module: str,
-    modules_index: dict[str, dict[str, Any]],
-) -> dict[str, Any] | None:
+    modules_index: Dict[str, Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
     """Select the most relevant KB entry for a symbol.
 
     Args:
@@ -107,7 +104,7 @@ def resolve_symbol(
     chain = build_depends_chain(custom_module, modules_index)
     chain_index = {mod: i for i, mod in enumerate(chain)}
 
-    def sort_key(entry: dict[str, Any]) -> tuple[int, int]:
+    def sort_key(entry: Dict[str, Any]) -> Tuple[int, int]:
         mod = entry["module"]
         # Position in depends chain (lower = closer = more specific).
         pos = chain_index.get(mod, len(chain))
@@ -121,7 +118,7 @@ def resolve_symbol(
     # Warn if the winning module is not in the depends chain at all —
     # likely a missing depends declaration.
     if best["module"] not in chain_index:
-        log.warning(
+        logging.warning(
             "Symbol resolved via tier fallback (module '%s' not in depends chain "
             "of '%s'). Consider adding it to the manifest depends.",
             best["module"],
@@ -131,7 +128,7 @@ def resolve_symbol(
     return best
 
 
-def format_source_line(entry: dict[str, Any]) -> str:
+def format_source_line(entry: Dict[str, Any]) -> str:
     """Format a Source: line for a docstring from a KB entry.
 
     Returns a string like:

@@ -16,7 +16,6 @@ from oops.kb.scanner import (
     _extract_string_value,
     _parse_file,
     odoo_addons_roots,
-    parse_manifest,
     resolve_symlink_tiers,
     scan_module,
     scan_tier,
@@ -250,41 +249,6 @@ class TestIsFieldAssignment:
         result = _is_field_assignment(stmt)
         assert result is not None
         assert result[1] == 2
-
-
-# ---------------------------------------------------------------------------
-# TestParseManifest
-# ---------------------------------------------------------------------------
-
-
-class TestParseManifest:
-    def test_standard_depends_list(self, tmp_path):
-        m = tmp_path / "__manifest__.py"
-        m.write_text("{'name': 'Sale Ext', 'depends': ['sale', 'account', 'base']}")
-        assert parse_manifest(m) == ["sale", "account", "base"]
-
-    def test_empty_depends(self, tmp_path):
-        m = tmp_path / "__manifest__.py"
-        m.write_text("{'name': 'Minimal', 'depends': []}")
-        assert parse_manifest(m) == []
-
-    def test_no_depends_key(self, tmp_path):
-        m = tmp_path / "__manifest__.py"
-        m.write_text("{'name': 'No Deps'}")
-        assert parse_manifest(m) == []
-
-    def test_syntax_error_returns_empty(self, tmp_path):
-        m = tmp_path / "__manifest__.py"
-        m.write_text("not valid python {{{")
-        assert parse_manifest(m) == []
-
-    def test_missing_file_returns_empty(self, tmp_path):
-        assert parse_manifest(tmp_path / "nonexistent.py") == []
-
-    def test_legacy_openerp_format(self, tmp_path):
-        m = tmp_path / "__openerp__.py"
-        m.write_text("{'name': 'Old', 'depends': ['base']}")
-        assert parse_manifest(m) == ["base"]
 
 
 # ---------------------------------------------------------------------------
