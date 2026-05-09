@@ -784,7 +784,7 @@ class TestRefactorCLI:
         model_file = module_path / "models" / "my_model.py"
         original = model_file.read_text()
         result = self._runner().invoke(
-            main, [str(module_path), "--kb", str(kb_path), "--no-branch"]
+            main, [str(module_path), "--kb", str(kb_path), "--no-branch", "--no-commit"]
         )
         assert result.exit_code == 0
         new_content = model_file.read_text()
@@ -815,7 +815,9 @@ class TestRefactorCLI:
         kb_path = tmp_path / "kb.db"
         _make_kb(kb_path)
         module_path = _make_module(tmp_path, "my_module", {"my_model.py": NEW_MODEL_SOURCE})
-        result = self._runner().invoke(main, [str(module_path), "--kb", str(kb_path), "--no-branch"])
+        result = self._runner().invoke(
+            main, [str(module_path), "--kb", str(kb_path), "--no-branch", "--no-commit"]
+        )
         assert result.exit_code == 0
 
     def test_symlinked_module_path_is_rejected(self, tmp_path):
@@ -1014,7 +1016,7 @@ class TestRefactorRebuild:
         )
 
         result = self._runner().invoke(
-            main, [str(module_path), "--kb", str(kb_path), "--no-branch"]
+            main, [str(module_path), "--kb", str(kb_path), "--no-branch", "--no-commit"]
         )
         assert result.exit_code == 0
         assert len(build_calls) == 0
@@ -1081,3 +1083,109 @@ class TestRefactorRebuild:
         assert result.exit_code == 0
         assert "no symlink" not in result.output.lower()
         assert "not in installed_modules" not in result.output.lower()
+
+
+# ---------------------------------------------------------------------------
+# TestRefactorCommit — Phase 1: per-module commit and --no-commit flag
+# ---------------------------------------------------------------------------
+
+
+class TestRefactorCommit:
+    """Tests for the new --no-commit flag and per-module commit behaviour."""
+
+    def _runner(self) -> CliRunner:
+        return CliRunner()
+
+    def _setup(self, tmp_path: Path) -> tuple[Path, Path]:
+        kb_path = tmp_path / "kb.db"
+        _make_kb(kb_path)
+        module_path = _make_module(tmp_path, "my_module", {"my_model.py": NEW_MODEL_SOURCE})
+        return module_path, kb_path
+
+    def _patch_repo(self, monkeypatch, tmp_path: Path):
+        from unittest.mock import MagicMock
+
+        fake_repo = MagicMock()
+        fake_repo.git.checkout = MagicMock()
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.get_local_repo",
+            lambda: (fake_repo, tmp_path),
+        )
+        return fake_repo
+
+    def _patch_commit(self, monkeypatch) -> list:
+        calls: list = []
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.commit",
+            lambda *a, **kw: calls.append((a, kw)),
+        )
+        return calls
+
+    def test_no_commit_with_branch_creates_branch_but_no_commit(self, tmp_path, monkeypatch):
+        module_path, kb_path = self._setup(tmp_path)
+        fake_repo = self._patch_repo(monkeypatch, tmp_path)
+        commit_calls = self._patch_commit(monkeypatch)
+
+        result = self._runner().invoke(
+            main, [str(module_path), "--kb", str(kb_path), "--no-commit"]
+        )
+        assert result.exit_code == 0
+        fake_repo.git.checkout.assert_called_once_with("-b", "refactor/doc-my_module")
+        assert len(commit_calls) == 0
+
+    def test_no_commit_without_branch_does_nothing_to_git(self, tmp_path, monkeypatch):
+        module_path, kb_path = self._setup(tmp_path)
+
+        def _fail():
+            raise AssertionError("get_local_repo must not be called with --no-branch --no-commit")
+
+        monkeypatch.setattr("oops.commands.addons.refactor.get_local_repo", _fail)
+        commit_calls = self._patch_commit(monkeypatch)
+
+        result = self._runner().invoke(
+            main, [str(module_path), "--kb", str(kb_path), "--no-branch", "--no-commit"]
+        )
+        assert result.exit_code == 0
+        assert len(commit_calls) == 0
+
+    def test_default_one_commit_per_module(self, tmp_path, monkeypatch):
+        module_path, kb_path = self._setup(tmp_path)
+        self._patch_repo(monkeypatch, tmp_path)
+        commit_calls = self._patch_commit(monkeypatch)
+
+        result = self._runner().invoke(main, [str(module_path), "--kb", str(kb_path)])
+        assert result.exit_code == 0
+        assert len(commit_calls) == 1
+        _, kwargs = commit_calls[0]
+        assert kwargs["module"] == "my_module"
+        assert "description" in kwargs
+
+    def test_per_module_commit_message_format(self):
+        from oops.core.messages import commit_messages
+
+        msg = commit_messages.refactor_per_module.format(
+            module="my_module",
+            description="models/my_model.py\nmodels/other.py",
+        )
+        assert msg.startswith("refactor(my_module): add sections and docstrings")
+        assert "\n\n" in msg
+        assert "models/my_model.py\nmodels/other.py" in msg
+
+    def test_branch_failure_disables_commit(self, tmp_path, monkeypatch):
+        from unittest.mock import MagicMock
+
+        from git import GitCommandError
+
+        module_path, kb_path = self._setup(tmp_path)
+        fake_repo = MagicMock()
+        fake_repo.git.checkout.side_effect = GitCommandError("checkout", 128)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.get_local_repo",
+            lambda: (fake_repo, tmp_path),
+        )
+        commit_calls = self._patch_commit(monkeypatch)
+
+        result = self._runner().invoke(main, [str(module_path), "--kb", str(kb_path)])
+        assert result.exit_code == 0
+        assert len(commit_calls) == 0
+        assert "Could not create branch" in result.output

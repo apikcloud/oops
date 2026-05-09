@@ -43,7 +43,7 @@ from oops.kb import setup_kb_logging
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
-from oops.utils.render import OopsError, print_rule, print_success, print_warning
+from oops.utils.render import OopsError, human_readable, print_rule, print_success, print_warning
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -69,7 +69,13 @@ from oops.utils.render import OopsError, print_rule, print_success, print_warnin
     "--branch/--no-branch",
     default=True,
     show_default=True,
-    help="Create a git branch and commit each rewritten file.",
+    help="Create a dedicated git branch before rewriting (use --no-commit to disable commits).",
+)
+@click.option(
+    "--no-commit",
+    is_flag=True,
+    default=False,
+    help="Do not commit changes.",
 )
 @click.option(
     "--dry-run",
@@ -88,6 +94,7 @@ def main(  # noqa: C901, PLR0912
     module_path: Path,
     kb_path: Path | None,
     branch: bool,
+    no_commit: bool,
     dry_run: bool,
     refresh: bool,
     verbose: bool,
@@ -186,21 +193,25 @@ def main(  # noqa: C901, PLR0912
 
         # --- Git branch ---
         branch_name = f"refactor/doc-{module_name}"
-        if branch and not dry_run:
-            if local_repo is None:
-                try:
-                    local_repo, repo_path = get_local_repo()
-                except click.ClickException:
-                    print_warning("Could not locate git repository — continuing without git.")
-                    branch = False
-            if local_repo is not None:
-                try:
-                    local_repo.git.checkout("-b", branch_name)
-                    log.info("Created branch: %s", branch_name)
-                except GitCommandError as exc:
-                    print_warning("Could not create branch — continuing without git.")
-                    log.debug("git checkout -b failed: %s", exc)
-                    branch = False
+        needs_repo = (branch or not no_commit) and not dry_run
+
+        if needs_repo and local_repo is None:
+            try:
+                local_repo, repo_path = get_local_repo()
+            except click.ClickException:
+                print_warning("Could not locate git repository — continuing without git.")
+                branch = False
+                no_commit = True
+
+        if branch and not dry_run and local_repo is not None:
+            try:
+                local_repo.git.checkout("-b", branch_name)
+                log.info("Created branch: %s", branch_name)
+            except GitCommandError as exc:
+                print_warning("Could not create branch — continuing without commits.")
+                log.debug("git checkout -b failed: %s", exc)
+                branch = False
+                no_commit = True
 
         # --- Process model files ---
         models_dir = module_path / "models"
@@ -214,6 +225,7 @@ def main(  # noqa: C901, PLR0912
             return
 
         total_rewrites = 0
+        rewritten_rels: list[str] = []
 
         for py_file in py_files:
             rel = py_file.relative_to(module_path)
@@ -256,16 +268,26 @@ def main(  # noqa: C901, PLR0912
             py_file.write_text(new_source, encoding="utf-8")
             log.info("  Rewritten: %s", rel)
             total_rewrites += 1
+            rewritten_rels.append(str(rel))
 
-            if branch and local_repo is not None and repo_path is not None:
-                commit(
-                    local_repo,
-                    repo_path,
-                    [str(py_file.relative_to(repo_path))],
-                    "refactor_per_file",
-                    module=module_name,
-                    rel=str(rel),
-                )
+        if (
+            not no_commit
+            and not dry_run
+            and rewritten_rels
+            and local_repo is not None
+            and repo_path is not None
+        ):
+            commit(
+                local_repo,
+                repo_path,
+                [
+                    str((module_path / rel).relative_to(repo_path))
+                    for rel in rewritten_rels
+                ],
+                "refactor_per_module",
+                module=module_name,
+                description=human_readable(rewritten_rels, sep="\n"),
+            )
 
         if not dry_run:
             print_success(f"Done — {total_rewrites} file(s) rewritten.")
