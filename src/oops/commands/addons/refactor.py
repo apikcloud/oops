@@ -39,7 +39,7 @@ from oops.io.refactor import analyse_file, rewrite_file
 from oops.kb import setup_kb_logging
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
-from oops.utils.render import print_error, print_rule, print_success, print_warning
+from oops.utils.render import OopsError, print_rule, print_success, print_warning
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -95,8 +95,7 @@ def main(  # noqa: C901, PLR0912
             search = search.parent
 
     if kb_path is None or not kb_path.exists():
-        print_error("Project KB not found.\nRun oops-kb-build-project first, or pass --kb.")
-        raise SystemExit(1)
+        raise OopsError("Project KB not found.\nRun oops-kb-build-project first, or pass --kb.")
 
     log.info("Using KB: %s", kb_path)
 

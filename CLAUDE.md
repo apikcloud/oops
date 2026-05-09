@@ -100,6 +100,12 @@ Access pattern: `config.images.registries.recommended`, `config.submodules.curre
 - **`services/git.py`** is the canonical git service layer: `get_local_repo()` resolves the repo, `commit()` stages and commits using a named key from `core/messages.py`, `list_available_addons()` iterates submodules.
 - **Commit messages** are all stored as format strings in `core/messages.py` (`CommitMessages` dataclass). Always add new messages there and reference them by key in `commit()` calls.
 - **Manifest parsing** uses `ast.literal_eval` (not `importlib`). Manifest normalization/rewriting uses `libcst` to preserve comments and formatting.
+- **Error-exit conventions**: command callbacks must surface failures through Click, never via bare `sys.exit()` / `raise SystemExit`:
+  - Fatal runtime error: `raise OopsError(msg)` from `oops.utils.render` — renders as `✘ msg` in red on stderr, exits 1, recorded by `OopsCommand` telemetry.
+  - Bad option / missing config: `raise click.UsageError(msg)`.
+  - Voluntary exit with explicit code (e.g. check commands): `raise click.exceptions.Exit(N)`.
+  - User-initiated cancel (interactive confirm declined): `raise click.Abort()`.
+  - The regression test `tests/test_core_and_utils.py::test_no_systemexit_in_commands_module` enforces this in CI.
 - **Fixit rules** in `rules/` enforce manifest authorship (`author = "Apik"`) and a fixed allowed-maintainers list.
 - **Version** is derived from git tags via `hatch-vcs` — no manual version bumping.
 - **Docs** live in `docs/` and are built with MkDocs + mkdocs-material. Versioned with `mike`. Command reference pages under `docs/commands/` are the canonical user-facing docs; API reference pages under `docs/reference/` are auto-generated from docstrings.

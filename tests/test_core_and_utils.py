@@ -75,6 +75,24 @@ class TestPrintError:
         assert "something went wrong" in out
 
 
+class TestOopsError:
+    def test_inherits_click_exception(self):
+        import click
+        from oops.utils.render import OopsError
+        assert issubclass(OopsError, click.ClickException)
+
+    def test_exit_code_is_one(self):
+        from oops.utils.render import OopsError
+        assert OopsError("boom").exit_code == 1
+
+    def test_show_writes_styled_message_to_stderr(self, capsys):
+        from oops.utils.render import OopsError
+        OopsError("Project KB not found.").show()
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert "✘ Project KB not found." in captured.err
+
+
 # ---------------------------------------------------------------------------
 # oops/utils/helpers.py
 # ---------------------------------------------------------------------------
@@ -534,3 +552,43 @@ class TestParsePackages:
         result = parse_packages(tmp_path)
         assert "pkg_a" in result
         assert "pkg_b" in result
+
+
+# ---------------------------------------------------------------------------
+# Repository-wide invariants
+# ---------------------------------------------------------------------------
+
+
+def test_no_systemexit_in_commands_module():
+    """Commands must use Click's exception machinery, not bare SystemExit / sys.exit.
+
+    Bare SystemExit bypasses Click's --help flow, breaks telemetry recording
+    in OopsCommand, and is harder to assert against in tests. Use OopsError
+    (oops.utils.render) for fatal errors, click.UsageError for input
+    errors, click.exceptions.Exit(N) for voluntary exits, click.Abort()
+    for cancellations.
+    """
+    import re
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent
+    commands_dir = repo_root / "src" / "oops" / "commands"
+    assert commands_dir.is_dir(), commands_dir
+
+    # `^\s*(raise\s+SystemExit|sys\.exit\b)` — only flags raises and calls,
+    # not `except SystemExit` (the framework's telemetry handler in base.py
+    # is allowed to catch SystemExit).
+    forbidden = re.compile(r"^\s*(?:raise\s+SystemExit|sys\.exit\b)", re.MULTILINE)
+
+    offenders = []
+    for py_file in commands_dir.rglob("*.py"):
+        text = py_file.read_text(encoding="utf-8")
+        for match in forbidden.finditer(text):
+            line_no = text[: match.start()].count("\n") + 1
+            offenders.append(f"{py_file.relative_to(repo_root)}:{line_no}")
+
+    assert not offenders, (
+        "Found bare SystemExit / sys.exit in commands/:\n  "
+        + "\n  ".join(offenders)
+        + "\nUse OopsError (oops.utils.render) or click.ClickException instead."
+    )
