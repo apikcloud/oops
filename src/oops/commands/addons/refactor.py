@@ -40,7 +40,7 @@ from oops.io.file import parse_odoo_version
 from oops.io.installed_modules import read_installed_modules
 from oops.io.refactor import analyse_file, rewrite_file
 from oops.kb import setup_kb_logging
-from oops.kb.build import build_project_kb, is_project_kb_stale
+from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
 from oops.utils.render import OopsError, print_rule, print_success, print_warning
@@ -95,6 +95,14 @@ def main(  # noqa: C901, PLR0912
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
+    if module_path.is_symlink():
+        raise OopsError(
+            f"{module_path} is a symlink. Refactor cannot edit a symlinked "
+            "module: it points to a third-party submodule or an apik-addons "
+            "checkout, which must be refactored in its own repository.\n"
+            "Run oops refactor inside the source repository instead."
+        )
+
     module_path = module_path.resolve()
     module_name = module_path.name
 
@@ -107,10 +115,8 @@ def main(  # noqa: C901, PLR0912
                 "oops refactor must run inside an oops project (no .git found)."
             ) from None
 
-        # --- Resolve KB path ---
         kb_path = project_kb_path(repo_path)
 
-        # --- Decide whether to build ---
         try:
             version = str(parse_odoo_version(repo_path).major_version)
         except (ValueError, OSError) as exc:
@@ -118,11 +124,27 @@ def main(  # noqa: C901, PLR0912
                 f"Could not read Odoo version from {config.project.file_odoo_version}."
             ) from exc
 
+        # Read installed_modules.txt eagerly so we can both feed the build
+        # and surface drift warnings on every run.
+        info = read_installed_modules(repo_path)
+
+        if info is not None:
+            missing, extra = compute_root_drift(repo_path, info.modules)
+            if missing:
+                print_warning(
+                    f"Modules in installed_modules.txt with no addon at the "
+                    f"repo root: {missing}"
+                )
+            if extra:
+                print_warning(
+                    f"Addons at the repo root not in installed_modules.txt "
+                    f"(will not be scanned by the project KB): {extra}"
+                )
+
         stale, reason = is_project_kb_stale(repo_path, version)
         needs_build = refresh or stale
 
         if needs_build:
-            info = read_installed_modules(repo_path)
             if info is None:
                 raise OopsError(
                     f"installed_modules.txt not found at "

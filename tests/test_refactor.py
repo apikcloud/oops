@@ -818,6 +818,29 @@ class TestRefactorCLI:
         result = self._runner().invoke(main, [str(module_path), "--kb", str(kb_path), "--no-branch"])
         assert result.exit_code == 0
 
+    def test_symlinked_module_path_is_rejected(self, tmp_path):
+        real_module = _make_module(
+            tmp_path / ".third-party" / "owner" / "repo",
+            "real_module",
+            {"model.py": NEW_MODEL_SOURCE},
+        )
+        repo_path = tmp_path / "project"
+        repo_path.mkdir()
+        symlink = repo_path / "real_module"
+        symlink.symlink_to(real_module)
+
+        kb_path = tmp_path / "kb.db"
+        _make_kb(kb_path)
+
+        result = self._runner().invoke(
+            main, [str(symlink), "--kb", str(kb_path), "--no-branch"]
+        )
+        assert result.exit_code == 1
+        assert "symlink" in result.output.lower()
+        # Real module must not have been rewritten
+        real_file = real_module / "models" / "model.py"
+        assert real_file.read_text() == NEW_MODEL_SOURCE
+
 
 # ---------------------------------------------------------------------------
 # TestRefactorRebuild — Phase 4: --refresh and auto-rebuild logic
@@ -882,6 +905,10 @@ class TestRefactorRebuild:
             "oops.commands.addons.refactor.read_installed_modules",
             lambda _r: type("M", (), {"modules": ["my_module"]})(),
         )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.compute_root_drift",
+            lambda _r, _m: ([], []),
+        )
 
         result = self._runner().invoke(main, [str(module_path), "--no-branch"])
         assert result.exit_code == 0
@@ -921,6 +948,10 @@ class TestRefactorRebuild:
         monkeypatch.setattr(
             "oops.commands.addons.refactor.read_installed_modules",
             lambda _r: type("M", (), {"modules": ["my_module"]})(),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.compute_root_drift",
+            lambda _r, _m: ([], []),
         )
 
         result = self._runner().invoke(main, [str(module_path), "--no-branch", "--refresh"])
@@ -1001,3 +1032,52 @@ class TestRefactorRebuild:
         result = self._runner().invoke(main, [str(module_path), "--no-branch"])
         assert result.exit_code == 1
         assert "odoo_version.txt" in result.output.lower() or "Odoo version" in result.output
+
+    def test_drift_warnings_emitted_even_when_kb_fresh(self, tmp_path, monkeypatch):
+        kb_path = tmp_path / ".oops-cache" / "kb.db"
+        kb_path.parent.mkdir()
+        _make_kb(kb_path)
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        self._patch_version(monkeypatch)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale",
+            lambda _r, _v: (False, ""),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.read_installed_modules",
+            lambda _r: type("M", (), {"modules": ["my_module", "ghost"]})(),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.compute_root_drift",
+            lambda _r, _m: (["ghost"], []),
+        )
+        self._patch_build(monkeypatch, kb_path)
+
+        result = self._runner().invoke(main, [str(module_path), "--no-branch"])
+        assert result.exit_code == 0
+        assert "ghost" in result.output
+
+    def test_drift_silent_when_no_installed_modules_and_kb_fresh(self, tmp_path, monkeypatch):
+        kb_path = tmp_path / ".oops-cache" / "kb.db"
+        kb_path.parent.mkdir()
+        _make_kb(kb_path)
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        self._patch_version(monkeypatch)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale",
+            lambda _r, _v: (False, ""),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.read_installed_modules",
+            lambda _r: None,
+        )
+        self._patch_build(monkeypatch, kb_path)
+
+        result = self._runner().invoke(main, [str(module_path), "--no-branch"])
+        assert result.exit_code == 0
+        assert "no symlink" not in result.output.lower()
+        assert "not in installed_modules" not in result.output.lower()

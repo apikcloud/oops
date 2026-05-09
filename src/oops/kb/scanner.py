@@ -10,7 +10,7 @@ Sections:
     - AST helpers: parse, extract, classify Odoo model nodes
     - Manifest parsing: delegated to oops.io.manifest
     - Scanning: scan_module, scan_tier, odoo_addons_roots
-    - Symlink resolution: resolve_symlink_tiers, tier_root_from_real_path
+    - Root addon discovery: discover_root_addons, tier_root_from_real_path
 """
 
 import ast
@@ -306,22 +306,26 @@ def odoo_addons_roots(odoo_path: Path) -> List[Path]:
     return roots
 
 
-def resolve_symlink_tiers(
+def discover_root_addons(
     repo_path: Path,
     allowed_modules: Optional[Set[str]] = None,
 ) -> Dict[str, List[Tuple[str, Path]]]:
-    """Walk repo_path for symlinks and map each to its tier + real path.
+    """Walk repo_path for root-level Odoo addons and group them by tier.
+
+    Three tiers are recognised:
+        - 'third-party': symlink whose real path contains '/.third-party/'.
+        - 'apik':        symlink whose real path contains '/apik-addons/'.
+        - 'local':       real directory at the repo root with a manifest.
+
+    Symlinks that resolve outside the known submodule tiers are logged and
+    skipped.
 
     Returns:
         { origin: [(module_name, real_module_path), ...] }
-
-    Tier assignment is based on the real path containing a known marker:
-    - '/.third-party/'  → 'third-party'
-    - '/apik-addons/'   → 'apik'
-    Unrecognised symlinks are logged and skipped.
     """
     markers = _tier_markers()
     tiers: Dict[str, List[Tuple[str, Path]]] = {origin: [] for origin in markers}
+    tiers["local"] = []
 
     # Search at depth 1 under repo_path and its immediate non-hidden children.
     candidates: List[Path] = [repo_path]
@@ -339,30 +343,41 @@ def resolve_symlink_tiers(
         except PermissionError:
             continue
         for entry in entries:
-            if not entry.is_symlink():
+            if not entry.is_dir():
+                continue
+            module_name = entry.name
+            if allowed_modules and module_name not in allowed_modules:
                 continue
             real = entry.resolve()
             if real in seen_real:
                 continue
-            seen_real.add(real)
 
-            module_name = entry.name
-            if allowed_modules and module_name not in allowed_modules:
+            if entry.is_symlink():
+                seen_real.add(real)
+                real_str = str(real)
+                matched = False
+                for origin, marker in markers.items():
+                    if marker in real_str or marker.replace("/", "\\") in real_str:
+                        tiers[origin].append((module_name, real))
+                        matched = True
+                        break
+                if not matched:
+                    logging.warning(
+                        "Symlink %s → %s does not match any known tier root, skipping.",
+                        entry,
+                        real,
+                    )
                 continue
 
-            real_str = str(real)
-            matched = False
-            for origin, marker in markers.items():
-                if marker in real_str or marker.replace("/", "\\") in real_str:
-                    tiers[origin].append((module_name, real))
-                    matched = True
-                    break
-            if not matched:
-                logging.warning(
-                    "Symlink %s → %s does not match any known tier root, skipping.",
-                    entry,
-                    real,
-                )
+            # Non-symlink real directory: only counts as 'local' if it has a
+            # manifest AND it sits directly under the repo root. We deliberately
+            # do not descend into nested real directories.
+            if search_dir != repo_path:
+                continue
+            if not (entry / "__manifest__.py").exists() and not (entry / "__openerp__.py").exists():
+                continue
+            seen_real.add(real)
+            tiers["local"].append((module_name, real))
 
     return tiers
 

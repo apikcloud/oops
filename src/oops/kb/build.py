@@ -13,12 +13,11 @@ from typing import Iterable
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
 from oops.io.installed_modules import installed_modules_path
 from oops.kb.scanner import (
-    resolve_symlink_tiers,
+    discover_root_addons,
     scan_module,
     tier_root_from_real_path,
 )
 from oops.kb.store import KBReader, write_project_kb
-from oops.utils.render import print_warning
 
 log = logging.getLogger(__name__)
 
@@ -83,45 +82,30 @@ def build_project_kb(
     global_odoo_version = global_meta.get("odoo_version", version)
     sources: dict[str, str] = dict(global_sources)
 
-    # --- Scan project tiers (symlinks) ---
-    # Discover all symlinks first (unfiltered) for mismatch detection.
-    all_symlink_tiers = resolve_symlink_tiers(repo_path, None)
-    all_symlink_modules: set[str] = set()
-    for tier_modules in all_symlink_tiers.values():
-        for mod_name, _ in tier_modules:
-            all_symlink_modules.add(mod_name)
+    # --- Discover root addons (symlinks + non-symlink dirs at root) ---
+    tiers = discover_root_addons(repo_path, allowed_modules)
 
-    in_file_not_symlink = allowed_modules - all_symlink_modules
-    in_symlink_not_file = all_symlink_modules - allowed_modules
-    if in_file_not_symlink:
-        print_warning(
-            f"Modules in installed_modules.txt with no symlink: {sorted(in_file_not_symlink)}"
-        )
-    if in_symlink_not_file:
-        print_warning(
-            f"Symlinks not in installed_modules.txt (will not be scanned): {sorted(in_symlink_not_file)}"
-        )
-
-    # Apply the filter for the actual scan.
-    symlink_tiers = resolve_symlink_tiers(repo_path, allowed_modules)
-
-    # Scan order: apik first, then third-party.
-    tier_scan_order = ["apik", "third-party"]
+    # Scan order: apik (owned via apik-addons/), local (owned at root),
+    # third-party (selected community modules).
+    tier_scan_order = ["apik", "local", "third-party"]
     project_scan_results: list[dict] = []
 
     for origin in tier_scan_order:
-        tier_modules = symlink_tiers.get(origin, [])
+        tier_modules = tiers.get(origin, [])
         if not tier_modules:
             continue
 
         log.info("Scanning %s tier (%d modules)…", origin, len(tier_modules))
         scanned = 0
 
-        tier_root = None
-        for _, real_path in tier_modules:
-            tier_root = tier_root_from_real_path(origin, real_path)
-            if tier_root:
-                break
+        if origin == "local":
+            tier_root = repo_path
+        else:
+            tier_root = None
+            for _, real_path in tier_modules:
+                tier_root = tier_root_from_real_path(origin, real_path)
+                if tier_root:
+                    break
 
         if tier_root is None:
             log.warning("Could not determine tier root for %s, skipping.", origin)
@@ -220,3 +204,31 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
             return True, "global KB is newer than project KB"
 
     return False, ""
+
+
+def compute_root_drift(
+    repo_path: Path,
+    installed_modules: Iterable[str],
+) -> tuple[list[str], list[str]]:
+    """Compare installed_modules against addons present at the repo root.
+
+    Args:
+        repo_path: Repository root.
+        installed_modules: Module names declared in installed_modules.txt.
+
+    Returns:
+        Tuple ``(missing_at_root, extra_at_root)`` of sorted module names.
+        - ``missing_at_root``: names in ``installed_modules`` but not present
+          at the root (no symlink, no local dir).
+        - ``extra_at_root``: names present at the root but absent from
+          ``installed_modules`` (these will not be scanned by the KB build).
+    """
+    installed = set(installed_modules)
+    tiers = discover_root_addons(repo_path, None)
+    at_root: set[str] = set()
+    for tier_modules in tiers.values():
+        for name, _ in tier_modules:
+            at_root.add(name)
+    missing = installed - at_root
+    extra = at_root - installed
+    return sorted(missing), sorted(extra)

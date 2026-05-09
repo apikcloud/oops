@@ -15,8 +15,8 @@ from pathlib import Path
 from oops.kb.scanner import (
     _extract_string_value,
     _parse_file,
+    discover_root_addons,
     odoo_addons_roots,
-    resolve_symlink_tiers,
     scan_module,
     scan_tier,
     tier_root_from_real_path,
@@ -449,7 +449,7 @@ class TestTierRootFromRealPath:
 # ---------------------------------------------------------------------------
 
 
-class TestResolveSymlinkTiers:
+class TestDiscoverRootAddons:
     def _make_real_module(self, base: Path, tier_dir: str, repo: str, name: str) -> Path:
         """Create a real module path matching a tier marker pattern."""
         real = base / tier_dir / repo / name
@@ -462,7 +462,7 @@ class TestResolveSymlinkTiers:
         repo_path = tmp_path / "project"
         repo_path.mkdir()
         (repo_path / "sale_ext").symlink_to(real)
-        tiers = resolve_symlink_tiers(repo_path)
+        tiers = discover_root_addons(repo_path)
         names = [name for name, _ in tiers["third-party"]]
         assert "sale_ext" in names
 
@@ -471,7 +471,7 @@ class TestResolveSymlinkTiers:
         repo_path = tmp_path / "project"
         repo_path.mkdir()
         (repo_path / "account_apik").symlink_to(real)
-        tiers = resolve_symlink_tiers(repo_path)
+        tiers = discover_root_addons(repo_path)
         names = [name for name, _ in tiers["apik"]]
         assert "account_apik" in names
 
@@ -483,7 +483,7 @@ class TestResolveSymlinkTiers:
         repo_path.mkdir()
         (repo_path / "mod").symlink_to(real)
         with caplog.at_level(logging.WARNING):
-            tiers = resolve_symlink_tiers(repo_path)
+            tiers = discover_root_addons(repo_path)
         assert all(len(v) == 0 for v in tiers.values())
         assert any("mod" in msg or "skip" in msg.lower() for msg in caplog.messages)
 
@@ -494,7 +494,7 @@ class TestResolveSymlinkTiers:
         repo_path.mkdir()
         (repo_path / "mod_a").symlink_to(real_a)
         (repo_path / "mod_b").symlink_to(real_b)
-        tiers = resolve_symlink_tiers(repo_path, allowed_modules={"mod_a"})
+        tiers = discover_root_addons(repo_path, allowed_modules={"mod_a"})
         names = [name for name, _ in tiers["third-party"]]
         assert "mod_a" in names
         assert "mod_b" not in names
@@ -508,5 +508,44 @@ class TestResolveSymlinkTiers:
         # Two symlinks pointing to the same real path
         (repo_path / "mod").symlink_to(real)
         (sub / "mod").symlink_to(real)
-        tiers = resolve_symlink_tiers(repo_path)
+        tiers = discover_root_addons(repo_path)
         assert len(tiers["third-party"]) == 1
+
+    def test_local_root_dir_with_manifest_detected(self, tmp_path):
+        repo_path = tmp_path / "project"
+        repo_path.mkdir()
+        local = repo_path / "owned_at_root"
+        local.mkdir()
+        (local / "__manifest__.py").write_text("{'name': 'X', 'depends': []}")
+        tiers = discover_root_addons(repo_path)
+        names = [name for name, _ in tiers["local"]]
+        assert "owned_at_root" in names
+
+    def test_local_root_dir_without_manifest_ignored(self, tmp_path):
+        repo_path = tmp_path / "project"
+        repo_path.mkdir()
+        (repo_path / "scripts").mkdir()  # no manifest
+        tiers = discover_root_addons(repo_path)
+        assert tiers["local"] == []
+
+    def test_local_tier_respects_allowed_modules(self, tmp_path):
+        repo_path = tmp_path / "project"
+        repo_path.mkdir()
+        for name in ("keep", "drop"):
+            d = repo_path / name
+            d.mkdir()
+            (d / "__manifest__.py").write_text("{'name': 'x', 'depends': []}")
+        tiers = discover_root_addons(repo_path, allowed_modules={"keep"})
+        names = [name for name, _ in tiers["local"]]
+        assert names == ["keep"]
+
+    def test_nested_real_dir_under_apik_addons_not_local(self, tmp_path):
+        # A real dir under apik-addons/ should NOT show up as 'local'.
+        apik = tmp_path / "project" / "apik-addons" / "owner"
+        apik.mkdir(parents=True)
+        inner = apik / "owned_module"
+        inner.mkdir()
+        (inner / "__manifest__.py").write_text("{'name': 'X', 'depends': []}")
+        repo_path = tmp_path / "project"
+        tiers = discover_root_addons(repo_path)
+        assert all(name != "owned_module" for name, _ in tiers["local"])

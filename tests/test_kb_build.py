@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from oops.kb.build import build_project_kb, is_project_kb_stale
+from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.store import KBReader, write_global_kb
 
 # ---------------------------------------------------------------------------
@@ -81,10 +81,7 @@ class TestBuildProjectKb:
             meta = kb.get_meta()
             assert json.loads(meta["scope"]) == ["module_a", "module_b"]
 
-    def test_module_in_list_but_no_symlink_warns(self, tmp_path, monkeypatch):
-        warnings: list[str] = []
-        monkeypatch.setattr("oops.kb.build.print_warning", lambda m: warnings.append(m))
-
+    def test_module_in_list_but_no_symlink_skipped(self, tmp_path):
         global_kb = _make_global_kb(tmp_path / "global.db")
         repo = tmp_path / "repo"
         repo.mkdir()
@@ -94,23 +91,23 @@ class TestBuildProjectKb:
             repo, "17.0", ["module_a", "module_ghost"], global_kb=global_kb
         )
 
-        assert any("module_ghost" in w for w in warnings)
-        # Ghost module appears in scope (it was in the input list)
         with KBReader(db_path) as kb:
-            assert "module_ghost" in json.loads(kb.get_meta()["scope"])
+            modules = kb.get_modules()
+        # module_ghost has no source on disk; it stays absent from the modules table
+        assert "module_a" in modules
+        assert "module_ghost" not in modules
 
-    def test_symlink_not_in_list_warns_and_not_scanned(self, tmp_path, monkeypatch):
-        warnings: list[str] = []
-        monkeypatch.setattr("oops.kb.build.print_warning", lambda m: warnings.append(m))
-
+    def test_symlink_not_in_list_skipped(self, tmp_path):
         global_kb = _make_global_kb(tmp_path / "global.db")
         repo = tmp_path / "repo"
         repo.mkdir()
         _make_tp_symlinks(repo, "module_a", "module_extra")
 
-        build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
+        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
 
-        assert any("module_extra" in w for w in warnings)
+        with KBReader(db_path) as kb:
+            modules = kb.get_modules()
+        assert "module_extra" not in modules
 
     def test_missing_global_kb_raises(self, tmp_path):
         repo = tmp_path / "repo"
@@ -143,6 +140,24 @@ class TestBuildProjectKb:
 
         with KBReader(db_path) as kb:
             assert kb.get_meta()["project"] == "my-project"
+
+    def test_local_tier_scanned_when_manifest_at_root(self, tmp_path):
+        global_kb = _make_global_kb(tmp_path / "global.db")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        local = repo / "module_local"
+        local.mkdir()
+        (local / "__manifest__.py").write_text(
+            "{'name': 'Local', 'depends': ['base']}", encoding="utf-8"
+        )
+
+        db_path = build_project_kb(repo, "17.0", ["module_local"], global_kb=global_kb)
+
+        with KBReader(db_path) as kb:
+            modules = kb.get_modules()
+            sources = kb.get_sources()
+        assert "module_local" in modules
+        assert sources.get("local") == str(repo)
 
 
 # ---------------------------------------------------------------------------
@@ -259,3 +274,46 @@ class TestStaleness:
         stale, reason = is_project_kb_stale(repo, "17.0")
         assert stale is False
         assert reason == ""
+
+
+# ---------------------------------------------------------------------------
+# TestComputeRootDrift
+# ---------------------------------------------------------------------------
+
+
+class TestComputeRootDrift:
+    def test_missing_at_root_when_module_listed_but_no_symlink(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _make_tp_symlinks(repo, "module_a")
+        missing, extra = compute_root_drift(repo, ["module_a", "module_ghost"])
+        assert missing == ["module_ghost"]
+        assert extra == []
+
+    def test_extra_at_root_when_symlink_not_listed(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _make_tp_symlinks(repo, "module_a", "module_extra")
+        missing, extra = compute_root_drift(repo, ["module_a"])
+        assert missing == []
+        assert extra == ["module_extra"]
+
+    def test_local_dir_counts_as_at_root(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        local = repo / "module_local"
+        local.mkdir()
+        (local / "__manifest__.py").write_text(
+            "{'name': 'L', 'depends': []}", encoding="utf-8"
+        )
+        missing, extra = compute_root_drift(repo, ["module_local"])
+        assert missing == []
+        assert extra == []
+
+    def test_no_drift_when_perfectly_aligned(self, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _make_tp_symlinks(repo, "module_a")
+        missing, extra = compute_root_drift(repo, ["module_a"])
+        assert missing == []
+        assert extra == []
