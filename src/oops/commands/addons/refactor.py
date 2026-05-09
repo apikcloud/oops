@@ -3,11 +3,13 @@
 #
 # File: refactor.py — oops/commands/addons/refactor.py
 
-"""oops-refactor — apply section headers and docstring skeletons to a custom module.
+"""oops-refactor — apply section headers and docstring skeletons to custom modules.
 
-Operates on a single module at a time. Reads the project KB, classifies every
-field and method in every model file, then rewrites each file in-place on a
-dedicated git branch ready for PR review.
+Operates on one or more modules in a single run. Reads the project KB,
+classifies every field and method in every model file, then rewrites each
+file in-place. By default a dedicated git branch is created and one commit
+per module is produced. Use --no-branch to stay on the current branch and
+--no-commit to skip committing (edits are staged but not committed).
 
 What the tool does
 ------------------
@@ -16,7 +18,9 @@ What the tool does
 - Generates minimal Google-style docstring skeletons for every method that
   does not already have one.
 - Inserts a class docstring skeleton on every new model class.
-- Creates a git branch `refactor/doc-<module>` and commits each rewritten file.
+- Creates a git branch (`refactor/doc-<module>` for one module,
+  `refactor/doc-multi` for several) and produces one commit per module
+  whose body lists every rewritten file.
 
 What the tool does NOT do
 -------------------------
@@ -52,7 +56,9 @@ from oops.utils.render import OopsError, human_readable, print_rule, print_succe
 
 @command("refactor", help=__doc__)
 @click.argument(
-    "module_path",
+    "module_paths",
+    nargs=-1,
+    required=True,
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 @click.option(
@@ -90,8 +96,8 @@ from oops.utils.render import OopsError, human_readable, print_rule, print_succe
     help="Force a project KB rebuild before running, even if the KB looks fresh.",
 )
 @click.option("--verbose", "-v", is_flag=True, default=False)
-def main(  # noqa: C901, PLR0912
-    module_path: Path,
+def main(  # noqa: C901, PLR0912, PLR0915
+    module_paths: tuple[Path, ...],
     kb_path: Path | None,
     branch: bool,
     no_commit: bool,
@@ -102,16 +108,16 @@ def main(  # noqa: C901, PLR0912
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 
-    if module_path.is_symlink():
-        raise OopsError(
-            f"{module_path} is a symlink. Refactor cannot edit a symlinked "
-            "module: it points to a third-party submodule or an apik-addons "
-            "checkout, which must be refactored in its own repository.\n"
-            "Run oops refactor inside the source repository instead."
-        )
+    for mp in module_paths:
+        if mp.is_symlink():
+            raise OopsError(
+                f"{mp} is a symlink. Refactor cannot edit a symlinked "
+                "module: it points to a third-party submodule or an apik-addons "
+                "checkout, which must be refactored in its own repository.\n"
+                "Run oops refactor inside the source repository instead."
+            )
 
-    module_path = module_path.resolve()
-    module_name = module_path.name
+    resolved_paths = [mp.resolve() for mp in module_paths]
 
     # --- Locate repo (KB resolution always anchors there now) ---
     if kb_path is None:
@@ -186,13 +192,16 @@ def main(  # noqa: C901, PLR0912
 
     log.info("Using KB: %s", kb_path)
 
-    print_rule(f"oops refactor — {module_name}")
+    branch_name = (
+        f"refactor/doc-{resolved_paths[0].name}"
+        if len(resolved_paths) == 1
+        else "refactor/doc-multi"
+    )
 
     with KBReader(kb_path) as kb:
         modules_index = kb.get_modules()
 
-        # --- Git branch ---
-        branch_name = f"refactor/doc-{module_name}"
+        # --- Git branch (one shared branch for the whole run) ---
         needs_repo = (branch or not no_commit) and not dry_run
 
         if needs_repo and local_repo is None:
@@ -213,86 +222,98 @@ def main(  # noqa: C901, PLR0912
                 branch = False
                 no_commit = True
 
-        # --- Process model files ---
-        models_dir = module_path / "models"
-        if not models_dir.is_dir():
-            print_warning(f"No models/ directory found in {module_path}")
-            return
+        grand_total = 0
 
-        py_files = sorted(models_dir.rglob("*.py"))
-        if not py_files:
-            print_warning("No .py files found in models/")
-            return
+        for module_path in resolved_paths:
+            module_name = module_path.name
+            print_rule(f"oops refactor — {module_name}")
 
-        total_rewrites = 0
-        rewritten_rels: list[str] = []
-
-        for py_file in py_files:
-            rel = py_file.relative_to(module_path)
-            log.info("Analysing %s…", rel)
-
-            classes = analyse_file(py_file, kb, modules_index, module_name)
-            if not classes:
-                log.debug("  No Odoo model classes found, skipping.")
+            # --- Process model files ---
+            models_dir = module_path / "models"
+            if not models_dir.is_dir():
+                print_warning(f"{module_name}: no models/ directory — skipping")
                 continue
 
-            for ci in classes:
-                model_tag = ci.model_name or "+".join(ci.inherit) or "?"
-                n_fields = sum(1 for s in ci.symbols if s.kind == "field")
-                n_methods = sum(1 for s in ci.symbols if s.kind == "method")
-                n_nodoc = sum(1 for s in ci.symbols if s.kind == "method" and not s.has_docstring)
-                n_override = sum(1 for s in ci.symbols if s.is_override)
-                log.info(
-                    "  %s (%s): %d fields, %d methods (%d need docstring, %d overrides)",
-                    ci.class_name,
-                    model_tag,
-                    n_fields,
-                    n_methods,
-                    n_nodoc,
-                    n_override,
-                )
+            py_files = sorted(models_dir.rglob("*.py"))
+            if not py_files:
+                print_warning(f"{module_name}: no .py files in models/ — skipping")
+                continue
 
-            if dry_run:
+            total_rewrites = 0
+            rewritten_rels: list[str] = []
+
+            for py_file in py_files:
+                rel = py_file.relative_to(module_path)
+                log.info("Analysing %s…", rel)
+
+                classes = analyse_file(py_file, kb, modules_index, module_name)
+                if not classes:
+                    log.debug("  No Odoo model classes found, skipping.")
+                    continue
+
+                for ci in classes:
+                    model_tag = ci.model_name or "+".join(ci.inherit) or "?"
+                    n_fields = sum(1 for s in ci.symbols if s.kind == "field")
+                    n_methods = sum(1 for s in ci.symbols if s.kind == "method")
+                    n_nodoc = sum(
+                        1 for s in ci.symbols if s.kind == "method" and not s.has_docstring
+                    )
+                    n_override = sum(1 for s in ci.symbols if s.is_override)
+                    log.info(
+                        "  %s (%s): %d fields, %d methods (%d need docstring, %d overrides)",
+                        ci.class_name,
+                        model_tag,
+                        n_fields,
+                        n_methods,
+                        n_nodoc,
+                        n_override,
+                    )
+
+                if dry_run:
+                    new_source = rewrite_file(py_file, classes)
+                    if new_source != py_file.read_text(encoding="utf-8"):
+                        click.echo(f"  would rewrite {rel}")
+                    continue
+
+                original = py_file.read_text(encoding="utf-8", errors="replace")
                 new_source = rewrite_file(py_file, classes)
-                if new_source != py_file.read_text(encoding="utf-8"):
-                    click.echo(f"  would rewrite {rel}")
-                continue
 
-            original = py_file.read_text(encoding="utf-8", errors="replace")
-            new_source = rewrite_file(py_file, classes)
+                if new_source == original:
+                    log.debug("  No changes needed for %s", rel)
+                    continue
 
-            if new_source == original:
-                log.debug("  No changes needed for %s", rel)
-                continue
+                py_file.write_text(new_source, encoding="utf-8")
+                log.info("  Rewritten: %s", rel)
+                total_rewrites += 1
+                rewritten_rels.append(str(rel))
 
-            py_file.write_text(new_source, encoding="utf-8")
-            log.info("  Rewritten: %s", rel)
-            total_rewrites += 1
-            rewritten_rels.append(str(rel))
+            if (
+                not dry_run
+                and rewritten_rels
+                and local_repo is not None
+                and repo_path is not None
+            ):
+                file_paths = [
+                    str((module_path / rel).relative_to(repo_path))
+                    for rel in rewritten_rels
+                ]
+                if no_commit:
+                    local_repo.index.add([str(repo_path / f) for f in file_paths])
+                else:
+                    commit(
+                        local_repo,
+                        repo_path,
+                        file_paths,
+                        "refactor_per_module",
+                        module=module_name,
+                        description=human_readable(rewritten_rels, sep="\n"),
+                    )
 
-        if (
-            not dry_run
-            and rewritten_rels
-            and local_repo is not None
-            and repo_path is not None
-        ):
-            file_paths = [
-                str((module_path / rel).relative_to(repo_path))
-                for rel in rewritten_rels
-            ]
-            if no_commit:
-                local_repo.index.add([str(repo_path / f) for f in file_paths])
-            else:
-                commit(
-                    local_repo,
-                    repo_path,
-                    file_paths,
-                    "refactor_per_module",
-                    module=module_name,
-                    description=human_readable(rewritten_rels, sep="\n"),
-                )
+            grand_total += total_rewrites
 
         if not dry_run:
-            print_success(f"Done — {total_rewrites} file(s) rewritten.")
-            if branch and total_rewrites:
+            print_success(
+                f"Done — {grand_total} file(s) rewritten across {len(resolved_paths)} module(s)."
+            )
+            if branch and grand_total:
                 click.echo(f"  Branch: {branch_name}")

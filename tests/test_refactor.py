@@ -1191,3 +1191,149 @@ class TestRefactorCommit:
         assert result.exit_code == 0
         assert len(commit_calls) == 0
         assert "Could not create branch" in result.output
+
+
+# ---------------------------------------------------------------------------
+# TestRefactorMultiModule — Phase 2: nargs=-1, outer loop, generic branch
+# ---------------------------------------------------------------------------
+
+
+class TestRefactorMultiModule:
+    """Tests for multi-module invocation support."""
+
+    def _runner(self) -> CliRunner:
+        return CliRunner()
+
+    def _kb(self, tmp_path: Path) -> Path:
+        kb_path = tmp_path / "kb.db"
+        _make_kb(kb_path)
+        return kb_path
+
+    def _make_two_modules(self, root: Path) -> tuple[Path, Path]:
+        mod_a = _make_module(root, "mod_a", {"model_a.py": NEW_MODEL_SOURCE})
+        mod_b = _make_module(root, "mod_b", {"model_b.py": NEW_MODEL_SOURCE})
+        return mod_a, mod_b
+
+    def _patch_repo(self, monkeypatch, tmp_path: Path):
+        from unittest.mock import MagicMock
+
+        fake_repo = MagicMock()
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.get_local_repo",
+            lambda: (fake_repo, tmp_path),
+        )
+        return fake_repo
+
+    def _patch_commit(self, monkeypatch) -> list:
+        calls: list = []
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.commit",
+            lambda *a, **kw: calls.append((a, kw)),
+        )
+        return calls
+
+    def test_two_modules_each_rewritten(self, tmp_path):
+        kb_path = self._kb(tmp_path)
+        mod_a, mod_b = self._make_two_modules(tmp_path)
+        file_a = mod_a / "models" / "model_a.py"
+        file_b = mod_b / "models" / "model_b.py"
+        original_a, original_b = file_a.read_text(), file_b.read_text()
+
+        result = self._runner().invoke(
+            main,
+            [str(mod_a), str(mod_b), "--kb", str(kb_path), "--no-branch", "--no-commit"],
+        )
+        assert result.exit_code == 0
+        assert file_a.read_text() != original_a
+        assert file_b.read_text() != original_b
+
+    def test_two_modules_use_generic_branch(self, tmp_path, monkeypatch):
+        kb_path = self._kb(tmp_path)
+        mod_a, mod_b = self._make_two_modules(tmp_path)
+        fake_repo = self._patch_repo(monkeypatch, tmp_path)
+        self._patch_commit(monkeypatch)
+
+        result = self._runner().invoke(
+            main, [str(mod_a), str(mod_b), "--kb", str(kb_path), "--no-commit"]
+        )
+        assert result.exit_code == 0
+        fake_repo.git.checkout.assert_called_once_with("-b", "refactor/doc-multi")
+
+    def test_one_module_uses_specific_branch(self, tmp_path, monkeypatch):
+        kb_path = self._kb(tmp_path)
+        mod = _make_module(tmp_path, "my_module", {"model.py": NEW_MODEL_SOURCE})
+        fake_repo = self._patch_repo(monkeypatch, tmp_path)
+        self._patch_commit(monkeypatch)
+
+        result = self._runner().invoke(
+            main, [str(mod), "--kb", str(kb_path), "--no-commit"]
+        )
+        assert result.exit_code == 0
+        fake_repo.git.checkout.assert_called_once_with("-b", "refactor/doc-my_module")
+
+    def test_two_modules_one_commit_each(self, tmp_path, monkeypatch):
+        kb_path = self._kb(tmp_path)
+        mod_a, mod_b = self._make_two_modules(tmp_path)
+        self._patch_repo(monkeypatch, tmp_path)
+        commit_calls = self._patch_commit(monkeypatch)
+
+        result = self._runner().invoke(
+            main, [str(mod_a), str(mod_b), "--kb", str(kb_path)]
+        )
+        assert result.exit_code == 0
+        assert len(commit_calls) == 2
+        committed_modules = {kw["module"] for _, kw in commit_calls}
+        assert committed_modules == {"mod_a", "mod_b"}
+
+    def test_module_without_models_dir_warns_and_continues(self, tmp_path):
+        kb_path = self._kb(tmp_path)
+        mod_a = _make_module(tmp_path, "mod_a", {"model_a.py": NEW_MODEL_SOURCE})
+        mod_b = tmp_path / "mod_b"
+        mod_b.mkdir()
+        file_a = mod_a / "models" / "model_a.py"
+        original_a = file_a.read_text()
+
+        result = self._runner().invoke(
+            main,
+            [str(mod_a), str(mod_b), "--kb", str(kb_path), "--no-branch", "--no-commit"],
+        )
+        assert result.exit_code == 0
+        assert "no models" in result.output.lower()
+        assert file_a.read_text() != original_a
+
+    def test_module_without_py_files_warns_and_continues(self, tmp_path):
+        kb_path = self._kb(tmp_path)
+        mod_a = _make_module(tmp_path, "mod_a", {"model_a.py": NEW_MODEL_SOURCE})
+        mod_b = tmp_path / "mod_b"
+        (mod_b / "models").mkdir(parents=True)
+        file_a = mod_a / "models" / "model_a.py"
+        original_a = file_a.read_text()
+
+        result = self._runner().invoke(
+            main,
+            [str(mod_a), str(mod_b), "--kb", str(kb_path), "--no-branch", "--no-commit"],
+        )
+        assert result.exit_code == 0
+        assert "no .py" in result.output.lower()
+        assert file_a.read_text() != original_a
+
+    def test_zero_modules_exits_with_usage_error(self):
+        result = self._runner().invoke(main, [])
+        assert result.exit_code == 2
+
+    def test_symlinked_module_in_multi_aborts_run(self, tmp_path):
+        kb_path = self._kb(tmp_path)
+        real_module = _make_module(tmp_path, "real_module", {"model.py": NEW_MODEL_SOURCE})
+        symlink_module = tmp_path / "symlink_module"
+        symlink_module.symlink_to(real_module)
+        real_file = real_module / "models" / "model.py"
+        original = real_file.read_text()
+
+        result = self._runner().invoke(
+            main,
+            [str(real_module), str(symlink_module), "--kb", str(kb_path),
+             "--no-branch", "--no-commit"],
+        )
+        assert result.exit_code == 1
+        assert "symlink" in result.output.lower()
+        assert real_file.read_text() == original
