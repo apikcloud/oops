@@ -34,9 +34,13 @@ from pathlib import Path
 import click
 from git import GitCommandError
 from oops.commands.base import command
+from oops.core.config import config
 from oops.core.paths import project_kb_path
+from oops.io.file import parse_odoo_version
+from oops.io.installed_modules import read_installed_modules
 from oops.io.refactor import analyse_file, rewrite_file
 from oops.kb import setup_kb_logging
+from oops.kb.build import build_project_kb, is_project_kb_stale
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
 from oops.utils.render import OopsError, print_rule, print_success, print_warning
@@ -56,7 +60,10 @@ from oops.utils.render import OopsError, print_rule, print_success, print_warnin
     "kb_path",
     default=None,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="Path to the project KB database. Defaults to auto-detection from nearest .oops-cache/kb.db.",
+    help=(
+        "Path to the project KB database. "
+        "When set, --refresh is ignored and no auto-rebuild happens."
+    ),
 )
 @click.option(
     "--branch/--no-branch",
@@ -70,12 +77,19 @@ from oops.utils.render import OopsError, print_rule, print_success, print_warnin
     default=False,
     help="Print what would be changed without writing any file.",
 )
+@click.option(
+    "--refresh",
+    is_flag=True,
+    default=False,
+    help="Force a project KB rebuild before running, even if the KB looks fresh.",
+)
 @click.option("--verbose", "-v", is_flag=True, default=False)
 def main(  # noqa: C901, PLR0912
     module_path: Path,
     kb_path: Path | None,
     branch: bool,
     dry_run: bool,
+    refresh: bool,
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
@@ -84,18 +98,50 @@ def main(  # noqa: C901, PLR0912
     module_path = module_path.resolve()
     module_name = module_path.name
 
-    # --- Locate KB ---
+    # --- Locate repo (KB resolution always anchors there now) ---
     if kb_path is None:
-        search = module_path
-        while search != search.parent:
-            candidate = project_kb_path(search)
-            if candidate.exists():
-                kb_path = candidate
-                break
-            search = search.parent
+        try:
+            local_repo, repo_path = get_local_repo()
+        except click.ClickException:
+            raise OopsError(
+                "oops refactor must run inside an oops project (no .git found)."
+            ) from None
 
-    if kb_path is None or not kb_path.exists():
-        raise OopsError("Project KB not found.\nRun oops-kb-build-project first, or pass --kb.")
+        # --- Resolve KB path ---
+        kb_path = project_kb_path(repo_path)
+
+        # --- Decide whether to build ---
+        try:
+            version = str(parse_odoo_version(repo_path).major_version)
+        except (ValueError, OSError) as exc:
+            raise OopsError(
+                f"Could not read Odoo version from {config.project.file_odoo_version}."
+            ) from exc
+
+        stale, reason = is_project_kb_stale(repo_path, version)
+        needs_build = refresh or stale
+
+        if needs_build:
+            info = read_installed_modules(repo_path)
+            if info is None:
+                raise OopsError(
+                    f"installed_modules.txt not found at "
+                    f"{repo_path / config.project.file_installed_modules}.\n"
+                    "Create the file (one module per line) and re-run oops refactor."
+                )
+            why = "forced via --refresh" if refresh else f"stale: {reason}"
+            log.info("Rebuilding project KB (%s)…", why)
+            print_warning(f"Rebuilding project KB: {why}")
+            try:
+                kb_path = build_project_kb(repo_path, version, info.modules)
+            except FileNotFoundError as exc:
+                raise OopsError(str(exc)) from None
+        elif not kb_path.exists():
+            raise OopsError(f"Project KB not found: {kb_path}")
+    else:
+        # --kb was passed explicitly; skip all staleness logic.
+        local_repo = None
+        repo_path = None
 
     log.info("Using KB: %s", kb_path)
 
@@ -106,15 +152,14 @@ def main(  # noqa: C901, PLR0912
 
         # --- Git branch ---
         branch_name = f"refactor/doc-{module_name}"
-        local_repo = None
-        repo_path = None
         if branch and not dry_run:
-            try:
-                local_repo, repo_path = get_local_repo()
-            except click.ClickException:
-                print_warning("Could not locate git repository — continuing without git.")
-                branch = False
-            else:
+            if local_repo is None:
+                try:
+                    local_repo, repo_path = get_local_repo()
+                except click.ClickException:
+                    print_warning("Could not locate git repository — continuing without git.")
+                    branch = False
+            if local_repo is not None:
                 try:
                     local_repo.git.checkout("-b", branch_name)
                     log.info("Created branch: %s", branch_name)

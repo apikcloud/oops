@@ -20,5 +20,11 @@ All these items refers to knowledge database and refactor command.
 | 3    | Document all relevant commands in the Google style.                                                                                                                                                                                                                                                                                                                                          | Draft  |
 | 4    | Add documentation entries for these commands, take care of API reference too.                                                                                                                                                                                                                                                                                                                | Draft  |
 | 5    | Does running `python -m py_compile` on the relevant files before and after refactoring help to secure the process?                                                                                                                                                                                                                                                                           | Draft  |
+| 6    | The reformatted files do not adhere to the formatting rules applied during development. We use ruff, which replaces black, for example. At present, this means we have to edit the files and then amend the commit. How can we integrate this into the workflow automatically? Is that possible?                                                                                             | Draft  |
 
-
+```bash
+odoo shell --no-http << EOF
+res = env["ir.module.module"].search([("state", "in", ["installed", "to upgrade", "to remove"])]).mapped('name')
+print("\n".join(res))
+EOF
+```

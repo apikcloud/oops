@@ -162,6 +162,7 @@ class ProjectConfig:
     file_requirements: str = "requirements.txt"
     file_odoo_version: str = "odoo_version.txt"
     file_migrate: str = "migrate.sh"
+    file_installed_modules: str = "installed_modules.txt"
     readme_file: str = "README.md"
 
 

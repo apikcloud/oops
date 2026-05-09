@@ -811,10 +811,193 @@ class TestRefactorCLI:
         )
         assert result.exit_code == 0
 
-    def test_auto_detects_kb_from_oops_cache(self, tmp_path):
-        cache_dir = tmp_path / ".oops-cache"
-        cache_dir.mkdir()
-        _make_kb(cache_dir / "kb.db")
+    def test_explicit_kb_path_used_directly(self, tmp_path):
+        kb_path = tmp_path / "kb.db"
+        _make_kb(kb_path)
         module_path = _make_module(tmp_path, "my_module", {"my_model.py": NEW_MODEL_SOURCE})
+        result = self._runner().invoke(main, [str(module_path), "--kb", str(kb_path), "--no-branch"])
+        assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# TestRefactorRebuild — Phase 4: --refresh and auto-rebuild logic
+# ---------------------------------------------------------------------------
+
+
+class TestRefactorRebuild:
+    """Tests for the new rebuild-aware flow in oops refactor."""
+
+    def _runner(self) -> CliRunner:
+        return CliRunner()
+
+    def _setup_module(self, tmp_path: Path) -> Path:
+        return _make_module(tmp_path, "my_module", {"my_model.py": NEW_MODEL_SOURCE})
+
+    def _patch_repo(self, monkeypatch, tmp_path: Path):
+        """Mock get_local_repo so tests don't need a real git repo."""
+        from unittest.mock import MagicMock
+
+        fake_repo = MagicMock()
+        fake_repo.git.checkout = MagicMock()
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.get_local_repo",
+            lambda: (fake_repo, tmp_path),
+        )
+        return fake_repo, tmp_path
+
+    def _patch_version(self, monkeypatch, version: str = "17.0"):
+        from unittest.mock import MagicMock
+
+        fake_info = MagicMock()
+        fake_info.major_version = version
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.parse_odoo_version",
+            lambda _p: fake_info,
+        )
+
+    def _patch_build(self, monkeypatch, kb_path: Path):
+        """Mock build_project_kb to return kb_path without running the scanner."""
+        calls: list = []
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.build_project_kb",
+            lambda *a, **kw: (calls.append((a, kw)), kb_path)[1],
+        )
+        return calls
+
+    def test_stale_kb_triggers_auto_rebuild(self, tmp_path, monkeypatch):
+        kb_path = tmp_path / ".oops-cache" / "kb.db"
+        kb_path.parent.mkdir()
+        _make_kb(kb_path)
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        self._patch_version(monkeypatch)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale",
+            lambda _r, _v: (True, "no project KB at ..."),
+        )
+        build_calls = self._patch_build(monkeypatch, kb_path)
+        (tmp_path / "installed_modules.txt").write_text("my_module\n")
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.read_installed_modules",
+            lambda _r: type("M", (), {"modules": ["my_module"]})(),
+        )
+
         result = self._runner().invoke(main, [str(module_path), "--no-branch"])
         assert result.exit_code == 0
+        assert len(build_calls) == 1
+
+    def test_fresh_kb_no_rebuild(self, tmp_path, monkeypatch):
+        kb_path = tmp_path / ".oops-cache" / "kb.db"
+        kb_path.parent.mkdir()
+        _make_kb(kb_path)
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        self._patch_version(monkeypatch)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale",
+            lambda _r, _v: (False, ""),
+        )
+        build_calls = self._patch_build(monkeypatch, kb_path)
+
+        result = self._runner().invoke(main, [str(module_path), "--no-branch"])
+        assert result.exit_code == 0
+        assert len(build_calls) == 0
+
+    def test_refresh_forces_rebuild_even_when_fresh(self, tmp_path, monkeypatch):
+        kb_path = tmp_path / ".oops-cache" / "kb.db"
+        kb_path.parent.mkdir()
+        _make_kb(kb_path)
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        self._patch_version(monkeypatch)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale",
+            lambda _r, _v: (False, ""),
+        )
+        build_calls = self._patch_build(monkeypatch, kb_path)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.read_installed_modules",
+            lambda _r: type("M", (), {"modules": ["my_module"]})(),
+        )
+
+        result = self._runner().invoke(main, [str(module_path), "--no-branch", "--refresh"])
+        assert result.exit_code == 0
+        assert len(build_calls) == 1
+
+    def test_stale_kb_no_installed_modules_errors(self, tmp_path, monkeypatch):
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        self._patch_version(monkeypatch)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale",
+            lambda _r, _v: (True, "no project KB at ..."),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.read_installed_modules",
+            lambda _r: None,
+        )
+
+        result = self._runner().invoke(main, [str(module_path), "--no-branch"])
+        assert result.exit_code == 1
+        assert "installed_modules.txt" in result.output
+
+    def test_refresh_no_installed_modules_errors(self, tmp_path, monkeypatch):
+        kb_path = tmp_path / ".oops-cache" / "kb.db"
+        kb_path.parent.mkdir()
+        _make_kb(kb_path)
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        self._patch_version(monkeypatch)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale",
+            lambda _r, _v: (False, ""),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.read_installed_modules",
+            lambda _r: None,
+        )
+
+        result = self._runner().invoke(main, [str(module_path), "--no-branch", "--refresh"])
+        assert result.exit_code == 1
+        assert "installed_modules.txt" in result.output
+
+    def test_explicit_kb_skips_rebuild_logic(self, tmp_path, monkeypatch):
+        kb_path = tmp_path / "explicit.db"
+        _make_kb(kb_path)
+        module_path = self._setup_module(tmp_path)
+
+        # Ensure build is never called
+        build_calls = self._patch_build(monkeypatch, kb_path)
+
+        def _fail():
+            raise AssertionError("get_local_repo should not be called for KB resolution")
+
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.get_local_repo",
+            _fail,
+        )
+
+        result = self._runner().invoke(
+            main, [str(module_path), "--kb", str(kb_path), "--no-branch"]
+        )
+        assert result.exit_code == 0
+        assert len(build_calls) == 0
+
+    def test_missing_odoo_version_errors(self, tmp_path, monkeypatch):
+        module_path = self._setup_module(tmp_path)
+
+        self._patch_repo(monkeypatch, tmp_path)
+        # parse_odoo_version raises OSError (file not found)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.parse_odoo_version",
+            lambda _p: (_ for _ in ()).throw(FileNotFoundError("odoo_version.txt not found")),
+        )
+
+        result = self._runner().invoke(main, [str(module_path), "--no-branch"])
+        assert result.exit_code == 1
+        assert "odoo_version.txt" in result.output.lower() or "Odoo version" in result.output
