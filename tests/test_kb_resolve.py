@@ -175,6 +175,20 @@ class TestResolveSymbol:
         e = _entry("sale")
         assert resolve_symbol([e], "my_module", {}) is e
 
+    def test_single_entry_from_same_module_returns_none(self):
+        # A module cannot report itself as the upstream of its own method.
+        e = _entry("my_module")
+        assert resolve_symbol([e], "my_module", {}) is None
+
+    def test_same_module_entry_filtered_when_mixed_with_others(self):
+        # The self-entry is dropped; the upstream entry from a real dep wins.
+        index = _index(("my_module", "apik", ["sale"]), ("sale", "odoo", []))
+        self_entry = _entry("my_module", origin="apik")
+        upstream = _entry("sale", origin="odoo")
+        result = resolve_symbol([self_entry, upstream], "my_module", index)
+        assert result is not None
+        assert result["module"] == "sale"
+
     def test_entry_in_depends_chain_wins_over_entry_outside(self):
         index = _index(("my_module", "apik", ["sale"]), ("sale", "odoo", []))
         in_chain = _entry("sale", origin="odoo")

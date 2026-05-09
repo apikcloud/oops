@@ -271,23 +271,26 @@ def main(  # noqa: C901, PLR0912
             rewritten_rels.append(str(rel))
 
         if (
-            not no_commit
-            and not dry_run
+            not dry_run
             and rewritten_rels
             and local_repo is not None
             and repo_path is not None
         ):
-            commit(
-                local_repo,
-                repo_path,
-                [
-                    str((module_path / rel).relative_to(repo_path))
-                    for rel in rewritten_rels
-                ],
-                "refactor_per_module",
-                module=module_name,
-                description=human_readable(rewritten_rels, sep="\n"),
-            )
+            file_paths = [
+                str((module_path / rel).relative_to(repo_path))
+                for rel in rewritten_rels
+            ]
+            if no_commit:
+                local_repo.index.add([str(repo_path / f) for f in file_paths])
+            else:
+                commit(
+                    local_repo,
+                    repo_path,
+                    file_paths,
+                    "refactor_per_module",
+                    module=module_name,
+                    description=human_readable(rewritten_rels, sep="\n"),
+                )
 
         if not dry_run:
             print_success(f"Done — {total_rewrites} file(s) rewritten.")

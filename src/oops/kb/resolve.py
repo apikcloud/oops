@@ -98,6 +98,10 @@ def resolve_symbol(
     """
     if not entries:
         return None
+    # A module cannot override itself — drop any entry from the module being refactored.
+    entries = [e for e in entries if e.get("module") != custom_module]
+    if not entries:
+        return None
     if len(entries) == 1:
         return entries[0]
 

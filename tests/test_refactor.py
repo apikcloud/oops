@@ -1132,6 +1132,8 @@ class TestRefactorCommit:
         assert result.exit_code == 0
         fake_repo.git.checkout.assert_called_once_with("-b", "refactor/doc-my_module")
         assert len(commit_calls) == 0
+        # Files must be staged even though no commit is made.
+        fake_repo.index.add.assert_called_once()
 
     def test_no_commit_without_branch_does_nothing_to_git(self, tmp_path, monkeypatch):
         module_path, kb_path = self._setup(tmp_path)
