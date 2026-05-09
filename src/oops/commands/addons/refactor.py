@@ -35,7 +35,7 @@ import click
 from git import GitCommandError
 from oops.commands.base import command
 from oops.core.config import config
-from oops.core.paths import project_kb_path
+from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import parse_odoo_version
 from oops.io.installed_modules import read_installed_modules
 from oops.io.refactor import analyse_file, rewrite_file
@@ -129,7 +129,19 @@ def main(  # noqa: C901, PLR0912
         info = read_installed_modules(repo_path)
 
         if info is not None:
-            missing, extra = compute_root_drift(repo_path, info.modules)
+            # Odoo community/enterprise modules are never at the repo root;
+            # exclude them so only project-owned missing addons are surfaced.
+            _gkb = global_kb_path(version)
+            _odoo_mods: set[str] = set()
+            if _gkb.exists():
+                with KBReader(_gkb) as _kb:
+                    _odoo_mods = {
+                        n for n, d in _kb.get_modules().items()
+                        if d["origin"] in {"odoo", "enterprise"}
+                    }
+            _project_modules = [m for m in info.modules if m not in _odoo_mods]
+
+            missing, extra = compute_root_drift(repo_path, _project_modules)
             if missing:
                 print_warning(
                     f"Modules in installed_modules.txt with no addon at the "
