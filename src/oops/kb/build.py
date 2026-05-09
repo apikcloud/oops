@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Iterable
 
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
+from oops.io.file import find_addons
 from oops.io.installed_modules import installed_modules_path
 from oops.kb.scanner import (
     discover_root_addons,
@@ -51,9 +52,7 @@ def build_project_kb(
     if global_kb is None:
         global_kb = global_kb_path(version)
     if not global_kb.exists():
-        raise FileNotFoundError(
-            f"Global KB not found: {global_kb}\nRun oops misc kb-build-global first."
-        )
+        raise FileNotFoundError(f"Global KB not found: {global_kb}\nRun oops misc kb-build-global first.")
 
     cache_dir = repo_path / CACHE_DIR_NAME
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -212,6 +211,8 @@ def compute_root_drift(
 ) -> tuple[list[str], list[str]]:
     """Compare installed_modules against addons present at the repo root.
 
+    TODO: Make it generic and use it for `oops addons compare`
+
     Args:
         repo_path: Repository root.
         installed_modules: Module names declared in installed_modules.txt.
@@ -224,11 +225,7 @@ def compute_root_drift(
           ``installed_modules`` (these will not be scanned by the KB build).
     """
     installed = set(installed_modules)
-    tiers = discover_root_addons(repo_path, None)
-    at_root: set[str] = set()
-    for tier_modules in tiers.values():
-        for name, _ in tier_modules:
-            at_root.add(name)
+    at_root = {a.technical_name for a in find_addons(repo_path, shallow=True)}
     missing = installed - at_root
     extra = at_root - installed
     return sorted(missing), sorted(extra)
