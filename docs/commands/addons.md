@@ -31,6 +31,41 @@ oops addons add sale_management --no-commit
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.addons.analyze
+    :command: main
+    :prog_name: oops addons analyze
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Print a text summary of a single module:
+
+```bash
+oops addons analyze plant_nursery
+```
+
+Emit JSON for downstream tooling:
+
+```bash
+oops addons analyze plant_nursery --format json | jq '.models[0]'
+```
+
+Analyse several modules in one invocation:
+
+```bash
+oops addons analyze plant_nursery plant_orders
+```
+
+Force a KB rebuild before analysing:
+
+```bash
+oops addons analyze plant_nursery --refresh
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.addons.compare
     :command: main
     :prog_name: oops addons compare

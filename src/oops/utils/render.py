@@ -173,3 +173,31 @@ def print_warning(message: str, symbol: str = "⚠") -> None:
         symbol: Prefix symbol. Defaults to "⚠".
     """
     click.echo(click.style(f"{symbol} {message}", fg="yellow"))
+
+
+def print_rule(text: str) -> None:
+    """Print a styled section banner to the terminal.
+
+    Args:
+        text: Header text to display.
+    """
+    click.echo(click.style(f"\n── {text} ──", bold=True))
+
+
+class OopsError(click.ClickException):
+    """Fatal error raised by oops commands.
+
+    Renders as ``✘ <message>`` in red on stderr (matching ``print_error``'s
+    visual style) and exits with code 1 via Click's standard exception flow,
+    so ``OopsCommand`` telemetry records it as ``Exit(1)``.
+
+    Use this for runtime errors that should terminate the command. For bad
+    user input prefer ``click.UsageError``; for explicit non-error exits
+    prefer ``click.exceptions.Exit(N)``.
+    """
+
+    def show(self, file=None) -> None:  # noqa: ARG002 - signature mirrors click.ClickException
+        click.echo(
+            click.style(f"✘ {self.format_message()}", fg="red"),
+            err=True,
+        )
