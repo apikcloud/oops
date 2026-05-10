@@ -20,7 +20,6 @@ from oops.io.refactor import (
     _append_section,
     _build_docstring_stmt,
     _class_docstring_lines,
-    _classify_method,
     _detect_super,
     _get_decorator_names,
     _has_class_docstring,
@@ -33,6 +32,9 @@ from oops.io.refactor import (
     _strip_leading_lines,
     analyse_file,
     rewrite_file,
+)
+from oops.kb.scanner import (
+    classify_method as _classify_method,
 )
 from oops.kb.scanner import (
     get_model_names as _get_model_names,
@@ -1337,3 +1339,140 @@ class TestRefactorMultiModule:
         assert result.exit_code == 1
         assert "symlink" in result.output.lower()
         assert real_file.read_text() == original
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyseFileFieldRefs — headline bug fix and sibling tests
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyseFileFieldRefs:
+    """Verify that field kwarg signals classify methods correctly."""
+
+    def _empty_kb(self, tmp_path: Path) -> Path:
+        kb_path = tmp_path / "empty.db"
+        _make_kb(kb_path)
+        return kb_path
+
+    def _write_and_analyse(self, tmp_path: Path, source: str) -> dict:
+        py_file = tmp_path / "m.py"
+        py_file.write_text(textwrap.dedent(source))
+        with KBReader(self._empty_kb(tmp_path)) as kb:
+            [ci] = analyse_file(py_file, kb, {}, "mymodule")
+        return {s.name: s for s in ci.symbols if s.kind == "method"}
+
+    def test_compute_method_without_decorator_via_compute_kwarg(self, tmp_path):
+        src = """\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Boolean(compute="_compute_x")
+                def _compute_x(self):
+                    pass
+        """
+        method_map = self._write_and_analyse(tmp_path, src)
+        assert method_map["_compute_x"].section == "COMPUTE METHODS"
+
+    def test_inverse_method_lands_in_compute(self, tmp_path):
+        src = """\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Char(inverse="_inverse_x")
+                def _inverse_x(self):
+                    pass
+        """
+        method_map = self._write_and_analyse(tmp_path, src)
+        assert method_map["_inverse_x"].section == "COMPUTE METHODS"
+
+    def test_search_method_lands_in_compute(self, tmp_path):
+        src = """\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Char(search="_search_x")
+                def _search_x(self, op, val):
+                    pass
+        """
+        method_map = self._write_and_analyse(tmp_path, src)
+        assert method_map["_search_x"].section == "COMPUTE METHODS"
+
+    def test_default_method_lands_in_default_methods(self, tmp_path):
+        src = """\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Char(default="_get_default_x")
+                def _get_default_x(self):
+                    return "foo"
+        """
+        method_map = self._write_and_analyse(tmp_path, src)
+        assert method_map["_get_default_x"].section == "DEFAULT METHODS"
+
+    def test_selection_method_lands_in_selection_methods(self, tmp_path):
+        src = """\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                state = fields.Selection(selection="_get_states")
+                def _get_states(self):
+                    return [("a", "A")]
+        """
+        method_map = self._write_and_analyse(tmp_path, src)
+        assert method_map["_get_states"].section == "SELECTION METHODS"
+
+    def test_unreferenced_compute_like_method_is_helper(self, tmp_path):
+        src = """\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                def _compute_nothing(self):
+                    pass
+        """
+        method_map = self._write_and_analyse(tmp_path, src)
+        assert method_map["_compute_nothing"].section == "HELPER METHODS"
+
+    def test_rewrite_places_compute_method_under_compute_header(self, tmp_path):
+        src = textwrap.dedent("""\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Boolean(compute="_compute_x")
+                def _compute_x(self):
+                    pass
+        """)
+        py_file = tmp_path / "m.py"
+        py_file.write_text(src)
+        with KBReader(self._empty_kb(tmp_path)) as kb:
+            classes = analyse_file(py_file, kb, {}, "mymodule")
+        new_src = rewrite_file(py_file, classes)
+        assert "# === COMPUTE METHODS === #" in new_src
+        compute_idx = new_src.index("# === COMPUTE METHODS === #")
+        method_idx = new_src.index("def _compute_x")
+        assert compute_idx < method_idx
+        if "# === HELPER METHODS === #" in new_src:
+            assert new_src.index("# === HELPER METHODS === #") > method_idx
+
+    def test_cross_file_compute_via_module_local_refs(self, tmp_path):
+        """Field in file A, method in file B — module_local_refs handles the link."""
+        file_a = tmp_path / "a.py"
+        file_b = tmp_path / "b.py"
+        file_a.write_text(textwrap.dedent("""\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Boolean(compute="_compute_x")
+        """))
+        file_b.write_text(textwrap.dedent("""\
+            from odoo import fields, models
+            class M(models.Model):
+                _inherit = 'my.model'
+                def _compute_x(self):
+                    pass
+        """))
+        from oops.kb.scanner import build_module_field_refs
+        module_local_refs = build_module_field_refs([file_a, file_b])
+        with KBReader(self._empty_kb(tmp_path)) as kb:
+            [ci] = analyse_file(file_b, kb, {}, "mymodule", module_local_refs)
+        method_map = {s.name: s for s in ci.symbols if s.kind == "method"}
+        assert method_map["_compute_x"].section == "COMPUTE METHODS"

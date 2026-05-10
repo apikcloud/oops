@@ -18,7 +18,7 @@ from oops.kb.scanner import (
     scan_module,
     tier_root_from_real_path,
 )
-from oops.kb.store import KBReader, write_project_kb
+from oops.kb.store import SCHEMA_VERSION, KBReader, write_project_kb
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +54,15 @@ def build_project_kb(
     if not global_kb.exists():
         raise FileNotFoundError(f"Global KB not found: {global_kb}\nRun oops misc kb-build-global first.")
 
+    # Verify the global KB is on the expected schema before reading from it.
+    with KBReader(global_kb) as _gkb:
+        _sv = _gkb.get_meta().get("schema_version")
+    if _sv != str(SCHEMA_VERSION):
+        raise FileNotFoundError(
+            f"Global KB at {global_kb} is on schema {_sv!r}, expected "
+            f"{SCHEMA_VERSION!r}. Re-run oops misc kb-build-global."
+        )
+
     cache_dir = repo_path / CACHE_DIR_NAME
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / "kb.db"
@@ -66,16 +75,22 @@ def build_project_kb(
         global_meta = kb.get_meta()
         global_sources = kb.get_sources()
         global_modules = kb.get_modules()
-        global_symbols = []
-        rows = kb._con.execute(
-            "SELECT model, name, kind, origin, module, source_file, source_line FROM symbols"
-        ).fetchall()
-        for r in rows:
-            global_symbols.append(dict(r))
+        global_symbols = [
+            dict(r) for r in kb._con.execute(
+                "SELECT model, name, kind, origin, module, source_file, "
+                "source_line, field_type, section FROM symbols"
+            ).fetchall()
+        ]
+        global_field_refs = [
+            dict(r) for r in kb._con.execute(
+                "SELECT model, field_name, module, kwarg, target_method FROM field_refs"
+            ).fetchall()
+        ]
 
     global_scan = {
         "modules": global_modules,
         "symbols": global_symbols,
+        "field_refs": global_field_refs,
     }
 
     global_odoo_version = global_meta.get("odoo_version", version)
@@ -112,7 +127,7 @@ def build_project_kb(
 
         sources[origin] = str(tier_root)
 
-        tier_result: dict = {"modules": {}, "symbols": []}
+        tier_result: dict = {"modules": {}, "symbols": [], "field_refs": []}
         for _, real_module_path in tier_modules:
             manifest = real_module_path / "__manifest__.py"
             if not manifest.exists():
@@ -124,6 +139,7 @@ def build_project_kb(
             result = scan_module(real_module_path, origin, tier_root)
             tier_result["modules"].update(result["modules"])
             tier_result["symbols"].extend(result["symbols"])
+            tier_result["field_refs"].extend(result.get("field_refs", []))
             scanned += 1
 
         log.info("  → %d modules scanned", scanned)
@@ -184,7 +200,14 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
         return True, f"no project KB at {project}"
 
     with KBReader(project) as kb:
-        project_ts = _parse_kb_timestamp(kb.get_meta().get("generated_at"))
+        meta = kb.get_meta()
+        sv = meta.get("schema_version")
+        if sv != str(SCHEMA_VERSION):
+            return True, (
+                f"project KB schema version {sv!r} differs from current "
+                f"{SCHEMA_VERSION!r} — rebuild required"
+            )
+        project_ts = _parse_kb_timestamp(meta.get("generated_at"))
 
     if project_ts is None:
         return True, "project KB has no generated_at metadata"

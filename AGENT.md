@@ -26,8 +26,10 @@ oops-refactor          →  rewrites model files, creates a git branch for PR
 ```
 oops/
 ├── kb/
-│   ├── scanner.py      AST scanning of Odoo source trees (no I/O side effects)
+│   ├── scanner.py      AST scanning; also hosts classify_method(), extract_field_refs(),
+│   │                   build_module_field_refs(), and all METHOD_SECTION_* constants.
 │   ├── store.py        SQLite persistence (KBReader, write_global_kb, write_project_kb)
+│   │                   Schema v2: field_type + section on symbols, field_refs table.
 │   └── resolve.py      Dependency graph resolution for symbol precedence
 └── commands/
     └── kb/
@@ -145,6 +147,35 @@ All docstring skeletons are generated deterministically from KB metadata:
 The `# TODO:` markers are the explicit handoff points for the developer.
 The pipeline never interprets method bodies or infers business intent.
 
+### 2.9 Method Classification
+
+Method classification is determined by EITHER decorator-side OR field-side signals,
+with decorator side taking priority. The shared function `classify_method()` in
+`oops.kb.scanner` is the single source of truth for all classification logic —
+both the KB scanner (for persisting `section` on KB methods) and the refactor
+pipeline (`analyse_file`) call it.
+
+Field-side signals are persisted as:
+- A `section` column on the `symbols` table (for methods classified via field refs).
+- A sibling `field_refs` table recording every string-literal field kwarg
+  (`compute`, `inverse`, `search`, `default`, `selection`) and its target method.
+
+Priority order (first match wins):
+1. CRUD name → `CRUD METHODS`
+2. `default_get` name → `DEFAULT METHODS`
+3. `@api.depends` → `COMPUTE METHODS`
+4. `@api.onchange` → `ONCHANGE METHODS`
+5. `@api.constrains` → `CONSTRAINT METHODS`
+6. Field ref `compute=`/`inverse=`/`search=` → `COMPUTE METHODS`
+7. Field ref `default=` → `DEFAULT METHODS`
+8. Field ref `selection=` → `SELECTION METHODS`
+9. `action_`/`button_` prefix → `ACTION METHODS`
+10. `_` prefix → `HELPER METHODS`
+11. (else) → `BUSINESS METHODS`
+
+See `docs/reference/method-classification.md` for the full rationale behind
+each rule and guidance on extending the system.
+
 ### 2.8 Idempotency
 
 The rewriter is designed to be idempotent: running `oops-refactor` twice on
@@ -165,8 +196,8 @@ the same file produces no additional changes. This is achieved by:
 | 1 | **Fix `_is_section_header_stmt`** — the function is still referenced in the code but its logic was superseded by the strip-all approach. It can be simplified or removed. | `refactor.py` | Non-blocking but confusing |
 | 2 | **Manifest `depends` for Odoo core** — `kb_build.py` `--global` mode does not currently filter by an allowed modules list. For very large Odoo installations this means indexing thousands of modules. Add a `--modules` option to `build_global` too for consistency (optional). | `build_global.py` | Low priority |
 | 3 | **`.oops-cache` in `.gitignore`** — the project KB database should not be committed. Add `.oops-cache/` to the repo's `.gitignore` if not already present. | documentation | Trivial |
-| 4 | **`DEFAULT METHODS` section** — `_default_get` and methods used as `default=` on fields are not yet detected. The heuristic requires checking `default=_method_name` in field declarations and indexing those method names. | `refactor.py` | Medium complexity |
-| 5 | **`CONSTRAINTS` section** — `_sql_constraints` is a class-level list attribute, not a method. It should appear after `PRIVATE ATTRIBUTES` and before `COMPUTE METHODS`. Currently it would fall into `_is_private_attr_stmt` (leading `_`). Verify and adjust. | `refactor.py` | Quick fix |
+| 4 | ~~**`DEFAULT METHODS` section**~~ — **Done.** `default=` field kwarg is now detected and routes to `DEFAULT METHODS`. `default_get` by name also routes there. | `scanner.py` | ✓ |
+| 5 | **`CONSTRAINTS` section** — `_sql_constraints` is a class-level list attribute, not a method. It should appear after `PRIVATE ATTRIBUTES` and before `COMPUTE METHODS`. Currently it falls into `_is_private_attr_stmt` (leading `_`). Structurally different from field-kwarg detection; out of scope for the field-linkage workstream. | `refactor.py` | Open |
 
 ### 3.2 Robustness improvements
 
@@ -184,7 +215,7 @@ the same file produces no additional changes. This is achieved by:
 |---|------|-------|
 | 11 | **MkDocs output** — once the refactoring pass is stable, generate MkDocs documentation from the refactored files and the KB. The KB already contains all the metadata needed (model, origin, module, source). |
 | 12 | **Map-reduce referential** — the KB is the foundation for the broader map-reduce pipeline discussed in the design phase. `resolve.py` (`build_depends_chain`) and `store.py` (`KBReader`) are the two interfaces that `refactor.py` uses and that the map-reduce agent will also use. |
-| 13 | **`SELECTION METHODS` detection** — methods used as `selection=` values on `fields.Selection`. Requires checking `selection='_method_name'` in field declarations during analysis, similar to the `DEFAULT METHODS` case. |
+| 13 | ~~**`SELECTION METHODS` detection**~~ — **Done.** `selection=` field kwarg is now detected and routes to `SELECTION METHODS`. The `selection=` kwarg is the sole reliable signal; name heuristics would produce false positives. | ✓ |
 | 14 | **LLM enrichment pass (opt-in)** — an optional second pass that sends the `# TODO:` markers to an LLM with the method body as context, to generate richer docstring content. This should be a separate command (`oops-refactor-enrich`) so it is never run implicitly. |
 | 15 | **KB invalidation check** — before running `oops-refactor`, check whether the KB was built with a different Odoo version than the one in the repo's manifest (compare `meta.odoo_version`). Warn if stale. |
 
@@ -293,7 +324,11 @@ class ClassInfo:
 
 ---
 
-## 5. Database Schema Reference
+## 5. Database Schema Reference (v2)
+
+Current schema version: `SCHEMA_VERSION = 2` in `store.py`.
+On each KB write, data tables are dropped and re-created so column additions
+always land on existing on-disk databases.
 
 ```sql
 -- Both global and project KB use the same schema.
@@ -302,7 +337,8 @@ CREATE TABLE meta (
     key   TEXT NOT NULL PRIMARY KEY,
     value TEXT NOT NULL
 );
--- Keys: layer, odoo_version, generated_at, project (project only), scope (project only)
+-- Keys: layer, odoo_version, schema_version, generated_at,
+--       project (project only), scope (project only)
 
 CREATE TABLE sources (
     origin TEXT NOT NULL PRIMARY KEY,  -- odoo | enterprise | third-party | apik
@@ -323,12 +359,26 @@ CREATE TABLE symbols (
     module      TEXT    NOT NULL,
     source_file TEXT    NOT NULL,   -- relative to tier root in sources table
     source_line INTEGER NOT NULL,
+    field_type  TEXT,               -- e.g. 'Boolean', NULL for methods
+    section     TEXT,               -- canonical section name, NULL for fields
     PRIMARY KEY (model, name, kind, module)
 );
 
 CREATE INDEX idx_symbols_lookup ON symbols (model, name, kind);
 CREATE INDEX idx_symbols_module ON symbols (module);
 CREATE INDEX idx_modules_origin ON modules (origin);
+
+-- Added in v2: tracks field kwarg → method references for cross-file classification.
+CREATE TABLE field_refs (
+    model         TEXT NOT NULL,
+    field_name    TEXT NOT NULL,
+    module        TEXT NOT NULL,
+    kwarg         TEXT NOT NULL,   -- 'compute' | 'inverse' | 'search' | 'default' | 'selection'
+    target_method TEXT NOT NULL,
+    PRIMARY KEY (model, field_name, module, kwarg)
+);
+
+CREATE INDEX idx_field_refs_target ON field_refs (model, target_method);
 ```
 
 ---

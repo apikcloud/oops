@@ -13,6 +13,7 @@ import ast
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Union
 
 import libcst as cst
 from oops.kb.resolve import (
@@ -21,6 +22,18 @@ from oops.kb.resolve import (
 )
 from oops.kb.scanner import (
     FIELD_TYPES,
+    METHOD_SECTION_ACTION,
+    METHOD_SECTION_BUSINESS,
+    METHOD_SECTION_COMPUTE,
+    METHOD_SECTION_CONSTRAINT,
+    METHOD_SECTION_CRUD,
+    METHOD_SECTION_DEFAULT,
+    METHOD_SECTION_HELPER,
+    METHOD_SECTION_ONCHANGE,
+    METHOD_SECTION_SELECTION,
+    _get_decorator_names,
+    classify_method,
+    extract_field_refs,
     get_model_names,
     is_field_assignment,
     is_odoo_model_class,
@@ -34,17 +47,16 @@ from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
 METHOD_SECTIONS = [
     "CONSTRAINTS",
-    "COMPUTE METHODS",
-    "SELECTION METHODS",
-    "ONCHANGE METHODS",
-    "CONSTRAINT METHODS",
-    "CRUD METHODS",
-    "HELPER METHODS",
-    "ACTION METHODS",
-    "BUSINESS METHODS",
+    METHOD_SECTION_COMPUTE,
+    METHOD_SECTION_SELECTION,
+    METHOD_SECTION_DEFAULT,
+    METHOD_SECTION_ONCHANGE,
+    METHOD_SECTION_CONSTRAINT,
+    METHOD_SECTION_CRUD,
+    METHOD_SECTION_HELPER,
+    METHOD_SECTION_ACTION,
+    METHOD_SECTION_BUSINESS,
 ]
-
-CRUD_NAMES = {"create", "write", "unlink", "copy", "name_search", "_search"}
 
 
 def _make_header(name: str) -> str:
@@ -67,6 +79,7 @@ class SymbolInfo:
     super_methods: List[str] = field(default_factory=lambda: [])
     kb_entry: Optional[Dict[str, Any]] = None
     is_override: bool = False  # in KB but no super()
+    field_type: Optional[str] = None  # only set when kind == 'field'
 
 
 @dataclass
@@ -88,7 +101,7 @@ class ClassInfo:
 # ---------------------------------------------------------------------------
 
 
-def _has_docstring(func_node: ast.FunctionDef) -> bool:
+def _has_docstring(func_node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> bool:
     if func_node.body:
         first = func_node.body[0]
         if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
@@ -104,39 +117,6 @@ def _has_class_docstring(class_node: ast.ClassDef) -> bool:
             continue
         break
     return False
-
-
-def _get_decorator_names(func_node: ast.FunctionDef) -> List[str]:
-    names = []
-    for dec in func_node.decorator_list:
-        if isinstance(dec, ast.Name):
-            names.append(dec.id)
-        elif isinstance(dec, ast.Attribute):
-            names.append(dec.attr)
-            names.append(f"{getattr(dec.value, 'id', '')}.{dec.attr}")
-        elif isinstance(dec, ast.Call):
-            func = dec.func
-            if isinstance(func, ast.Attribute):
-                names.append(func.attr)
-            elif isinstance(func, ast.Name):
-                names.append(func.id)
-    return names
-
-
-def _classify_method(name: str, decorator_names: List[str]) -> str:
-    if name in CRUD_NAMES:
-        return "CRUD METHODS"
-    if any(d in ("api.depends", "depends") for d in decorator_names):
-        return "COMPUTE METHODS"
-    if any(d in ("api.onchange", "onchange") for d in decorator_names):
-        return "ONCHANGE METHODS"
-    if any(d in ("api.constrains", "constrains") for d in decorator_names):
-        return "CONSTRAINT METHODS"
-    if name.startswith("action_"):
-        return "ACTION METHODS"
-    if name.startswith("_"):
-        return "HELPER METHODS"
-    return "BUSINESS METHODS"
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +166,7 @@ def analyse_file(
     kb: KBReader,
     modules_index: Dict[str, Any],
     custom_module: str,
+    module_local_refs: Optional[Dict[Tuple[str, str], List[str]]] = None,
 ) -> List[ClassInfo]:
     source = py_file.read_text(encoding="utf-8", errors="replace")
     try:
@@ -218,13 +199,20 @@ def analyse_file(
             is_new_model=is_new_model,
             lineno=node.lineno,
         )
-        # Store whether class docstring is needed as attribute
         ci._needs_class_docstring = is_new_model and not has_class_doc  # type: ignore[attr-defined]
 
+        # Pass 1: collect field→method refs within this class.
+        local_refs: Dict[str, List[str]] = {}
+        for stmt in node.body:
+            if isinstance(stmt, ast.Assign):
+                for kwarg, target in extract_field_refs(stmt).items():
+                    local_refs.setdefault(target, []).append(kwarg)
+
+        # Pass 2: emit symbols, classifying methods with resolved refs.
         for stmt in node.body:
             fld = is_field_assignment(stmt)
             if fld:
-                fname, lineno = fld
+                fname, lineno, ftype = fld
                 kb_entries = kb.get_symbol(model_name, fname, "field")
                 kb_entry = resolve_symbol(kb_entries, custom_module, modules_index)
                 if ci.is_inherit or not is_new_model:
@@ -238,6 +226,7 @@ def analyse_file(
                         section=section,
                         lineno=lineno,
                         kb_entry=kb_entry,
+                        field_type=ftype,
                     )
                 )
                 continue
@@ -246,7 +235,14 @@ def analyse_file(
                 continue
 
             dec_names = _get_decorator_names(stmt)
-            section = _classify_method(stmt.name, dec_names)
+            # Resolve field→method refs: same-class first, then module-level, then KB.
+            if stmt.name in local_refs:
+                ref_kwargs = local_refs[stmt.name]
+            elif module_local_refs is not None:
+                ref_kwargs = module_local_refs.get((model_name, stmt.name), [])
+            else:
+                ref_kwargs = [k["kwarg"] for k in kb.get_field_refs_for_method(model_name, stmt.name)]
+            section = classify_method(stmt.name, dec_names, ref_kwargs)
             has_doc = _has_docstring(stmt)
             has_super, super_methods = _detect_super(source, stmt.name)
 
@@ -281,11 +277,13 @@ def _method_docstring_lines(sym: SymbolInfo) -> List[str]:
     """Return the inner lines of a method docstring (no triple quotes)."""
     if sym.kb_entry:
         src = format_source_line(sym.kb_entry)
+        upstream_section = sym.kb_entry.get("section")
         mod_method = f"{sym.kb_entry.get('module', '?')}.{sym.name}"
+        section_hint = f" [{upstream_section}]" if upstream_section else ""
         if sym.is_override:
             return [
                 "",
-                f"Override {mod_method} — upstream implementation is NOT called.",
+                f"Override {mod_method}{section_hint} — upstream implementation is NOT called.",
                 "",
                 f"Source: {src}",
                 "",
@@ -303,7 +301,7 @@ def _method_docstring_lines(sym: SymbolInfo) -> List[str]:
         else:
             return [
                 "",
-                f"Inherit {mod_method}.",
+                f"Inherit {mod_method}{section_hint}.",
                 "",
                 f"Source: {src}",
                 "",

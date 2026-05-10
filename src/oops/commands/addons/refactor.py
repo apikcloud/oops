@@ -45,6 +45,7 @@ from oops.io.installed_modules import read_installed_modules
 from oops.io.refactor import analyse_file, rewrite_file
 from oops.kb import setup_kb_logging
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
+from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
 from oops.services.git import commit, get_local_repo
 from oops.utils.render import OopsError, human_readable, print_rule, print_success, print_warning
@@ -239,6 +240,10 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 print_warning(f"{module_name}: no .py files in models/ — skipping")
                 continue
 
+            # Build a module-level field→method ref index so cross-file links
+            # within this module are visible to analyse_file().
+            module_local_refs = build_module_field_refs(py_files)
+
             total_rewrites = 0
             rewritten_rels: list[str] = []
 
@@ -246,7 +251,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 rel = py_file.relative_to(module_path)
                 log.info("Analysing %s…", rel)
 
-                classes = analyse_file(py_file, kb, modules_index, module_name)
+                classes = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
                 if not classes:
                     log.debug("  No Odoo model classes found, skipping.")
                     continue

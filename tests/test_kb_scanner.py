@@ -15,7 +15,10 @@ from pathlib import Path
 from oops.kb.scanner import (
     _extract_string_value,
     _parse_file,
+    build_module_field_refs,
+    classify_method,
     discover_root_addons,
+    extract_field_refs,
     odoo_addons_roots,
     scan_module,
     scan_tier,
@@ -223,12 +226,20 @@ class TestIsFieldAssignment:
         result = _is_field_assignment(stmt)
         assert result is not None
         assert result[0] == "partner_id"
+        assert result[2] == "Many2one"
 
     def test_bare_name_field(self):
         stmt = _parse_stmt("name = Char(string='Name')")
         result = _is_field_assignment(stmt)
         assert result is not None
         assert result[0] == "name"
+        assert result[2] == "Char"
+
+    def test_field_type_boolean(self):
+        stmt = _parse_stmt("active = fields.Boolean()")
+        result = _is_field_assignment(stmt)
+        assert result is not None
+        assert result[2] == "Boolean"
 
     def test_private_attr_is_not_field(self):
         assert _is_field_assignment(_parse_stmt("_name = 'sale.order'")) is None
@@ -549,3 +560,226 @@ class TestDiscoverRootAddons:
         repo_path = tmp_path / "project"
         tiers = discover_root_addons(repo_path)
         assert all(name != "owned_module" for name, _ in tiers["local"])
+
+
+# ---------------------------------------------------------------------------
+# TestExtractFieldRefs
+# ---------------------------------------------------------------------------
+
+
+def _parse_assign(src: str) -> ast.Assign:
+    tree = ast.parse(textwrap.dedent(src))
+    return tree.body[0]  # type: ignore[return-value]
+
+
+class TestExtractFieldRefs:
+    def test_compute_kwarg(self):
+        stmt = _parse_assign("x = fields.Boolean(compute='_compute_x')")
+        assert extract_field_refs(stmt) == {"compute": "_compute_x"}
+
+    def test_compute_and_inverse(self):
+        stmt = _parse_assign("x = fields.Char(compute='_compute_x', inverse='_inverse_x')")
+        refs = extract_field_refs(stmt)
+        assert refs == {"compute": "_compute_x", "inverse": "_inverse_x"}
+
+    def test_default_kwarg(self):
+        stmt = _parse_assign("x = fields.Char(default='_get_default')")
+        assert extract_field_refs(stmt) == {"default": "_get_default"}
+
+    def test_selection_kwarg(self):
+        stmt = _parse_assign("state = fields.Selection(selection='_get_states')")
+        assert extract_field_refs(stmt) == {"selection": "_get_states"}
+
+    def test_lambda_default_ignored(self):
+        stmt = _parse_assign("x = fields.Integer(default=lambda self: 0)")
+        assert extract_field_refs(stmt) == {}
+
+    def test_bare_callable_ignored(self):
+        # Bare callable (no quotes) — not supported per plan
+        stmt = _parse_assign("x = fields.Boolean(compute=_compute_x)")
+        assert extract_field_refs(stmt) == {}
+
+    def test_non_field_call_returns_empty(self):
+        stmt = _parse_assign("x = some_func(compute='_compute_x')")
+        refs = extract_field_refs(stmt)
+        # Works on any ast.Assign with a Call value — kwarg is in FIELD_REF_KWARGS
+        assert refs == {"compute": "_compute_x"}
+
+    def test_no_relevant_kwargs(self):
+        stmt = _parse_assign("x = fields.Char(string='Name', required=True)")
+        assert extract_field_refs(stmt) == {}
+
+
+# ---------------------------------------------------------------------------
+# TestClassifyMethod
+# ---------------------------------------------------------------------------
+
+
+class TestClassifyMethod:
+    def test_crud_create(self):
+        assert classify_method("create", []) == "CRUD METHODS"
+
+    def test_crud_write(self):
+        assert classify_method("write", []) == "CRUD METHODS"
+
+    def test_crud_unlink(self):
+        assert classify_method("unlink", []) == "CRUD METHODS"
+
+    def test_crud_copy(self):
+        assert classify_method("copy", []) == "CRUD METHODS"
+
+    def test_default_get_by_name(self):
+        assert classify_method("default_get", []) == "DEFAULT METHODS"
+
+    def test_compute_via_api_depends(self):
+        assert classify_method("_compute_amount", ["api.depends"]) == "COMPUTE METHODS"
+
+    def test_compute_via_bare_depends(self):
+        assert classify_method("_compute_partner", ["depends"]) == "COMPUTE METHODS"
+
+    def test_onchange_decorator(self):
+        assert classify_method("_onchange_partner", ["api.onchange"]) == "ONCHANGE METHODS"
+
+    def test_constrains_decorator(self):
+        assert classify_method("_check_value", ["constrains"]) == "CONSTRAINT METHODS"
+
+    def test_compute_via_field_ref(self):
+        assert classify_method("_compute_x", [], ["compute"]) == "COMPUTE METHODS"
+
+    def test_inverse_via_field_ref(self):
+        assert classify_method("_inverse_x", [], ["inverse"]) == "COMPUTE METHODS"
+
+    def test_search_via_field_ref(self):
+        assert classify_method("_search_x", [], ["search"]) == "COMPUTE METHODS"
+
+    def test_default_via_field_ref(self):
+        assert classify_method("_get_default", [], ["default"]) == "DEFAULT METHODS"
+
+    def test_selection_via_field_ref(self):
+        assert classify_method("_get_states", [], ["selection"]) == "SELECTION METHODS"
+
+    def test_decorator_wins_over_field_ref(self):
+        # @api.depends takes priority over a hypothetical default= ref
+        assert classify_method("_x", ["api.depends"], ["default"]) == "COMPUTE METHODS"
+
+    def test_action_prefix(self):
+        assert classify_method("action_confirm", []) == "ACTION METHODS"
+
+    def test_button_prefix(self):
+        assert classify_method("button_confirm", []) == "ACTION METHODS"
+
+    def test_underscore_prefix_is_helper(self):
+        assert classify_method("_validate", []) == "HELPER METHODS"
+
+    def test_public_method_is_business(self):
+        assert classify_method("confirm", []) == "BUSINESS METHODS"
+
+    def test_api_model_is_not_a_classification_signal(self):
+        assert classify_method("some_method", ["api.model"], []) == "BUSINESS METHODS"
+
+    def test_crud_wins_over_decorator(self):
+        assert classify_method("write", ["api.model"]) == "CRUD METHODS"
+
+
+# ---------------------------------------------------------------------------
+# TestBuildModuleFieldRefs
+# ---------------------------------------------------------------------------
+
+
+class TestBuildModuleFieldRefs:
+    def test_single_file_compute(self, tmp_path):
+        f = tmp_path / "m.py"
+        f.write_text(textwrap.dedent("""\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Boolean(compute='_compute_x')
+        """))
+        refs = build_module_field_refs([f])
+        assert refs.get(("my.model", "_compute_x")) == ["compute"]
+
+    def test_cross_file(self, tmp_path):
+        fa = tmp_path / "a.py"
+        fb = tmp_path / "b.py"
+        fa.write_text(textwrap.dedent("""\
+            from odoo import fields, models
+            class M(models.Model):
+                _name = 'my.model'
+                x = fields.Boolean(compute='_compute_x')
+        """))
+        fb.write_text(textwrap.dedent("""\
+            from odoo import fields, models
+            class M(models.Model):
+                _inherit = 'my.model'
+                def _compute_x(self): pass
+        """))
+        refs = build_module_field_refs([fa, fb])
+        assert ("my.model", "_compute_x") in refs
+        assert "compute" in refs[("my.model", "_compute_x")]
+
+    def test_syntax_error_file_skipped(self, tmp_path):
+        f = tmp_path / "bad.py"
+        f.write_text("def broken(:\n    pass")
+        refs = build_module_field_refs([f])
+        assert refs == {}
+
+    def test_empty_list(self):
+        assert build_module_field_refs([]) == {}
+
+
+# ---------------------------------------------------------------------------
+# Extended TestScanModule — field_type, section, field_refs
+# ---------------------------------------------------------------------------
+
+COMPUTE_MODEL = """\
+    from odoo import fields, models
+
+    class MyModel(models.Model):
+        _name = 'my.model'
+        active = fields.Boolean(compute='_compute_active')
+
+        def _compute_active(self):
+            pass
+"""
+
+
+class TestScanModuleFieldTypesAndRefs:
+    def test_field_type_captured(self, tmp_path):
+        module_dir = _make_module(tmp_path, "mod", models={"m.py": COMPUTE_MODEL})
+        result = scan_module(module_dir, origin="apik", tier_root=tmp_path)
+        field_syms = [s for s in result["symbols"] if s["kind"] == "field"]
+        assert len(field_syms) == 1
+        assert field_syms[0]["field_type"] == "Boolean"
+
+    def test_method_section_classified_via_field_ref(self, tmp_path):
+        module_dir = _make_module(tmp_path, "mod", models={"m.py": COMPUTE_MODEL})
+        result = scan_module(module_dir, origin="apik", tier_root=tmp_path)
+        method_syms = {s["name"]: s for s in result["symbols"] if s["kind"] == "method"}
+        assert method_syms["_compute_active"]["section"] == "COMPUTE METHODS"
+
+    def test_field_refs_emitted(self, tmp_path):
+        module_dir = _make_module(tmp_path, "mod", models={"m.py": COMPUTE_MODEL})
+        result = scan_module(module_dir, origin="apik", tier_root=tmp_path)
+        refs = result["field_refs"]
+        assert len(refs) == 1
+        assert refs[0]["kwarg"] == "compute"
+        assert refs[0]["target_method"] == "_compute_active"
+
+    def test_field_type_is_none_for_methods(self, tmp_path):
+        module_dir = _make_module(tmp_path, "mod", models={"m.py": COMPUTE_MODEL})
+        result = scan_module(module_dir, origin="apik", tier_root=tmp_path)
+        method_syms = [s for s in result["symbols"] if s["kind"] == "method"]
+        assert all(s["field_type"] is None for s in method_syms)
+
+    def test_scan_result_has_field_refs_key(self, tmp_path):
+        module_dir = _make_module(tmp_path, "mod", models={"m.py": SIMPLE_MODEL})
+        result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
+        assert "field_refs" in result
+
+    def test_scan_tier_merges_field_refs(self, tmp_path):
+        tier_root = tmp_path / "tier"
+        tier_root.mkdir()
+        _make_module(tier_root, "mod", models={"m.py": COMPUTE_MODEL})
+        result = scan_tier(tier_root, origin="apik")
+        assert "field_refs" in result
+        assert len(result["field_refs"]) > 0

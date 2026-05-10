@@ -9,18 +9,21 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema
-------
+Schema (v2)
+-----------
 meta      (key, value)
 sources   (origin, path)
 modules   (name, origin, depends)      -- depends is a JSON array string
-symbols   (model, name, kind, origin, module, source_file, source_line)
+symbols   (model, name, kind, origin, module, source_file, source_line,
+           field_type, section)
+field_refs (model, field_name, module, kwarg, target_method)
 
 Indexes
 -------
 idx_symbols_lookup  on symbols(model, name, kind)
 idx_symbols_module  on symbols(module)
 idx_modules_origin  on modules(origin)
+idx_field_refs_target on field_refs(model, target_method)
 """
 
 import json
@@ -30,6 +33,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from oops.utils.compat import Any, Dict, List, Optional
+
+# ---------------------------------------------------------------------------
+# Schema versioning
+# ---------------------------------------------------------------------------
+
+SCHEMA_VERSION = 2  # bumped from implicit v1 (no field_type / section / field_refs)
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -53,24 +62,34 @@ CREATE TABLE IF NOT EXISTS sources (
 CREATE TABLE IF NOT EXISTS modules (
     name    TEXT NOT NULL PRIMARY KEY,
     origin  TEXT NOT NULL,
-    depends TEXT NOT NULL DEFAULT '[]'   -- JSON array
+    depends TEXT NOT NULL DEFAULT '[]'
 );
-
 CREATE INDEX IF NOT EXISTS idx_modules_origin ON modules (origin);
 
 CREATE TABLE IF NOT EXISTS symbols (
     model       TEXT    NOT NULL,
     name        TEXT    NOT NULL,
-    kind        TEXT    NOT NULL,   -- 'field' | 'method'
+    kind        TEXT    NOT NULL,           -- 'field' | 'method'
     origin      TEXT    NOT NULL,
     module      TEXT    NOT NULL,
     source_file TEXT    NOT NULL,
     source_line INTEGER NOT NULL,
+    field_type  TEXT,                       -- e.g. 'Boolean' / NULL for methods
+    section     TEXT,                       -- canonical section name / NULL for fields
     PRIMARY KEY (model, name, kind, module)
 );
-
 CREATE INDEX IF NOT EXISTS idx_symbols_lookup ON symbols (model, name, kind);
 CREATE INDEX IF NOT EXISTS idx_symbols_module ON symbols (module);
+
+CREATE TABLE IF NOT EXISTS field_refs (
+    model         TEXT NOT NULL,
+    field_name    TEXT NOT NULL,
+    module        TEXT NOT NULL,
+    kwarg         TEXT NOT NULL,            -- 'compute' | 'inverse' | 'search' | 'default' | 'selection'
+    target_method TEXT NOT NULL,
+    PRIMARY KEY (model, field_name, module, kwarg)
+);
+CREATE INDEX IF NOT EXISTS idx_field_refs_target ON field_refs (model, target_method);
 """
 
 
@@ -161,16 +180,17 @@ def _write_kb(
     con = _connect(db_path)
 
     with con:
-        # Wipe existing data (full rebuild strategy).
-        con.execute("DELETE FROM meta")
-        con.execute("DELETE FROM sources")
-        con.execute("DELETE FROM modules")
-        con.execute("DELETE FROM symbols")
+        # Schema may have evolved: drop and re-create all data tables so column
+        # additions always land on existing on-disk databases.
+        for table in ("field_refs", "symbols", "modules", "sources", "meta"):
+            con.execute(f"DROP TABLE IF EXISTS {table}")
+        con.executescript(_DDL)
 
         # --- meta ---
         meta_rows = [
             ("layer", layer),
             ("odoo_version", odoo_version),
+            ("schema_version", str(SCHEMA_VERSION)),
             ("generated_at", datetime.now(timezone.utc).isoformat()),
         ]
         if project:
@@ -185,7 +205,7 @@ def _write_kb(
             sources.items(),
         )
 
-        # --- modules + symbols from all scan results ---
+        # --- modules + symbols + field_refs from all scan results ---
         for result in scan_results:
             for mod_name, mod_data in result.get("modules", {}).items():
                 con.execute(
@@ -204,8 +224,9 @@ def _write_kb(
                 con.execute(
                     """
                     INSERT OR REPLACE INTO symbols
-                        (model, name, kind, origin, module, source_file, source_line)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                        (model, name, kind, origin, module, source_file, source_line,
+                         field_type, section)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         sym["model"],
@@ -215,6 +236,24 @@ def _write_kb(
                         sym["module"],
                         sym["source_file"],
                         sym["source_line"],
+                        sym.get("field_type"),
+                        sym.get("section"),
+                    ),
+                )
+
+            for ref in result.get("field_refs", []):
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO field_refs
+                        (model, field_name, module, kwarg, target_method)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        ref["model"],
+                        ref["field_name"],
+                        ref["module"],
+                        ref["kwarg"],
+                        ref["target_method"],
                     ),
                 )
 
@@ -228,14 +267,16 @@ def _log_stats(db_path: Path) -> None:
     n_sym = con.execute("SELECT COUNT(*) FROM symbols").fetchone()[0]
     n_fld = con.execute("SELECT COUNT(*) FROM symbols WHERE kind='field'").fetchone()[0]
     n_mth = con.execute("SELECT COUNT(*) FROM symbols WHERE kind='method'").fetchone()[0]
+    n_refs = con.execute("SELECT COUNT(*) FROM field_refs").fetchone()[0]
     con.close()
     logging.info(
-        "KB written → %s  [%d modules | %d symbols: %d fields, %d methods]",
+        "KB written → %s  [%d modules | %d symbols: %d fields, %d methods | %d field_refs]",
         db_path,
         n_mod,
         n_sym,
         n_fld,
         n_mth,
+        n_refs,
     )
 
 
@@ -308,12 +349,12 @@ class KBReader:
             kind:  'field' or 'method'.
 
         Returns:
-            List of dicts with keys: origin, module, source_file, source_line.
-            Empty list if symbol is not found in any upstream source.
+            List of dicts with keys: origin, module, source_file, source_line,
+            field_type, section. Empty list if symbol is not found.
         """
         rows = self._con.execute(
             """
-            SELECT origin, module, source_file, source_line
+            SELECT origin, module, source_file, source_line, field_type, section
             FROM   symbols
             WHERE  model = ? AND name = ? AND kind = ?
             ORDER  BY origin  -- stable ordering; resolve.py re-sorts by depends
@@ -349,7 +390,8 @@ class KBReader:
         if kind:
             rows = self._con.execute(
                 """
-                SELECT name, kind, origin, module, source_file, source_line
+                SELECT name, kind, origin, module, source_file, source_line,
+                       field_type, section
                 FROM   symbols
                 WHERE  model = ? AND kind = ?
                 ORDER  BY name
@@ -359,7 +401,8 @@ class KBReader:
         else:
             rows = self._con.execute(
                 """
-                SELECT name, kind, origin, module, source_file, source_line
+                SELECT name, kind, origin, module, source_file, source_line,
+                       field_type, section
                 FROM   symbols
                 WHERE  model = ?
                 ORDER  BY kind, name
@@ -372,3 +415,38 @@ class KBReader:
         """Return { origin: path } for all indexed source roots."""
         rows = self._con.execute("SELECT origin, path FROM sources").fetchall()
         return {r["origin"]: r["path"] for r in rows}
+
+    # --- field_refs ---
+
+    def get_field_refs_for_method(
+        self, model: str, target_method: str
+    ) -> List[Dict[str, Any]]:
+        """Return [{module, field_name, kwarg}, ...] for fields referencing this method."""
+        rows = self._con.execute(
+            """
+            SELECT module, field_name, kwarg
+            FROM   field_refs
+            WHERE  model = ? AND target_method = ?
+            ORDER  BY module, kwarg, field_name
+            """,
+            (model, target_method),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_field_refs_for_field(
+        self, model: str, field_name: str, module: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Return [{kwarg, target_method, module}, ...] for kwargs of this field."""
+        if module is None:
+            rows = self._con.execute(
+                "SELECT kwarg, target_method, module FROM field_refs "
+                "WHERE model=? AND field_name=? ORDER BY module, kwarg",
+                (model, field_name),
+            ).fetchall()
+        else:
+            rows = self._con.execute(
+                "SELECT kwarg, target_method, module FROM field_refs "
+                "WHERE model=? AND field_name=? AND module=? ORDER BY kwarg",
+                (model, field_name, module),
+            ).fetchall()
+        return [dict(r) for r in rows]

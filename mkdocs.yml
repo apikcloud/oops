@@ -204,6 +204,7 @@ nav:
   - Changelog: changelog.md
   - Release Notes: release-notes.md
   - Reference:
+      - Method Classification: reference/method-classification.md
       - Core:
           - Config: reference/core/config.md
           - Exceptions: reference/core/exceptions.md

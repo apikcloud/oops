@@ -6,7 +6,7 @@
 """AST-based scanner for Odoo source trees.
 
 Sections:
-    - Constants: ODOO_BASE_CLASSES, FIELD_TYPES, tier marker helpers
+    - Constants: ODOO_BASE_CLASSES, FIELD_TYPES, METHOD_SECTION_*, tier marker helpers
     - AST helpers: parse, extract, classify Odoo model nodes
     - Manifest parsing: delegated to oops.io.manifest
     - Scanning: scan_module, scan_tier, odoo_addons_roots
@@ -20,7 +20,7 @@ from typing import Set
 
 from oops.core.config import config
 from oops.io.manifest import load_manifest
-from oops.utils.compat import Any, Dict, List, Optional, Tuple
+from oops.utils.compat import Any, Dict, Iterable, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -50,6 +50,37 @@ FIELD_TYPES = {
     "Serialized",
     "Text",
 }
+
+# Field kwargs whose string-literal value is a method name.
+FIELD_REF_KWARGS = ("compute", "inverse", "search", "default", "selection")
+
+# ---------------------------------------------------------------------------
+# Method section name constants (source of truth; refactor.py imports these)
+# ---------------------------------------------------------------------------
+
+METHOD_SECTION_CRUD       = "CRUD METHODS"
+METHOD_SECTION_COMPUTE    = "COMPUTE METHODS"
+METHOD_SECTION_SELECTION  = "SELECTION METHODS"
+METHOD_SECTION_DEFAULT    = "DEFAULT METHODS"
+METHOD_SECTION_ONCHANGE   = "ONCHANGE METHODS"
+METHOD_SECTION_CONSTRAINT = "CONSTRAINT METHODS"
+METHOD_SECTION_HELPER     = "HELPER METHODS"
+METHOD_SECTION_ACTION     = "ACTION METHODS"
+METHOD_SECTION_BUSINESS   = "BUSINESS METHODS"
+
+# ORM methods whose section is fully determined by name.
+CRUD_NAMES = {"create", "write", "unlink", "copy", "name_search", "_search"}
+DEFAULT_NAMES = {"default_get"}
+
+# Maps a field kwarg to the section its target method should be placed in.
+KWARG_TO_SECTION: Dict[str, str] = {
+    "compute":   METHOD_SECTION_COMPUTE,
+    "inverse":   METHOD_SECTION_COMPUTE,
+    "search":    METHOD_SECTION_COMPUTE,
+    "default":   METHOD_SECTION_DEFAULT,
+    "selection": METHOD_SECTION_SELECTION,
+}
+
 
 def _tier_markers() -> dict:
     """Build tier path markers from config.submodules paths."""
@@ -125,8 +156,8 @@ def get_model_names(class_node: ast.ClassDef) -> Tuple[Optional[str], List[str]]
     return _name, _inherit
 
 
-def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int]]:
-    """If stmt assigns a fields.XXX, return (field_name, line_no). Else None."""
+def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int, str]]:
+    """If stmt assigns a fields.XXX, return (field_name, lineno, field_type). Else None."""
     if not isinstance(stmt, ast.Assign):
         return None
     if len(stmt.targets) != 1 or not isinstance(stmt.targets[0], ast.Name):
@@ -135,10 +166,132 @@ def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int]]:
     if isinstance(value, ast.Call):
         func = value.func
         if isinstance(func, ast.Attribute) and func.attr in FIELD_TYPES:
-            return stmt.targets[0].id, stmt.lineno
+            return stmt.targets[0].id, stmt.lineno, func.attr
         if isinstance(func, ast.Name) and func.id in FIELD_TYPES:
-            return stmt.targets[0].id, stmt.lineno
+            return stmt.targets[0].id, stmt.lineno, func.id
     return None
+
+
+def extract_field_refs(stmt: ast.Assign) -> Dict[str, str]:
+    """Return {kwarg: target_method_name} for string-literal kwargs in FIELD_REF_KWARGS.
+
+    Bare callables and lambdas are skipped silently.
+    """
+    refs: Dict[str, str] = {}
+    if not isinstance(stmt.value, ast.Call):
+        return refs
+    for kw in stmt.value.keywords:
+        if kw.arg in FIELD_REF_KWARGS and isinstance(kw.value, ast.Constant):
+            if isinstance(kw.value.value, str):
+                refs[kw.arg] = kw.value.value
+    return refs
+
+
+def _get_decorator_names(func_node: ast.FunctionDef) -> List[str]:
+    """Return all decorator name strings from a function definition."""
+    names = []
+    for dec in func_node.decorator_list:
+        if isinstance(dec, ast.Name):
+            names.append(dec.id)
+        elif isinstance(dec, ast.Attribute):
+            names.append(dec.attr)
+            names.append(f"{getattr(dec.value, 'id', '')}.{dec.attr}")
+        elif isinstance(dec, ast.Call):
+            func = dec.func
+            if isinstance(func, ast.Attribute):
+                names.append(func.attr)
+            elif isinstance(func, ast.Name):
+                names.append(func.id)
+    return names
+
+
+def classify_method(
+    name: str,
+    decorator_names: List[str],
+    referencing_kwargs: Iterable[str] = (),
+) -> str:
+    """Decide a method's section.
+
+    Priority (first match wins):
+      1. CRUD name.
+      2. Standard default-provider name (default_get) → DEFAULT METHODS.
+      3. @api.depends → COMPUTE METHODS.
+      4. @api.onchange → ONCHANGE METHODS.
+      5. @api.constrains → CONSTRAINT METHODS.
+      6. Referenced by a field via compute=/inverse=/search= → COMPUTE METHODS.
+      7. Referenced by a field via default= → DEFAULT METHODS.
+      8. Referenced by a field via selection= → SELECTION METHODS.
+      9. action_ or button_ prefix → ACTION METHODS.
+     10. _ prefix → HELPER METHODS.
+     11. Default → BUSINESS METHODS.
+
+    `referencing_kwargs` is the set of field kwargs that point at this method on
+    the same model (across all classes/files/modules available at classification
+    time).
+
+    `@api.model` is intentionally NOT a classification signal. It only marks that
+    the method receives the model class rather than a recordset as `self`; this
+    orthogonal property appears across all sections. Treating it as a signal would
+    misclassify or produce a new meaningless section.
+
+    `SELECTION METHODS` is ONLY reachable via the `referencing_kwargs` path
+    (`"selection"` in the set). There is no Odoo decorator for selection methods
+    and no established naming convention — `selection=` on a field declaration is
+    the sole detection signal.
+
+    See docs/reference/method-classification.md for the full rationale behind
+    each rule and guidance on extending the system.
+    """
+    if name in CRUD_NAMES:
+        return METHOD_SECTION_CRUD
+    if name in DEFAULT_NAMES:
+        return METHOD_SECTION_DEFAULT
+    if any(d in ("api.depends", "depends") for d in decorator_names):
+        return METHOD_SECTION_COMPUTE
+    if any(d in ("api.onchange", "onchange") for d in decorator_names):
+        return METHOD_SECTION_ONCHANGE
+    if any(d in ("api.constrains", "constrains") for d in decorator_names):
+        return METHOD_SECTION_CONSTRAINT
+    refs = set(referencing_kwargs)
+    if refs & {"compute", "inverse", "search"}:
+        return METHOD_SECTION_COMPUTE
+    if "default" in refs:
+        return METHOD_SECTION_DEFAULT
+    if "selection" in refs:
+        return METHOD_SECTION_SELECTION
+    if name.startswith(("action_", "button_")):
+        return METHOD_SECTION_ACTION
+    if name.startswith("_"):
+        return METHOD_SECTION_HELPER
+    return METHOD_SECTION_BUSINESS
+
+
+def build_module_field_refs(
+    py_files: List[Path],
+) -> Dict[Tuple[str, str], List[str]]:
+    """Build a {(model, method_name): [kwarg, ...]} index from a list of model files.
+
+    Used by the refactor CLI to pre-compute cross-file field→method links within
+    a single module before running per-file analysis.
+    """
+    refs: Dict[Tuple[str, str], List[str]] = {}
+    for py_file in py_files:
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef) or not is_odoo_model_class(node):
+                continue
+            _name, _inherit = get_model_names(node)
+            for model_name in ([_name] if _name else _inherit):
+                for stmt in node.body:
+                    if not isinstance(stmt, ast.Assign):
+                        continue
+                    for kwarg, target in extract_field_refs(stmt).items():
+                        key = (model_name, target)
+                        refs.setdefault(key, []).append(kwarg)
+    return refs
 
 
 # ---------------------------------------------------------------------------
@@ -157,9 +310,21 @@ def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int]]:
 #           "module":      str,
 #           "source_file": str,   # relative to tier_root
 #           "source_line": int,
+#           "field_type":  str | None,  # set when kind == 'field'; e.g. 'Boolean'
+#           "section":     str | None,  # set when kind == 'method'; canonical section name
 #       },
 #       ...
-#   ]
+#   ],
+#   "field_refs": [
+#       {
+#           "model":         str,
+#           "field_name":    str,
+#           "module":        str,
+#           "kwarg":         str,   # 'compute' | 'inverse' | 'search' | 'default' | 'selection'
+#           "target_method": str,
+#       },
+#       ...
+#   ],
 # }
 
 
@@ -176,10 +341,10 @@ def scan_module(
         tier_root:  root used to compute relative source_file paths.
 
     Returns:
-        A ScanResult dict with keys 'modules' and 'symbols'.
+        A ScanResult dict with keys 'modules', 'symbols', and 'field_refs'.
     """
     module_name = module_dir.name
-    result: Dict[str, Any] = {"modules": {}, "symbols": []}
+    result: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": []}
 
     # --- manifest ---
     depends = load_manifest(module_dir).get("depends", [])
@@ -190,16 +355,25 @@ def scan_module(
     if not models_dir.is_dir():
         return result
 
+    # Parse all model files up front so we can do two passes.
+    parsed_files: List[Tuple[Path, str, ast.Module]] = []
     for py_file in models_dir.rglob("*.py"):
         tree = _parse_file(py_file)
         if tree is None:
             continue
-
         try:
             rel_path = str(py_file.relative_to(tier_root))
         except ValueError:
             rel_path = str(py_file)
+        parsed_files.append((py_file, rel_path, tree))
 
+    # ---- Pass 1: collect field symbols and field_refs across the whole module. ----
+    # Keyed by (model, target_method) → list of kwargs
+    refs_by_target: Dict[Tuple[str, str], List[str]] = {}
+    field_symbols: List[Dict[str, Any]] = []
+    pending_methods: List[Tuple[str, str, ast.FunctionDef, str, int]] = []
+
+    for _, rel_path, tree in parsed_files:
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
@@ -207,46 +381,46 @@ def scan_module(
                 continue
 
             _name, _inherit = get_model_names(node)
-
-            # Determine which Odoo model(s) this class contributes to.
-            target_models: List[str] = []
-            if _name:
-                target_models = [_name]
-            elif _inherit:
-                target_models = _inherit
+            target_models: List[str] = [_name] if _name else _inherit
 
             for model_name in target_models:
                 for stmt in node.body:
-                    # fields
-                    field = is_field_assignment(stmt)
-                    if field:
-                        fname, lineno = field
-                        result["symbols"].append(
-                            {
-                                "model": model_name,
-                                "name": fname,
-                                "kind": "field",
-                                "origin": origin,
-                                "module": module_name,
-                                "source_file": rel_path,
-                                "source_line": lineno,
-                            }
-                        )
+                    fld = is_field_assignment(stmt)
+                    if fld:
+                        fname, lineno, ftype = fld
+                        field_symbols.append({
+                            "model": model_name, "name": fname, "kind": "field",
+                            "origin": origin, "module": module_name,
+                            "source_file": rel_path, "source_line": lineno,
+                            "field_type": ftype, "section": None,
+                        })
+                        for kwarg, target in extract_field_refs(stmt).items():
+                            refs_by_target.setdefault((model_name, target), []).append(kwarg)
+                            result["field_refs"].append({
+                                "model": model_name, "field_name": fname,
+                                "module": module_name, "kwarg": kwarg,
+                                "target_method": target,
+                            })
                         continue
-                    # methods
                     if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        result["symbols"].append(
-                            {
-                                "model": model_name,
-                                "name": stmt.name,
-                                "kind": "method",
-                                "origin": origin,
-                                "module": module_name,
-                                "source_file": rel_path,
-                                "source_line": stmt.lineno,
-                            }
+                        pending_methods.append(
+                            (model_name, rel_path, stmt, stmt.name, stmt.lineno)
                         )
 
+    # ---- Pass 2: classify methods using the collected field refs. ----
+    method_symbols: List[Dict[str, Any]] = []
+    for model_name, rel_path, fn_node, mname, lineno in pending_methods:
+        ref_kwargs = refs_by_target.get((model_name, mname), [])
+        decs = _get_decorator_names(fn_node)
+        section = classify_method(mname, decs, ref_kwargs)
+        method_symbols.append({
+            "model": model_name, "name": mname, "kind": "method",
+            "origin": origin, "module": module_name,
+            "source_file": rel_path, "source_line": lineno,
+            "field_type": None, "section": section,
+        })
+
+    result["symbols"] = field_symbols + method_symbols
     return result
 
 
@@ -265,7 +439,7 @@ def scan_tier(
     Returns:
         Merged ScanResult for all scanned modules.
     """
-    merged: Dict[str, Any] = {"modules": {}, "symbols": []}
+    merged: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": []}
 
     if not tier_root.is_dir():
         logging.warning("Tier root not found, skipping: %s", tier_root)
@@ -283,6 +457,7 @@ def scan_tier(
         result = scan_module(entry, origin, tier_root)
         merged["modules"].update(result["modules"])
         merged["symbols"].extend(result["symbols"])
+        merged["field_refs"].extend(result.get("field_refs", []))
         count += 1
 
     logging.info("  [%s] %s → %d modules", origin, tier_root, count)
