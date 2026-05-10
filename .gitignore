@@ -172,3 +172,5 @@ cython_debug/
 .claude/
 thoughts/
 CLAUDE.md
+AGENT.md
+ROADMAP.md
