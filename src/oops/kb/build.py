@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,6 +22,33 @@ from oops.kb.scanner import (
 from oops.kb.store import SCHEMA_VERSION, KBReader, write_project_kb
 
 log = logging.getLogger(__name__)
+
+
+def _resolve_prototype_roles(scan_results: list[dict]) -> None:
+    """In-place: upgrade 'create' → 'prototype' for classes whose _inherit
+    contains at least one known concrete (non-abstract) model.
+
+    Two-pass algorithm:
+      Pass A — collect all model names whose role is 'create' and is_abstract=0.
+      Pass B — for each 'create' entry, if any _inherit target is in that set,
+               upgrade its role to 'prototype'.
+
+    Args:
+        scan_results: List of ScanResult dicts, mutated in place.
+    """
+    concrete_models: set[str] = set()
+    for result in scan_results:
+        for entry in result.get("model_origins", []):
+            if entry.get("role") in ("create", "prototype") and not entry.get("is_abstract"):
+                concrete_models.add(entry["model"])
+
+    for result in scan_results:
+        for entry in result.get("model_origins", []):
+            if entry.get("role") != "create" or entry.get("is_abstract"):
+                continue
+            inherit_targets: list[str] = json.loads(entry.get("inherit_json", "[]"))
+            if any(t in concrete_models for t in inherit_targets):
+                entry["role"] = "prototype"
 
 
 def build_project_kb(
@@ -86,11 +114,19 @@ def build_project_kb(
                 "SELECT model, field_name, module, kwarg, target_method FROM field_refs"
             ).fetchall()
         ]
+        global_model_origins = [
+            dict(r) for r in kb._con.execute(
+                "SELECT model, module, origin, role, is_abstract, "
+                "inherit_json, inherits_json, source_file, source_line "
+                "FROM model_origins"
+            ).fetchall()
+        ]
 
     global_scan = {
         "modules": global_modules,
         "symbols": global_symbols,
         "field_refs": global_field_refs,
+        "model_origins": global_model_origins,
     }
 
     global_odoo_version = global_meta.get("odoo_version", version)
@@ -127,7 +163,7 @@ def build_project_kb(
 
         sources[origin] = str(tier_root)
 
-        tier_result: dict = {"modules": {}, "symbols": [], "field_refs": []}
+        tier_result: dict = {"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}
         for _, real_module_path in tier_modules:
             manifest = real_module_path / "__manifest__.py"
             if not manifest.exists():
@@ -140,6 +176,7 @@ def build_project_kb(
             tier_result["modules"].update(result["modules"])
             tier_result["symbols"].extend(result["symbols"])
             tier_result["field_refs"].extend(result.get("field_refs", []))
+            tier_result["model_origins"].extend(result.get("model_origins", []))
             scanned += 1
 
         log.info("  → %d modules scanned", scanned)
@@ -147,6 +184,10 @@ def build_project_kb(
 
     # --- Scope (input list, not actually-scanned set) ---
     scope = sorted(modules_list)
+
+    # --- Resolve prototype roles across all scan results ---
+    all_scan_results = [global_scan] + project_scan_results
+    _resolve_prototype_roles(all_scan_results)
 
     # --- Write ---
     log.info("Writing project KB → %s", db_path)
@@ -156,7 +197,7 @@ def build_project_kb(
         project=project,
         scope=scope,
         sources=sources,
-        scan_results=[global_scan] + project_scan_results,
+        scan_results=all_scan_results,
     )
 
     return db_path

@@ -9,21 +9,26 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema (v2)
+Schema (v3)
 -----------
-meta      (key, value)
-sources   (origin, path)
-modules   (name, origin, depends)      -- depends is a JSON array string
-symbols   (model, name, kind, origin, module, source_file, source_line,
-           field_type, section)
-field_refs (model, field_name, module, kwarg, target_method)
+meta          (key, value)
+sources       (origin, path)
+modules       (name, origin, depends)         -- depends is a JSON array string
+symbols       (model, name, kind, origin, module, source_file, source_line,
+               field_type, section)
+field_refs    (model, field_name, module, kwarg, target_method)
+model_origins (model, module, origin, role, is_abstract,
+               inherit_json, inherits_json, source_file, source_line)
+              role: 'create' | 'extend' | 'prototype'
 
 Indexes
 -------
-idx_symbols_lookup  on symbols(model, name, kind)
-idx_symbols_module  on symbols(module)
-idx_modules_origin  on modules(origin)
-idx_field_refs_target on field_refs(model, target_method)
+idx_symbols_lookup      on symbols(model, name, kind)
+idx_symbols_module      on symbols(module)
+idx_modules_origin      on modules(origin)
+idx_field_refs_target   on field_refs(model, target_method)
+idx_model_origins_model on model_origins(model)
+idx_model_origins_role  on model_origins(model, role)
 """
 
 import json
@@ -38,7 +43,7 @@ from oops.utils.compat import Any, Dict, List, Optional
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 2  # bumped from implicit v1 (no field_type / section / field_refs)
+SCHEMA_VERSION = 3  # added model_origins table (role, is_abstract, inherit_json, inherits_json)
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -90,6 +95,21 @@ CREATE TABLE IF NOT EXISTS field_refs (
     PRIMARY KEY (model, field_name, module, kwarg)
 );
 CREATE INDEX IF NOT EXISTS idx_field_refs_target ON field_refs (model, target_method);
+
+CREATE TABLE IF NOT EXISTS model_origins (
+    model         TEXT    NOT NULL,
+    module        TEXT    NOT NULL,
+    origin        TEXT    NOT NULL,
+    role          TEXT    NOT NULL,         -- 'create' | 'extend' | 'prototype'
+    is_abstract   INTEGER NOT NULL DEFAULT 0,
+    inherit_json  TEXT    NOT NULL DEFAULT '[]',
+    inherits_json TEXT    NOT NULL DEFAULT '{}',
+    source_file   TEXT    NOT NULL,
+    source_line   INTEGER NOT NULL,
+    PRIMARY KEY (model, module)
+);
+CREATE INDEX IF NOT EXISTS idx_model_origins_model ON model_origins (model);
+CREATE INDEX IF NOT EXISTS idx_model_origins_role  ON model_origins (model, role);
 """
 
 
@@ -182,7 +202,7 @@ def _write_kb(
     with con:
         # Schema may have evolved: drop and re-create all data tables so column
         # additions always land on existing on-disk databases.
-        for table in ("field_refs", "symbols", "modules", "sources", "meta"):
+        for table in ("field_refs", "symbols", "model_origins", "modules", "sources", "meta"):
             con.execute(f"DROP TABLE IF EXISTS {table}")
         con.executescript(_DDL)
 
@@ -257,6 +277,27 @@ def _write_kb(
                     ),
                 )
 
+            for orig in result.get("model_origins", []):
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO model_origins
+                        (model, module, origin, role, is_abstract,
+                         inherit_json, inherits_json, source_file, source_line)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        orig["model"],
+                        orig["module"],
+                        orig["origin"],
+                        orig["role"],
+                        1 if orig.get("is_abstract") else 0,
+                        orig.get("inherit_json", "[]"),
+                        orig.get("inherits_json", "{}"),
+                        orig["source_file"],
+                        orig["source_line"],
+                    ),
+                )
+
     con.close()
     _log_stats(db_path)
 
@@ -268,15 +309,17 @@ def _log_stats(db_path: Path) -> None:
     n_fld = con.execute("SELECT COUNT(*) FROM symbols WHERE kind='field'").fetchone()[0]
     n_mth = con.execute("SELECT COUNT(*) FROM symbols WHERE kind='method'").fetchone()[0]
     n_refs = con.execute("SELECT COUNT(*) FROM field_refs").fetchone()[0]
+    n_orig = con.execute("SELECT COUNT(*) FROM model_origins").fetchone()[0]
     con.close()
     logging.info(
-        "KB written → %s  [%d modules | %d symbols: %d fields, %d methods | %d field_refs]",
+        "KB written → %s  [%d modules | %d symbols: %d fields, %d methods | %d field_refs | %d model_origins]",
         db_path,
         n_mod,
         n_sym,
         n_fld,
         n_mth,
         n_refs,
+        n_orig,
     )
 
 
@@ -411,6 +454,65 @@ class KBReader:
         """
         row = self._con.execute("SELECT 1 FROM symbols WHERE model = ? LIMIT 1", (model,)).fetchone()
         return row is not None
+
+    def get_model_origin(self, model: str, module: str) -> Optional[str]:
+        """Return the role of ``module`` for ``model``, or None if absent.
+
+        Args:
+            model: Dotted model name.
+            module: Module name.
+
+        Returns:
+            ``'create'``, ``'extend'``, ``'prototype'``, or ``None``.
+        """
+        row = self._con.execute(
+            "SELECT role FROM model_origins WHERE model = ? AND module = ?",
+            (model, module),
+        ).fetchone()
+        return row["role"] if row else None
+
+    def is_model_creator(self, model: str, module: str) -> bool:
+        """Return True if ``module`` is a creator (or prototype source) of ``model``.
+
+        Falls back to True when neither ``module`` nor any other module has a
+        ``model_origins`` creator entry for the model — safe assumption for modules
+        that were not included in the KB scan.
+
+        Args:
+            model: Dotted model name.
+            module: The module being analysed.
+
+        Returns:
+            True when this module created the model, False when it only extends it.
+        """
+        role = self.get_model_origin(model, module)
+        if role is not None:
+            return role in ("create", "prototype")
+        row = self._con.execute(
+            "SELECT 1 FROM model_origins WHERE model = ? AND role IN ('create', 'prototype') LIMIT 1",
+            (model,),
+        ).fetchone()
+        return row is None
+
+    def get_model_creators(self, model: str) -> List[Dict[str, Any]]:
+        """Return all modules recorded as creators of ``model``.
+
+        Args:
+            model: Dotted model name.
+
+        Returns:
+            List of ``{"module", "origin", "source_file", "source_line"}`` dicts.
+        """
+        rows = self._con.execute(
+            """
+            SELECT module, origin, source_file, source_line
+            FROM   model_origins
+            WHERE  model = ? AND role IN ('create', 'prototype')
+            ORDER  BY origin, module
+            """,
+            (model,),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
     def get_model_symbols(
         self,

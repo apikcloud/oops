@@ -14,6 +14,7 @@ Sections:
 """
 
 import ast
+import json
 import logging
 from pathlib import Path
 from typing import Set
@@ -158,6 +159,45 @@ def get_model_names(class_node: ast.ClassDef) -> Tuple[Optional[str], List[str]]
                         elt.value for elt in val.elts if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
                     ]
     return _name, _inherit
+
+
+def _is_abstract_model_class(node: ast.ClassDef) -> bool:
+    """Return True if the class directly subclasses models.AbstractModel."""
+    for base in node.bases:
+        name = None
+        if isinstance(base, ast.Attribute):
+            name = base.attr
+        elif isinstance(base, ast.Name):
+            name = base.id
+        if name == "AbstractModel":
+            return True
+    return False
+
+
+def get_inherits(class_node: ast.ClassDef) -> Dict[str, str]:
+    """Extract _inherits dict {parent_model: fk_field} from a class body.
+
+    Returns:
+        Mapping of parent model name to the local FK field name, empty if absent.
+    """
+    for stmt in class_node.body:
+        if not isinstance(stmt, ast.Assign):
+            continue
+        for target in stmt.targets:
+            if not isinstance(target, ast.Name) or target.id != "_inherits":
+                continue
+            val = stmt.value
+            if not isinstance(val, ast.Dict):
+                continue
+            result: Dict[str, str] = {}
+            for k, v in zip(val.keys, val.values):
+                if (
+                    isinstance(k, ast.Constant) and isinstance(k.value, str)
+                    and isinstance(v, ast.Constant) and isinstance(v.value, str)
+                ):
+                    result[k.value] = v.value
+            return result
+    return {}
 
 
 def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int, str]]:
@@ -357,10 +397,24 @@ def build_module_field_refs(
 #       },
 #       ...
 #   ],
+#   "model_origins": [
+#       {
+#           "model":         str,   # model name being acted upon
+#           "module":        str,
+#           "origin":        str,
+#           "role":          str,   # 'create' | 'extend' | 'prototype' (prototype set in build.py)
+#           "is_abstract":   bool,  # True if class directly subclasses AbstractModel
+#           "inherit_json":  str,   # JSON array of _inherit values (for prototype detection)
+#           "inherits_json": str,   # JSON object of _inherits dict
+#           "source_file":   str,
+#           "source_line":   int,
+#       },
+#       ...
+#   ],
 # }
 
 
-def scan_module(
+def scan_module(  # noqa: C901
     module_dir: Path,
     origin: str,
     tier_root: Path,
@@ -376,7 +430,7 @@ def scan_module(
         A ScanResult dict with keys 'modules', 'symbols', and 'field_refs'.
     """
     module_name = module_dir.name
-    result: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": []}
+    result: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}
 
     # --- manifest ---
     depends = load_manifest(module_dir).get("depends", [])
@@ -413,6 +467,36 @@ def scan_module(
                 continue
 
             _name, _inherit = get_model_names(node)
+            _inherits_dict = get_inherits(node)
+            is_abstract = _is_abstract_model_class(node)
+
+            if _name is not None:
+                role = "extend" if _name in _inherit else "create"
+                result["model_origins"].append({
+                    "model": _name,
+                    "module": module_name,
+                    "origin": origin,
+                    "role": role,
+                    "is_abstract": is_abstract,
+                    "inherit_json": json.dumps(_inherit),
+                    "inherits_json": json.dumps(_inherits_dict),
+                    "source_file": rel_path,
+                    "source_line": node.lineno,
+                })
+            else:
+                for inh in _inherit:
+                    result["model_origins"].append({
+                        "model": inh,
+                        "module": module_name,
+                        "origin": origin,
+                        "role": "extend",
+                        "is_abstract": False,
+                        "inherit_json": json.dumps([]),
+                        "inherits_json": json.dumps({}),
+                        "source_file": rel_path,
+                        "source_line": node.lineno,
+                    })
+
             target_models: List[str] = [_name] if _name else _inherit
 
             for model_name in target_models:
@@ -471,7 +555,7 @@ def scan_tier(
     Returns:
         Merged ScanResult for all scanned modules.
     """
-    merged: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": []}
+    merged: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}
 
     if not tier_root.is_dir():
         logging.warning("Tier root not found, skipping: %s", tier_root)
@@ -490,6 +574,7 @@ def scan_tier(
         merged["modules"].update(result["modules"])
         merged["symbols"].extend(result["symbols"])
         merged["field_refs"].extend(result.get("field_refs", []))
+        merged["model_origins"].extend(result.get("model_origins", []))
         count += 1
 
     logging.info("  [%s] %s → %d modules", origin, tier_root, count)

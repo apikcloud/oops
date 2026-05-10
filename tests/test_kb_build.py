@@ -317,3 +317,156 @@ class TestComputeRootDrift:
         missing, extra = compute_root_drift(repo, ["module_a"])
         assert missing == []
         assert extra == []
+
+
+# ---------------------------------------------------------------------------
+# TestResolvePrototypeRoles
+# ---------------------------------------------------------------------------
+
+
+class TestResolvePrototypeRoles:
+    def _make_entry(self, model, module, role, is_abstract=False, inherit=None):
+        return {
+            "model": model, "module": module, "origin": "local",
+            "role": role, "is_abstract": is_abstract,
+            "inherit_json": json.dumps(inherit or []),
+            "inherits_json": "{}",
+            "source_file": f"{module}/models/{model.replace('.', '_')}.py",
+            "source_line": 1,
+        }
+
+    def test_mixin_only_stays_create(self):
+        """_inherit containing only abstract models does not upgrade to prototype."""
+        from oops.kb.build import _resolve_prototype_roles
+        results = [{"model_origins": [
+            self._make_entry("mail.thread", "mail", "create", is_abstract=True),
+            self._make_entry("my.model", "my_module", "create", inherit=["mail.thread"]),
+        ]}]
+        _resolve_prototype_roles(results)
+        entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.model")
+        assert entry["role"] == "create"
+
+    def test_concrete_inherit_upgrades_to_prototype(self):
+        """_inherit containing a concrete model upgrades to prototype."""
+        from oops.kb.build import _resolve_prototype_roles
+        results = [{"model_origins": [
+            self._make_entry("sale.order", "sale", "create", is_abstract=False),
+            self._make_entry("my.sale", "my_module", "create", inherit=["sale.order"]),
+        ]}]
+        _resolve_prototype_roles(results)
+        entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.sale")
+        assert entry["role"] == "prototype"
+
+    def test_extend_role_never_upgraded(self):
+        """An 'extend' entry is never upgraded regardless of _inherit."""
+        from oops.kb.build import _resolve_prototype_roles
+        results = [{"model_origins": [
+            self._make_entry("sale.order", "sale", "create"),
+            self._make_entry("sale.order", "my_module", "extend", inherit=["sale.order"]),
+        ]}]
+        _resolve_prototype_roles(results)
+        entry = next(e for e in results[0]["model_origins"] if e["module"] == "my_module")
+        assert entry["role"] == "extend"
+
+    def test_already_prototype_unchanged(self):
+        """Idempotent: prototype entries contribute to concrete_models but are not re-processed."""
+        from oops.kb.build import _resolve_prototype_roles
+        results = [{"model_origins": [
+            self._make_entry("sale.order", "sale", "create"),
+            self._make_entry("my.sale", "my_module", "prototype", inherit=["sale.order"]),
+        ]}]
+        _resolve_prototype_roles(results)
+        entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.sale")
+        assert entry["role"] == "prototype"
+
+    def test_abstract_creator_not_upgraded(self):
+        """Abstract model creator is never upgraded to prototype."""
+        from oops.kb.build import _resolve_prototype_roles
+        results = [{"model_origins": [
+            self._make_entry("sale.order", "sale", "create"),
+            self._make_entry("my.mixin", "my_module", "create", is_abstract=True, inherit=["sale.order"]),
+        ]}]
+        _resolve_prototype_roles(results)
+        entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.mixin")
+        assert entry["role"] == "create"
+
+
+# ---------------------------------------------------------------------------
+# TestKBReaderModelOrigins
+# ---------------------------------------------------------------------------
+
+
+class TestKBReaderModelOrigins:
+    def _make_origin_entry(self, model, module, role, is_abstract=False):
+        return {
+            "model": model,
+            "module": module,
+            "origin": "local",
+            "role": role,
+            "is_abstract": is_abstract,
+            "inherit_json": "[]",
+            "inherits_json": "{}",
+            "source_file": f"{module}/models/x.py",
+            "source_line": 1,
+        }
+
+    def _db_with_origins(self, tmp_path, origins):
+        from oops.kb.store import write_project_kb
+        db_path = tmp_path / "test.db"
+        write_project_kb(db_path, "17.0", "test", [], {"odoo": "/odoo"}, [
+            {"modules": {}, "symbols": [], "field_refs": [], "model_origins": origins}
+        ])
+        return db_path
+
+    def test_is_model_creator_returns_true_for_create_role(self, tmp_path):
+        db = self._db_with_origins(tmp_path, [
+            self._make_origin_entry("res.client", "partner_hub", "create"),
+        ])
+        with KBReader(db) as kb:
+            assert kb.is_model_creator("res.client", "partner_hub") is True
+
+    def test_is_model_creator_returns_false_for_extend_role(self, tmp_path):
+        db = self._db_with_origins(tmp_path, [
+            self._make_origin_entry("res.client", "partner_hub_project", "extend"),
+        ])
+        with KBReader(db) as kb:
+            assert kb.is_model_creator("res.client", "partner_hub_project") is False
+
+    def test_is_model_creator_returns_true_for_prototype_role(self, tmp_path):
+        db = self._db_with_origins(tmp_path, [
+            self._make_origin_entry("my.sale", "my_module", "prototype"),
+        ])
+        with KBReader(db) as kb:
+            assert kb.is_model_creator("my.sale", "my_module") is True
+
+    def test_is_model_creator_fallback_when_no_model_origins(self, tmp_path):
+        """No model_origins rows at all → module assumed to be creator."""
+        db = self._db_with_origins(tmp_path, [])
+        with KBReader(db) as kb:
+            assert kb.is_model_creator("res.client", "partner_hub") is True
+
+    def test_is_model_creator_fallback_false_when_other_creator_exists(self, tmp_path):
+        """Module not in model_origins but another module IS creator → returns False."""
+        db = self._db_with_origins(tmp_path, [
+            self._make_origin_entry("res.client", "other_module", "create"),
+        ])
+        with KBReader(db) as kb:
+            assert kb.is_model_creator("res.client", "unknown_module") is False
+
+    def test_get_model_creators_returns_only_create_and_prototype(self, tmp_path):
+        db = self._db_with_origins(tmp_path, [
+            self._make_origin_entry("res.client", "partner_hub", "create"),
+            self._make_origin_entry("res.client", "partner_hub_project", "extend"),
+        ])
+        with KBReader(db) as kb:
+            creators = kb.get_model_creators("res.client")
+        assert len(creators) == 1
+        assert creators[0]["module"] == "partner_hub"
+
+    def test_get_model_origin_returns_role(self, tmp_path):
+        db = self._db_with_origins(tmp_path, [
+            self._make_origin_entry("res.client", "partner_hub", "create"),
+        ])
+        with KBReader(db) as kb:
+            assert kb.get_model_origin("res.client", "partner_hub") == "create"
+            assert kb.get_model_origin("res.client", "unknown") is None

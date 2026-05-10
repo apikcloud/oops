@@ -92,8 +92,14 @@ def _make_kb(
     db_path: Path,
     symbols: list[dict] | None = None,
     modules: dict | None = None,
+    model_origins: list[dict] | None = None,
 ) -> None:
-    scan_results = [{"modules": modules or {}, "symbols": symbols or []}]
+    scan_results = [{
+        "modules": modules or {},
+        "symbols": symbols or [],
+        "field_refs": [],
+        "model_origins": model_origins or [],
+    }]
     write_project_kb(
         db_path=db_path,
         odoo_version="17.0",
@@ -1476,3 +1482,165 @@ class TestAnalyseFileFieldRefs:
             [ci] = analyse_file(file_b, kb, {}, "mymodule", module_local_refs)
         method_map = {s.name: s for s in ci.symbols if s.kind == "method"}
         assert method_map["_compute_x"].section == "COMPUTE METHODS"
+
+
+# ---------------------------------------------------------------------------
+# NEW_MODEL_WITH_MIXINS_SOURCE — creator with mixin-only _inherit
+# ---------------------------------------------------------------------------
+
+NEW_MODEL_WITH_MIXINS_SOURCE = textwrap.dedent("""\
+    from odoo import fields, models
+
+
+    class ResClient(models.Model):
+        _name = 'res.client'
+        _inherit = ['mail.thread', 'mail.activity.mixin']
+
+        name = fields.Char()
+        stage_id = fields.Many2one('res.client.stage')
+
+        def _relational_fields(self):
+            return []
+""")
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyseFileCreatorInNonEmptyKB — regression for is_new_model misclassification
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyseFileCreatorInNonEmptyKB:
+    """Regression: creator module must not be misclassified when KB contains the model."""
+
+    def _make_client_kb(self, tmp_path: Path) -> Path:
+        kb_path = tmp_path / "client.db"
+        _make_kb(
+            kb_path,
+            symbols=[
+                _kb_symbol("res.client", "name", "field", module="partner_hub"),
+                _kb_symbol("res.client", "_relational_fields", "method", module="partner_hub"),
+                _kb_symbol("res.client", "_relational_fields", "method", module="partner_hub_project"),
+            ],
+            model_origins=[
+                {
+                    "model": "res.client",
+                    "module": "partner_hub",
+                    "origin": "local",
+                    "role": "create",
+                    "is_abstract": False,
+                    "inherit_json": '["mail.thread", "mail.activity.mixin"]',
+                    "inherits_json": "{}",
+                    "source_file": "partner_hub/models/res_client.py",
+                    "source_line": 12,
+                },
+                {
+                    "model": "res.client",
+                    "module": "partner_hub_project",
+                    "origin": "local",
+                    "role": "extend",
+                    "is_abstract": False,
+                    "inherit_json": "[]",
+                    "inherits_json": "{}",
+                    "source_file": "partner_hub_project/models/res_client.py",
+                    "source_line": 8,
+                },
+            ],
+        )
+        return kb_path
+
+    def test_creator_is_new_model_true(self, tmp_path):
+        py_file = tmp_path / "res_client.py"
+        py_file.write_text(NEW_MODEL_WITH_MIXINS_SOURCE)
+        kb_path = self._make_client_kb(tmp_path)
+        with KBReader(kb_path) as kb:
+            [ci] = analyse_file(py_file, kb, {}, "partner_hub")
+        assert ci.is_new_model is True
+
+    def test_extender_is_new_model_false(self, tmp_path):
+        src = textwrap.dedent("""\
+            from odoo import fields, models
+            class ResClient(models.Model):
+                _inherit = 'res.client'
+                x_extra = fields.Char()
+        """)
+        py_file = tmp_path / "res_client_ext.py"
+        py_file.write_text(src)
+        kb_path = self._make_client_kb(tmp_path)
+        with KBReader(kb_path) as kb:
+            [ci] = analyse_file(py_file, kb, {}, "partner_hub_project")
+        assert ci.is_new_model is False
+
+    def test_creator_fields_go_to_base_fields(self, tmp_path):
+        py_file = tmp_path / "res_client.py"
+        py_file.write_text(NEW_MODEL_WITH_MIXINS_SOURCE)
+        kb_path = self._make_client_kb(tmp_path)
+        with KBReader(kb_path) as kb:
+            [ci] = analyse_file(py_file, kb, {}, "partner_hub")
+        field_syms = [s for s in ci.symbols if s.kind == "field"]
+        assert field_syms, "expected at least one field"
+        assert all(s.section == "BASE FIELDS" for s in field_syms)
+
+    def test_creator_methods_are_not_overrides(self, tmp_path):
+        py_file = tmp_path / "res_client.py"
+        py_file.write_text(NEW_MODEL_WITH_MIXINS_SOURCE)
+        kb_path = self._make_client_kb(tmp_path)
+        with KBReader(kb_path) as kb:
+            [ci] = analyse_file(py_file, kb, {}, "partner_hub")
+        assert all(not s.is_override for s in ci.symbols if s.kind == "method")
+
+    def test_no_model_origins_falls_back_to_new_model_true(self, tmp_path):
+        """Module not in model_origins and no other creator → is_new_model=True."""
+        py_file = tmp_path / "res_client.py"
+        py_file.write_text(NEW_MODEL_WITH_MIXINS_SOURCE)
+        kb_path = tmp_path / "bare.db"
+        _make_kb(kb_path, symbols=[
+            _kb_symbol("res.client", "name", "field", module="partner_hub")
+        ])
+        with KBReader(kb_path) as kb:
+            [ci] = analyse_file(py_file, kb, {}, "partner_hub")
+        assert ci.is_new_model is True
+
+
+# ---------------------------------------------------------------------------
+# TestGetInherits / TestIsAbstractModelClass — scanner helper unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestGetInherits:
+    def test_basic_dict(self):
+        from oops.kb.scanner import get_inherits
+        src = "class Foo(models.Model):\n    _inherits = {'res.partner': 'partner_id'}"
+        assert get_inherits(_parse_class(src)) == {"res.partner": "partner_id"}
+
+    def test_empty_when_absent(self):
+        from oops.kb.scanner import get_inherits
+        assert get_inherits(_parse_class("class Foo(models.Model):\n    pass")) == {}
+
+    def test_multiple_parents(self):
+        from oops.kb.scanner import get_inherits
+        src = "class Foo(models.Model):\n    _inherits = {'res.partner': 'partner_id', 'res.company': 'company_id'}"
+        result = get_inherits(_parse_class(src))
+        assert result == {"res.partner": "partner_id", "res.company": "company_id"}
+
+    def test_ignores_non_dict_value(self):
+        from oops.kb.scanner import get_inherits
+        src = "class Foo(models.Model):\n    _inherits = some_variable"
+        assert get_inherits(_parse_class(src)) == {}
+
+
+class TestIsAbstractModelClass:
+    def test_abstract_model(self):
+        from oops.kb.scanner import _is_abstract_model_class
+        assert _is_abstract_model_class(_parse_class("class Foo(models.AbstractModel): pass")) is True
+
+    def test_concrete_model_is_not_abstract(self):
+        from oops.kb.scanner import _is_abstract_model_class
+        assert _is_abstract_model_class(_parse_class("class Foo(models.Model): pass")) is False
+
+    def test_transient_model_is_not_abstract(self):
+        from oops.kb.scanner import _is_abstract_model_class
+        assert _is_abstract_model_class(_parse_class("class Foo(models.TransientModel): pass")) is False
+
+    def test_bare_abstract_model_name(self):
+        from oops.kb.scanner import _is_abstract_model_class
+        assert _is_abstract_model_class(_parse_class("class Foo(AbstractModel): pass")) is True

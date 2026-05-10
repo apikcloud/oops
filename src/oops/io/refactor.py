@@ -114,6 +114,7 @@ class ClassInfo:
     model_name: Optional[str]
     inherit: List[str]
     is_new_model: bool
+    """True when this class is the creator of the model, as determined by the KB model_origins table."""
     lineno: int
     symbols: List[SymbolInfo] = field(default_factory=lambda: [])
 
@@ -234,7 +235,27 @@ def analyse_file(
             continue
 
         model_name = target_models[0]
-        is_new_model = not kb.model_exists(model_name)
+        # _name absent → pure _inherit class; always an extender regardless of KB.
+        # _name in _inherit → Odoo "reopen same model" extension pattern.
+        # Only query the KB when _name is set and not self-referential.
+        is_new_model = (
+            _name is not None
+            and _name not in _inherit
+            and kb.is_model_creator(model_name, custom_module)
+        )
+        if is_new_model:
+            other_creators = [
+                c for c in kb.get_model_creators(model_name)
+                if c["module"] != custom_module
+            ]
+            if other_creators:
+                logging.getLogger(__name__).warning(
+                    "Model '%s' claimed by multiple creators: %s (also in %s). "
+                    "These modules may be mutually exclusive.",
+                    model_name,
+                    custom_module,
+                    [c["module"] for c in other_creators],
+                )
         has_class_doc = _has_class_docstring(node)
 
         ci = ClassInfo(
@@ -260,10 +281,7 @@ def analyse_file(
                 fname, lineno, ftype = fld
                 kb_entries = kb.get_symbol(model_name, fname, "field")
                 kb_entry = resolve_symbol(kb_entries, custom_module, modules_index)
-                if ci.is_inherit or not is_new_model:
-                    section = "INHERITED FIELDS" if kb_entry else "NEW FIELDS"
-                else:
-                    section = "BASE FIELDS"
+                section = "BASE FIELDS" if is_new_model else ("INHERITED FIELDS" if kb_entry else "NEW FIELDS")
                 ci.symbols.append(
                     SymbolInfo(
                         name=fname,
@@ -304,7 +322,7 @@ def analyse_file(
                     has_super=has_super,
                     super_methods=super_methods,
                     kb_entry=kb_entry,
-                    is_override=bool(kb_entry) and not has_super,
+                    is_override=(not is_new_model) and bool(kb_entry) and not has_super,
                 )
             )
 
@@ -526,11 +544,11 @@ class _ModelRewriter(cst.CSTTransformer):
         new_stmts.extend(private_attrs)
 
         # 2. Fields.
-        if ci.is_inherit or not ci.is_new_model:
+        if ci.is_new_model:
+            _append_section("BASE FIELDS", field_buckets["BASE FIELDS"], new_stmts)
+        else:
             _append_section("INHERITED FIELDS", field_buckets["INHERITED FIELDS"], new_stmts)
             _append_section("NEW FIELDS", field_buckets["NEW FIELDS"], new_stmts)
-        else:
-            _append_section("BASE FIELDS", field_buckets["BASE FIELDS"], new_stmts)
 
         # 3. Methods.
         for sec in METHOD_SECTIONS:

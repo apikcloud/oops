@@ -29,6 +29,7 @@ from oops.commands.base import command
 from oops.core.paths import global_kb_dir
 from oops.io.file import get_odoo_sources_dirs, parse_odoo_version
 from oops.kb import setup_kb_logging
+from oops.kb.build import _resolve_prototype_roles
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
 from oops.services.git import get_local_repo
@@ -96,6 +97,9 @@ def main(
         result = scan_tier(enterprise_dir, "enterprise")
         scan_results.append(result)
         sources["enterprise"] = str(enterprise_dir)
+
+    log.info("Resolving prototype roles…")
+    _resolve_prototype_roles(scan_results)
 
     # --- Write ---
     log.info("Writing global KB → %s", db_path)
