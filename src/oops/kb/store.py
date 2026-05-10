@@ -44,7 +44,7 @@ from oops.utils.compat import Any, Dict, List, Optional
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 3  # added model_origins table (role, is_abstract, inherit_json, inherits_json)
+SCHEMA_VERSION = 3  # added model_origins table (role, model_type, inherit_json, inherits_json)
 
 # ---------------------------------------------------------------------------
 # DDL

@@ -105,7 +105,7 @@ class ClassInfo:
         class_name: Python class name.
         model_name: Value of ``_name``, or ``None`` when only ``_inherit`` is set.
         inherit: Values of ``_inherit`` (may be empty).
-        is_new_model: True when the class introduces a new model (has ``_name``).
+        is_new_model: True when this module is the creator of the model, per the KB model_origins table.
         lineno: Source line number of the class definition.
         symbols: Ordered list of fields and methods in the class.
     """
