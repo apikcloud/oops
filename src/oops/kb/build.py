@@ -29,7 +29,7 @@ def _resolve_prototype_roles(scan_results: list[dict]) -> None:
     contains at least one known concrete (non-abstract) model.
 
     Two-pass algorithm:
-      Pass A — collect all model names whose role is 'create' and is_abstract=0.
+      Pass A — collect all model names whose role is 'create' and model_type != 'abstract'.
       Pass B — for each 'create' entry, if any _inherit target is in that set,
                upgrade its role to 'prototype'.
 
@@ -39,12 +39,12 @@ def _resolve_prototype_roles(scan_results: list[dict]) -> None:
     concrete_models: set[str] = set()
     for result in scan_results:
         for entry in result.get("model_origins", []):
-            if entry.get("role") in ("create", "prototype") and not entry.get("is_abstract"):
+            if entry.get("role") in ("create", "prototype") and entry.get("model_type") != "abstract":
                 concrete_models.add(entry["model"])
 
     for result in scan_results:
         for entry in result.get("model_origins", []):
-            if entry.get("role") != "create" or entry.get("is_abstract"):
+            if entry.get("role") != "create" or entry.get("model_type") == "abstract":
                 continue
             inherit_targets: list[str] = json.loads(entry.get("inherit_json", "[]"))
             if any(t in concrete_models for t in inherit_targets):
@@ -116,7 +116,7 @@ def build_project_kb(
         ]
         global_model_origins = [
             dict(r) for r in kb._con.execute(
-                "SELECT model, module, origin, role, is_abstract, "
+                "SELECT model, module, origin, role, model_type, "
                 "inherit_json, inherits_json, source_file, source_line "
                 "FROM model_origins"
             ).fetchall()

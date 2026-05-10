@@ -325,10 +325,10 @@ class TestComputeRootDrift:
 
 
 class TestResolvePrototypeRoles:
-    def _make_entry(self, model, module, role, is_abstract=False, inherit=None):
+    def _make_entry(self, model, module, role, model_type="model", inherit=None):
         return {
             "model": model, "module": module, "origin": "local",
-            "role": role, "is_abstract": is_abstract,
+            "role": role, "model_type": model_type,
             "inherit_json": json.dumps(inherit or []),
             "inherits_json": "{}",
             "source_file": f"{module}/models/{model.replace('.', '_')}.py",
@@ -339,7 +339,7 @@ class TestResolvePrototypeRoles:
         """_inherit containing only abstract models does not upgrade to prototype."""
         from oops.kb.build import _resolve_prototype_roles
         results = [{"model_origins": [
-            self._make_entry("mail.thread", "mail", "create", is_abstract=True),
+            self._make_entry("mail.thread", "mail", "create", model_type="abstract"),
             self._make_entry("my.model", "my_module", "create", inherit=["mail.thread"]),
         ]}]
         _resolve_prototype_roles(results)
@@ -350,11 +350,22 @@ class TestResolvePrototypeRoles:
         """_inherit containing a concrete model upgrades to prototype."""
         from oops.kb.build import _resolve_prototype_roles
         results = [{"model_origins": [
-            self._make_entry("sale.order", "sale", "create", is_abstract=False),
+            self._make_entry("sale.order", "sale", "create", model_type="model"),
             self._make_entry("my.sale", "my_module", "create", inherit=["sale.order"]),
         ]}]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.sale")
+        assert entry["role"] == "prototype"
+
+    def test_transient_model_not_upgraded_when_inherited_as_abstract(self):
+        """TransientModel creators ARE concrete — if inherited by another model, that's prototype."""
+        from oops.kb.build import _resolve_prototype_roles
+        results = [{"model_origins": [
+            self._make_entry("my.wizard", "my_module", "create", model_type="transient"),
+            self._make_entry("my.other", "other_module", "create", inherit=["my.wizard"]),
+        ]}]
+        _resolve_prototype_roles(results)
+        entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.other")
         assert entry["role"] == "prototype"
 
     def test_extend_role_never_upgraded(self):
@@ -384,7 +395,7 @@ class TestResolvePrototypeRoles:
         from oops.kb.build import _resolve_prototype_roles
         results = [{"model_origins": [
             self._make_entry("sale.order", "sale", "create"),
-            self._make_entry("my.mixin", "my_module", "create", is_abstract=True, inherit=["sale.order"]),
+            self._make_entry("my.mixin", "my_module", "create", model_type="abstract", inherit=["sale.order"]),
         ]}]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.mixin")
@@ -397,13 +408,13 @@ class TestResolvePrototypeRoles:
 
 
 class TestKBReaderModelOrigins:
-    def _make_origin_entry(self, model, module, role, is_abstract=False):
+    def _make_origin_entry(self, model, module, role, model_type="model"):
         return {
             "model": model,
             "module": module,
             "origin": "local",
             "role": role,
-            "is_abstract": is_abstract,
+            "model_type": model_type,
             "inherit_json": "[]",
             "inherits_json": "{}",
             "source_file": f"{module}/models/x.py",

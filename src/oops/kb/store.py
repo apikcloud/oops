@@ -17,9 +17,10 @@ modules       (name, origin, depends)         -- depends is a JSON array string
 symbols       (model, name, kind, origin, module, source_file, source_line,
                field_type, section)
 field_refs    (model, field_name, module, kwarg, target_method)
-model_origins (model, module, origin, role, is_abstract,
+model_origins (model, module, origin, role, model_type,
                inherit_json, inherits_json, source_file, source_line)
               role: 'create' | 'extend' | 'prototype'
+              model_type: 'model' | 'transient' | 'abstract'
 
 Indexes
 -------
@@ -101,7 +102,7 @@ CREATE TABLE IF NOT EXISTS model_origins (
     module        TEXT    NOT NULL,
     origin        TEXT    NOT NULL,
     role          TEXT    NOT NULL,         -- 'create' | 'extend' | 'prototype'
-    is_abstract   INTEGER NOT NULL DEFAULT 0,
+    model_type    TEXT    NOT NULL DEFAULT 'model', -- 'model' | 'transient' | 'abstract'
     inherit_json  TEXT    NOT NULL DEFAULT '[]',
     inherits_json TEXT    NOT NULL DEFAULT '{}',
     source_file   TEXT    NOT NULL,
@@ -281,7 +282,7 @@ def _write_kb(
                 con.execute(
                     """
                     INSERT OR REPLACE INTO model_origins
-                        (model, module, origin, role, is_abstract,
+                        (model, module, origin, role, model_type,
                          inherit_json, inherits_json, source_file, source_line)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -290,7 +291,7 @@ def _write_kb(
                         orig["module"],
                         orig["origin"],
                         orig["role"],
-                        1 if orig.get("is_abstract") else 0,
+                        orig.get("model_type", "model"),
                         orig.get("inherit_json", "[]"),
                         orig.get("inherits_json", "{}"),
                         orig["source_file"],

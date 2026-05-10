@@ -161,8 +161,12 @@ def get_model_names(class_node: ast.ClassDef) -> Tuple[Optional[str], List[str]]
     return _name, _inherit
 
 
-def _is_abstract_model_class(node: ast.ClassDef) -> bool:
-    """Return True if the class directly subclasses models.AbstractModel."""
+def get_model_type(node: ast.ClassDef) -> str:
+    """Return the Odoo model kind for a class node.
+
+    Returns:
+        ``'abstract'``, ``'transient'``, or ``'model'``.
+    """
     for base in node.bases:
         name = None
         if isinstance(base, ast.Attribute):
@@ -170,8 +174,10 @@ def _is_abstract_model_class(node: ast.ClassDef) -> bool:
         elif isinstance(base, ast.Name):
             name = base.id
         if name == "AbstractModel":
-            return True
-    return False
+            return "abstract"
+        if name == "TransientModel":
+            return "transient"
+    return "model"
 
 
 def get_inherits(class_node: ast.ClassDef) -> Dict[str, str]:
@@ -403,7 +409,7 @@ def build_module_field_refs(
 #           "module":        str,
 #           "origin":        str,
 #           "role":          str,   # 'create' | 'extend' | 'prototype' (prototype set in build.py)
-#           "is_abstract":   bool,  # True if class directly subclasses AbstractModel
+#           "model_type":    str,   # 'model' | 'transient' | 'abstract'
 #           "inherit_json":  str,   # JSON array of _inherit values (for prototype detection)
 #           "inherits_json": str,   # JSON object of _inherits dict
 #           "source_file":   str,
@@ -468,7 +474,7 @@ def scan_module(  # noqa: C901
 
             _name, _inherit = get_model_names(node)
             _inherits_dict = get_inherits(node)
-            is_abstract = _is_abstract_model_class(node)
+            model_type = get_model_type(node)
 
             if _name is not None:
                 role = "extend" if _name in _inherit else "create"
@@ -477,7 +483,7 @@ def scan_module(  # noqa: C901
                     "module": module_name,
                     "origin": origin,
                     "role": role,
-                    "is_abstract": is_abstract,
+                    "model_type": model_type,
                     "inherit_json": json.dumps(_inherit),
                     "inherits_json": json.dumps(_inherits_dict),
                     "source_file": rel_path,
@@ -490,7 +496,7 @@ def scan_module(  # noqa: C901
                         "module": module_name,
                         "origin": origin,
                         "role": "extend",
-                        "is_abstract": False,
+                        "model_type": model_type,
                         "inherit_json": json.dumps([]),
                         "inherits_json": json.dumps({}),
                         "source_file": rel_path,

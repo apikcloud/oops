@@ -1527,7 +1527,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
                     "module": "partner_hub",
                     "origin": "local",
                     "role": "create",
-                    "is_abstract": False,
+                    "model_type": "model",
                     "inherit_json": '["mail.thread", "mail.activity.mixin"]',
                     "inherits_json": "{}",
                     "source_file": "partner_hub/models/res_client.py",
@@ -1538,7 +1538,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
                     "module": "partner_hub_project",
                     "origin": "local",
                     "role": "extend",
-                    "is_abstract": False,
+                    "model_type": "model",
                     "inherit_json": "[]",
                     "inherits_json": "{}",
                     "source_file": "partner_hub_project/models/res_client.py",
@@ -1602,7 +1602,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
 
 
 # ---------------------------------------------------------------------------
-# TestGetInherits / TestIsAbstractModelClass — scanner helper unit tests
+# TestGetInherits / TestGetModelType — scanner helper unit tests
 # ---------------------------------------------------------------------------
 
 
@@ -1628,19 +1628,23 @@ class TestGetInherits:
         assert get_inherits(_parse_class(src)) == {}
 
 
-class TestIsAbstractModelClass:
+class TestGetModelType:
     def test_abstract_model(self):
-        from oops.kb.scanner import _is_abstract_model_class
-        assert _is_abstract_model_class(_parse_class("class Foo(models.AbstractModel): pass")) is True
+        from oops.kb.scanner import get_model_type
+        assert get_model_type(_parse_class("class Foo(models.AbstractModel): pass")) == "abstract"
 
-    def test_concrete_model_is_not_abstract(self):
-        from oops.kb.scanner import _is_abstract_model_class
-        assert _is_abstract_model_class(_parse_class("class Foo(models.Model): pass")) is False
+    def test_transient_model(self):
+        from oops.kb.scanner import get_model_type
+        assert get_model_type(_parse_class("class Foo(models.TransientModel): pass")) == "transient"
 
-    def test_transient_model_is_not_abstract(self):
-        from oops.kb.scanner import _is_abstract_model_class
-        assert _is_abstract_model_class(_parse_class("class Foo(models.TransientModel): pass")) is False
+    def test_concrete_model(self):
+        from oops.kb.scanner import get_model_type
+        assert get_model_type(_parse_class("class Foo(models.Model): pass")) == "model"
 
-    def test_bare_abstract_model_name(self):
-        from oops.kb.scanner import _is_abstract_model_class
-        assert _is_abstract_model_class(_parse_class("class Foo(AbstractModel): pass")) is True
+    def test_bare_abstract_name(self):
+        from oops.kb.scanner import get_model_type
+        assert get_model_type(_parse_class("class Foo(AbstractModel): pass")) == "abstract"
+
+    def test_bare_transient_name(self):
+        from oops.kb.scanner import get_model_type
+        assert get_model_type(_parse_class("class Foo(TransientModel): pass")) == "transient"
