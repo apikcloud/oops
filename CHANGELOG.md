@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.14.0] - 2026-05-11
 
 ### Added
 
@@ -21,10 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `installed_modules.txt` repo convention (one module per line, optional `# generated_at:` header). Required when the project KB is missing or stale.
 - Automatic project KB rebuild on `oops addons refactor` when the KB is stale (older than `installed_modules.txt` or older than the global KB).
 
-### Removed
+### Documentation
 
-- Console scripts `oops-kb-build-global`, `oops-kb-build-project`, and `oops-refactor`. Use the `oops misc build-kb` and `oops addons refactor` group-attached forms.
-- `oops-kb-build-project` is gone entirely; the project KB is now managed by `oops addons refactor` (auto-rebuild + `--refresh`).
+- Reorganized documentation layout
 
 ## [0.13.0] - 2026-05-04
 

@@ -9,6 +9,20 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.14.0] - 2026-05-11
+
+New experimental commands to analyze and refactor Odoo modules using a built-in knowledge base.
+
+### ✨ What's new
+
+- **`oops misc build-kb`** (experimental): build a global knowledge base for your Odoo version, used by the analyze and refactor commands
+- **`oops addons analyze`** (experimental): get a structured summary of any custom Odoo module — useful for audits and code reviews
+- **`oops addons refactor`** (experimental): automatically apply canonical section headers and docstring skeletons to custom module files; the project knowledge base is rebuilt when stale
+- **`oops addons refactor --refresh`**: force a knowledge base rebuild before running, even when the KB looks fresh
+- `installed_modules.txt` convention: list your installed modules (one per line) to help `oops` build an accurate project knowledge base
+
+---
+
 ## [0.13.0] - 2026-05-04
 
 A new feature for project initialisation and an internal fix.
