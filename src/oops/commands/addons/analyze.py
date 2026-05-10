@@ -413,14 +413,15 @@ def render_text(summary: ModuleSummary) -> None:
 
 def _render_model_table(classes: list[ClassSummary]) -> None:
     all_sections = sorted({s for c in classes for s in c.methods_by_section})
-    headers = ["Model", "New fld", "Inh fld"] + all_sections
+    headers = ["Model", "Origin", "New fld", "Inh fld"] + all_sections
     rows = []
     for c in classes:
         label = c.model_name or ", ".join(c.inherit) or c.class_name
+        origin = "new" if c.is_new_model else "inherit"
         new_fld = c.fields_base if c.is_new_model else c.fields_new
         inh_fld = c.fields_inherited
         row = (
-            [label, new_fld or "", inh_fld or ""]
+            [label, origin, new_fld or "", inh_fld or ""]
             + [c.methods_by_section.get(sec, "") or "" for sec in all_sections]
         )
         rows.append(row)
