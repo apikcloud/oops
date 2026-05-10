@@ -3,6 +3,17 @@
 #
 # File: installed_modules.py — oops/io/installed_modules.py
 
+"""Read/write convention for the ``installed_modules.txt`` file at the project root.
+
+The file format is one module name per non-comment line. Two optional header
+lines are supported:
+
+    # generated_at: 2026-05-09T11:46:14Z
+    # generated_by: <free-form>
+
+Other ``#`` lines are treated as plain comments and ignored.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,26 +25,50 @@ from oops.core.config import config
 
 @dataclass(frozen=True)
 class InstalledModules:
+    """Contents and metadata of an ``installed_modules.txt`` file.
+
+    Attributes:
+        modules: Ordered, deduplicated list of module names.
+        generated_at: Timestamp parsed from the ``# generated_at:`` header;
+            falls back to the file's mtime when the header is absent.
+        generated_by: Free-form string from the ``# generated_by:`` header,
+            or ``None`` when the header is absent.
+        path: Absolute path of the file.
+    """
+
     modules: list[str]
-    generated_at: datetime | None  # parsed from header, falls back to mtime
-    generated_by: str | None  # parsed from header, may be None
-    path: Path  # absolute path of the file
+    generated_at: datetime | None
+    generated_by: str | None
+    path: Path
 
 
 def installed_modules_path(repo_root: Path) -> Path:
-    """Return the conventional path of the installed-modules file."""
+    """Return the conventional path of the installed-modules file.
+
+    Args:
+        repo_root: Repository root directory.
+
+    Returns:
+        Path to the installed-modules file (may not exist yet).
+    """
     return repo_root / config.project.file_installed_modules
 
 
 def read_installed_modules(repo_root: Path) -> InstalledModules | None:
-    """Read installed_modules.txt at repo root.
+    """Read installed_modules.txt at the project root.
 
-    Returns None when the file does not exist. The caller decides whether
-    that is fatal (oops refactor) or merely informational.
+    Args:
+        repo_root: Repository root directory.
 
-    Header lines accepted (case-sensitive):
+    Returns:
+        Parsed ``InstalledModules`` instance, or ``None`` when the file does not
+        exist. The caller decides whether absence is fatal or informational.
+
+    Header lines accepted (case-sensitive)::
+
         # generated_at: 2026-05-09T11:46:14Z
         # generated_by: <free-form>
+
     Other ``#`` lines are treated as plain comments and ignored.
     Blank lines are ignored. One module name per non-comment line.
     """

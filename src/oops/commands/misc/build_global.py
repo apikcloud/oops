@@ -15,6 +15,8 @@ where <cache_dir> defaults to ~/.cache/oops/kb/.
 
 The global KB is version-specific and shared across all projects on the
 same Odoo version — it should never be stored inside a project repository.
+Run this once per Odoo version. The resulting database is shared across all
+projects on the same version.
 """
 
 from __future__ import annotations
@@ -33,7 +35,7 @@ from oops.services.git import get_local_repo
 from oops.utils.render import print_rule, print_success
 
 
-@command("kb-build-global")
+@command("kb-build-global", help=__doc__)
 @click.option(
     "--version",
     default=None,
@@ -54,12 +56,6 @@ def main(
     cache_dir: Path | None,
     verbose: bool,
 ) -> None:
-    """Build the global Knowledge Base from Odoo community + enterprise sources.
-
-    Reads Odoo sources from the standard oops source directories. Run this once
-    per Odoo version. The resulting database is shared across all projects on
-    the same version.
-    """
     setup_kb_logging(verbose)
     log = logging.getLogger(__name__)
 

@@ -135,8 +135,12 @@ def resolve_symbol(
 def format_source_line(entry: Dict[str, Any]) -> str:
     """Format a Source: line for a docstring from a KB entry.
 
-    Returns a string like:
-        [odoo] addons/sale/models/sale_order.py, line 234
+    Args:
+        entry: A KB symbol dict with ``origin``, ``source_file``, and
+            ``source_line`` keys.
+
+    Returns:
+        Formatted string like ``[odoo] addons/sale/models/sale_order.py, line 234``.
     """
     origin = entry.get("origin", "?")
     source_file = entry.get("source_file", "?")

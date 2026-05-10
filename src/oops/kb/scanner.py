@@ -116,7 +116,11 @@ def _extract_string_value(node: ast.expr) -> Optional[str]:
 
 
 def is_odoo_model_class(node: ast.ClassDef) -> bool:
-    """Return True if the class directly subclasses an Odoo model base."""
+    """Return True if the class directly subclasses an Odoo model base.
+
+    Returns:
+        True if any base class name is in ``ODOO_BASE_CLASSES``, False otherwise.
+    """
     for base in node.bases:
         name = None
         if isinstance(base, ast.Attribute):
@@ -157,7 +161,15 @@ def get_model_names(class_node: ast.ClassDef) -> Tuple[Optional[str], List[str]]
 
 
 def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int, str]]:
-    """If stmt assigns a fields.XXX, return (field_name, lineno, field_type). Else None."""
+    """If stmt assigns a fields.XXX, return (field_name, lineno, field_type). Else None.
+
+    Args:
+        stmt: An AST statement node to inspect.
+
+    Returns:
+        ``(field_name, lineno, field_type)`` if the statement is a single-target
+        ``fields.XXX(...)`` assignment, ``None`` otherwise.
+    """
     if not isinstance(stmt, ast.Assign):
         return None
     if len(stmt.targets) != 1 or not isinstance(stmt.targets[0], ast.Name):
@@ -174,6 +186,12 @@ def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int, str]]:
 
 def extract_field_refs(stmt: ast.Assign) -> Dict[str, str]:
     """Return {kwarg: target_method_name} for string-literal kwargs in FIELD_REF_KWARGS.
+
+    Args:
+        stmt: An AST ``Assign`` node for a field declaration.
+
+    Returns:
+        Mapping of kwarg name to the referenced method name string.
 
     Bare callables and lambdas are skipped silently.
     """
@@ -212,6 +230,17 @@ def classify_method(
 ) -> str:
     """Decide a method's section.
 
+    Args:
+        name: Method name.
+        decorator_names: Flat list of decorator name strings (see
+            ``_get_decorator_names``).
+        referencing_kwargs: Field kwargs that reference this method on the same
+            model (across all classes/files/modules available at classification
+            time), e.g. ``{"compute", "inverse"}``.
+
+    Returns:
+        One of the ``METHOD_SECTION_*`` constants (first matching rule wins).
+
     Priority (first match wins):
       1. CRUD name.
       2. Standard default-provider name (default_get) → DEFAULT METHODS.
@@ -224,10 +253,6 @@ def classify_method(
       9. action_ or button_ prefix → ACTION METHODS.
      10. _ prefix → HELPER METHODS.
      11. Default → BUSINESS METHODS.
-
-    `referencing_kwargs` is the set of field kwargs that point at this method on
-    the same model (across all classes/files/modules available at classification
-    time).
 
     `@api.model` is intentionally NOT a classification signal. It only marks that
     the method receives the model class rather than a recordset as `self`; this
@@ -273,6 +298,13 @@ def build_module_field_refs(
 
     Used by the refactor CLI to pre-compute cross-file field→method links within
     a single module before running per-file analysis.
+
+    Args:
+        py_files: Python source files from a single Odoo module to index.
+
+    Returns:
+        Mapping of ``(model_name, method_name)`` to the list of field kwargs
+        that reference the method (e.g. ``["compute", "inverse"]``).
     """
     refs: Dict[Tuple[str, str], List[str]] = {}
     for py_file in py_files:
@@ -465,13 +497,19 @@ def scan_tier(
 
 
 def odoo_addons_roots(odoo_path: Path) -> List[Path]:
-    """Return the two standard addons roots inside an Odoo community tree.
+    """Return the standard addons roots inside an Odoo community tree.
 
     Odoo community keeps modules in two places:
-    - <root>/addons/         standard modules (sale, account…)
-    - <root>/odoo/addons/    core modules (base, web, mail…)
 
-    Falls back to [odoo_path] if neither subdirectory exists.
+    - ``<root>/addons/``        standard modules (sale, account…)
+    - ``<root>/odoo/addons/``   core modules (base, web, mail…)
+
+    Args:
+        odoo_path: Path to the root of an Odoo community checkout.
+
+    Returns:
+        List of existing addons root paths. Falls back to ``[odoo_path]``
+        if neither standard subdirectory exists.
     """
     candidates = [odoo_path / "addons", odoo_path / "odoo" / "addons"]
     roots = [p for p in candidates if p.is_dir()]
@@ -560,10 +598,15 @@ def discover_root_addons(
 def tier_root_from_real_path(origin: str, real_path: Path) -> Optional[Path]:
     """Derive the tier root directory from a module's real path.
 
-    e.g. /repo/.third-party/sale-workflow/sale_order_type
-         → /repo/.third-party
+    Args:
+        origin: Tier name (e.g. ``'third-party'`` or ``'apik'``).
+        real_path: Resolved (non-symlink) path of the module directory.
 
-    Returns None if the marker is not found in the path.
+    Returns:
+        The tier root path, or ``None`` if the marker is not found in the path.
+
+        e.g. ``/repo/.third-party/sale-workflow/sale_order_type``
+             → ``/repo/.third-party``
     """
     marker = _tier_markers().get(origin)
     if not marker:

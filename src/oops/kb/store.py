@@ -288,10 +288,11 @@ def _log_stats(db_path: Path) -> None:
 class KBReader:
     """Read-only interface to a KB SQLite database.
 
-    Usage:
-        kb = KBReader(Path(".oops-cache/kb_project.db"))
-        entries = kb.get_symbol("sale.order", "action_confirm", "method")
-        modules = kb.get_modules()
+    Use as a context manager or call ``close()`` explicitly when done::
+
+        with KBReader(Path(".oops-cache/kb_project.db")) as kb:
+            entries = kb.get_symbol("sale.order", "action_confirm", "method")
+            modules = kb.get_modules()
     """
 
     def __init__(self, db_path: Path) -> None:
@@ -301,25 +302,36 @@ class KBReader:
         self._con.row_factory = sqlite3.Row
 
     def close(self) -> None:
+        """Close the underlying SQLite connection."""
         self._con.close()
 
     def __enter__(self) -> "KBReader":
+        """Return self for use as a context manager."""
         return self
 
     def __exit__(self, *_: Any) -> None:
+        """Close the connection on context-manager exit."""
         self.close()
 
     # --- meta ---
 
     def get_meta(self) -> Dict[str, str]:
-        """Return all meta key/value pairs."""
+        """Return all meta key/value pairs.
+
+        Returns:
+            Dict mapping meta key to its string value.
+        """
         rows = self._con.execute("SELECT key, value FROM meta").fetchall()
         return {r["key"]: r["value"] for r in rows}
 
     # --- modules ---
 
     def get_modules(self) -> Dict[str, Dict[str, Any]]:
-        """Return all modules as { name: {origin, depends: [str,...]} }."""
+        """Return all modules indexed by name.
+
+        Returns:
+            Mapping of module name to ``{"origin": str, "depends": [str, ...]}``.
+        """
         rows = self._con.execute("SELECT name, origin, depends FROM modules").fetchall()
         return {
             r["name"]: {
@@ -330,6 +342,14 @@ class KBReader:
         }
 
     def module_exists(self, name: str) -> bool:
+        """Return True if the named module is present in the KB.
+
+        Args:
+            name: Module name to look up.
+
+        Returns:
+            True if the module exists, False otherwise.
+        """
         row = self._con.execute("SELECT 1 FROM modules WHERE name = ?", (name,)).fetchone()
         return row is not None
 
@@ -364,7 +384,16 @@ class KBReader:
         return [dict(r) for r in rows]
 
     def symbol_exists(self, model: str, name: str, kind: str) -> bool:
-        """Return True if the symbol exists in any upstream module."""
+        """Return True if the symbol exists in any upstream module.
+
+        Args:
+            model: Dotted model name, e.g. ``'sale.order'``.
+            name: Symbol name.
+            kind: ``'field'`` or ``'method'``.
+
+        Returns:
+            True if at least one upstream entry matches, False otherwise.
+        """
         row = self._con.execute(
             "SELECT 1 FROM symbols WHERE model=? AND name=? AND kind=?",
             (model, name, kind),
@@ -372,7 +401,14 @@ class KBReader:
         return row is not None
 
     def model_exists(self, model: str) -> bool:
-        """Return True if any upstream module defines or extends this model."""
+        """Return True if any upstream module defines or extends this model.
+
+        Args:
+            model: Dotted model name, e.g. ``'sale.order'``.
+
+        Returns:
+            True if at least one symbol for the model exists, False otherwise.
+        """
         row = self._con.execute("SELECT 1 FROM symbols WHERE model = ? LIMIT 1", (model,)).fetchone()
         return row is not None
 
@@ -412,7 +448,11 @@ class KBReader:
         return [dict(r) for r in rows]
 
     def get_sources(self) -> Dict[str, str]:
-        """Return { origin: path } for all indexed source roots."""
+        """Return all indexed source roots.
+
+        Returns:
+            Mapping of ``origin`` to absolute path string.
+        """
         rows = self._con.execute("SELECT origin, path FROM sources").fetchall()
         return {r["origin"]: r["path"] for r in rows}
 
@@ -421,7 +461,16 @@ class KBReader:
     def get_field_refs_for_method(
         self, model: str, target_method: str
     ) -> List[Dict[str, Any]]:
-        """Return [{module, field_name, kwarg}, ...] for fields referencing this method."""
+        """Return field references that target a specific method.
+
+        Args:
+            model: Dotted model name.
+            target_method: Method name to look up.
+
+        Returns:
+            List of ``{"module": str, "field_name": str, "kwarg": str}`` dicts,
+            sorted by module, kwarg, and field name.
+        """
         rows = self._con.execute(
             """
             SELECT module, field_name, kwarg
@@ -436,7 +485,17 @@ class KBReader:
     def get_field_refs_for_field(
         self, model: str, field_name: str, module: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Return [{kwarg, target_method, module}, ...] for kwargs of this field."""
+        """Return kwargs and target methods referenced by a field.
+
+        Args:
+            model: Dotted model name.
+            field_name: Field name to look up.
+            module: Optional module filter; when given, only entries from that
+                module are returned.
+
+        Returns:
+            List of ``{"kwarg": str, "target_method": str, "module": str}`` dicts.
+        """
         if module is None:
             rows = self._con.execute(
                 "SELECT kwarg, target_method, module FROM field_refs "

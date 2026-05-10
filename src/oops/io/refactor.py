@@ -70,20 +70,46 @@ def _make_header(name: str) -> str:
 
 @dataclass
 class SymbolInfo:
+    """Information about a single field or method within an Odoo model class.
+
+    Attributes:
+        name: Symbol name.
+        kind: ``'field'`` or ``'method'``.
+        section: Canonical section header (e.g. ``'COMPUTE METHODS'``).
+        lineno: Source line number of the definition.
+        has_docstring: True if the method already has a docstring.
+        has_super: True if the method calls ``super()``.
+        super_methods: Names of methods called via ``super().<name>()``.
+        kb_entry: Matching KB record, or ``None`` if not found.
+        is_override: True when the symbol is in the KB but has no ``super()`` call.
+        field_type: ``fields.XXX`` type string; only set when ``kind == 'field'``.
+    """
+
     name: str
-    kind: str  # 'field' | 'method'
+    kind: str
     section: str
     lineno: int
     has_docstring: bool = False
     has_super: bool = False
     super_methods: List[str] = field(default_factory=lambda: [])
     kb_entry: Optional[Dict[str, Any]] = None
-    is_override: bool = False  # in KB but no super()
-    field_type: Optional[str] = None  # only set when kind == 'field'
+    is_override: bool = False
+    field_type: Optional[str] = None
 
 
 @dataclass
 class ClassInfo:
+    """Information about an Odoo model class found in a source file.
+
+    Attributes:
+        class_name: Python class name.
+        model_name: Value of ``_name``, or ``None`` when only ``_inherit`` is set.
+        inherit: Values of ``_inherit`` (may be empty).
+        is_new_model: True when the class introduces a new model (has ``_name``).
+        lineno: Source line number of the class definition.
+        symbols: Ordered list of fields and methods in the class.
+    """
+
     class_name: str
     model_name: Optional[str]
     inherit: List[str]
@@ -93,6 +119,7 @@ class ClassInfo:
 
     @property
     def is_inherit(self) -> bool:
+        """Return True if this class only extends existing models via ``_inherit``."""
         return bool(self.inherit)
 
 
@@ -168,6 +195,24 @@ def analyse_file(
     custom_module: str,
     module_local_refs: Optional[Dict[Tuple[str, str], List[str]]] = None,
 ) -> List[ClassInfo]:
+    """Classify every Odoo model class and its symbols in a Python source file.
+
+    Reads the file, parses it with ``ast``, and for each model class found
+    resolves its fields and methods against the KB. Syntax errors are logged
+    and produce an empty result rather than raising.
+
+    Args:
+        py_file: Path to the Python source file to analyse.
+        kb: Open KB reader used for symbol and model lookups.
+        modules_index: Pre-loaded modules dict from ``KBReader.get_modules()``.
+        custom_module: Name of the module being analysed (used for KB lookups).
+        module_local_refs: Optional ``{(model, method): [kwarg, ...]}`` index
+            of cross-file field→method links within the same module.
+
+    Returns:
+        Ordered list of ``ClassInfo`` objects, one per Odoo model class found.
+        Empty when the file contains no Odoo model classes or fails to parse.
+    """
     source = py_file.read_text(encoding="utf-8", errors="replace")
     try:
         tree = ast.parse(source, filename=str(py_file))
@@ -609,6 +654,20 @@ def _is_field_stmt_cst(stmt: cst.BaseStatement) -> bool:
 
 
 def rewrite_file(py_file: Path, classes: List[ClassInfo]) -> str:
+    """Rewrite a Python source file by injecting section headers and docstring skeletons.
+
+    Uses ``libcst`` for AST-preserving rewriting so comments and formatting are
+    retained. Returns the original source unchanged when ``classes`` is empty or
+    the file fails to parse.
+
+    Args:
+        py_file: Path to the Python source file to rewrite.
+        classes: Analysis result from ``analyse_file``; drives which rewrites
+            are applied.
+
+    Returns:
+        Rewritten source code as a string, or the original source on failure.
+    """
     source = py_file.read_text(encoding="utf-8", errors="replace")
     if not classes:
         return source

@@ -183,17 +183,21 @@ def _parse_kb_timestamp(value: str | None) -> datetime | None:
 
 
 def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
-    """Return (stale, reason).
+    """Decide whether the project KB needs to be rebuilt.
 
-    Reasons (in priority order):
-      - "no project KB at <path>"
-      - "project KB has no generated_at metadata"
-      - "installed_modules.txt is newer than project KB"
-      - "global KB is newer than project KB"
-      - "" when fresh.
+    Args:
+        repo_path: Repository root.
+        version: Odoo version string (used to resolve the global KB path).
 
-    The version is required to resolve the global KB path; callers
-    already need it for build_project_kb.
+    Returns:
+        ``(stale, reason)``. ``reason`` is one of (priority order):
+
+        - ``"no project KB at <path>"``
+        - ``"project KB schema version <x> differs from current <y> ..."``
+        - ``"project KB has no generated_at metadata"``
+        - ``"installed_modules.txt is newer than project KB"``
+        - ``"global KB is newer than project KB"``
+        - ``""`` when fresh.
     """
     project = project_kb_path(repo_path)
     if not project.exists():
