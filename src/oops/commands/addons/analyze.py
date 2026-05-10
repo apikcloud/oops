@@ -133,11 +133,12 @@ def main(  # noqa: C901, PLR0912, PLR0915
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
-    print_warning(
-        "This command is experimental and may change without notice between releases."
-    )
-    log = logging.getLogger(__name__)
     json_mode = output_format == "json"
+    if not json_mode:
+        print_warning(
+            "This command is experimental and may change without notice between releases."
+        )
+    log = logging.getLogger(__name__)
 
     resolved_paths = [mp.resolve() for mp in module_paths]
 
