@@ -16,10 +16,12 @@ modules: adding canonical section headers and minimal Google-style docstring
 skeletons to every model file.
 
 ```
-oops-kb-build-global   →  builds ~/.cache/oops/kb/kb_global_<version>.db
-oops-kb-build-project  →  builds <repo>/.oops-cache/kb_project_<version>.db
-oops-refactor          →  rewrites model files, creates a git branch for PR
+oops misc build-kb      →  builds ~/.cache/oops/kb/<version>.db (global, once per Odoo version)
+oops addons refactor    →  rewrites model files, creates a git branch for PR; rebuilds project KB when stale
+oops addons analyze     →  prints a structured summary of a module (text or JSON)
 ```
+
+All three commands are marked **EXPERIMENTAL** (see module docstring + runtime warning).
 
 ### 1.2 Package Layout
 
@@ -32,19 +34,21 @@ oops/
 │   │                   Schema v2: field_type + section on symbols, field_refs table.
 │   └── resolve.py      Dependency graph resolution for symbol precedence
 └── commands/
-    └── kb/
-        ├── build_global.py    CLI: oops-kb-build-global
-        ├── build_project.py   CLI: oops-kb-build-project
-        └── refactor.py        CLI: oops-refactor
+    ├── misc/
+    │   └── build_global.py    CLI: oops misc build-kb
+    └── addons/
+        ├── refactor.py        CLI: oops addons refactor
+        └── analyze.py         CLI: oops addons analyze
 ```
 
-### 1.3 pyproject.toml entry points to add
+### 1.3 Command registration
 
-```toml
-oops-kb-build-global  = "oops.commands.kb.build_global:main"
-oops-kb-build-project = "oops.commands.kb.build_project:main"
-oops-refactor         = "oops.commands.kb.refactor:main"
-```
+The three KB commands are registered automatically via the Click subgroup
+auto-discovery system — no `[project.scripts]` entry is needed:
+
+- `oops misc build-kb` — `oops.commands.misc.build_global:main`
+- `oops addons refactor` — `oops.commands.addons.refactor:main`
+- `oops addons analyze` — `oops.commands.addons.analyze:main`
 
 ### 1.4 New dependency to declare
 
@@ -178,7 +182,7 @@ each rule and guidance on extending the system.
 
 ### 2.8 Idempotency
 
-The rewriter is designed to be idempotent: running `oops-refactor` twice on
+The rewriter is designed to be idempotent: running `oops addons refactor` twice on
 the same file produces no additional changes. This is achieved by:
 1. Stripping **all** `leading_lines` from every statement during collection
    (including any section headers from a previous run).
@@ -217,7 +221,7 @@ the same file produces no additional changes. This is achieved by:
 | 12 | **Map-reduce referential** — the KB is the foundation for the broader map-reduce pipeline discussed in the design phase. `resolve.py` (`build_depends_chain`) and `store.py` (`KBReader`) are the two interfaces that `refactor.py` uses and that the map-reduce agent will also use. |
 | 13 | ~~**`SELECTION METHODS` detection**~~ — **Done.** `selection=` field kwarg is now detected and routes to `SELECTION METHODS`. The `selection=` kwarg is the sole reliable signal; name heuristics would produce false positives. | ✓ |
 | 14 | **LLM enrichment pass (opt-in)** — an optional second pass that sends the `# TODO:` markers to an LLM with the method body as context, to generate richer docstring content. This should be a separate command (`oops-refactor-enrich`) so it is never run implicitly. |
-| 15 | **KB invalidation check** — before running `oops-refactor`, check whether the KB was built with a different Odoo version than the one in the repo's manifest (compare `meta.odoo_version`). Warn if stale. |
+| 15 | **KB invalidation check** — before running `oops addons refactor`, check whether the KB was built with a different Odoo version than the one in the repo's manifest (compare `meta.odoo_version`). Warn if stale. |
 
 ---
 
@@ -418,39 +422,33 @@ client repository). The mapping is:
 Before merging into `oops`, run through this checklist manually:
 
 ```bash
-# 1. Build global KB
-oops-kb-build-global \
-    --odoo-path /path/to/odoo \
-    --enterprise-path /path/to/enterprise \
-    --version 17.0
+# 1. Build global KB (once per Odoo version)
+oops misc build-kb --version 17.0
 
-# 2. Build project KB (from client repo root)
-oops-kb-build-project . \
-    --version 17.0 \
-    --modules modules.txt \
-    --slug <client_slug>
+# 2. Dry-run refactor — also triggers project KB rebuild if stale
+oops addons refactor addons/<module_name> --refresh --dry-run --verbose
 
 # 3. Inspect KB stats
-sqlite3 .oops-cache/kb_project_17.0.db \
+sqlite3 .oops-cache/kb.db \
     "SELECT origin, count(*) FROM modules GROUP BY origin;"
-sqlite3 .oops-cache/kb_project_17.0.db \
+sqlite3 .oops-cache/kb.db \
     "SELECT kind, count(*) FROM symbols GROUP BY kind;"
 
-# 4. Dry-run refactor on one module
-oops-refactor addons/<module_name> --dry-run --verbose
+# 4. Real refactor on one module
+oops addons refactor addons/<module_name> --verbose
 
-# 5. Real refactor
-oops-refactor addons/<module_name> --verbose
-
-# 6. Inspect result
+# 5. Inspect result
 git diff HEAD
 
-# 7. Idempotency (should produce 0 changes)
-oops-refactor addons/<module_name> --no-branch --dry-run
+# 6. Idempotency (should produce 0 changes)
+oops addons refactor addons/<module_name> --no-branch --dry-run
 # Expected: no "would rewrite" lines
 
-# 8. Syntax check
+# 7. Syntax check
 python -m py_compile addons/<module_name>/models/*.py
+
+# 8. Structured module summary (read-only, optional)
+oops addons analyze addons/<module_name>
 ```
 
 ---

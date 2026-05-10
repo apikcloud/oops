@@ -9,13 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `oops misc build-kb` (experimental): build the global Odoo KB once per Odoo version, stored at `~/.cache/oops/kb/<version>.db`.
+- `oops addons refactor` (experimental): apply canonical section headers and Google-style docstring skeletons to custom module files, with automatic project KB rebuild when stale.
+- `oops addons analyze` (experimental): print a structured text or JSON summary of an Odoo module via the project KB.
 - `oops addons refactor --refresh`: force a project KB rebuild before running, even if the KB looks fresh.
 - `installed_modules.txt` repo convention (one module per line, optional `# generated_at:` header). Required when the project KB is missing or stale.
 - Automatic project KB rebuild on `oops addons refactor` when the KB is stale (older than `installed_modules.txt` or older than the global KB).
 
 ### Removed
 
-- Console scripts `oops-kb-build-global`, `oops-kb-build-project`, and `oops-refactor`. Use the `oops misc kb-build-global` and `oops addons refactor` group-attached forms.
+- Console scripts `oops-kb-build-global`, `oops-kb-build-project`, and `oops-refactor`. Use the `oops misc build-kb` and `oops addons refactor` group-attached forms.
 - `oops-kb-build-project` is gone entirely; the project KB is now managed by `oops addons refactor` (auto-rebuild + `--refresh`).
 
 ## [0.13.0] - 2026-05-04

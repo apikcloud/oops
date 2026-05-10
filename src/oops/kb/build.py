@@ -80,7 +80,7 @@ def build_project_kb(
     if global_kb is None:
         global_kb = global_kb_path(version)
     if not global_kb.exists():
-        raise FileNotFoundError(f"Global KB not found: {global_kb}\nRun oops misc kb-build-global first.")
+        raise FileNotFoundError(f"Global KB not found: {global_kb}\nRun oops misc build-kb first.")
 
     # Verify the global KB is on the expected schema before reading from it.
     with KBReader(global_kb) as _gkb:
@@ -88,7 +88,7 @@ def build_project_kb(
     if _sv != str(SCHEMA_VERSION):
         raise FileNotFoundError(
             f"Global KB at {global_kb} is on schema {_sv!r}, expected "
-            f"{SCHEMA_VERSION!r}. Re-run oops misc kb-build-global."
+            f"{SCHEMA_VERSION!r}. Re-run oops misc build-kb."
         )
 
     cache_dir = repo_path / CACHE_DIR_NAME

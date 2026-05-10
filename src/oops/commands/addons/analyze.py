@@ -5,6 +5,9 @@
 
 """Print a structured summary of an Odoo module.
 
+EXPERIMENTAL — This command is part of the KB pipeline. Its interface may
+change without notice between releases.
+
 Reads the project KB and the module's source to produce a human-
 readable (or JSON) overview: manifest header, depends, per-class field
 and method breakdown, plus counts of declared data files and assets.
@@ -130,6 +133,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
+    print_warning(
+        "This command is experimental and may change without notice between releases."
+    )
     log = logging.getLogger(__name__)
     json_mode = output_format == "json"
 

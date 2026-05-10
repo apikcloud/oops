@@ -3,7 +3,10 @@
 #
 # File: build_global.py — oops/commands/misc/build_global.py
 
-"""oops-kb-build-global — build the global Odoo KB (once per version).
+"""oops misc build-kb — build the global Odoo KB (once per version).
+
+EXPERIMENTAL — This command is part of the KB pipeline. Its interface may
+change without notice between releases.
 
 Scans Odoo community (addons/ + odoo/addons/) and enterprise sources from the
 standard oops source directories (config.odoo.sources_dir/<version>/), and
@@ -33,10 +36,10 @@ from oops.kb.build import _resolve_prototype_roles
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
 from oops.services.git import get_local_repo
-from oops.utils.render import print_rule, print_success
+from oops.utils.render import print_rule, print_success, print_warning
 
 
-@command("kb-build-global", help=__doc__)
+@command("build-kb", help=__doc__)
 @click.option(
     "--version",
     default=None,
@@ -58,6 +61,9 @@ def main(
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
+    print_warning(
+        "This command is experimental and may change without notice between releases."
+    )
     log = logging.getLogger(__name__)
 
     if version is None:
@@ -78,7 +84,7 @@ def main(
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / f"{version}.db"
 
-    print_rule(f"oops kb-build-global — Odoo {version}")
+    print_rule(f"oops misc build-kb — Odoo {version}")
 
     scan_results = []
     sources: dict[str, str] = {}

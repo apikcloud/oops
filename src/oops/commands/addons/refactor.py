@@ -3,7 +3,10 @@
 #
 # File: refactor.py — oops/commands/addons/refactor.py
 
-"""oops-refactor — apply section headers and docstring skeletons to custom modules.
+"""oops addons refactor — apply section headers and docstring skeletons to custom modules.
+
+EXPERIMENTAL — This command is part of the KB pipeline. Its interface may
+change without notice between releases.
 
 Operates on one or more modules in a single run. Reads the project KB,
 classifies every field and method in every model file, then rewrites each
@@ -107,6 +110,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
+    print_warning(
+        "This command is experimental and may change without notice between releases."
+    )
     log = logging.getLogger(__name__)
 
     for mp in module_paths:
