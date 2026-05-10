@@ -58,6 +58,7 @@ class ClassSummary:
     methods_total: int
     methods_by_section: dict[str, int]
     overrides: int
+    override_details: list[dict[str, str]]
     missing_docstrings: int
 
 
@@ -289,6 +290,17 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
     for m in methods:
         methods_by_section[m.section] = methods_by_section.get(m.section, 0) + 1
 
+    model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
+    override_details = [
+        {
+            "model": model_label,
+            "method": m.name,
+            "origin_module": m.kb_entry.get("module", "") if m.kb_entry else "",
+        }
+        for m in methods
+        if m.is_override
+    ]
+
     return ClassSummary(
         class_name=ci.class_name,
         model_name=ci.model_name,
@@ -301,7 +313,8 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
         fields_by_type=fields_by_type,
         methods_total=len(methods),
         methods_by_section=methods_by_section,
-        overrides=sum(1 for m in methods if m.is_override),
+        overrides=len(override_details),
+        override_details=override_details,
         missing_docstrings=sum(1 for m in methods if not m.has_docstring),
     )
 
@@ -383,9 +396,14 @@ def render_text(summary: ModuleSummary) -> None:
             )
         click.echo()
         _render_model_table(summary.classes)
-        overrides = sum(c.overrides for c in summary.classes)
+        all_overrides = [d for c in summary.classes for d in c.override_details]
         missing = sum(c.missing_docstrings for c in summary.classes)
-        click.echo(f"  Overrides: {overrides}   Missing docstrings: {missing}")
+        click.echo(f"  Overrides: {len(all_overrides)}   Missing docstrings: {missing}")
+        if all_overrides:
+            click.echo()
+            click.echo("  Overridden methods (no super() call):")
+            for ov in all_overrides:
+                click.echo(f"    {ov['model']:<30} {ov['method']:<30} [{ov['origin_module']}]")
         click.echo()
 
     _render_structure_section("Data files (from manifest)", summary.structure.data)
@@ -492,6 +510,7 @@ def _to_json_dict(summary: ModuleSummary) -> dict:
                     "total": c.methods_total,
                     "by_section": c.methods_by_section,
                     "overrides": c.overrides,
+                    "override_details": c.override_details,
                     "missing_docstrings": c.missing_docstrings,
                 },
             }
