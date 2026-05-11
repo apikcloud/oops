@@ -875,6 +875,23 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merging-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merging rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Merging rules">
+      <ul class="md-nav__list">
+        
           <li class="md-nav__item">
   <a href="#oops-requirements-update" class="md-nav__link">
     <span class="md-ellipsis">
@@ -888,6 +905,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merging-rules_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merging rules
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2644,6 +2672,23 @@
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merging-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merging rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Merging rules">
+      <ul class="md-nav__list">
+        
           <li class="md-nav__item">
   <a href="#oops-requirements-update" class="md-nav__link">
     <span class="md-ellipsis">
@@ -2657,6 +2702,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merging-rules_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Merging rules
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2756,17 +2812,39 @@
 </div><hr>
 <h3 id="oops-requirements-check">oops requirements check<a class="headerlink" href="#oops-requirements-check" title="Permanent link">¶</a></h3>
 <p>Check the differences between the existing requirements and the expected ones.</p>
-<p>The expecting requirements are computed by going through the addons at the root of the project and extracted from the
-manifests.</p>
+<p>The expected requirements are computed by scanning every root addon manifest and
+collecting their <code>external_dependencies["python"]</code> entries.</p>
 <p>In case of changes, it will be displayed like this:</p>
-<p>Changes for requirements.txt:</p>
-<ul>
-<li>astor</li>
-<li>pandas</li>
-<li>python-stdnum</li>
-<li>pytz</li>
-<li>pytz==2023.3</li>
-</ul>
+<div class="language-text highlight"><pre><span></span><code>Changes for requirements.txt:
+
+- astor
++ pandas
++ python-stdnum
+- pytz
++ pytz==2023.3
+</code></pre></div>
+<h2 id="merging-rules">Merging rules<a class="headerlink" href="#merging-rules" title="Permanent link">¶</a></h2>
+<p>When multiple addons declare constraints for the same package, they are merged
+before comparison:</p>
+<ol>
+<li>Bare name (no operator)   — kept as-is, deduplicated across addons.</li>
+<li>Single floor (&gt;= / &gt;)     — kept as-is.</li>
+<li>Single ceil  (&lt;= / &lt;)     — kept as-is.</li>
+<li>Multiple floors           — highest version wins (most restrictive).</li>
+<li>Multiple ceils            — lowest version wins (most restrictive).</li>
+<li>Floor + ceil              — merged as <code>pkg&gt;=floor,&lt;ceil</code>.</li>
+<li>
+<blockquote>
+<p>vs &gt;= at same version   — strict operator wins (&gt; beats &gt;=, &lt; beats &lt;=).</p>
+</blockquote>
+</li>
+<li>== pin                    — always kept as-is; if a range also exists for the same package, both are emitted
+ (human arbitration).</li>
+<li>Git dep (e.g. pkg@git+…)  — no &lt;=&gt; in string → treated as bare name, passes through unchanged, no merging.</li>
+<li>Name mapping              — import names are normalized to pip names before any version processing (PIL → Pillow,
+ dateutil → python-dateutil, and so on...).</li>
+<li>Final output              — alphabetically sorted; header line prepended.</li>
+</ol>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops requirements check [OPTIONS]
 </span></code></pre></div>
@@ -2808,6 +2886,28 @@ manifests.</p>
 It checks the python dependencies in each manifest of the root addons.</p>
 <p>The whole content of the requirements file is replaced by the python dependencies found in the project.</p>
 <p>By default, a commit is automatically done to push the changes. Use --no-commit to avoid this behaviour.</p>
+<h2 id="merging-rules_1">Merging rules<a class="headerlink" href="#merging-rules_1" title="Permanent link">¶</a></h2>
+<p>When multiple addons declare constraints for the same package, they are merged
+before comparison:</p>
+<ol>
+<li>Bare name (no operator)   — kept as-is, deduplicated across addons.</li>
+<li>Single floor (&gt;= / &gt;)     — kept as-is.</li>
+<li>Single ceil  (&lt;= / &lt;)     — kept as-is.</li>
+<li>Multiple floors           — highest version wins (most restrictive).</li>
+<li>Multiple ceils            — lowest version wins (most restrictive).</li>
+<li>Floor + ceil              — merged as <code>pkg&gt;=floor,&lt;ceil</code>.</li>
+<li>
+<blockquote>
+<p>vs &gt;= at same version   — strict operator wins (&gt; beats &gt;=, &lt; beats &lt;=).</p>
+</blockquote>
+</li>
+<li>== pin                    — always kept as-is; if a range also exists for the same package, both are emitted
+ (human arbitration).</li>
+<li>Git dep (e.g. pkg@git+…)  — no &lt;=&gt; in string → treated as bare name, passes through unchanged, no merging.</li>
+<li>Name mapping              — import names are normalized to pip names before any version processing (PIL → Pillow,
+ dateutil → python-dateutil, and so on...).</li>
+<li>Final output              — alphabetically sorted; header line prepended.</li>
+</ol>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops requirements update [OPTIONS]
 </span></code></pre></div>
