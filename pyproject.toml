@@ -24,6 +24,7 @@ dependencies = [
     "fixit>2.0; python_version>='3.9'",
     "tabulate",
     "GitPython",
+    "packaging>=23.2",
 ]
 
 

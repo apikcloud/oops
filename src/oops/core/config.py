@@ -5,24 +5,22 @@
 
 import logging
 import os
-import typing
 import warnings
 from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
-from typing import Final, Union
 
 import click
 import yaml
 from oops.core.exceptions import ConfigurationError
 from oops.core.paths import CONFIG_PATHS as _CONFIG_PATHS
-from oops.utils.compat import List, Optional
+from oops.utils.compat import Dict, Final, List, Optional, Union, get_type_hints
 
 logger = logging.getLogger(__name__)
 
 # Sentinel for fields that must be provided via a config file (no in-code default).
-_MISSING: Final = object()
+_MISSING: Final[object] = object()
 
-_SUPPORTED_VERSIONS: Final = {1}
+_SUPPORTED_VERSIONS: Final[set] = {1}
 
 DOCS_URL = "https://apikcloud.github.io/oops/"
 
@@ -185,6 +183,19 @@ class GithubConfig:
     action_inputs: dict = field(default_factory=dict)  # extra static inputs passed to the workflow
 
 
+@dataclass
+class RequirementsConfig:
+    python_requirements_mapping: Dict[str, str] = field(
+        default_factory=lambda: {
+            "dateutil": "python-dateutil",
+            "jours-feries-france": "jours_feries_france",
+            "PIL": "Pillow",
+            "shopify": "ShopifyAPI",
+            "stdnum": "python-stdnum",
+        }
+    )
+
+
 # ---------------------------------------------------------------------------
 # Root config
 # ---------------------------------------------------------------------------
@@ -202,6 +213,7 @@ class Config:
     precommit: PrecommitConfig = field(default_factory=PrecommitConfig)
     github: GithubConfig = field(default_factory=GithubConfig)
     stats: StatsConfig = field(default_factory=StatsConfig)
+    requirements: RequirementsConfig = field(default_factory=RequirementsConfig)
 
     # Internal / misc (not exposed in .oops.yaml)
     manifest_names: List[str] = field(default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"])
@@ -252,7 +264,7 @@ def _apply(obj, data: dict, path: str = "") -> None:
     so that a project-level config can fully override a global default.
     """
     try:
-        hints = typing.get_type_hints(type(obj))
+        hints = get_type_hints(type(obj))
     except Exception:
         hints = {}
 

@@ -3,6 +3,8 @@
 #
 # File: helpers.py — oops/utils/helpers.py
 
+from __future__ import annotations
+
 import re
 import unicodedata
 from collections.abc import Generator
@@ -58,7 +60,7 @@ def str_to_list(raw: str, sep: str = ",") -> list:
     return list(filter(bool, (clean_string(item) for item in raw.split(sep))))
 
 
-def deep_visit(obj: Any, prefix: str = "") -> "Generator[tuple[str, Any]]":
+def deep_visit(obj: Any, prefix: str = "") -> Generator[tuple[str, Any]]:
     """Yield flattened (path, value) pairs by recursively walking a nested structure.
 
     Dict keys become dot-separated segments; list indices become ``[n]`` segments.
@@ -82,7 +84,7 @@ def deep_visit(obj: Any, prefix: str = "") -> "Generator[tuple[str, Any]]":
         yield prefix, obj
 
 
-def filter_and_clean(items: List[str]) -> set:
+def filter_and_clean(items: List[str], unique: bool = True) -> list:
     """Filter comment lines and clean inline comments from a list of strings.
 
     Strips full-line comments (starting with ``#``), blank lines, and inline
@@ -90,9 +92,10 @@ def filter_and_clean(items: List[str]) -> set:
 
     Args:
         items: Lines of text to process.
+        unique (bool): Whether to deduplicate the result. Defaults to True.
 
     Returns:
-        Set of cleaned, non-empty, non-comment strings.
+        List of cleaned, non-empty, non-comment strings or the raw list.
     """
 
     def clean(item):
@@ -101,9 +104,9 @@ def filter_and_clean(items: List[str]) -> set:
 
         return item.split("#")[0].strip()
 
-    items = list(filter(lambda item: item and not item.startswith("#"), items))
+    cleaned = [clean(item) for item in items if item.strip() and not item.startswith("#")]
 
-    return set(map(clean, items))
+    return list(set(cleaned)) if unique else cleaned
 
 
 def date_from_string(raw: str) -> date:

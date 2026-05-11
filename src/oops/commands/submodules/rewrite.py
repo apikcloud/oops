@@ -45,9 +45,7 @@ from oops.services.git import get_local_repo, is_pull_request
     help="Do not commit automatically at the end",
 )
 @click.argument("names", nargs=-1, required=False)
-def main(
-    base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: Optional[tuple[str]] = None
-):  # noqa: C901, PLR0912, PLR0915
+def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Optional[tuple[str]]" = None):  # noqa: C901, PLR0912, PLR0915, UP045
 
     repo, _ = get_local_repo()
 
@@ -68,17 +66,12 @@ def main(
 
         # Ensure we have a symlink target for this submodule
         if submodule.path not in mapping:
-            click.echo(
-                f"[warn] submodule '{submodule.name}' path '{submodule.path}' "
-                f"has no symlink, skipping"
-            )
+            click.echo(f"[warn] submodule '{submodule.name}' path '{submodule.path}' has no symlink, skipping")
             continue
 
         pull_request = is_pull_request(submodule)
         first_symlink = mapping[submodule.path] if pull_request else None
-        target = desired_path(
-            submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink
-        )
+        target = desired_path(submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink)
 
         if submodule.path != target:
             plan.append((submodule, target))
@@ -88,9 +81,7 @@ def main(
         raise click.Abort()
 
     for submodule, new_path in plan:
-        click.echo(
-            f"[plan] {submodule.name}\n  url : {submodule.url}\n  path: {submodule.path} -> {new_path}"
-        )
+        click.echo(f"[plan] {submodule.name}\n  url : {submodule.url}\n  path: {submodule.path} -> {new_path}")
 
     accepted = []
     for submodule, new_path in plan:

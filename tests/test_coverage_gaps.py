@@ -274,8 +274,7 @@ class TestGetRequirementsDiff:
         from oops.io.file import get_requirements_diff
 
         _make_addon(tmp_path, "my_addon")
-        req = tmp_path / "requirements.txt"
-        has_changes, new_lines, diff = get_requirements_diff(req, tmp_path)
+        has_changes, new_lines, diff = get_requirements_diff(tmp_path)
         assert has_changes is True
         assert "requests" in new_lines
         assert "xlrd" in new_lines
@@ -285,17 +284,16 @@ class TestGetRequirementsDiff:
 
         _make_addon(tmp_path, "my_addon")
         # Pre-populate with what the function would generate (sorted)
-        _, expected_lines, _ = get_requirements_diff(tmp_path / "req.txt", tmp_path)
+        _, expected_lines, _ = get_requirements_diff(tmp_path)
         req = tmp_path / "requirements.txt"
         req.write_text("\n".join(expected_lines))
-        has_changes, _, _ = get_requirements_diff(req, tmp_path)
+        has_changes, _, _ = get_requirements_diff(tmp_path)
         assert has_changes is False
 
     def test_no_addons_no_deps(self, tmp_path):
         from oops.io.file import get_requirements_diff
 
-        req = tmp_path / "requirements.txt"
-        has_changes, new_lines, _ = get_requirements_diff(req, tmp_path)
+        has_changes, new_lines, _ = get_requirements_diff(tmp_path)
         # Only the header comment line
         assert len(new_lines) == 1
 

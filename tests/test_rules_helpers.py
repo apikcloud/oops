@@ -404,10 +404,8 @@ class TestStagedAddonManifestRelpaths:
         (addon / "models").mkdir()
         (addon / "models" / "res_partner.py").write_text("# model")
 
-        with (
-            patch("oops.rules._helpers.git_repo_root", return_value=tmp_path),
-            patch("oops.rules._helpers._staged_files", return_value=frozenset({staged_rel})),
-        ):
+        with patch("oops.rules._helpers.git_repo_root", return_value=tmp_path), \
+                patch("oops.rules._helpers._staged_files", return_value=frozenset({staged_rel})):
             result = staged_addon_manifest_relpaths()
             assert "my_addon/__manifest__.py" in result
         clear_git_caches()
