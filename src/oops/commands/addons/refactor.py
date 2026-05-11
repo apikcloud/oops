@@ -316,6 +316,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
                         repo_path,
                         file_paths,
                         "refactor_per_module",
+                        skip_hooks=True,
                         module=module_name,
                         description=human_readable(rewritten_rels, sep="\n"),
                     )

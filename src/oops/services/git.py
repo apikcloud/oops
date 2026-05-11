@@ -13,6 +13,7 @@ from git.config import GitConfigParser
 from oops.core.messages import commit_messages
 from oops.core.models import CommitInfo
 from oops.core.paths import PR_DIR
+from oops.io.format import format_file
 from oops.io.manifest import find_addons_extended
 from oops.io.tools import run
 from oops.utils.compat import Optional
@@ -155,6 +156,13 @@ def commit(  # noqa: PLR0913
     """
 
     changes = [str(repo_root / f) for f in files]
+
+    # Format and normalize files before staging (add paths only).
+    if not remove and not already_staged:
+        for path_str in changes:
+            p = Path(path_str)
+            if p.is_file():
+                format_file(p, repo_root)
 
     if already_staged:
         # Skip as files are already in the index (only for submodule updates).
