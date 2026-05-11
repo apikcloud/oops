@@ -10,6 +10,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-05-11
+
+### Changed
+
+- `oops requirements check` / `oops requirements update`: import names are now normalized to pip package names before comparison (e.g. `dateutil` → `python-dateutil`, `PIL` → `Pillow`)
+- `oops requirements update`: duplicate entries are removed from the generated `requirements.txt`
+- `oops requirements`: version constraints from multiple addons are merged intelligently — highest floor wins, lowest ceil wins, conflicting `==` pins are flagged for human arbitration; output is alphabetically sorted
+- `oops requirements check`: no longer crashes when `requirements.txt` does not yet exist (treated as empty)
+
 ## [0.14.0] - 2026-05-11
 
 ### Added

@@ -11,24 +11,8 @@ The whole content of the requirements file is replaced by the python dependencie
 
 By default, a commit is automatically done to push the changes. Use --no-commit to avoid this behaviour.
 
-Merging rules
--------------
-When multiple addons declare constraints for the same package, they are merged
-before comparison:
-
- 1. Bare name (no operator)   — kept as-is, deduplicated across addons.
- 2. Single floor (>= / >)     — kept as-is.
- 3. Single ceil  (<= / <)     — kept as-is.
- 4. Multiple floors           — highest version wins (most restrictive).
- 5. Multiple ceils            — lowest version wins (most restrictive).
- 6. Floor + ceil              — merged as ``pkg>=floor,<ceil``.
- 7. > vs >= at same version   — strict operator wins (> beats >=, < beats <=).
- 8. == pin                    — always kept as-is; if a range also exists for the same package, both are emitted
- (human arbitration).
- 9. Git dep (e.g. pkg@git+…)  — no <=> in string → treated as bare name, passes through unchanged, no merging.
-10. Name mapping              — import names are normalized to pip names before any version processing (PIL → Pillow,
- dateutil → python-dateutil, and so on...).
-11. Final output              — alphabetically sorted; header line prepended.
+See the requirements documentation for merging rules
+and name-mapping details.
 """
 
 from __future__ import annotations

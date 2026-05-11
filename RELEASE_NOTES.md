@@ -9,6 +9,19 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.15.0] - 2026-05-11
+
+Smarter Python requirements management: fewer false positives, automatic deduplication, and conflict detection.
+
+### 🔄 Changes
+
+- **Import name normalization**: `oops requirements` now maps Python import names to their pip package names automatically (e.g. `dateutil` → `python-dateutil`, `PIL` → `Pillow`) — no more spurious differences caused by naming mismatches
+- **Deduplication**: duplicate lines are removed from the generated `requirements.txt`
+- **Version constraint merging**: when multiple modules require the same package at different versions, `oops requirements` picks the tightest compatible range automatically; exact `==` pins that conflict with a range are flagged so you can resolve them manually
+- **Missing file handled gracefully**: `oops requirements check` no longer crashes on a fresh project where `requirements.txt` doesn't exist yet
+
+---
+
 ## [0.14.0] - 2026-05-11
 
 New experimental commands to analyze and refactor Odoo modules using a built-in knowledge base.
