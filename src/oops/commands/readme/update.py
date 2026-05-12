@@ -29,7 +29,6 @@ from oops.utils.render import render_table
 @click.option("--dry-run", default=False, is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", default=False, is_flag=True, help="Do not commit changes.")
 def main(dry_run: bool = False, no_commit: bool = False):
-
     repo, repo_path = get_local_repo()
     readme_file = config.project.readme_file
 
@@ -51,6 +50,7 @@ def main(dry_run: bool = False, no_commit: bool = False):
         row.append(" ".join(addon.summary.split()))
         structure.append(row)
 
+    structure.sort()
     table = render_table(structure, list(headers.keys()), index=False)
     new_content = f"Available addons\n----------------\n\n{table}\n"
 
