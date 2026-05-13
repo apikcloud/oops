@@ -9,6 +9,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.15.1] - 2026-05-13
+
+A small fix for the README update command.
+
+### 🐛 Fixes
+
+- `oops readme update`: addons are now listed in alphabetical order in the generated README table
+
+---
+
 ## [0.15.0] - 2026-05-11
 
 Smarter Python requirements management: fewer false positives, automatic deduplication, and conflict detection.
