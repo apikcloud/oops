@@ -23,8 +23,10 @@ dependencies = [
     "libcst; python_version>='3.8'",
     "fixit>2.0; python_version>='3.9'",
     "tabulate",
+    "rich>=13.0",
     "GitPython",
     "packaging>=23.2",
+    "questionary",
 ]
 
 

@@ -3,13 +3,49 @@
 #
 # File: render.py — oops/utils/render.py
 
+from __future__ import annotations
+
+import logging
 import textwrap
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-import click
+import questionary
 from oops.core.config import config
+from oops.core.exceptions import OopsError
 from oops.utils.compat import Any, List, Optional
+from rich import box
+from rich.columns import Columns
+from rich.console import Console
+from rich.panel import Panel
+from rich.style import Style
+from rich.table import Table
+from rich.theme import Theme
 from tabulate import tabulate
+
+RICH_THEME = Theme(
+    {
+        "brand.bg": Style(color="#2e3548"),
+        "brand.primary": Style(color="#505ba6"),
+        "brand.dim": Style(color="#505ba6", dim=True),
+    }
+)
+
+
+def get_console() -> Console:
+    """Return a stdout-bound Rich Console.
+
+    Created lazily on every call so pytest's ``capsys`` fixture (which
+    monkey-patches ``sys.stdout`` after import time) captures the output.
+    Rich caches ``self.file`` at ``Console.__init__``, so a module-level
+    instance would bypass ``capsys``.
+    """
+    return Console(highlight=False, soft_wrap=False, theme=RICH_THEME)
+
+
+def get_error_console() -> Console:
+    """Return a stderr-bound Rich Console."""
+    return Console(highlight=False, soft_wrap=False, theme=RICH_THEME, stderr=True)
 
 
 def format_datetime(dt: datetime) -> str:
@@ -152,7 +188,7 @@ def print_error(message: str, symbol: str = "✘") -> None:
         message: Text to display.
         symbol: Prefix symbol. Defaults to "✘".
     """
-    click.echo(click.style(f"{symbol} {message}", fg="red"))
+    get_console().print(f"{symbol} {message}", style="red")
 
 
 def print_success(message: str, symbol: str = "✔") -> None:
@@ -162,7 +198,7 @@ def print_success(message: str, symbol: str = "✔") -> None:
         message: Text to display.
         symbol: Prefix symbol. Defaults to "✔".
     """
-    click.echo(click.style(f"{symbol} {message}", fg="green"))
+    get_console().print(f"{symbol} {message}", style="green")
 
 
 def print_warning(message: str, symbol: str = "⚠") -> None:
@@ -172,7 +208,7 @@ def print_warning(message: str, symbol: str = "⚠") -> None:
         message: Text to display.
         symbol: Prefix symbol. Defaults to "⚠".
     """
-    click.echo(click.style(f"{symbol} {message}", fg="yellow"))
+    get_console().print(f"{symbol} {message}", style="yellow")
 
 
 def print_rule(text: str) -> None:
@@ -181,23 +217,258 @@ def print_rule(text: str) -> None:
     Args:
         text: Header text to display.
     """
-    click.echo(click.style(f"\n── {text} ──", bold=True))
+    console = get_console()
+    console.print()
+    console.print(f"── {text} ──", style="bold")
 
 
-class OopsError(click.ClickException):
-    """Fatal error raised by oops commands.
+# Rich
 
-    Renders as ``✘ <message>`` in red on stderr (matching ``print_error``'s
-    visual style) and exits with code 1 via Click's standard exception flow,
-    so ``OopsCommand`` telemetry records it as ``Exit(1)``.
 
-    Use this for runtime errors that should terminate the command. For bad
-    user input prefer ``click.UsageError``; for explicit non-error exits
-    prefer ``click.exceptions.Exit(N)``.
-    """
+def rule(title: str):
+    console = get_console()
+    console.rule(f"[brand.primary bold]{title}[/]", style="dim")
 
-    def show(self, file=None) -> None:  # noqa: ARG002 - signature mirrors click.ClickException
-        click.echo(
-            click.style(f"✘ {self.format_message()}", fg="red"),
-            err=True,
-        )
+
+def warning_section(messages: list[str]) -> None:
+    if not messages:
+        return
+    console = get_console()
+    console.rule(f"[yellow]Warnings ({len(messages)})[/]", style="yellow dim")
+    for m in messages:
+        console.print(f" {m}", style="yellow")
+    console.rule(style="yellow dim")
+
+
+def kv_panel(title: str, data: dict):
+    console = get_console()
+    content = "\n".join(f"[brand.primary]{k:<20}[/] {v}" for k, v in data.items())
+    console.print(Panel(content, title=title, border_style="dim"))
+
+
+def make_table(title: Optional[str], columns: list[tuple], rows: list, expand: bool = True) -> Table:
+    """columns = [(label, style, justify), ...]"""
+
+    t = Table(title=title, box=box.SIMPLE_HEAD, show_edge=False, expand=expand)
+    for label, style, justify in columns:
+        t.add_column(label, style=style, justify=justify)
+    for row in rows:
+        t.add_row(*row)
+    return t
+
+
+def metrics(data: dict[str, str]):
+    console = get_console()
+    panels = [Panel(f"[dim]{k}[/]\n[bold]{v}[/]", expand=True) for k, v in data.items()]
+    console.print(Columns(panels))
+
+
+# def conclude(ok: bool, message: str):
+#     console = get_console()
+#     icon, color = ("✓", "green") if ok else ("✗", "red")
+#     console.print(f"\n[bold {color}]{icon} {message}[/]")
+
+
+# def metrics_panel(title: str, data: dict[str, str], columns: int = 2):
+#     console = get_console()
+#     grid = Table.grid(expand=True, padding=(0, 4))
+#     for _ in range(columns):
+#         grid.add_column()
+
+#     items = list(data.items())
+#     for i in range(0, len(items), columns):
+#         chunk = items[i : i + columns]
+#         while len(chunk) < columns:
+#             chunk.append(("", ""))
+#         cells = [f"[dim]{k}:[/] [bold]{v}[/]" for k, v in chunk]
+#         grid.add_row(*cells)
+
+#     console.print(Panel(grid, title=title, border_style="dim"))
+
+
+def metrics_grid(*panels, ratios: Optional[list[int]] = None):
+    grid = Table.grid(expand=True, padding=(0, 1))
+    ratios = ratios or [1] * len(panels)
+    for r in ratios:
+        grid.add_column(ratio=r)
+    grid.add_row(*panels)
+    return grid
+
+
+def metrics_panel(title: str, values: list[list[str]], subtitle: Optional[str] = None):
+    grid = Table.grid(expand=True)
+    grid.add_column(style="dim")
+    grid.add_column()
+    for label, value in values:
+        grid.add_row(label, colorize(value, "brand.primary"))
+    return Panel(grid, title=title, subtitle=subtitle, style="dim", expand=True)
+
+
+def colorize(raw: str, color: str):
+    return f"[{color}]{raw}[/]"
+
+
+def conclude(ok: bool, message: str):
+    console = get_console()
+
+    icon = "✓" if ok else "✗"
+    style = "bold green" if ok else "bold white on dark_red"
+    console.print(Panel(f"{icon}  {message}", style=style, box=box.HORIZONTALS))
+
+
+def prompt_select(message: str, choices: list[str]) -> str:
+    return questionary.select(message, choices=choices).ask()
+
+
+def prompt_confirm(message: str, default: bool = False) -> bool:
+    return bool(questionary.confirm(message, default=default).ask())
+
+
+def render_result(result: "Result") -> None:
+    """Surface a Result's diagnostics to the terminal."""
+    _log = logging.getLogger("oops")
+    for m in result.messages:
+        _log.info(m)
+    warning_section(result.warnings)
+    if result.errors:
+        raise OopsError("\n".join(result.errors))
+
+
+# ---------------------------------------------------------------------------
+# Analyze command renderers
+# ---------------------------------------------------------------------------
+
+if TYPE_CHECKING:
+    from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
+
+
+def render_text(summary: ModuleSummary) -> None:
+    console = get_console()
+    m = summary.manifest
+    name = m.get("name", "<unknown>")
+    version = m.get("version", "")
+    author = m.get("author", "")
+    license_ = m.get("license", "")
+    category = m.get("category", "")
+    summary_text = m.get("summary", "")
+    installable = m.get("installable", True)
+
+    rule(summary.module_name)
+
+    manifest_values = [
+        ["Name", name],
+        ["Version", version],
+        ["Author", author],
+        ["License", license_],
+        ["Category", category],
+        ["Installable", "yes" if installable else "no"],
+    ]
+    if summary_text:
+        manifest_values.append(["Summary", human_readable(summary_text, width=40)])
+
+    total_methods = sum(c.methods_total for c in summary.classes)
+    total_overrides = sum(c.overrides for c in summary.classes)
+    total_missing = sum(c.missing_docstrings for c in summary.classes)
+    data_count = sum(n for ext in summary.structure.data.values() for n in ext.values())
+
+    stats_values = [
+        ["Models", str(len(summary.classes))],
+        ["Methods", str(total_methods)],
+        ["Overrides", str(total_overrides)],
+        ["Missing docs", str(total_missing)],
+        ["Data files", str(data_count)],
+    ]
+
+    p_manifest = metrics_panel("Manifest", manifest_values)
+    p_stats = metrics_panel("Stats", stats_values)
+
+    console.print()
+    console.print(metrics_grid(p_manifest, p_stats))
+    console.print()
+
+    depends = m.get("depends", [])
+    console.print(f"Depends ({len(depends)}): {', '.join(depends) or '—'}")
+    console.print()
+
+    if summary.classes:
+        rule("Models")
+        _render_model_table(summary.classes)
+        all_overrides = [d for c in summary.classes for d in c.override_details]
+        if all_overrides:
+            _render_overrides_table(all_overrides)
+
+    _render_structure_table(summary.structure)
+
+    if summary.warnings:
+        warning_section(summary.warnings)
+
+
+def _render_model_table(classes: list[ClassSummary]) -> None:
+    console = get_console()
+    all_sections = sorted({s for c in classes for s in c.methods_by_section})
+    columns = [
+        ("Model", "brand.primary", "left"),
+        ("Origin", "dim", "left"),
+        ("New fld", "", "right"),
+        ("Inh fld", "", "right"),
+    ] + [(sec, "dim", "right") for sec in all_sections]
+    rows = []
+    for c in classes:
+        label = c.model_name or ", ".join(c.inherit) or c.class_name
+        origin = "new" if c.is_new_model else "inherit"
+        new_fld = str(c.fields_base if c.is_new_model else c.fields_new) if (c.fields_base or c.fields_new) else ""
+        inh_fld = str(c.fields_inherited) if c.fields_inherited else ""
+        row = [label, origin, new_fld, inh_fld] + [str(c.methods_by_section.get(sec, "")) or "" for sec in all_sections]
+        rows.append(row)
+    console.print(make_table(title=None, columns=columns, rows=rows))
+    console.print()
+
+
+def _render_overrides_table(overrides: list[dict[str, str]]) -> None:
+    console = get_console()
+    columns = [
+        ("Model", "brand.primary", "left"),
+        ("Method", "dim", "left"),
+        ("Origin", "dim", "left"),
+    ]
+    rows = [[ov["model"], ov["method"], ov["origin_module"]] for ov in overrides]
+    console.print(make_table(title="Overrides", columns=columns, rows=rows))
+    console.print()
+
+
+def _render_structure_table(s: StructureSummary) -> None:
+    console = get_console()
+    rows = []
+
+    for subdir, ext_counts in sorted(s.data.items()):
+        for ext, count in sorted(ext_counts.items()):
+            rows.append(["Data", subdir, str(count), ext, colorize("✗", "red")])
+
+    for subdir, ext_counts in sorted(s.demo.items()):
+        for ext, count in sorted(ext_counts.items()):
+            rows.append(["Demo", subdir, str(count), ext, colorize("✗", "red")])
+
+    for label, count in [
+        ("wizard/", s.wizard_py),
+        ("controllers/", s.controllers_py),
+        ("report/", s.report_py),
+    ]:
+        if count:
+            rows.append(["Other py", label, str(count), "py", colorize("✗", "red")])
+
+    for ext, count in sorted(s.static_by_ext.items()):
+        rows.append(["Static", f"static/src/{ext}", str(count), ext, colorize("✗", "red")])
+
+    if not rows:
+        return
+
+    rule("Structure")
+    columns = [
+        ("Section", "dim", "left"),
+        ("Subdir", "dim", "left"),
+        ("Count", "", "right"),
+        ("Ext", "dim", "left"),
+        ("Analysed", "", "center"),
+    ]
+    console.print(make_table(title=None, columns=columns, rows=rows))
+    console.print()
