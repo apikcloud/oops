@@ -75,6 +75,44 @@ class TestPrintError:
         assert "something went wrong" in out
 
 
+class TestPrintRule:
+    def test_prints_label_to_stdout(self, capsys):
+        from oops.utils.render import print_rule
+        print_rule("foo")
+        assert "── foo ──" in capsys.readouterr().out
+
+
+class TestWarningSection:
+    def test_empty_is_silent(self, capsys):
+        from oops.utils.render import warning_section
+        warning_section([])
+        assert capsys.readouterr().out == ""
+
+    def test_single_message_contains_text(self, capsys):
+        from oops.utils.render import warning_section
+        warning_section(["something went wrong"])
+        out = capsys.readouterr().out
+        assert "something went wrong" in out
+        assert "Warnings (1)" in out
+
+    def test_multi_message_all_present(self, capsys):
+        from oops.utils.render import warning_section
+        warning_section(["first", "second"])
+        out = capsys.readouterr().out
+        assert "first" in out
+        assert "second" in out
+
+
+class TestGetConsole:
+    def test_returns_distinct_instances(self):
+        from oops.utils.render import get_console
+        assert get_console() is not get_console()
+
+    def test_error_console_targets_stderr(self):
+        from oops.utils.render import get_error_console
+        assert get_error_console().stderr is True
+
+
 class TestOopsError:
     def test_inherits_click_exception(self):
         import click
@@ -91,6 +129,124 @@ class TestOopsError:
         captured = capsys.readouterr()
         assert captured.out == ""
         assert "✘ Project KB not found." in captured.err
+
+
+class TestEarlyExit:
+    def test_exit_code_zero(self):
+        from click.testing import CliRunner
+        from oops.commands.base import command
+        from oops.core.exceptions import EarlyExit
+
+        @command()
+        def _cmd():
+            raise EarlyExit()
+
+        result = CliRunner().invoke(_cmd, [])
+        assert result.exit_code == 0
+
+    def test_telemetry_error_is_none(self, monkeypatch):
+        from click.testing import CliRunner
+        from oops.commands.base import command
+        from oops.core.exceptions import EarlyExit
+
+        events = []
+        monkeypatch.setattr("oops.commands.base.append_event", lambda cmd, ms, error: events.append(error))
+
+        @command()
+        def _cmd():
+            raise EarlyExit()
+
+        CliRunner().invoke(_cmd, [])
+        assert events == [None]
+
+
+class TestAppAbort:
+    def test_exit_code_one(self):
+        from click.testing import CliRunner
+        from oops.commands.base import command
+        from oops.core.exceptions import AppAbort
+
+        @command()
+        def _cmd():
+            raise AppAbort()
+
+        result = CliRunner().invoke(_cmd, [])
+        assert result.exit_code == 1
+
+    def test_aborted_printed(self):
+        from click.testing import CliRunner
+        from oops.commands.base import command
+        from oops.core.exceptions import AppAbort
+
+        @command()
+        def _cmd():
+            raise AppAbort()
+
+        result = CliRunner().invoke(_cmd, [])
+        assert "Aborted" in result.output
+
+
+class TestSentinelExitCodes:
+    @pytest.mark.parametrize("cls,code", [
+        ("ConfigError", 1),
+        ("APIError", 2),
+        ("NotFoundError", 3),
+    ])
+    def test_exit_code(self, cls, code):
+        import importlib
+        exc_mod = importlib.import_module("oops.core.exceptions")
+        exc_cls = getattr(exc_mod, cls)
+        assert exc_cls.exit_code == code
+
+    def test_show_writes_symbol_to_stderr(self, capsys):
+        from oops.core.exceptions import ConfigError
+        ConfigError("bad config").show()
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert "✘ bad config" in captured.err
+
+
+class TestTelemetryClassification:
+    def _run(self, exc_factory, monkeypatch):
+        from click.testing import CliRunner
+        from oops.commands.base import command
+
+        events = []
+        monkeypatch.setattr("oops.commands.base.append_event", lambda cmd, ms, error: events.append(error))
+
+        @command()
+        def _cmd():
+            raise exc_factory()
+
+        CliRunner().invoke(_cmd, [])
+        return events[0] if events else None
+
+    def test_oops_error(self, monkeypatch):
+        from oops.core.exceptions import OopsError
+        assert self._run(lambda: OopsError("err"), monkeypatch) == "OopsError"
+
+    def test_config_error(self, monkeypatch):
+        from oops.core.exceptions import ConfigError
+        assert self._run(lambda: ConfigError("err"), monkeypatch) == "ConfigError"
+
+    def test_api_error(self, monkeypatch):
+        from oops.core.exceptions import APIError
+        assert self._run(lambda: APIError("err"), monkeypatch) == "APIError"
+
+    def test_not_found_error(self, monkeypatch):
+        from oops.core.exceptions import NotFoundError
+        assert self._run(lambda: NotFoundError("err"), monkeypatch) == "NotFoundError"
+
+    def test_usage_error(self, monkeypatch):
+        import click
+        assert self._run(lambda: click.UsageError("bad input"), monkeypatch) == "UsageError"
+
+    def test_click_exception(self, monkeypatch):
+        import click
+        assert self._run(lambda: click.ClickException("err"), monkeypatch) == "ClickException"
+
+    def test_runtime_error(self, monkeypatch):
+        assert self._run(lambda: RuntimeError("unexpected"), monkeypatch) == "RuntimeError"
 
 
 # ---------------------------------------------------------------------------
@@ -431,38 +587,57 @@ class TestMakeJsonGet:
 
 
 # ---------------------------------------------------------------------------
-# oops/services/git.py — get_local_repo error paths
+# oops/services/git.py — require_repository error paths
 # ---------------------------------------------------------------------------
 
 
-class TestGetLocalRepoErrors:
+class TestRequireRepositoryErrors:
     def test_raises_click_exception_when_not_in_repo(self, tmp_path, monkeypatch):
         import click
         from git import InvalidGitRepositoryError
-        from oops.services.git import get_local_repo
+        from oops.services.git import require_repository
 
         monkeypatch.chdir(tmp_path)
         with patch("oops.services.git.Repo", side_effect=InvalidGitRepositoryError("not a repo")):
             with pytest.raises(click.ClickException, match="Not inside a git repository"):
-                get_local_repo()
+                require_repository()
 
     def test_raises_click_exception_on_generic_error(self, tmp_path, monkeypatch):
         import click
-        from oops.services.git import get_local_repo
+        from oops.services.git import require_repository
 
         with patch("oops.services.git.Repo", side_effect=RuntimeError("unexpected")):
             with pytest.raises(click.ClickException, match="Error accessing git repository"):
-                get_local_repo()
+                require_repository()
 
     def test_raises_when_no_working_tree(self):
         import click
-        from oops.services.git import get_local_repo
+        from oops.services.git import require_repository
 
         mock_repo = MagicMock()
         mock_repo.working_tree_dir = None
         with patch("oops.services.git.Repo", return_value=mock_repo):
             with pytest.raises(click.ClickException, match="Not inside a git repository"):
-                get_local_repo()
+                require_repository()
+
+
+class TestRequireSubmodulesErrors:
+    def test_raises_oops_error_when_no_submodules(self):
+        from oops.core.exceptions import OopsError
+        from oops.services.git import require_submodules
+
+        repo = MagicMock()
+        repo.submodules = []
+        with pytest.raises(OopsError, match="This command requires submodules"):
+            require_submodules(repo)
+
+    def test_returns_submodules_when_present(self):
+        from oops.services.git import require_submodules
+
+        repo = MagicMock()
+        sentinel = [MagicMock(), MagicMock()]
+        repo.submodules = sentinel
+        assert require_submodules(repo) is sentinel
 
 
 class TestGetSubmoduleSha:
@@ -591,4 +766,50 @@ def test_no_systemexit_in_commands_module():
         "Found bare SystemExit / sys.exit in commands/:\n  "
         + "\n  ".join(offenders)
         + "\nUse OopsError (oops.utils.render) or click.ClickException instead."
+    )
+
+
+def test_termination_patterns_in_commands():
+    """Commands must use the unified exception vocabulary, not legacy patterns.
+
+    Forbidden inside src/oops/commands/ (except commands/base.py):
+      - `raise SystemExit` / `sys.exit(`     — bypasses Click lifecycle
+      - `raise click.exceptions.Exit(`       — use EarlyExit/OopsError/etc.
+      - `ctx.exit(`                          — same; reserved for OopsCommand
+      - `return <int>` from a command callback — bypasses telemetry
+
+    See `oops.core.exceptions` for the canonical sentinels.
+    """
+    import re
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent
+    commands_dir = repo_root / "src" / "oops" / "commands"
+    assert commands_dir.is_dir(), commands_dir
+
+    forbidden_patterns = [
+        (re.compile(r"^\s*(?:raise\s+SystemExit|sys\.exit\b)", re.MULTILINE), "SystemExit/sys.exit"),
+        (re.compile(r"^\s*raise\s+click\.exceptions\.Exit\(", re.MULTILINE), "click.exceptions.Exit"),
+        (re.compile(r"^\s*ctx\.exit\(", re.MULTILINE), "ctx.exit"),
+        (re.compile(r"^\s*return\s+-?\d+\s*$", re.MULTILINE), "return <int>"),
+    ]
+
+    # commands/base.py is the framework chokepoint and is allowed to use ctx.exit().
+    allowed_file = commands_dir / "base.py"
+
+    offenders = []
+    for py_file in commands_dir.rglob("*.py"):
+        if py_file == allowed_file:
+            continue
+        text = py_file.read_text(encoding="utf-8")
+        for pattern, label in forbidden_patterns:
+            for match in pattern.finditer(text):
+                line_no = text[: match.start()].count("\n") + 1
+                offenders.append(f"{py_file.relative_to(repo_root)}:{line_no}  ({label})")
+
+    assert not offenders, (
+        "Found legacy termination patterns in commands/:\n  "
+        + "\n  ".join(offenders)
+        + "\nUse oops.core.exceptions: EarlyExit, OopsError, ConfigError, "
+        + "APIError, NotFoundError, AppAbort, or click.UsageError instead."
     )

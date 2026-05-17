@@ -20,7 +20,7 @@ import click
 from oops.commands.base import command
 from oops.core.config import config
 from oops.io.file import file_updater, find_addons
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 from oops.services.github import get_github_user
 from oops.utils.render import render_table
 
@@ -29,7 +29,7 @@ from oops.utils.render import render_table
 @click.option("--dry-run", default=False, is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", default=False, is_flag=True, help="Do not commit changes.")
 def main(dry_run: bool = False, no_commit: bool = False):
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
     readme_file = config.project.readme_file
 
     # Corresponding map for headers and manifest keys.

@@ -37,7 +37,7 @@ def _base_patches(tmp_path, mock_repo=None):
     mock_repo.index.commit.return_value = MagicMock(hexsha="ab" * 8)
     return {
         "oops.commands.submodules.add.config": _make_config(),
-        "oops.commands.submodules.add.get_local_repo": MagicMock(return_value=(mock_repo, tmp_path)),
+        "oops.commands.submodules.add.require_repository": MagicMock(return_value=(mock_repo, tmp_path)),
         "oops.commands.submodules.add.read_gitmodules": MagicMock(return_value=MagicMock()),
         "oops.commands.submodules.add.commit": MagicMock(),
     }
@@ -82,9 +82,8 @@ class _apply_patches:
 
 class TestDryRun:
     def test_dry_run_exits_cleanly(self, tmp_path):
-        # click.Abort() produces exit code 1; that is expected for a dry run
         result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-y", "--dry-run"])
-        assert result.exit_code == 1
+        assert result.exit_code == 0
 
     def test_dry_run_prints_warning(self, tmp_path):
         result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-y", "--dry-run"])
@@ -210,7 +209,7 @@ class TestSymlinks:
         commit_mock = MagicMock()
         patches = {
             "oops.commands.submodules.add.config": _make_config(),
-            "oops.commands.submodules.add.get_local_repo": MagicMock(
+            "oops.commands.submodules.add.require_repository": MagicMock(
                 return_value=(mock_repo, tmp_path)
             ),
             "oops.commands.submodules.add.read_gitmodules": MagicMock(return_value=MagicMock()),

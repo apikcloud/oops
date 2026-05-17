@@ -21,16 +21,17 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.commands.manifest.common import collect_paths, run_fixit
+from oops.core.exceptions import EarlyExit, OopsError
 from oops.io.file import get_filtered_addon_names
 from oops.io.manifest import get_manifest_path
-from oops.services.git import get_local_repo
+from oops.services.git import require_repository
 
 
 @command(name="check", help=__doc__)
 @click.argument("inputs", nargs=-1)
 @click.option("--diff", is_flag=True, help="Show the autofix diff alongside each violation.")
 def main(inputs: tuple, diff: bool) -> None:
-    _, repo_path = get_local_repo()
+    _, repo_path = require_repository()
 
     if not inputs:
         names = get_filtered_addon_names(repo_path)
@@ -56,11 +57,11 @@ def main(inputs: tuple, diff: bool) -> None:
 
     if not paths:
         click.echo("No manifest files found.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     violations = run_fixit(paths, autofix=False, show_diff=diff)
 
     if violations:
-        raise click.exceptions.Exit(1)
+        raise OopsError("Manifest check failed.")
 
     click.echo(f"All {len(paths)} manifest(s) passed.")

@@ -13,8 +13,9 @@ or --commits. With --save, writes a migration script file.
 
 import click
 from oops.commands.base import command
+from oops.core.exceptions import EarlyExit, OopsError
 from oops.io.file import get_addons_diff, make_migration_command, write_migration_script
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 from oops.utils.render import print_error, print_success, print_warning
 
 
@@ -31,7 +32,7 @@ def main(  # noqa: C901, PLR0912
     save: bool,
     no_commit: bool,
 ):
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     # Resolve base ref and optional release label
     release = None
@@ -46,7 +47,7 @@ def main(  # noqa: C901, PLR0912
         # Auto-detect: latest tag, or penultimate if HEAD is already at the latest
         all_tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
         if not all_tags:
-            raise click.ClickException("No tags found. Use --ref or --commits to specify a base.")
+            raise OopsError("No tags found. Use --ref or --commits to specify a base.")
         latest = all_tags[-1]
         if repo.head.commit == latest.commit and len(all_tags) >= 2:
             chosen = all_tags[-2]
@@ -61,7 +62,7 @@ def main(  # noqa: C901, PLR0912
 
     if not any([new_addons, updated_addons, removed_addons]):
         click.echo("No modified addon found.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     if removed_addons:
         for addon in removed_addons:

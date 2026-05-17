@@ -13,7 +13,7 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.
 import click
 from oops.commands.base import command
 from oops.io.file import find_addons
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 from oops.utils.helpers import str_to_list
 from oops.utils.render import print_error, print_success
 
@@ -32,7 +32,7 @@ from oops.utils.render import print_error, print_success
 )
 def main(addons_list: str, delete: bool, no_commit: bool):
 
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     provided = set(str_to_list(addons_list))
     local = {a.technical_name for a in find_addons(repo_path, shallow=True)}
@@ -50,10 +50,7 @@ def main(addons_list: str, delete: bool, no_commit: bool):
             (repo_path / name).unlink()
             changes.append(name)
 
-    click.echo(
-        f"\n  {len(common)} matching, {len(missing)} missing locally, "
-        f"{len(additionals)} extra locally"
-    )
+    click.echo(f"\n  {len(common)} matching, {len(missing)} missing locally, {len(additionals)} extra locally")
 
     if delete and changes and not no_commit:
         click.echo(f"{len(changes)} addon(s) removed, committing changes...")

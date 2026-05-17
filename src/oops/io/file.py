@@ -268,7 +268,10 @@ def parse_odoo_version(path: Path) -> ImageInfo:
     Raises:
         ValueError: If the version file is empty, missing, or the tag format is unrecognised.
     """
-    res = read_and_parse(path / config.project.file_odoo_version)
+    try:
+        res = read_and_parse(path / config.project.file_odoo_version)
+    except FileNotFoundError as error:
+        raise ValueError() from error
     if not res:
         raise ValueError()
     return parse_image_tag(res[0])
@@ -1033,21 +1036,74 @@ def get_odoo_sources_dirs(version: str, base_dir: Optional[Path] = None) -> Odoo
         base_dir: Optional explicit root for Odoo sources. Overrides the config value.
 
     Returns:
-        A ``(community_dir, enterprise_dir)`` tuple of :class:`~pathlib.Path` objects
-        pointing to the ``community`` and ``enterprise`` sub-directories under
-        ``<base_dir>/<version>/``.  The paths are returned regardless of whether they
-        exist on disk — the caller is responsible for checking existence.
+        An ``OdooSourcesDirs`` named tuple with ``community``, ``enterprise``, and
+        ``themes`` ``Path`` fields pointing to ``<base_dir>/<version>/{community,
+        enterprise,themes}``. Paths are returned regardless of whether they exist
+        on disk — the caller is responsible for checking existence.
 
     Raises:
         click.UsageError: When neither ``base_dir`` nor ``odoo.sources_dir`` is set.
     """
     resolved = base_dir or config.odoo.sources_dir
     if resolved is None:
-        raise click.UsageError("No base directory provided. Set odoo.sources_dir in ~/.oops.yaml.")
+        raise ConfigError("No base directory provided. Set odoo.sources_dir in ~/.oops.yaml.")
     target = resolved / version
     target.mkdir(parents=True, exist_ok=True)
+    return OdooSourcesDirs(
+        community=target / "community",
+        enterprise=target / "enterprise",
+        themes=target / "themes",
+    )
 
-    community_dir = target / "community"
-    enterprise_dir = target / "enterprise"
 
-    return community_dir, enterprise_dir
+class OdooSourcesStatus(NamedTuple):
+    """Availability of community, enterprise, and themes sources for one Odoo version."""
+
+    version: str
+    community: bool
+    enterprise: bool
+    themes: bool
+
+    @property
+    def available(self) -> int:
+        """Number of sources present on disk (0–3)."""
+        return sum([self.community, self.enterprise, self.themes])
+
+    @property
+    def complete(self) -> bool:
+        """True when all three sources are present."""
+        return self.available == 3
+
+
+def list_odoo_sources_versions(base_dir: Optional[Path] = None) -> list[OdooSourcesStatus]:
+    """List available Odoo source versions with per-source completion status.
+
+    Scans ``sources_dir`` for version sub-directories and checks which of
+    community, enterprise, and themes are present on disk.
+
+    Args:
+        base_dir: Optional explicit root for Odoo sources. Overrides config value.
+
+    Returns:
+        A list of :class:`OdooSourcesStatus` sorted by version name, each showing
+        which sources exist.  Returns an empty list when the directory does not
+        exist yet.
+
+    Raises:
+        click.UsageError: When neither ``base_dir`` nor ``odoo.sources_dir`` is set.
+    """
+    resolved = base_dir or config.odoo.sources_dir
+    if resolved is None:
+        raise ConfigError("No base directory provided. Set odoo.sources_dir in ~/.oops.yaml.")
+    if not resolved.exists():
+        return []
+    return [
+        OdooSourcesStatus(
+            version=d.name,
+            community=(d / "community").exists(),
+            enterprise=(d / "enterprise").exists(),
+            themes=(d / "themes").exists(),
+        )
+        for d in sorted(resolved.iterdir())
+        if d.is_dir()
+    ]

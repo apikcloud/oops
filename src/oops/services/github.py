@@ -8,9 +8,9 @@ import os
 import subprocess
 import zipfile
 
-import click
 import requests
 from oops.core.config import config
+from oops.core.exceptions import APIError
 from oops.core.models import WorkflowRunInfo
 from oops.utils.compat import Optional, Tuple
 from oops.utils.net import make_json_get
@@ -150,9 +150,9 @@ def check_gh() -> None:
     try:
         subprocess.run(["gh", "--version"], check=True, capture_output=True)
     except FileNotFoundError as e:
-        raise click.ClickException("gh CLI not found. Install it from https://cli.github.com.") from e
+        raise APIError("gh CLI not found. Install it from https://cli.github.com.") from e
     except subprocess.CalledProcessError as e:
-        raise click.ClickException(f"gh --version failed (exit {e.returncode}). Check your gh installation.") from e
+        raise APIError(f"gh --version failed (exit {e.returncode}). Check your gh installation.") from e
 
 
 def gh(*args: str) -> subprocess.CompletedProcess:
@@ -160,6 +160,6 @@ def gh(*args: str) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(["gh", *args], check=True)
     except subprocess.CalledProcessError as e:
-        raise click.ClickException(f"gh {args[0]} failed (exit {e.returncode})") from e
+        raise APIError(f"gh {args[0]} failed (exit {e.returncode})") from e
     except FileNotFoundError as e:
-        raise click.ClickException("gh CLI not found. Install it from https://cli.github.com.") from e
+        raise APIError("gh CLI not found. Install it from https://cli.github.com.") from e

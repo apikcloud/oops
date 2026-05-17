@@ -12,14 +12,15 @@ author, and the number of commits between that release and the previous one.
 
 import click
 from oops.commands.base import command
-from oops.services.git import get_local_repo
+from oops.core.exceptions import NotFoundError
+from oops.services.git import require_repository
 from oops.utils.render import render_table
 from oops.utils.versioning import SEMVER_PATTERN
 
 
 @command(name="show", help=__doc__)
 def main():
-    repo, _ = get_local_repo()
+    repo, _ = require_repository()
 
     releases = sorted(
         [t for t in repo.tags if SEMVER_PATTERN.match(t.name)],
@@ -27,7 +28,7 @@ def main():
     )
 
     if not releases:
-        raise click.ClickException("No releases found.")
+        raise NotFoundError("No releases found.")
 
     rows = []
     for i, tag in enumerate(reversed(releases)):

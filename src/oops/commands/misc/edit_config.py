@@ -15,7 +15,7 @@ import click
 from oops.commands.base import command
 from oops.core.paths import CONFIG_GLOBAL, CONFIG_LOCAL
 from oops.io.templates import CONFIG_STARTER
-from oops.services.git import get_local_repo
+from oops.services.git import require_repository
 from oops.utils.render import print_success
 
 
@@ -38,7 +38,7 @@ def main(scope: str) -> None:
 
     if not path.exists():
         if scope == "local":
-            _ = get_local_repo()
+            _ = require_repository()
 
         print_success(f"Creating {path}")
         path.write_text(CONFIG_STARTER)

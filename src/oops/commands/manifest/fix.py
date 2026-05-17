@@ -16,8 +16,9 @@ Use oops-man-check to preview violations without modifying files.
 import click
 from oops.commands.base import command
 from oops.commands.manifest.common import collect_paths, run_fixit
+from oops.core.exceptions import EarlyExit
 from oops.io.file import get_filtered_addon_names
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 from oops.utils.helpers import str_to_list
 
 
@@ -25,14 +26,14 @@ from oops.utils.helpers import str_to_list
 @click.option("--names", default=None, help="Comma-separated list of addon names to fix.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 def main(names: str, no_commit: bool) -> None:
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     name_filter = str_to_list(names) if names else get_filtered_addon_names(repo_path)
     paths = collect_paths(repo_path, name_filter)
 
     if not paths:
         click.echo("No manifest files found.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     fixed = run_fixit(paths, autofix=True, show_diff=True)
 

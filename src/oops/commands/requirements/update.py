@@ -22,15 +22,16 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import EarlyExit
 from oops.io.file import file_updater, get_requirements_diff
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 
 
 @command("update", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes.")
 def main(dry_run: bool, no_commit: bool):
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
     requirement_file = Path(config.project.file_requirements)
 
     has_changes, python_dependencies, _ = get_requirements_diff(repo_path)
@@ -38,7 +39,7 @@ def main(dry_run: bool, no_commit: bool):
 
     if not has_changes:
         click.echo("No changes detected in requirements.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     has_update = file_updater(
         filepath=str(requirement_file),

@@ -13,9 +13,10 @@ import os
 
 import click
 from oops.commands.base import command
+from oops.core.exceptions import EarlyExit, NotFoundError
 from oops.io.file import relpath
 from oops.io.manifest import find_addons_extended
-from oops.services.git import commit, get_local_repo, list_available_addons
+from oops.services.git import commit, list_available_addons, require_repository
 from oops.utils.helpers import str_to_list
 from oops.utils.render import print_success, print_warning
 
@@ -29,7 +30,7 @@ from oops.utils.render import print_success, print_warning
 )
 def main(addons_list: str, no_commit: bool):
 
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     # Addons already linked at the repo root
     existing = {name for name, _, _ in find_addons_extended(repo_path)}
@@ -37,19 +38,17 @@ def main(addons_list: str, no_commit: bool):
 
     if not requested:
         click.echo("All requested addons are already present.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     # Addons available in submodules, keyed by name
-    available: dict = {
-        name: path for name, path, _ in list_available_addons(repo, repo_path) if name in requested
-    }
+    available: dict = {name: path for name, path, _ in list_available_addons(repo, repo_path) if name in requested}
 
     missing = requested - available.keys()
     if missing:
         print_warning(f"Not found in any submodule ({len(missing)}): {', '.join(sorted(missing))}")
 
     if not available:
-        raise click.ClickException("No matching addons found in any submodule.")
+        raise NotFoundError("No matching addons found in any submodule.")
 
     created = []
     for name, addon_path in available.items():

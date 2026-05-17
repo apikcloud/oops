@@ -8,7 +8,7 @@ from typing import Any
 
 import click
 from oops.core.config import config
-from oops.core.exceptions import ConfigurationError
+from oops.core.exceptions import AppAbort, ConfigurationError, EarlyExit, OopsError
 from oops.services.stats import append_event, maybe_flush
 
 
@@ -54,6 +54,28 @@ class OopsCommand(click.Command):
         error = None
         try:
             return super().invoke(ctx)
+        except EarlyExit:
+            # Clean intentional stop requested from anywhere in the call stack.
+            ctx.exit(0)
+        except AppAbort:
+            # User cancellation — Click handles display and exit code.
+            raise
+
+        except OopsError as exc:
+            # Business error — Click handles display and exit code.
+            error = type(exc).__name__
+            raise
+
+        except click.UsageError as exc:
+            # Bad CLI usage — Click prints the message and the command help.
+            error = type(exc).__name__
+            raise
+
+        except click.ClickException as exc:
+            # Any other Click-level exception not covered above.
+            error = type(exc).__name__
+            raise
+
         except click.exceptions.Exit as exc:
             # Exit(0) is a voluntary clean exit — not an error.
             if exc.exit_code != 0:
@@ -69,8 +91,10 @@ class OopsCommand(click.Command):
                 error = f"Exit({code})"
             raise
         except Exception as exc:
+            # Unexpected Python exception: wrap for consistent output.
+            # The original traceback is preserved via `from exc`.
             error = type(exc).__name__
-            raise
+            raise OopsError(f"Unexpected error: {exc}") from exc
         finally:
             ms = round((time.monotonic() - t0) * 1000, 1)
             try:

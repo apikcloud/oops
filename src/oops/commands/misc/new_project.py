@@ -19,6 +19,7 @@ Requires gh to be authenticated (run 'gh auth login' if needed).
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import ConfigError
 from oops.services.github import check_gh, gh
 from oops.utils.compat import List
 from oops.utils.helpers import slugify
@@ -46,9 +47,9 @@ def main(no_clone: bool) -> None:
     cfg = config.github
 
     if not cfg.template:
-        raise click.UsageError("No template configured. Set github.template in ~/.oops.yaml.")
+        raise ConfigError("No template configured. Set github.template in ~/.oops.yaml.")
     if not cfg.owner:
-        raise click.UsageError("No owner configured. Set github.owner in ~/.oops.yaml.")
+        raise ConfigError("No owner configured. Set github.owner in ~/.oops.yaml.")
 
     # Prompt for name → slugify → let user edit → confirm
     raw_name = click.prompt("Project name")

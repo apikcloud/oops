@@ -18,8 +18,9 @@ from pathlib import Path
 import click
 import git
 from oops.commands.base import command
+from oops.core.exceptions import APIError, EarlyExit
 from oops.io.file import file_updater, find_addons, read_tagged_block
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 from oops.utils.compat import Optional
 from oops.utils.helpers import str_to_list
 from oops.utils.net import encode_url
@@ -32,7 +33,7 @@ from oops.utils.render import print_warning
 @click.option("--addons", "addons_list", help="Comma-separated addon names to copy (copies all if omitted).")
 @click.option("--exclude/--no-exclude", is_flag=True, default=True, help="Add downloaded addons to .gitignore.")
 def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None):
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     ssh_url = encode_url(url, "ssh")
     addons = [] if addons_list is None else str_to_list(addons_list)
@@ -44,7 +45,7 @@ def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None
         try:
             git.Repo.clone_from(ssh_url, str(tmpdir), depth=1, branch=branch)
         except git.GitCommandError as exc:
-            raise click.ClickException(f"Clone failed: {exc.stderr.strip()}") from exc
+            raise APIError(f"Clone failed: {exc.stderr.strip()}") from exc
 
         new_addons = []
         skipped_addons = []
@@ -68,7 +69,7 @@ def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None
 
         if not new_addons:
             click.echo("No addons downloaded.")
-            raise click.Abort()
+            raise EarlyExit()
 
         click.echo(f"Downloaded ({len(new_addons)}): {', '.join(new_addons)}")
 
@@ -78,11 +79,7 @@ def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None
             end_tag = "# oops:addons:end"
 
             block = read_tagged_block(gitignore, start_tag, end_tag)
-            existing = {
-                ln.strip()
-                for ln in block.splitlines()
-                if ln.strip() and not ln.strip().startswith("#")
-            }
+            existing = {ln.strip() for ln in block.splitlines() if ln.strip() and not ln.strip().startswith("#")}
 
             merged = "\n".join(sorted(existing | {f"{a}/" for a in new_addons}))
             if file_updater(str(gitignore), merged, start_tag=start_tag, end_tag=end_tag):

@@ -21,8 +21,9 @@ from datetime import date
 
 import click
 from oops.commands.base import command
+from oops.core.exceptions import EarlyExit, NotFoundError, OopsError
 from oops.io.file import get_addons_diff, make_migration_command, write_migration_script
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 from oops.utils.render import print_success, print_warning
 from oops.utils.versioning import get_last_release, get_next_releases, is_valid_semver
 
@@ -63,11 +64,11 @@ def _update_changelog(text: str, version: str) -> str:
             break
 
     if section_start is None:
-        raise click.ClickException(f"CHANGELOG.md has no [Unreleased] section and no [{version}] section.")
+        raise OopsError(f"CHANGELOG.md has no [Unreleased] section and no [{version}] section.")
 
     section = lines[section_start + 1 : next_section_idx]
     if not any(line.strip().startswith("-") for line in section):
-        raise click.ClickException("The release section in CHANGELOG.md is empty.")
+        raise OopsError("The release section in CHANGELOG.md is empty.")
 
     if unreleased_idx is not None:
         lines[unreleased_idx] = f"## [{version}] - {date.today().isoformat()}\n"
@@ -92,18 +93,18 @@ def main(  # noqa: C901, PLR0912, PLR0915
     no_tag: bool,
     dry_run: bool,
 ):
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     # 1. Resolve next version
     if version_override:
         if not is_valid_semver(version_override):
-            raise click.ClickException(f"Invalid semver format: {version_override!r}. Expected vX.Y.Z.")
+            raise OopsError(f"Invalid semver format: {version_override!r}. Expected vX.Y.Z.")
         version = version_override
     else:
         try:
             minor, fix, major = get_next_releases()
         except ValueError as error:
-            raise click.ClickException(
+            raise OopsError(
                 f"{error}. Use --version to specify the version for the first release."
             ) from error
         version = {"minor": minor, "fix": fix, "major": major}[bump]
@@ -125,7 +126,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     # 3. Update CHANGELOG
     changelog_path = repo_path / "CHANGELOG.md"
     if not changelog_path.exists():
-        raise click.ClickException("CHANGELOG.md not found.")
+        raise NotFoundError("CHANGELOG.md not found.")
 
     updated_changelog = _update_changelog(changelog_path.read_text(encoding="utf-8"), version)
 
@@ -153,10 +154,10 @@ def main(  # noqa: C901, PLR0912, PLR0915
         else:
             print_warning("No addon changes detected — migration script skipped.")
     else:
-        raise click.ClickException("No commits ahead of the last release. Nothing to release.")
+        raise OopsError("No commits ahead of the last release. Nothing to release.")
 
     if dry_run:
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     # 5. Commit
     if not no_commit:

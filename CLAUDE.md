@@ -97,18 +97,40 @@ Access pattern: `config.images.registries.recommended`, `config.submodules.curre
 
 - **Entry points** are declared in `pyproject.toml` under `[project.scripts]`. `oops-man-check` and `oops-man-fix` are declared but have no implementation — their command files are missing. `oops-i-did-it-again` is an alias for `oops-sub-clean`.
 - **Single git abstraction layer**: all commands use GitPython's `Repo` directly plus helpers from `services/git.py`. The legacy `GitRepository` class and the entire `oops/git/` module have been removed — do not re-introduce them.
-- **`services/git.py`** is the canonical git service layer: `get_local_repo()` resolves the repo, `commit()` stages and commits using a named key from `core/messages.py`, `list_available_addons()` iterates submodules.
+- **`services/git.py`** is the canonical git service layer: `get_local_repo()` resolves the repo, `commit()` stages and commits using a named key from `core/messages.py`, `list_available_addons()` iterates submodules, `list_submodules(repo)` returns a `rel_path → metadata` dict (cached via `_list_submodules_cached(working_dir)` — `Repo` is not hashable so the cache key is the string working dir).
 - **Commit messages** are all stored as format strings in `core/messages.py` (`CommitMessages` dataclass). Always add new messages there and reference them by key in `commit()` calls.
 - **Manifest parsing** uses `ast.literal_eval` (not `importlib`). Manifest normalization/rewriting uses `libcst` to preserve comments and formatting.
-- **Error-exit conventions**: command callbacks must surface failures through Click, never via bare `sys.exit()` / `raise SystemExit`:
-  - Fatal runtime error: `raise OopsError(msg)` from `oops.utils.render` — renders as `✘ msg` in red on stderr, exits 1, recorded by `OopsCommand` telemetry.
-  - Bad option / missing config: `raise click.UsageError(msg)`.
-  - Voluntary exit with explicit code (e.g. check commands): `raise click.exceptions.Exit(N)`.
-  - User-initiated cancel (interactive confirm declined): `raise click.Abort()`.
-  - The regression test `tests/test_core_and_utils.py::test_no_systemexit_in_commands_module` enforces this in CI.
+- **Error-exit conventions**: command callbacks must surface failures through Click, never via bare `sys.exit()` / `raise SystemExit` / `ctx.exit()`:
+  - Clean intentional exit from any depth: `raise EarlyExit()` (exit 0).
+  - Fatal business error: `raise OopsError(msg)` from `oops.core.exceptions` — renders as `✘ msg` in red on stderr, exits 1.
+  - Specialised business errors (subclasses of `OopsError`): `ConfigError(msg)` (exit 1), `APIError(msg)` (exit 2), `NotFoundError(msg)` (exit 3).
+  - Bad option / mutually exclusive flags: `raise click.UsageError(msg)` (exit 2).
+  - User declined confirmation: `raise AppAbort()` (exit 1, prints "Aborted!").
+  - Any unhandled Python exception is auto-wrapped into `OopsError(f"Unexpected error: {exc}")` by `OopsCommand.invoke()`.
+  - The regression test `tests/test_core_and_utils.py::test_termination_patterns_in_commands` enforces this in CI.
 - **Fixit rules** in `rules/` enforce manifest authorship (`author = "Apik"`) and a fixed allowed-maintainers list.
 - **Version** is derived from git tags via `hatch-vcs` — no manual version bumping.
 - **Docs** live in `docs/` and are built with MkDocs + mkdocs-material. Versioned with `mike`. Command reference pages under `docs/commands/` are the canonical user-facing docs; API reference pages under `docs/reference/` are auto-generated from docstrings.
+
+### AddonInfo model and addon enrichment
+
+`AddonInfo` (`core/models.py`) has two field groups:
+
+- **Manifest + filesystem fields** — always populated by `from_path()`. Keep `from_path()` pure: no git calls, no submodule lookups.
+- **Git-state fields** (`submodule`, `branch`, `pull_request`, `classification`) — `Optional`, default `None`. `None` means "not yet enriched"; `""` means "enriched, not in a submodule". These are populated by calling `enrich_addon(addon, sub)` from `io/file.py`.
+
+**`enrich_addon(addon, sub)`** takes the addon and the pre-fetched submodule metadata dict for its `rel_path` (from `list_submodules`). It fills git-state fields and computes `classification` in one call. Classification priority (first match wins):
+1. Author contains `"(OCA)"` → `"oca"`
+2. Author matches `config.manifest.author` → `"custom"`
+3. Technical name starts with `config.project.prefix` → `"custom"`
+4. Submodule org is `"OCA"` or matches `config.github.owner` → `"oca"` / `"custom"`
+5. Fallback → `"third-party"`
+
+Classification values are always lowercase: `"custom"` | `"oca"` | `"third-party"`.
+
+**`addon.location`** is a derived property (no enrichment needed): `"active"` (symlinked to root — Odoo-visible), `"local"` (at root, not a symlink — project-owned), `"inactive"` (in submodule tree, not symlinked — present but Odoo can't see it).
+
+**`oops addons list --all`** deduplication: `os.walk(followlinks=True)` visits both the root symlink and its resolved target. The `seen` dict in `list.py` prefers `addon.symlinked` entries on collision — without this, dotfile dirs (`.third-party`) sorting first causes symlinks to be miscounted as inactive addons.
 
 ### Known Limitations
 

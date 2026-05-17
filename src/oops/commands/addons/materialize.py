@@ -17,7 +17,7 @@ Use --include to restrict to a subset, or --exclude to skip specific addons.
 import click
 from oops.commands.base import command
 from oops.io.file import materialize_symlink
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
 from oops.utils.compat import Optional
 from oops.utils.helpers import str_to_list
 from oops.utils.render import human_readable, print_error, print_success
@@ -43,7 +43,7 @@ def main(include: Optional[str], exclude: Optional[str], dry_run: bool, no_commi
     if include and exclude:
         raise click.UsageError("--include and --exclude are mutually exclusive.")
 
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     candidates = sorted(p for p in repo_path.iterdir() if p.is_symlink())
 

@@ -15,6 +15,7 @@ from collections import Counter
 
 import click
 from oops.commands.base import command
+from oops.core.exceptions import EarlyExit
 from oops.core.paths import stats_file
 from oops.utils.render import render_table
 
@@ -25,7 +26,7 @@ def main() -> None:
 
     if not path.exists() or not path.read_text(encoding="utf-8").strip():
         click.echo("No usage data found.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     counts: Counter = Counter()
     oldest_ts = ""
