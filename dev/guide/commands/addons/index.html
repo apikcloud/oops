@@ -3028,6 +3028,21 @@ and method breakdown, plus counts of declared data files and assets.</p>
 <p>This command is read-only. It rebuilds the project KB if stale (same
 semantics as <code>oops addons refactor</code>) but performs no source rewriting,
 no git operations, and no manifest edits.</p>
+<p>JSON output shape (--format json)::</p>
+<div class="language-text highlight"><pre><span></span><code>{
+  "warnings": ["pre-loop drift or rebuild messages"],
+  "modules": [
+    {
+      "module": "...",
+      "manifest": { ... },
+      "models": [ ... ],
+      "structure": { ... },
+      "not_analysed": [ ... ],
+      "warnings": ["module-level warnings"]
+    }
+  ]
+}
+</code></pre></div>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops addons analyze [OPTIONS] MODULE_PATHS...
 </span></code></pre></div>

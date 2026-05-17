@@ -2733,7 +2733,7 @@
             <td><code><span title="oops.commands.odoo.download">download</span></code></td>
             <td>
               <div class="doc-md-description">
-                <p>Download (or update) Odoo Community and Enterprise source code.</p>
+                <p>Download (or update) Odoo Community, Enterprise, and Themes source code.</p>
               </div>
             </td>
           </tr>
@@ -2749,7 +2749,7 @@
             <td><code><span title="oops.commands.odoo.update">update</span></code></td>
             <td>
               <div class="doc-md-description">
-                <p>Update Odoo Community and Enterprise source checkouts.</p>
+                <p>Update Odoo Community, Enterprise, and Themes source checkouts.</p>
               </div>
             </td>
           </tr>
@@ -2798,10 +2798,11 @@
 </span></code></pre></div>
 <hr>
 <h3 id="oops-odoo-download">oops odoo download<a class="headerlink" href="#oops-odoo-download" title="Permanent link">¶</a></h3>
-<p>Download (or update) Odoo Community and Enterprise source code.</p>
-<p>Clones Community and Enterprise from GitHub using SSH into:</p>
+<p>Download (or update) Odoo Community, Enterprise, and Themes source code.</p>
+<p>Clones the requested repositories from GitHub using SSH into:</p>
 <div class="language-text highlight"><pre><span></span><code>&lt;sources_dir&gt;/&lt;version&gt;/community
 &lt;sources_dir&gt;/&lt;version&gt;/enterprise
+&lt;sources_dir&gt;/&lt;version&gt;/themes
 </code></pre></div>
 <p>The sources directory is read from odoo.sources_dir in ~/.oops.yaml.</p>
 <p>If a directory already exists the clone step is skipped.  Pass --update to
@@ -2827,9 +2828,21 @@ pull the latest changes instead.</p>
 <td><code>False</code></td>
 </tr>
 <tr>
+<td><code>--community</code> / <code>--no-community</code></td>
+<td>boolean</td>
+<td>Include or exclude Community sources.</td>
+<td><code>True</code></td>
+</tr>
+<tr>
 <td><code>--enterprise</code> / <code>--no-enterprise</code></td>
 <td>boolean</td>
 <td>Include or exclude Enterprise sources.</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>--themes</code> / <code>--no-themes</code></td>
+<td>boolean</td>
+<td>Include or exclude design-themes sources.</td>
 <td><code>True</code></td>
 </tr>
 <tr>
@@ -2858,7 +2871,8 @@ pull the latest changes instead.</p>
 <h3 id="oops-odoo-show">oops odoo show<a class="headerlink" href="#oops-odoo-show" title="Permanent link">¶</a></h3>
 <p>List locally available Odoo source checkouts.</p>
 <p>Scans the sources directory for version folders and shows, for each version,
-the current commit hash and author date for Community and Enterprise.</p>
+the current commit hash and author date for Community, Enterprise, and
+design-themes.</p>
 <p>The sources directory is configured via odoo.sources_dir in ~/.oops.yaml.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops odoo show [OPTIONS]
@@ -2896,17 +2910,18 @@ the current commit hash and author date for Community and Enterprise.</p>
 (run <code>oops odoo download &lt;version&gt;</code> to add it — Enterprise is included by default).</p>
 <hr>
 <h3 id="oops-odoo-update">oops odoo update<a class="headerlink" href="#oops-odoo-update" title="Permanent link">¶</a></h3>
-<p>Update Odoo Community and Enterprise source checkouts.</p>
+<p>Update Odoo Community, Enterprise, and Themes source checkouts.</p>
 <p>Operates on repositories previously cloned by oops-odoo-download into:</p>
 <div class="language-text highlight"><pre><span></span><code>&lt;base_dir&gt;/&lt;version&gt;/community
 &lt;base_dir&gt;/&lt;version&gt;/enterprise
+&lt;base_dir&gt;/&lt;version&gt;/themes
 </code></pre></div>
 <p>The sources directory is read from odoo.sources_dir in ~/.oops.yaml.</p>
 <p>Without --date, fetches and checks out the latest commit on the branch.</p>
 <p>With --date YYYY-MM-DD, fetches history back to that date and checks out
 the last commit that existed at or before midnight of that day, leaving
 the working tree in a detached-HEAD state at the chosen snapshot.</p>
-<p>Pass --enterprise to also update the Enterprise checkout.</p>
+<p>Pass --no-community / --no-enterprise / --no-themes to skip individual repos.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops odoo update [OPTIONS] VERSION
 </span></code></pre></div>
@@ -2928,9 +2943,21 @@ the working tree in a detached-HEAD state at the chosen snapshot.</p>
 <td>None</td>
 </tr>
 <tr>
+<td><code>--community</code> / <code>--no-community</code></td>
+<td>boolean</td>
+<td>Include or exclude Community in the update.</td>
+<td><code>True</code></td>
+</tr>
+<tr>
 <td><code>--enterprise</code> / <code>--no-enterprise</code></td>
 <td>boolean</td>
 <td>Include or exclude Enterprise in the update.</td>
+<td><code>True</code></td>
+</tr>
+<tr>
+<td><code>--themes</code> / <code>--no-themes</code></td>
+<td>boolean</td>
+<td>Include or exclude design-themes in the update.</td>
 <td><code>True</code></td>
 </tr>
 <tr>
