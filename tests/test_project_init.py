@@ -35,10 +35,10 @@ class TestProjectInit:
         """Invoke init with standard mocks; return (result, mock_workspace)."""
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(major_version),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -76,10 +76,10 @@ class TestProjectInit:
     def test_chmod_run_on_config_dir(self, tmp_path):
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -105,10 +105,10 @@ class TestProjectInitWorkspace:
     def test_workspace_invoked_by_default(self, tmp_path):
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -125,10 +125,10 @@ class TestProjectInitWorkspace:
     def test_without_workspace_skips_workspace(self, tmp_path):
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -145,10 +145,10 @@ class TestProjectInitWorkspace:
     def test_include_sources_forwarded_to_workspace(self, tmp_path):
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -166,10 +166,10 @@ class TestProjectInitWorkspace:
     def test_include_sources_defaults_to_false(self, tmp_path):
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -194,10 +194,10 @@ class TestProjectInitBuildCompose:
     def _run_with_mock_build(self, tmp_path, args=None, major_version=17.0):
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(major_version),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -237,45 +237,55 @@ class TestProjectInitBuildCompose:
 
 
 class TestProjectInitErrors:
-    def test_version_error_exits_with_message(self, tmp_path):
-        runner = CliRunner()
-        with patch(
-            "oops.commands.project.init.get_local_repo",
-            return_value=_make_local_repo(tmp_path),
-        ), patch(
-            "oops.commands.project.init.parse_odoo_version",
-            side_effect=FileNotFoundError("missing"),
-        ), patch("oops.commands.project.init.run"):
-            result = runner.invoke(init_main, [])
-        assert result.exit_code != 0
-        assert "Could not determine Odoo image" in result.output
+    def test_bad_version_exits_with_message(self, tmp_path):
+        from click import UsageError
 
-    def test_value_error_exits_with_message(self, tmp_path):
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
-            side_effect=ValueError("bad version"),
+            "oops.commands.project.init.require_project",
+            side_effect=UsageError(
+                "Could not parse odoo_version.txt. Make sure the file contains a valid Odoo Docker image tag."
+            ),
         ), patch("oops.commands.project.init.run"):
             result = runner.invoke(init_main, [])
         assert result.exit_code != 0
-        assert "Could not determine Odoo image" in result.output
+        assert "Could not parse odoo_version.txt" in result.output
+
+    def test_missing_mandatory_files_exits_with_message(self, tmp_path):
+        from oops.core.exceptions import OopsError
+
+        runner = CliRunner()
+        with patch(
+            "oops.commands.project.init.require_repository",
+            return_value=_make_local_repo(tmp_path),
+        ), patch(
+            "oops.commands.project.init.require_project",
+            side_effect=OopsError(
+                "This command requires an initialised project. Missing mandatory files: packages.txt."
+            ),
+        ), patch("oops.commands.project.init.run"):
+            result = runner.invoke(init_main, [])
+        assert result.exit_code != 0
+        assert "requires an initialised project" in result.output
 
     def test_overwrite_prompt_aborts_without_confirmation(self, tmp_path):
         (tmp_path / "docker-compose.yml").write_text("old")
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(),
         ), patch(
             "oops.commands.project.init.build_compose",
             return_value=_COMPOSE,
-        ), patch("oops.commands.project.init.run"):
+        ), patch("oops.commands.project.init.run"), patch(
+            "oops.commands.project.init.prompt_confirm", return_value=False
+        ):
             result = runner.invoke(init_main, [])
         assert result.exit_code != 0
         assert (tmp_path / "docker-compose.yml").read_text() == "old"
@@ -284,10 +294,10 @@ class TestProjectInitErrors:
         (tmp_path / "docker-compose.yml").write_text("old")
         runner = CliRunner()
         with patch(
-            "oops.commands.project.init.get_local_repo",
+            "oops.commands.project.init.require_repository",
             return_value=_make_local_repo(tmp_path),
         ), patch(
-            "oops.commands.project.init.parse_odoo_version",
+            "oops.commands.project.init.require_project",
             return_value=_make_image_info(),
         ), patch(
             "oops.commands.project.init.build_compose",
@@ -296,7 +306,9 @@ class TestProjectInitErrors:
             "oops.commands.project.init.run"
         ), patch(
             "oops.commands.misc.create_workspace.main"
+        ), patch(
+            "oops.commands.project.init.prompt_confirm", return_value=True
         ):
-            result = runner.invoke(init_main, [], input="y\n")
+            result = runner.invoke(init_main, [])
         assert result.exit_code == 0
         assert (tmp_path / "docker-compose.yml").read_text() == _COMPOSE

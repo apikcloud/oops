@@ -42,8 +42,10 @@ from __future__ import annotations
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import OopsError
 from oops.io.file import file_updater, get_excluded_addon_names
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository
+from oops.utils.render import conclude, get_console, rule
 
 
 @command("exclude", help=__doc__)
@@ -51,7 +53,10 @@ from oops.services.git import commit, get_local_repo
 @click.option("--no-commit", is_flag=True, help="Do not commit changes.")
 @click.option("--fail", is_flag=True, help="Raise an error if the exclusion list is updated (pre-commit).")
 def main(dry_run: bool = False, no_commit: bool = False, fail: bool = False):
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
+    console = get_console()
+
+    rule("Pre-commit exclusion list")
 
     addons = get_excluded_addon_names(repo_path)
     precommit_file = config.precommit.file_precommit
@@ -61,8 +66,6 @@ def main(dry_run: bool = False, no_commit: bool = False, fail: bool = False):
 
     content = "\n".join(_format_item(item) for item in addons) if addons else ""
 
-    # TODO: make some noise if the tags are not found, to avoid confusion
-    # maybe invite the user to run sync command before?
     has_update = file_updater(
         filepath=precommit_file,
         new_inner_content=content,
@@ -73,8 +76,12 @@ def main(dry_run: bool = False, no_commit: bool = False, fail: bool = False):
         dry_run=dry_run,
     )
 
+    console.print(f"{len(addons)} addon(s) to exclude")
+
     if not no_commit and not dry_run and has_update:
         commit(repo, repo_path, [precommit_file], "pre_commit_exclude", skip_hooks=True)
 
-        if fail:
-            raise click.ClickException("The list of exclusions has been updated, please run pre-commit again")
+    conclude(True, "Exclusion list updated" if has_update else "No changes")
+
+    if fail and has_update:
+        raise OopsError("The list of exclusions has been updated, please run pre-commit again")

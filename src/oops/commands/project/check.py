@@ -13,35 +13,33 @@ warnings also cause a non-zero exit.
 
 import click
 from oops.commands.base import command
-from oops.commands.project.common import check_project
 from oops.io.file import parse_odoo_version
 from oops.services.docker import check_image
-from oops.services.git import get_local_repo
-from oops.utils.render import print_error, print_success, print_warning
+from oops.services.git import require_repository
+from oops.services.project import check_project
+from oops.utils.render import conclude, render_result, rule
 
 
 @command(name="check", help=__doc__)
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
 def main(strict: bool):
 
-    _, repo_path = get_local_repo()
+    _, repo_path = require_repository()
 
-    # Always collect without raising so we can display everything before exiting
-    warns, errors = check_project(repo_path, strict=False)
+    rule(f"Project check — {repo_path.name}")
+
+    result = check_project(repo_path, strict=False)
 
     try:
         image_info = parse_odoo_version(repo_path)
-        warns += check_image(image_info, strict=False)
-    except ValueError as e:
-        errors.append(str(e))
+        result.merge(check_image(image_info, strict=False))
+    except (FileNotFoundError, ValueError) as e:
+        result.add_error(str(e) or "Could not parse Odoo version.")
 
-    for msg in warns:
-        print_warning(msg)
-    for msg in errors:
-        print_error(msg)
+    if strict and result.warnings:
+        for w in result.warnings:
+            result.add_error(w)
+        result.warnings.clear()
 
-    if errors or (strict and warns):
-        raise click.exceptions.Exit(1)
-
-    if not warns and not errors:
-        print_success("Check completed without errors")
+    render_result(result)  # raises OopsError(Exit 1) on errors
+    conclude(result.ok, "Check completed without errors")

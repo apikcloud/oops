@@ -7,23 +7,29 @@
 Display a summary of the current project.
 
 Shows Odoo version, Docker image release date, available image updates,
-Python requirements, system packages, git remote and release info.
-With a GitHub token, also shows the latest Actions workflow run.
+git remote and release info. With a GitHub token, also shows the latest
+Actions workflow run.
 """
 
 import click
 import requests
 from oops.commands.base import command
-from oops.commands.project.common import check_project
-from oops.io.file import (
-    parse_odoo_version,
-)
+from oops.io.file import parse_odoo_version
 from oops.services.docker import check_image, find_available_images
-from oops.services.git import get_last_commit, get_local_repo
+from oops.services.git import get_last_commit, require_repository
 from oops.services.github import get_latest_workflow_run
+from oops.services.project import check_project
 from oops.utils.compat import Optional
 from oops.utils.net import get_public_repo_url, parse_repository_url
-from oops.utils.render import format_datetime, render_table
+from oops.utils.render import (
+    conclude,
+    format_datetime,
+    get_console,
+    metrics_grid,
+    metrics_panel,
+    render_result,
+    rule,
+)
 from oops.utils.versioning import get_last_release, get_next_releases
 
 
@@ -34,21 +40,28 @@ from oops.utils.versioning import get_last_release, get_next_releases
     help="GitHub token to request API, needs actions:read or repo scope."
     " Envvar is also supported: TOKEN, GH_TOKEN, GITHUB_TOKEN.",
 )
-@click.option("--minimal", is_flag=True, help="Show minimal output.")
-def main(token: Optional[str], minimal: bool):  # noqa: C901, PLR0912, PLR0915
+def main(token: Optional[str]):  # noqa: C901, PLR0912, PLR0915
 
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
-    warns, errors = check_project(repo_path, strict=False)
+    result = check_project(repo_path, strict=False)
 
     try:
         image_info = parse_odoo_version(repo_path)
-        warns += check_image(image_info, strict=False)
-    except ValueError as e:
-        errors.append(str(e) or "Could not parse Odoo version.")
+        result.merge(check_image(image_info, strict=False))
+    except (FileNotFoundError, ValueError) as e:
+        result.add_error(str(e) or "Could not parse Odoo version.")
         image_info = None
 
-    # Remote URL
+    # --- Odoo panel ---
+    odoo_values = [
+        ["Version", f"{image_info.major_version} ({image_info.edition})" if image_info else "—"],
+        ["Image date", image_info.release.isoformat() if image_info and image_info.release else "—"],
+        ["Registry", image_info.source if image_info else "—"],
+        ["Update(s)", _format_image_updates(image_info)],
+    ]
+
+    # --- Git panel ---
     try:
         remote_url = repo.remote("origin").url
         canonical_url = get_public_repo_url(remote_url)
@@ -58,7 +71,6 @@ def main(token: Optional[str], minimal: bool):  # noqa: C901, PLR0912, PLR0915
         owner = ""
         repo_name = ""
 
-    # Release info
     last_release = get_last_release()
     try:
         minor, fix, major = get_next_releases()
@@ -66,67 +78,59 @@ def main(token: Optional[str], minimal: bool):  # noqa: C901, PLR0912, PLR0915
     except ValueError:
         next_releases = "no valid release found"
 
-    # Available image updates
-    if image_info and image_info.release:
-        try:
-            available_images = find_available_images(
-                release=image_info.release,
-                version=image_info.major_version,
-                enterprise=image_info.enterprise,
-            )
-            if available_images:
-                latest = available_images[0]
-                image_update_msg = (
-                    f"{len(available_images)} available, "
-                    f"latest is {latest.delta} days newer ({latest.release.isoformat()})"
-                )
-            else:
-                image_update_msg = "Up to date"
-        except requests.RequestException as e:
-            image_update_msg = f"Could not fetch: {e}"
-    elif image_info:
-        image_update_msg = "No release date in current image tag"
-    else:
-        image_update_msg = "--"
-
     last_commit = get_last_commit(str(repo_path))
 
-    rows = [
-        [
-            "Odoo version",
-            f"{image_info.major_version} ({image_info.edition})" if image_info else "--",
-        ],
-        [
-            "Current image date",
-            image_info.release.isoformat() if image_info and image_info.release else "--",
-        ],
-        ["Registry", image_info.source if image_info else "--"],
-        ["Available update(s)", image_update_msg],
-        ["Git", ""],
-        ["Remote URL", canonical_url or "--"],
-        ["Last release", last_release or "--"],
+    git_values = [
+        ["Remote", canonical_url or "—"],
+        ["Last release", last_release or "—"],
         ["Next releases", next_releases],
-        ["Last commit", str(last_commit) if last_commit else "--"],
+        ["Last commit", str(last_commit) if last_commit else "—"],
     ]
 
-    if not minimal and token and owner and repo_name:
+    panels = [
+        metrics_panel("Odoo", odoo_values),
+        metrics_panel("Git", git_values),
+    ]
+
+    # --- Optional GitHub Actions panel ---
+    if token and owner and repo_name:
         try:
             run = get_latest_workflow_run(owner=owner, repo=repo_name, token=token, branch="main")
             if run:
-                rows += [
-                    ["GitHub Actions", ""],
+                gha_values = [
                     ["Last run", str(run)],
                     ["Date", f"{format_datetime(run.date)} ({run.age} days ago)"],
                     ["URL", run.url],
                 ]
+                panels.append(metrics_panel("GitHub Actions", gha_values))
             else:
-                warns.append("Could not fetch latest GitHub Actions workflow run.")
+                result.add_warning("Could not fetch latest GitHub Actions workflow run.")
         except requests.RequestException as e:
-            warns.append(f"GitHub Actions fetch failed: {e}")
+            result.add_warning(f"GitHub Actions fetch failed: {e}")
 
-    for msg in warns:
-        rows.append([click.style("Warning", fg="yellow"), click.style(msg, fg="yellow")])
-    for msg in errors:
-        rows.append([click.style("Error", fg="red"), click.style(msg, fg="red")])
+    rule(f"Project status — {repo_path.name}")
+    console = get_console()
+    console.print(metrics_grid(*panels))
+    console.print()
 
-    click.echo(render_table(rows))
+    render_result(result)  # raises on errors
+    conclude(result.ok, "Status report")
+
+
+def _format_image_updates(image_info) -> str:
+    if not image_info:
+        return "—"
+    if not image_info.release:
+        return "No release date in current image tag"
+    try:
+        available = find_available_images(
+            release=image_info.release,
+            version=image_info.major_version,
+            enterprise=image_info.enterprise,
+        )
+    except requests.RequestException as e:
+        return f"Could not fetch: {e}"
+    if not available:
+        return "Up to date"
+    latest = available[0]
+    return f"{len(available)} available, latest is {latest.delta} days newer ({latest.release.isoformat()})"

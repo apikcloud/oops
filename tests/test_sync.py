@@ -70,7 +70,7 @@ class TestMainDryRun:
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), patch(
-            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
         ), patch("oops.commands.project.sync.sparse_clone"), patch(
             "oops.commands.project.sync.show_diff", return_value=False
         ):
@@ -83,7 +83,7 @@ class TestMainDryRun:
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), patch(
-            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
         ), patch("oops.commands.project.sync.sparse_clone"), patch(
             "oops.commands.project.sync.show_diff", return_value=True
         ):
@@ -103,7 +103,7 @@ class TestMainApply:
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), patch(
-            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
         ), patch("oops.commands.project.sync.sparse_clone"), patch(
             "oops.commands.project.sync.show_diff", return_value=True
         ), patch("oops.commands.project.sync._apply") as mock_apply, patch(
@@ -120,7 +120,7 @@ class TestMainApply:
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config(branch="main")), patch(
-            "oops.commands.project.sync.get_local_repo", return_value=local_repo_rv
+            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
         ), patch("oops.commands.project.sync.sparse_clone") as mock_clone, patch(
             "oops.commands.project.sync.show_diff", return_value=True
         ), patch("oops.commands.project.sync._apply"), patch("oops.commands.project.sync.commit"):
@@ -234,7 +234,7 @@ class TestApply:
         local_root.mkdir()
         (remote_dir / "Makefile").write_text("all:\n\techo hi\n")
 
-        _apply(remote_dir, ["Makefile"], local_root)
+        _apply(remote_dir, ["Makefile"], local_root, MagicMock())
 
         assert (local_root / "Makefile").read_text() == "all:\n\techo hi\n"
 
@@ -245,7 +245,7 @@ class TestApply:
         local_root = tmp_path / "local"
         local_root.mkdir()
 
-        _apply(remote_dir, ["subdir"], local_root)
+        _apply(remote_dir, ["subdir"], local_root, MagicMock())
 
         assert (local_root / "subdir" / "file.txt").read_text() == "content"
 
@@ -255,7 +255,7 @@ class TestApply:
         local_root = tmp_path / "local"
         local_root.mkdir()
 
-        _apply(remote_dir, ["nonexistent.txt"], local_root)  # must not raise
+        _apply(remote_dir, ["nonexistent.txt"], local_root, MagicMock())  # must not raise
 
         assert not (local_root / "nonexistent.txt").exists()
 
@@ -266,7 +266,7 @@ class TestApply:
         local_root = tmp_path / "local"
         local_root.mkdir()
 
-        _apply(remote_dir, ["deep/nested/file.txt"], local_root)
+        _apply(remote_dir, ["deep/nested/file.txt"], local_root, MagicMock())
 
         assert (local_root / "deep" / "nested" / "file.txt").read_text() == "hi"
 

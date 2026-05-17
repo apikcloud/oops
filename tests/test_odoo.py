@@ -177,7 +177,7 @@ def test_parse_image_without_release():
 
 def test_check_image():
     days_old = (date.today() - date(2023, 1, 3)).days
-    assert check_image(
+    result = check_image(
         ImageInfo(
             **{
                 "image": "apik/odoo:15-20230103-enterprise-legacy",
@@ -190,9 +190,11 @@ def test_check_image():
             }
         ),
         strict=False,
-    ) == [
+    )
+    assert result.warnings == [
         f"The current Odoo image is {days_old} days old, consider updating it",
     ]
+    assert result.ok
 
 
 def test_check_deprecated_image():

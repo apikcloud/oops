@@ -19,11 +19,13 @@ from __future__ import annotations
 
 import click
 from oops.commands.base import command
-from oops.io.file import build_compose, parse_odoo_version, volume_prefix
+from oops.core.exceptions import AppAbort
+from oops.io.file import build_compose, volume_prefix
 from oops.io.templates import ODOO_CONF
 from oops.io.tools import run
-from oops.services.git import get_local_repo
-from oops.utils.render import print_success
+from oops.services.git import require_repository
+from oops.services.project import require_project
+from oops.utils.render import conclude, print_success, prompt_confirm, rule
 
 
 @command("init", help=__doc__)
@@ -45,14 +47,11 @@ def main(
     without_workspace: bool,
     include_sources: bool,
 ) -> None:
-    _, repo_path = get_local_repo()
+    _, repo_path = require_repository()
 
-    try:
-        image_info = parse_odoo_version(repo_path)
-    except (ValueError, FileNotFoundError) as error:
-        raise click.ClickException(
-            f"Could not determine Odoo image: {error or 'version file missing or empty'}"
-        ) from error
+    image_info = require_project(repo_path)
+
+    rule(f"Initialize Odoo {image_info.major_version} project — {repo_path.name}")
 
     compose_content = build_compose(
         odoo_version=image_info.major_version,
@@ -71,7 +70,8 @@ def main(
     existing = [p for p in (compose_path, conf_path) if p.exists()]
     if existing:
         names = ", ".join(str(p.relative_to(repo_path)) for p in existing)
-        click.confirm(f"Overwrite {names}?", abort=True)
+        if not prompt_confirm(f"Overwrite {names}?", default=False):
+            raise AppAbort()
 
     config_dir.mkdir(exist_ok=True)
     compose_path.write_text(compose_content)
@@ -85,3 +85,5 @@ def main(
         from oops.commands.misc.create_workspace import main as create_workspace
 
         ctx.invoke(create_workspace, include_sources=include_sources)
+
+    conclude(True, "Project initialised")

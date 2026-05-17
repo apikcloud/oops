@@ -9,11 +9,10 @@ from datetime import date
 
 from oops.core.config import config
 from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
-from oops.core.models import ImageInfo
+from oops.core.models import ImageInfo, Result
 from oops.utils.compat import Optional
 from oops.utils.helpers import date_from_string
 from oops.utils.net import make_json_get
-from oops.utils.render import render_table
 
 # try:
 #     import odoo as odoo
@@ -156,44 +155,44 @@ def fetch_odoo_images(collections: Optional[list] = None) -> list:
     return list(filter(filter_out, items))
 
 
-def check_image(image: ImageInfo, strict: bool = True) -> list:
+def check_image(image: ImageInfo, strict: bool = True) -> "Result[None]":
     """Check an Odoo Docker image for registry and age issues.
 
-    In strict mode, issues are raised as warnings. Otherwise they are collected
-    and returned as strings for the caller to handle.
+    In strict mode, issues are emitted as Python warnings; the returned Result
+    is empty. In non-strict mode, issues are collected into Result.warnings.
 
     Args:
         image: ImageInfo to validate.
         strict: If True, emit Python warnings directly. Defaults to True.
 
     Returns:
-        List of warning message strings (empty when strict is True or no issues found).
+        Result with warnings collected in non-strict mode.
     """
-    warnings = []
-    recommmended = ", ".join(config.images.registries.recommended)
+    result: Result = Result()
+    recommended = ", ".join(config.images.registries.recommended)
     if image.registry not in config.images.registries.recommended:
         if image.registry in config.images.registries.deprecated:
             if strict:
                 warn_deprecated_registry(image.registry)
             else:
-                warnings.append(
-                    f"You should use one of these registries ({recommmended}) as a replacement for '{image.registry}'."
+                result.add_warning(
+                    f"You should use one of these registries ({recommended}) as a replacement for '{image.registry}'."
                 )
 
         if image.registry in config.images.registries.warn:
             if strict:
                 warn_unusual_registry(image.registry)
             else:
-                warnings.append(
-                    f"You should use one of these registries ({recommmended}) as a replacement for '{image.registry}'."
+                result.add_warning(
+                    f"You should use one of these registries ({recommended}) as a replacement for '{image.registry}'."
                 )
 
     if image.age and image.age > config.images.release_warn_age_days:
-        warnings.append(
+        result.add_warning(
             f"The current Odoo image is {image.age} days old, consider updating it",
         )
 
-    return warnings
+    return result
 
 
 def find_available_images(release: date, enterprise: bool, version: float) -> list:
@@ -234,26 +233,3 @@ def find_available_images(release: date, enterprise: bool, version: float) -> li
     return list(map(improve, items))
 
 
-def format_available_images(images: list, include_index: bool = False) -> str:
-    """Render a list of available Odoo images as a formatted table string.
-
-    Args:
-        images: List of ImageInfo objects to display (as returned by find_available_images).
-        include_index: If True, prepend a numeric index column. Defaults to False.
-
-    Returns:
-        Formatted table string, or an empty string if images is empty.
-    """
-    if not images:
-        return ""
-
-    rows = []
-
-    headers = ["Release", "Delta (days)", "Source"]
-    if include_index:
-        headers.insert(0, "Index")
-
-    for item in images:
-        rows.append([item.release.isoformat(), item.delta, item.source])
-
-    return render_table(rows, headers=headers, index=include_index)

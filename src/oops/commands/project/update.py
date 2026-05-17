@@ -11,53 +11,57 @@ version and prompts the user to select one. With --force, picks the latest
 image automatically and commits the change.
 """
 
+from __future__ import annotations
+
 import click
 import requests
 from oops.commands.base import command
 from oops.core.config import config
-from oops.io.file import parse_odoo_version, write_text_file
-from oops.services.docker import find_available_images, format_available_images
-from oops.services.git import commit, get_local_repo
+from oops.core.exceptions import APIError, AppAbort, OopsError
+from oops.io.file import write_text_file
+from oops.services.docker import find_available_images
+from oops.services.git import commit, require_repository
+from oops.services.project import require_project
+from oops.utils.render import conclude, prompt_select, rule
+from rich.live import Live
+from rich.spinner import Spinner
 
 
 @command(name="update", help=__doc__)
 @click.option("--force", is_flag=True, help="Don't ask for confirmation")
 def main(force: bool):  # noqa: C901
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
-    try:
-        image_info = parse_odoo_version(repo_path)
-    except ValueError as e:
-        raise click.ClickException(str(e) or "Could not parse current Odoo version.") from e
+    image_info = require_project(repo_path)
 
     if not image_info.release:
-        raise click.ClickException("Current Odoo version does not specify a release date, cannot proceed.")
+        raise OopsError("Current Odoo version does not specify a release date, cannot proceed.")
 
-    try:
-        available_images = find_available_images(
-            release=image_info.release,
-            version=image_info.major_version,
-            enterprise=image_info.enterprise,
-        )
-    except requests.RequestException as e:
-        raise click.ClickException(f"Failed to fetch available images: {e}") from e
+    rule(f"Update Odoo image — currently {image_info.image}")
+
+    with Live(Spinner("dots", text="Fetching available images…"), refresh_per_second=10):
+        try:
+            available_images = find_available_images(
+                release=image_info.release,
+                version=image_info.major_version,
+                enterprise=image_info.enterprise,
+            )
+        except requests.RequestException as e:
+            raise APIError(f"Failed to fetch available images: {e}") from e
 
     if not available_images:
-        raise click.ClickException("No newer images found.")
+        raise OopsError("No newer images found.")
 
     if force:
         new_image = available_images[0]
     else:
-        click.echo(format_available_images(available_images, include_index=True))
-        answer = click.prompt("Select new image", default="1")
-        try:
-            # Remove 1 to match the index as we display from 1 to n.
-            answer = 1 if int(answer) <= 0 else int(answer) - 1
-            new_image = available_images[answer]
-        except (ValueError, IndexError) as e:
-            raise click.ClickException("Invalid selection.") from e
-
-    click.echo(f"Updating Odoo image to: {new_image.image}")
+        max_len = max(len(img.image) for img in available_images)
+        choices = [f"{img.image:<{max_len}}   {img.release.isoformat()}  +{img.delta}d" for img in available_images]
+        answer = prompt_select("Select new image", choices)
+        if not answer:
+            raise AppAbort()
+        idx = choices.index(answer)
+        new_image = available_images[idx]
 
     odoo_version_file = repo_path / config.project.file_odoo_version
     write_text_file(odoo_version_file, [new_image.image])
@@ -72,3 +76,5 @@ def main(force: bool):  # noqa: C901
         new=new_image.image,
         days=new_image.delta,
     )
+
+    conclude(True, f"Image updated to {new_image.image}")
