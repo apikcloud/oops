@@ -229,3 +229,63 @@ class TestStaleness:
         # comparison possible, so it doesn't flag stale for that reason alone).
         # The important thing is "schema" is not in reason.
         assert "schema" not in reason
+
+
+# ---------------------------------------------------------------------------
+# TestWriteResult — verify Result returned by write_project_kb
+# ---------------------------------------------------------------------------
+
+
+class TestWriteResult:
+    def test_result_data_has_expected_keys(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        result = write_project_kb(
+            db_path=db_path,
+            odoo_version="17.0",
+            project="test",
+            scope=[],
+            sources={"odoo": "/odoo"},
+            scan_results=[{"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}],
+        )
+        assert result.ok
+        assert result.data is not None
+        for key in ("file", "modules", "symbols", "fields", "methods", "field_refs", "model_origins"):
+            assert key in result.data, f"Missing key: {key}"
+
+    def test_result_counters_match_inserted_data(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        sym = {
+            "model": "sale.order", "name": "name", "kind": "field",
+            "origin": "odoo", "module": "sale",
+            "source_file": "sale/models/sale.py", "source_line": 10,
+            "field_type": "Char", "section": None,
+        }
+        result = write_project_kb(
+            db_path=db_path,
+            odoo_version="17.0",
+            project="test",
+            scope=["sale"],
+            sources={"odoo": "/odoo"},
+            scan_results=[{
+                "modules": {"sale": {"origin": "odoo", "depends": []}},
+                "symbols": [sym],
+                "field_refs": [],
+                "model_origins": [],
+            }],
+        )
+        assert result.data["modules"] == 1
+        assert result.data["symbols"] == 1
+        assert result.data["fields"] == 1
+
+    def test_result_messages_empty_on_clean_write(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        result = write_project_kb(
+            db_path=db_path,
+            odoo_version="17.0",
+            project="test",
+            scope=[],
+            sources={},
+            scan_results=[],
+        )
+        assert result.warnings == []
+        assert result.errors == []

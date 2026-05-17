@@ -20,3 +20,15 @@ def test_cli_has_command_groups():
 def test_cli_subgroup_help():
     result = CliRunner().invoke(main, ["addons", "--help"])
     assert result.exit_code == 0
+
+
+def test_misc_build_kb_help():
+    """Regression guard: build-kb --help must not raise (catches API-shape breaks)."""
+    result = CliRunner().invoke(main, ["misc", "build-kb", "--help"])
+    assert result.exit_code == 0
+
+
+def test_misc_create_workspace_help():
+    """Regression guard: create-workspace --help must not raise."""
+    result = CliRunner().invoke(main, ["misc", "create-workspace", "--help"])
+    assert result.exit_code == 0

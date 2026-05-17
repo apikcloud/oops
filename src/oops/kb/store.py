@@ -38,6 +38,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+from oops.core.models import Result
 from oops.utils.compat import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
@@ -139,7 +140,7 @@ def write_global_kb(
     odoo_version: str,
     sources: Dict[str, str],
     scan_results: List[Dict[str, Any]],
-) -> None:
+) -> Result[dict]:
     """Write (or overwrite) a global KB database.
 
     Args:
@@ -148,7 +149,7 @@ def write_global_kb(
         sources:      { origin: absolute_path_string }.
         scan_results: list of ScanResult dicts from scanner.scan_tier().
     """
-    _write_kb(
+    return _write_kb(
         db_path=db_path,
         layer="global",
         odoo_version=odoo_version,
@@ -166,7 +167,7 @@ def write_project_kb(
     scope: List[str],
     sources: Dict[str, str],
     scan_results: List[Dict[str, Any]],
-) -> None:
+) -> Result[dict]:
     """Write (or overwrite) a project KB database.
 
     Args:
@@ -177,7 +178,7 @@ def write_project_kb(
         sources:      { origin: absolute_path_string }.
         scan_results: list of ScanResult dicts (global already merged in by caller).
     """
-    _write_kb(
+    return _write_kb(
         db_path=db_path,
         layer="project",
         odoo_version=odoo_version,
@@ -196,114 +197,122 @@ def _write_kb(
     scope: Optional[List[str]],
     sources: Dict[str, str],
     scan_results: List[Dict[str, Any]],
-) -> None:
+) -> Result[dict]:
     """Internal: write all KB data to db_path, replacing any previous content."""
+    kb_result: "Result[dict]" = Result()
     con = _connect(db_path)
+    try:
+        with con:
+            # Schema may have evolved: drop and re-create all data tables so column
+            # additions always land on existing on-disk databases.
+            for table in ("field_refs", "symbols", "model_origins", "modules", "sources", "meta"):
+                con.execute(f"DROP TABLE IF EXISTS {table}")
+            con.executescript(_DDL)
 
-    with con:
-        # Schema may have evolved: drop and re-create all data tables so column
-        # additions always land on existing on-disk databases.
-        for table in ("field_refs", "symbols", "model_origins", "modules", "sources", "meta"):
-            con.execute(f"DROP TABLE IF EXISTS {table}")
-        con.executescript(_DDL)
+            # --- meta ---
+            meta_rows = [
+                ("layer", layer),
+                ("odoo_version", odoo_version),
+                ("schema_version", str(SCHEMA_VERSION)),
+                ("generated_at", datetime.now(timezone.utc).isoformat()),
+            ]
+            if project:
+                meta_rows.append(("project", project))
+            if scope is not None:
+                meta_rows.append(("scope", json.dumps(scope)))
+            con.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", meta_rows)
 
-        # --- meta ---
-        meta_rows = [
-            ("layer", layer),
-            ("odoo_version", odoo_version),
-            ("schema_version", str(SCHEMA_VERSION)),
-            ("generated_at", datetime.now(timezone.utc).isoformat()),
-        ]
-        if project:
-            meta_rows.append(("project", project))
-        if scope is not None:
-            meta_rows.append(("scope", json.dumps(scope)))
-        con.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", meta_rows)
+            # --- sources ---
+            con.executemany(
+                "INSERT INTO sources (origin, path) VALUES (?, ?)",
+                sources.items(),
+            )
 
-        # --- sources ---
-        con.executemany(
-            "INSERT INTO sources (origin, path) VALUES (?, ?)",
-            sources.items(),
-        )
+            # --- modules + symbols + field_refs from all scan results ---
+            for scan in scan_results:
+                for mod_name, mod_data in scan.get("modules", {}).items():
+                    con.execute(
+                        """
+                        INSERT OR REPLACE INTO modules (name, origin, depends)
+                        VALUES (?, ?, ?)
+                        """,
+                        (
+                            mod_name,
+                            mod_data["origin"],
+                            json.dumps(mod_data["depends"]),
+                        ),
+                    )
 
-        # --- modules + symbols + field_refs from all scan results ---
-        for result in scan_results:
-            for mod_name, mod_data in result.get("modules", {}).items():
-                con.execute(
-                    """
-                    INSERT OR REPLACE INTO modules (name, origin, depends)
-                    VALUES (?, ?, ?)
-                    """,
-                    (
-                        mod_name,
-                        mod_data["origin"],
-                        json.dumps(mod_data["depends"]),
-                    ),
-                )
+                for sym in scan.get("symbols", []):
+                    con.execute(
+                        """
+                        INSERT OR REPLACE INTO symbols
+                            (model, name, kind, origin, module, source_file, source_line,
+                             field_type, section)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            sym["model"],
+                            sym["name"],
+                            sym["kind"],
+                            sym["origin"],
+                            sym["module"],
+                            sym["source_file"],
+                            sym["source_line"],
+                            sym.get("field_type"),
+                            sym.get("section"),
+                        ),
+                    )
 
-            for sym in result.get("symbols", []):
-                con.execute(
-                    """
-                    INSERT OR REPLACE INTO symbols
-                        (model, name, kind, origin, module, source_file, source_line,
-                         field_type, section)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        sym["model"],
-                        sym["name"],
-                        sym["kind"],
-                        sym["origin"],
-                        sym["module"],
-                        sym["source_file"],
-                        sym["source_line"],
-                        sym.get("field_type"),
-                        sym.get("section"),
-                    ),
-                )
+                for ref in scan.get("field_refs", []):
+                    con.execute(
+                        """
+                        INSERT OR REPLACE INTO field_refs
+                            (model, field_name, module, kwarg, target_method)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (
+                            ref["model"],
+                            ref["field_name"],
+                            ref["module"],
+                            ref["kwarg"],
+                            ref["target_method"],
+                        ),
+                    )
 
-            for ref in result.get("field_refs", []):
-                con.execute(
-                    """
-                    INSERT OR REPLACE INTO field_refs
-                        (model, field_name, module, kwarg, target_method)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (
-                        ref["model"],
-                        ref["field_name"],
-                        ref["module"],
-                        ref["kwarg"],
-                        ref["target_method"],
-                    ),
-                )
-
-            for orig in result.get("model_origins", []):
-                con.execute(
-                    """
-                    INSERT OR REPLACE INTO model_origins
-                        (model, module, origin, role, model_type,
-                         inherit_json, inherits_json, source_file, source_line)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        orig["model"],
-                        orig["module"],
-                        orig["origin"],
-                        orig["role"],
-                        orig.get("model_type", "model"),
-                        orig.get("inherit_json", "[]"),
-                        orig.get("inherits_json", "{}"),
-                        orig["source_file"],
-                        orig["source_line"],
-                    ),
-                )
+                for orig in scan.get("model_origins", []):
+                    con.execute(
+                        """
+                        INSERT OR REPLACE INTO model_origins
+                            (model, module, origin, role, model_type,
+                             inherit_json, inherits_json, source_file, source_line)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            orig["model"],
+                            orig["module"],
+                            orig["origin"],
+                            orig["role"],
+                            orig.get("model_type", "model"),
+                            orig.get("inherit_json", "[]"),
+                            orig.get("inherits_json", "{}"),
+                            orig["source_file"],
+                            orig["source_line"],
+                        ),
+                    )
+    except sqlite3.Error as exc:
+        kb_result.add_error(f"KB write failed: {exc}")
+        return kb_result
 
     con.close()
-    _log_stats(db_path)
+    stats = _get_stats(db_path)
+    kb_result.merge(stats)
+    kb_result.data = stats.data
+    return kb_result
 
 
-def _log_stats(db_path: Path) -> None:
+def _get_stats(db_path: Path) -> Result[dict]:
+    result = Result()
     con = _connect(db_path)
     n_mod = con.execute("SELECT COUNT(*) FROM modules").fetchone()[0]
     n_sym = con.execute("SELECT COUNT(*) FROM symbols").fetchone()[0]
@@ -312,7 +321,7 @@ def _log_stats(db_path: Path) -> None:
     n_refs = con.execute("SELECT COUNT(*) FROM field_refs").fetchone()[0]
     n_orig = con.execute("SELECT COUNT(*) FROM model_origins").fetchone()[0]
     con.close()
-    logging.info(
+    logging.debug(
         "KB written → %s  [%d modules | %d symbols: %d fields, %d methods | %d field_refs | %d model_origins]",
         db_path,
         n_mod,
@@ -322,6 +331,18 @@ def _log_stats(db_path: Path) -> None:
         n_refs,
         n_orig,
     )
+
+    result.data = {
+        "file": db_path,
+        "modules": n_mod,
+        "symbols": n_sym,
+        "fields": n_fld,
+        "methods": n_mth,
+        "field_refs": n_refs,
+        "model_origins": n_orig,
+    }
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -561,9 +582,7 @@ class KBReader:
 
     # --- field_refs ---
 
-    def get_field_refs_for_method(
-        self, model: str, target_method: str
-    ) -> List[Dict[str, Any]]:
+    def get_field_refs_for_method(self, model: str, target_method: str) -> List[Dict[str, Any]]:
         """Return field references that target a specific method.
 
         Args:

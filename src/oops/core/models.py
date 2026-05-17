@@ -193,3 +193,68 @@ class AddonInfo:
             external_dependencies=manifest.get("external_dependencies", {}),
             installable=manifest.get("installable", True),
         )
+
+
+@dataclass
+class ClassSummary:
+    class_name: str
+    is_new_model: bool
+    inherit: "list[str]"
+    fields_total: int
+    fields_base: int
+    fields_new: int
+    fields_inherited: int
+    fields_by_type: "dict[str, int]"
+    methods_total: int
+    methods_by_section: "dict[str, int]"
+    overrides: int
+    override_details: "list[dict[str, str]]"
+    missing_docstrings: int
+    model_name: Optional[str] = None
+
+
+@dataclass
+class StructureSummary:
+    data: "dict[str, dict[str, int]]"
+    demo: "dict[str, dict[str, int]]"
+    controllers_py: int
+    wizard_py: int
+    report_py: int
+    static_by_ext: "dict[str, int]"
+
+
+@dataclass
+class ModuleSummary:
+    module_name: str
+    module_path: Path
+    manifest: dict
+    classes: "list[ClassSummary]"
+    structure: StructureSummary
+    warnings: "list[str]" = field(default_factory=list)
+
+
+@dataclass
+class Result(Generic[T]):
+    data: "Optional[T]" = None
+    messages: "list[str]" = field(default_factory=list)
+    warnings: "list[str]" = field(default_factory=list)
+    errors: "list[str]" = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors
+
+    def add_message(self, message: str) -> None:
+        self.messages.append(message)
+
+    def add_warning(self, message: str) -> None:
+        self.warnings.append(message)
+
+    def add_error(self, message: str) -> None:
+        self.errors.append(message)
+
+    def merge(self, other: "Result") -> "Result[T]":
+        self.messages.extend(other.messages)
+        self.warnings.extend(other.warnings)
+        self.errors.extend(other.errors)
+        return self

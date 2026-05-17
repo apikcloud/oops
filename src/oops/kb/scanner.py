@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Set
 
 from oops.core.config import config
+from oops.core.models import Result
 from oops.io.manifest import load_manifest
 from oops.utils.compat import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -59,15 +60,15 @@ FIELD_REF_KWARGS = ("compute", "inverse", "search", "default", "selection")
 # Method section name constants (source of truth; refactor.py imports these)
 # ---------------------------------------------------------------------------
 
-METHOD_SECTION_CRUD       = "CRUD METHODS"
-METHOD_SECTION_COMPUTE    = "COMPUTE METHODS"
-METHOD_SECTION_SELECTION  = "SELECTION METHODS"
-METHOD_SECTION_DEFAULT    = "DEFAULT METHODS"
-METHOD_SECTION_ONCHANGE   = "ONCHANGE METHODS"
+METHOD_SECTION_CRUD = "CRUD METHODS"
+METHOD_SECTION_COMPUTE = "COMPUTE METHODS"
+METHOD_SECTION_SELECTION = "SELECTION METHODS"
+METHOD_SECTION_DEFAULT = "DEFAULT METHODS"
+METHOD_SECTION_ONCHANGE = "ONCHANGE METHODS"
 METHOD_SECTION_CONSTRAINT = "CONSTRAINT METHODS"
-METHOD_SECTION_HELPER     = "HELPER METHODS"
-METHOD_SECTION_ACTION     = "ACTION METHODS"
-METHOD_SECTION_BUSINESS   = "BUSINESS METHODS"
+METHOD_SECTION_HELPER = "HELPER METHODS"
+METHOD_SECTION_ACTION = "ACTION METHODS"
+METHOD_SECTION_BUSINESS = "BUSINESS METHODS"
 
 # ORM methods whose section is fully determined by name.
 CRUD_NAMES = {"create", "write", "unlink", "copy", "name_search", "_search"}
@@ -75,10 +76,10 @@ DEFAULT_NAMES = {"default_get"}
 
 # Maps a field kwarg to the section its target method should be placed in.
 KWARG_TO_SECTION: Dict[str, str] = {
-    "compute":   METHOD_SECTION_COMPUTE,
-    "inverse":   METHOD_SECTION_COMPUTE,
-    "search":    METHOD_SECTION_COMPUTE,
-    "default":   METHOD_SECTION_DEFAULT,
+    "compute": METHOD_SECTION_COMPUTE,
+    "inverse": METHOD_SECTION_COMPUTE,
+    "search": METHOD_SECTION_COMPUTE,
+    "default": METHOD_SECTION_DEFAULT,
     "selection": METHOD_SECTION_SELECTION,
 }
 
@@ -89,6 +90,7 @@ def _tier_markers() -> dict:
         "third-party": f"/{config.submodules.current_path}/",
         "apik": f"/{config.submodules.apik_path}/",
     }
+
 
 # ---------------------------------------------------------------------------
 # AST helpers
@@ -198,8 +200,10 @@ def get_inherits(class_node: ast.ClassDef) -> Dict[str, str]:
             result: Dict[str, str] = {}
             for k, v in zip(val.keys, val.values):
                 if (
-                    isinstance(k, ast.Constant) and isinstance(k.value, str)
-                    and isinstance(v, ast.Constant) and isinstance(v.value, str)
+                    isinstance(k, ast.Constant)
+                    and isinstance(k.value, str)
+                    and isinstance(v, ast.Constant)
+                    and isinstance(v.value, str)
                 ):
                     result[k.value] = v.value
             return result
@@ -362,7 +366,7 @@ def build_module_field_refs(
             if not isinstance(node, ast.ClassDef) or not is_odoo_model_class(node):
                 continue
             _name, _inherit = get_model_names(node)
-            for model_name in ([_name] if _name else _inherit):
+            for model_name in [_name] if _name else _inherit:
                 for stmt in node.body:
                     if not isinstance(stmt, ast.Assign):
                         continue
@@ -478,30 +482,34 @@ def scan_module(  # noqa: C901
 
             if _name is not None:
                 role = "extend" if _name in _inherit else "create"
-                result["model_origins"].append({
-                    "model": _name,
-                    "module": module_name,
-                    "origin": origin,
-                    "role": role,
-                    "model_type": model_type,
-                    "inherit_json": json.dumps(_inherit),
-                    "inherits_json": json.dumps(_inherits_dict),
-                    "source_file": rel_path,
-                    "source_line": node.lineno,
-                })
-            else:
-                for inh in _inherit:
-                    result["model_origins"].append({
-                        "model": inh,
+                result["model_origins"].append(
+                    {
+                        "model": _name,
                         "module": module_name,
                         "origin": origin,
-                        "role": "extend",
+                        "role": role,
                         "model_type": model_type,
-                        "inherit_json": json.dumps([]),
-                        "inherits_json": json.dumps({}),
+                        "inherit_json": json.dumps(_inherit),
+                        "inherits_json": json.dumps(_inherits_dict),
                         "source_file": rel_path,
                         "source_line": node.lineno,
-                    })
+                    }
+                )
+            else:
+                for inh in _inherit:
+                    result["model_origins"].append(
+                        {
+                            "model": inh,
+                            "module": module_name,
+                            "origin": origin,
+                            "role": "extend",
+                            "model_type": model_type,
+                            "inherit_json": json.dumps([]),
+                            "inherits_json": json.dumps({}),
+                            "source_file": rel_path,
+                            "source_line": node.lineno,
+                        }
+                    )
 
             target_models: List[str] = [_name] if _name else _inherit
 
@@ -510,24 +518,33 @@ def scan_module(  # noqa: C901
                     fld = is_field_assignment(stmt)
                     if fld:
                         fname, lineno, ftype = fld
-                        field_symbols.append({
-                            "model": model_name, "name": fname, "kind": "field",
-                            "origin": origin, "module": module_name,
-                            "source_file": rel_path, "source_line": lineno,
-                            "field_type": ftype, "section": None,
-                        })
+                        field_symbols.append(
+                            {
+                                "model": model_name,
+                                "name": fname,
+                                "kind": "field",
+                                "origin": origin,
+                                "module": module_name,
+                                "source_file": rel_path,
+                                "source_line": lineno,
+                                "field_type": ftype,
+                                "section": None,
+                            }
+                        )
                         for kwarg, target in extract_field_refs(stmt).items():
                             refs_by_target.setdefault((model_name, target), []).append(kwarg)
-                            result["field_refs"].append({
-                                "model": model_name, "field_name": fname,
-                                "module": module_name, "kwarg": kwarg,
-                                "target_method": target,
-                            })
+                            result["field_refs"].append(
+                                {
+                                    "model": model_name,
+                                    "field_name": fname,
+                                    "module": module_name,
+                                    "kwarg": kwarg,
+                                    "target_method": target,
+                                }
+                            )
                         continue
                     if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        pending_methods.append(
-                            (model_name, rel_path, stmt, stmt.name, stmt.lineno)
-                        )
+                        pending_methods.append((model_name, rel_path, stmt, stmt.name, stmt.lineno))
 
     # ---- Pass 2: classify methods using the collected field refs. ----
     method_symbols: List[Dict[str, Any]] = []
@@ -535,12 +552,19 @@ def scan_module(  # noqa: C901
         ref_kwargs = refs_by_target.get((model_name, mname), [])
         decs = _get_decorator_names(fn_node)
         section = classify_method(mname, decs, ref_kwargs)
-        method_symbols.append({
-            "model": model_name, "name": mname, "kind": "method",
-            "origin": origin, "module": module_name,
-            "source_file": rel_path, "source_line": lineno,
-            "field_type": None, "section": section,
-        })
+        method_symbols.append(
+            {
+                "model": model_name,
+                "name": mname,
+                "kind": "method",
+                "origin": origin,
+                "module": module_name,
+                "source_file": rel_path,
+                "source_line": lineno,
+                "field_type": None,
+                "section": section,
+            }
+        )
 
     result["symbols"] = field_symbols + method_symbols
     return result
@@ -550,7 +574,7 @@ def scan_tier(
     tier_root: Path,
     origin: str,
     allowed_modules: Optional[Set[str]] = None,
-) -> Dict[str, Any]:
+) -> Result[Dict[str, Any]]:
     """Scan all addon modules under tier_root.
 
     Args:
@@ -562,10 +586,12 @@ def scan_tier(
         Merged ScanResult for all scanned modules.
     """
     merged: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}
+    result: "Result[Dict[str, Any]]" = Result()
 
     if not tier_root.is_dir():
-        logging.warning("Tier root not found, skipping: %s", tier_root)
-        return merged
+        result.add_warning(f"Tier root not found, skipping: {tier_root}")
+        result.data = merged
+        return result
 
     count = 0
     for entry in sorted(tier_root.iterdir()):
@@ -576,15 +602,16 @@ def scan_tier(
         if not load_manifest(entry):
             continue
 
-        result = scan_module(entry, origin, tier_root)
-        merged["modules"].update(result["modules"])
-        merged["symbols"].extend(result["symbols"])
-        merged["field_refs"].extend(result.get("field_refs", []))
-        merged["model_origins"].extend(result.get("model_origins", []))
+        data = scan_module(entry, origin, tier_root)
+        merged["modules"].update(data["modules"])
+        merged["symbols"].extend(data["symbols"])
+        merged["field_refs"].extend(data.get("field_refs", []))
+        merged["model_origins"].extend(data.get("model_origins", []))
         count += 1
 
-    logging.info("  [%s] %s → %d modules", origin, tier_root, count)
-    return merged
+    result.add_message(f"[{origin}] {tier_root} → {count} modules")
+    result.data = merged
+    return result
 
 
 def odoo_addons_roots(odoo_path: Path) -> List[Path]:
@@ -605,7 +632,7 @@ def odoo_addons_roots(odoo_path: Path) -> List[Path]:
     candidates = [odoo_path / "addons", odoo_path / "odoo" / "addons"]
     roots = [p for p in candidates if p.is_dir()]
     if not roots:
-        logging.warning("No addons/ or odoo/addons/ found under %s — using path directly.", odoo_path)
+        # logging.warning("No addons/ or odoo/addons/ found under %s — falling back to root.", odoo_path)
         roots = [odoo_path]
     return roots
 
@@ -615,6 +642,8 @@ def discover_root_addons(
     allowed_modules: Optional[Set[str]] = None,
 ) -> Dict[str, List[Tuple[str, Path]]]:
     """Walk repo_path for root-level Odoo addons and group them by tier.
+
+    # TODO: Must be replace by `io/file.py:find_addons` by extending the logic if needed
 
     Three tiers are recognised:
         - 'third-party': symlink whose real path contains '/.third-party/'.

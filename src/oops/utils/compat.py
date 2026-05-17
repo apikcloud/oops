@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Iterable, Mapping
-from typing import TYPE_CHECKING, Any, Dict, Final, List, Optional, Tuple, Union, get_type_hints
+from typing import TYPE_CHECKING, Any, Dict, Final, Generic, List, Optional, Tuple, TypeVar, Union, get_type_hints
 
 PY37 = sys.version_info < (3, 8)
 PY38 = sys.version_info < (3, 9)
@@ -43,10 +43,13 @@ try:
 except Exception:
     from backports.zoneinfo import ZoneInfo  # type: ignore
 
+T = TypeVar("T")
+
 __all__ = [
     "Any",
     "Dict",
     "Final",
+    "Generic",
     "get_type_hints",
     "importlib_metadata",
     "Iterable",
@@ -57,6 +60,7 @@ __all__ = [
     "ParamSpec",
     "Protocol",
     "Self",
+    "T",
     "tomllib",
     "Tuple",
     "TYPE_CHECKING",

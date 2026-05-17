@@ -345,12 +345,11 @@ class TestScanModule:
 
 
 class TestScanTier:
-    def test_nonexistent_root_returns_empty(self, tmp_path, caplog):
-        with caplog.at_level(logging.WARNING):
-            result = scan_tier(tmp_path / "missing", origin="odoo")
-        assert result["modules"] == {}
-        assert result["symbols"] == []
-        assert any("missing" in msg or "not found" in msg for msg in caplog.messages)
+    def test_nonexistent_root_returns_empty(self, tmp_path):
+        result = scan_tier(tmp_path / "missing", origin="odoo")
+        assert result.data["modules"] == {}
+        assert result.data["symbols"] == []
+        assert any("missing" in w or "not found" in w for w in result.warnings)
 
     def test_scans_all_modules_in_tier(self, tmp_path):
         tier_root = tmp_path / "tier"
@@ -358,8 +357,8 @@ class TestScanTier:
         _make_module(tier_root, "mod_a", models={"a.py": SIMPLE_MODEL})
         _make_module(tier_root, "mod_b", models={"b.py": INHERIT_MODEL})
         result = scan_tier(tier_root, origin="odoo")
-        assert "mod_a" in result["modules"]
-        assert "mod_b" in result["modules"]
+        assert "mod_a" in result.data["modules"]
+        assert "mod_b" in result.data["modules"]
 
     def test_symbols_merged_across_modules(self, tmp_path):
         tier_root = tmp_path / "tier"
@@ -367,8 +366,8 @@ class TestScanTier:
         _make_module(tier_root, "mod_a", models={"a.py": SIMPLE_MODEL})
         _make_module(tier_root, "mod_b", models={"b.py": INHERIT_MODEL})
         result = scan_tier(tier_root, origin="odoo")
-        assert len(result["symbols"]) > 0
-        modules_in_symbols = {s["module"] for s in result["symbols"]}
+        assert len(result.data["symbols"]) > 0
+        modules_in_symbols = {s["module"] for s in result.data["symbols"]}
         assert "mod_a" in modules_in_symbols
         assert "mod_b" in modules_in_symbols
 
@@ -378,8 +377,8 @@ class TestScanTier:
         _make_module(tier_root, "mod_a")
         _make_module(tier_root, "mod_b")
         result = scan_tier(tier_root, origin="odoo", allowed_modules={"mod_a"})
-        assert "mod_a" in result["modules"]
-        assert "mod_b" not in result["modules"]
+        assert "mod_a" in result.data["modules"]
+        assert "mod_b" not in result.data["modules"]
 
     def test_directory_without_manifest_skipped(self, tmp_path):
         tier_root = tmp_path / "tier"
@@ -388,8 +387,8 @@ class TestScanTier:
         no_manifest_dir = tier_root / "no_manifest"
         no_manifest_dir.mkdir()
         result = scan_tier(tier_root, origin="odoo")
-        assert "has_manifest" in result["modules"]
-        assert "no_manifest" not in result["modules"]
+        assert "has_manifest" in result.data["modules"]
+        assert "no_manifest" not in result.data["modules"]
 
     def test_files_in_tier_root_ignored(self, tmp_path):
         tier_root = tmp_path / "tier"
@@ -397,8 +396,8 @@ class TestScanTier:
         _make_module(tier_root, "real_mod")
         (tier_root / "stray_file.py").write_text("# stray")
         result = scan_tier(tier_root, origin="odoo")
-        assert "stray_file" not in result["modules"]
-        assert "real_mod" in result["modules"]
+        assert "stray_file" not in result.data["modules"]
+        assert "real_mod" in result.data["modules"]
 
 
 # ---------------------------------------------------------------------------
@@ -424,11 +423,9 @@ class TestOdooAddonsRoots:
         roots = odoo_addons_roots(tmp_path)
         assert roots == [tmp_path / "odoo" / "addons"]
 
-    def test_neither_falls_back_to_odoo_path(self, tmp_path, caplog):
-        with caplog.at_level(logging.WARNING):
-            roots = odoo_addons_roots(tmp_path)
+    def test_neither_falls_back_to_odoo_path(self, tmp_path):
+        roots = odoo_addons_roots(tmp_path)
         assert roots == [tmp_path]
-        assert any("No addons" in msg for msg in caplog.messages)
 
 
 # ---------------------------------------------------------------------------
@@ -781,5 +778,5 @@ class TestScanModuleFieldTypesAndRefs:
         tier_root.mkdir()
         _make_module(tier_root, "mod", models={"m.py": COMPUTE_MODEL})
         result = scan_tier(tier_root, origin="apik")
-        assert "field_refs" in result
-        assert len(result["field_refs"]) > 0
+        assert "field_refs" in result.data
+        assert len(result.data["field_refs"]) > 0

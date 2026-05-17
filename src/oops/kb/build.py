@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+from oops.core.models import Result
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
 from oops.io.file import find_addons
 from oops.io.installed_modules import installed_modules_path
@@ -58,7 +59,7 @@ def build_project_kb(
     *,
     slug: str | None = None,
     global_kb: Path | None = None,
-) -> Path:
+) -> "Result[Path]":
     """Build the project KB.
 
     Args:
@@ -69,11 +70,15 @@ def build_project_kb(
         global_kb: Path to the global KB. Defaults to ``global_kb_path(version)``.
 
     Returns:
-        Path to the freshly written project KB (``<repo>/.oops-cache/kb.db``).
+        Result[Path] where .data is the path to the freshly written project KB.
+        .warnings contains any non-fatal diagnostic messages (e.g. skipped tier
+        roots). Hard errors (missing global KB, schema mismatch) still raise
+        FileNotFoundError.
 
     Raises:
         FileNotFoundError: If the global KB does not exist.
     """
+    result: "Result[Path]" = Result()
     modules_list = list(modules)
     project = slug or repo_path.name
 
@@ -158,7 +163,7 @@ def build_project_kb(
                     break
 
         if tier_root is None:
-            log.warning("Could not determine tier root for %s, skipping.", origin)
+            result.add_warning(f"Could not determine tier root for {origin}, skipping.")
             continue
 
         sources[origin] = str(tier_root)
@@ -172,11 +177,11 @@ def build_project_kb(
                 log.debug("No manifest in %s, skipping.", real_module_path)
                 continue
 
-            result = scan_module(real_module_path, origin, tier_root)
-            tier_result["modules"].update(result["modules"])
-            tier_result["symbols"].extend(result["symbols"])
-            tier_result["field_refs"].extend(result.get("field_refs", []))
-            tier_result["model_origins"].extend(result.get("model_origins", []))
+            scan = scan_module(real_module_path, origin, tier_root)
+            tier_result["modules"].update(scan["modules"])
+            tier_result["symbols"].extend(scan["symbols"])
+            tier_result["field_refs"].extend(scan.get("field_refs", []))
+            tier_result["model_origins"].extend(scan.get("model_origins", []))
             scanned += 1
 
         log.info("  → %d modules scanned", scanned)
@@ -191,7 +196,7 @@ def build_project_kb(
 
     # --- Write ---
     log.info("Writing project KB → %s", db_path)
-    write_project_kb(
+    write_result = write_project_kb(
         db_path=db_path,
         odoo_version=global_odoo_version,
         project=project,
@@ -199,8 +204,9 @@ def build_project_kb(
         sources=sources,
         scan_results=all_scan_results,
     )
-
-    return db_path
+    result.merge(write_result)
+    result.data = db_path
+    return result
 
 
 # ---------------------------------------------------------------------------

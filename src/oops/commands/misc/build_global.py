@@ -24,19 +24,31 @@ projects on the same version.
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 import click
 from oops.commands.base import command
 from oops.core.paths import global_kb_dir
-from oops.io.file import get_odoo_sources_dirs, parse_odoo_version
+from oops.io.file import get_odoo_sources_dirs, list_odoo_sources_versions, parse_odoo_version
 from oops.kb import setup_kb_logging
 from oops.kb.build import _resolve_prototype_roles
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
-from oops.services.git import get_local_repo
-from oops.utils.render import print_rule, print_success, print_warning
+from oops.services.git import require_repository
+from oops.utils.render import (
+    conclude,
+    get_console,
+    make_table,
+    metrics_grid,
+    metrics_panel,
+    print_warning,
+    prompt_select,
+    render_result,
+    rule,
+    warning_section,
+)
+from rich.live import Live
+from rich.spinner import Spinner
 
 
 @command("build-kb", help=__doc__)
@@ -44,8 +56,7 @@ from oops.utils.render import print_rule, print_success, print_warning
     "--version",
     default=None,
     help=(
-        "Odoo version string (e.g. 17.0). "
-        "Defaults to the version declared in the current project's odoo_version.txt."
+        "Odoo version string (e.g. 19.0). Defaults to the version declared in the current project's odoo_version.txt."
     ),
 )
 @click.option(
@@ -61,59 +72,116 @@ def main(
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
-    print_warning(
-        "This command is experimental and may change without notice between releases."
-    )
-    log = logging.getLogger(__name__)
+    print_warning("This command is experimental and may change without notice between releases.")
+    console = get_console()
 
     if version is None:
         try:
-            _, repo_path = get_local_repo()
+            _, repo_path = require_repository()
             image_info = parse_odoo_version(repo_path)
             version = str(image_info.major_version)
-        except (click.ClickException, ValueError):
-            raise click.UsageError(
-                "Could not detect Odoo version from odoo_version.txt. "
-                "Use --version to specify it explicitly."
-            ) from None
+        except (FileNotFoundError, click.ClickException, ValueError):
+            versions = [item.version for item in list_odoo_sources_versions()]
+            version = prompt_select("Available version(s):", versions)
 
-    community_dir, enterprise_dir = get_odoo_sources_dirs(version)
+            if not version:
+                raise click.UsageError(
+                    "Could not detect Odoo version from odoo_version.txt. Use --version to specify it explicitly."
+                ) from None
 
     if cache_dir is None:
         cache_dir = global_kb_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / f"{version}.db"
 
-    print_rule(f"oops misc build-kb — Odoo {version}")
-
     scan_results = []
     sources: dict[str, str] = {}
+    summary = []
+    scan_warnings: list[str] = []
 
-    # --- Odoo community ---
-    addons_roots = odoo_addons_roots(community_dir)
-    for root in addons_roots:
-        log.info("Scanning odoo: %s", root)
-        result = scan_tier(root, "odoo")
-        scan_results.append(result)
-    sources["odoo"] = str(community_dir)
+    # Map filesystem directory names to semantic KB origin labels.
+    # The sources dir uses "community" but the KB and drift filter expect "odoo".
+    _ORIGIN_MAP = {"community": "odoo"}
 
-    # --- Enterprise (optional) ---
-    if enterprise_dir.exists():
-        log.info("Scanning enterprise: %s", enterprise_dir)
-        result = scan_tier(enterprise_dir, "enterprise")
-        scan_results.append(result)
-        sources["enterprise"] = str(enterprise_dir)
+    rule(f"Build global KB for Odoo {version}")
 
-    log.info("Resolving prototype roles…")
-    _resolve_prototype_roles(scan_results)
+    # using Live for long-time processing
+    with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10) as live:
+        for path in get_odoo_sources_dirs(version):
+            name = _ORIGIN_MAP.get(path.name, path.name)
 
-    # --- Write ---
-    log.info("Writing global KB → %s", db_path)
-    write_global_kb(
-        db_path=db_path,
-        odoo_version=version,
-        sources=sources,
-        scan_results=scan_results,
+            live.update(Spinner("dots", text=f"Analyzing {name.capitalize()}..."))
+
+            if not path.exists():
+                continue
+
+            for root in odoo_addons_roots(path):
+                result = scan_tier(root, name)
+                scan_results.append(result.data)
+                for w in result.warnings:
+                    scan_warnings.append(f"[{name}] {w}")
+
+                data = result.data or {}
+
+                summary.append(
+                    {
+                        "name": name,
+                        "path": root,
+                        "modules": len(data.get("modules", {})),
+                        "symbols": len(data.get("symbols", [])),
+                        "field_refs": len(data.get("field_refs", [])),
+                        "origins": len(data.get("model_origins", [])),
+                    }
+                )
+
+            sources[name] = str(path)
+
+        live.update(Spinner("dots", text="Resolving prototype roles…"))
+        _resolve_prototype_roles(scan_results)
+
+        live.update(Spinner("dots", text=f"Writing file to {db_path}"))
+        result = write_global_kb(
+            db_path=db_path,
+            odoo_version=version,
+            sources=sources,
+            scan_results=scan_results,
+        )
+
+    warning_section(scan_warnings)
+    render_result(result)
+    assert result.data is not None
+    stats = result.data
+
+    # Summary table
+    t = make_table(
+        title=None,
+        columns=[
+            ("Name", "brand.primary", "left"),
+            ("Path", "dim", "left"),
+            ("Modules", "green", "left"),
+        ],
+        rows=[
+            [
+                row["name"],
+                str(row["path"]),
+                str(row["modules"]),
+            ]
+            for row in summary
+        ],
     )
 
-    print_success(f"Global KB ready: {db_path}")
+    # Stats Panel
+    p1 = metrics_panel(
+        "Summary",
+        [
+            ["Modules", str(stats["modules"])],
+            ["Symbols", str(stats["symbols"])],
+            ["Fields", str(stats["fields"])],
+            ["Methods", str(stats["methods"])],
+        ],
+    )
+
+    rule("Results")
+    console.print(metrics_grid(t, p1, ratios=[2, 1]))
+    console.print()
+    conclude(result.ok, "All done")

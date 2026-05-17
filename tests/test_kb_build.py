@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
+from oops.core.models import Result
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.store import KBReader, write_global_kb
 
@@ -74,7 +75,7 @@ class TestBuildProjectKb:
         repo.mkdir()
         _make_tp_symlinks(repo, "module_a", "module_b")
 
-        db_path = build_project_kb(repo, "17.0", ["module_a", "module_b"], global_kb=global_kb)
+        db_path = build_project_kb(repo, "17.0", ["module_a", "module_b"], global_kb=global_kb).data
 
         assert db_path.exists()
         with KBReader(db_path) as kb:
@@ -89,7 +90,7 @@ class TestBuildProjectKb:
 
         db_path = build_project_kb(
             repo, "17.0", ["module_a", "module_ghost"], global_kb=global_kb
-        )
+        ).data
 
         with KBReader(db_path) as kb:
             modules = kb.get_modules()
@@ -103,7 +104,7 @@ class TestBuildProjectKb:
         repo.mkdir()
         _make_tp_symlinks(repo, "module_a", "module_extra")
 
-        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
+        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb).data
 
         with KBReader(db_path) as kb:
             modules = kb.get_modules()
@@ -125,7 +126,7 @@ class TestBuildProjectKb:
 
         db_path = build_project_kb(
             repo, "17.0", ["module_a"], slug="my-slug", global_kb=global_kb
-        )
+        ).data
 
         with KBReader(db_path) as kb:
             assert kb.get_meta()["project"] == "my-slug"
@@ -136,7 +137,7 @@ class TestBuildProjectKb:
         repo.mkdir()
         _make_tp_symlinks(repo, "module_a")
 
-        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
+        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb).data
 
         with KBReader(db_path) as kb:
             assert kb.get_meta()["project"] == "my-project"
@@ -151,13 +152,44 @@ class TestBuildProjectKb:
             "{'name': 'Local', 'depends': ['base']}", encoding="utf-8"
         )
 
-        db_path = build_project_kb(repo, "17.0", ["module_local"], global_kb=global_kb)
+        db_path = build_project_kb(repo, "17.0", ["module_local"], global_kb=global_kb).data
 
         with KBReader(db_path) as kb:
             modules = kb.get_modules()
             sources = kb.get_sources()
         assert "module_local" in modules
         assert sources.get("local") == str(repo)
+
+    def test_build_project_kb_returns_result(self, tmp_path):
+        global_kb = _make_global_kb(tmp_path / "global.db")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _make_tp_symlinks(repo, "module_a")
+
+        result = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
+
+        assert isinstance(result, Result)
+        expected_db = repo / ".oops-cache" / "kb.db"
+        assert result.data == expected_db
+
+    def test_missing_tier_root_adds_warning(self, tmp_path):
+        global_kb = _make_global_kb(tmp_path / "global.db")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        # Create a symlink that points to a non-existent apik-addons dir so
+        # tier_root_from_real_path("apik", ...) returns None.
+        tp_dir = repo / ".third-party"
+        _make_module(tp_dir, "module_a")
+        (repo / "module_a").symlink_to(tp_dir / "module_a")
+
+        # Patch tier_root_from_real_path to always return None for "apik" tier
+        import unittest.mock as mock
+        with mock.patch(
+            "oops.kb.build.tier_root_from_real_path", return_value=None
+        ):
+            result = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
+
+        assert any("tier root" in w for w in result.warnings)
 
 
 # ---------------------------------------------------------------------------
