@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 
 import click
+from oops.core.exceptions import APIError
 from oops.utils.compat import Optional
 
 
@@ -113,7 +114,7 @@ def update_at_date(dest: Path, date: str) -> None:
     )
 
     if not commit:
-        raise click.ClickException(
+        raise APIError(
             f"No commit found at or before {date} in '{dest}'. "
             "Try an earlier date or check that the branch has history that far back."
         )

@@ -4,12 +4,17 @@
 # File: git.py — oops/services/git.py
 
 import subprocess
+from functools import lru_cache
 from pathlib import Path, PurePosixPath
-from typing import Generator
+from typing import TYPE_CHECKING, Generator
+
+if TYPE_CHECKING:
+    from git.util import IterableList
 
 import click
 from git import GitCommandError, InvalidGitRepositoryError, Repo, Submodule
 from git.config import GitConfigParser
+from oops.core.exceptions import OopsError
 from oops.core.messages import commit_messages
 from oops.core.models import CommitInfo
 from oops.core.paths import PR_DIR
@@ -17,6 +22,7 @@ from oops.io.format import format_file
 from oops.io.manifest import find_addons_extended
 from oops.io.tools import run
 from oops.utils.compat import Optional
+from oops.utils.net import encode_url
 from oops.utils.render import print_success, print_warning
 
 
@@ -63,8 +69,8 @@ def is_pull_request(submodule: Submodule) -> bool:
     return False
 
 
-def get_local_repo() -> "tuple[Repo, Path]":
-    """Locate and return the git repository containing the current directory.
+def require_repository() -> "tuple[Repo, Path]":
+    """Guard: locate and return the git repository containing the current directory.
 
     Returns:
         Tuple of (Repo, repo_root_path).
@@ -76,13 +82,39 @@ def get_local_repo() -> "tuple[Repo, Path]":
     try:
         repo = Repo(Path.cwd(), search_parent_directories=True)
     except InvalidGitRepositoryError as error:
-        raise click.ClickException("Not inside a git repository.") from error
+        raise OopsError("Not inside a git repository.") from error
     except Exception as err:
-        raise click.ClickException(f"Error accessing git repository: {err}") from err
+        raise OopsError(f"Error accessing git repository: {err}") from err
 
     if repo.working_tree_dir is None:
-        raise click.ClickException("Not inside a git repository.")
+        raise OopsError("Not inside a git repository.")
     return repo, Path(repo.working_tree_dir)
+
+
+def require_submodules(repo: "Repo") -> "IterableList[Submodule]":
+    """Guard: assert the repository has at least one registered submodule.
+
+    Intended as the first call inside commands that operate on submodules
+    (e.g. ``oops submodules update``, ``oops submodules show``), immediately
+    after :func:`require_repository`.
+
+    Args:
+        repo: The git repository, typically the first element of the tuple
+            returned by :func:`require_repository`.
+
+    Returns:
+        The repository's submodule list (``repo.submodules``), guaranteed
+        non-empty. Returned for caller convenience so the precondition and
+        the iteration target are obtained in one call.
+
+    Raises:
+        OopsError: If the repository has no registered submodules. Recorded
+            by :class:`~oops.commands.base.OopsCommand` telemetry as
+            ``"OopsError"`` and rendered as ``✘ <message>`` on stderr.
+    """
+    if not repo.submodules:
+        raise OopsError("This command requires submodules.")
+    return repo.submodules
 
 
 def show_diff(tmpdir: Path, files: list, local_repo: Repo, repo_root: Path) -> bool:
@@ -262,3 +294,29 @@ def list_available_addons(repo: Repo, repo_path: Path) -> "Generator[tuple[str, 
             if not abs_path.exists():
                 continue
         yield from find_addons_extended(abs_path)
+
+
+@lru_cache()
+def _list_submodules_cached(working_dir: str) -> dict:
+    repo = Repo(working_dir)
+    subs = {}
+    for sub in repo.submodules:
+        try:
+            canonical_url = encode_url(sub.url, "https", suffix=False)
+        except (ValueError, AttributeError):
+            canonical_url = ""
+        try:
+            branch = sub.branch_name
+        except Exception:
+            branch = ""
+        subs[sub.path] = {
+            "name": sub.name,
+            "branch": branch,
+            "url": canonical_url,
+            "pr": is_pull_request(sub),
+        }
+    return subs
+
+
+def list_submodules(repo: Repo) -> dict:
+    return _list_submodules_cached(repo.working_dir)
