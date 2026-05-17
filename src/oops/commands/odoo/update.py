@@ -4,12 +4,13 @@
 # File: update.py — oops/commands/odoo/update.py
 
 """
-Update Odoo Community and Enterprise source checkouts.
+Update Odoo Community, Enterprise, and Themes source checkouts.
 
 Operates on repositories previously cloned by oops-odoo-download into:
 
     <base_dir>/<version>/community
     <base_dir>/<version>/enterprise
+    <base_dir>/<version>/themes
 
 The sources directory is read from odoo.sources_dir in ~/.oops.yaml.
 
@@ -19,7 +20,7 @@ With --date YYYY-MM-DD, fetches history back to that date and checks out
 the last commit that existed at or before midnight of that day, leaving
 the working tree in a detached-HEAD state at the chosen snapshot.
 
-Pass --enterprise to also update the Enterprise checkout.
+Pass --no-community / --no-enterprise / --no-themes to skip individual repos.
 """
 
 import subprocess
@@ -27,6 +28,7 @@ from datetime import date as Date
 
 import click
 from oops.commands.base import command
+from oops.core.exceptions import OopsError
 from oops.io.file import get_odoo_sources_dirs
 from oops.utils.compat import Optional
 from oops.utils.git import update_at_date, update_latest
@@ -43,28 +45,33 @@ from oops.utils.render import print_success, print_warning
     help="Checkout the last commit at or before this date.",
     type=click.DateTime(formats=["%Y-%m-%d"]),
 )
-@click.option(
-    "--enterprise/--no-enterprise",
-    "with_enterprise",
-    is_flag=True,
-    default=True,
-    help="Include or exclude Enterprise in the update.",
-)
+@click.option("--community/--no-community", "with_community", is_flag=True, default=True,
+              help="Include or exclude Community in the update.")
+@click.option("--enterprise/--no-enterprise", "with_enterprise", is_flag=True, default=True,
+              help="Include or exclude Enterprise in the update.")
+@click.option("--themes/--no-themes", "with_themes", is_flag=True, default=True,
+              help="Include or exclude design-themes in the update.")
 def main(
     version: str,
     date: Optional[Date],
+    with_community: bool,
     with_enterprise: bool,
+    with_themes: bool,
 ) -> None:
-    community_dir, enterprise_dir = get_odoo_sources_dirs(version)
+    dirs = get_odoo_sources_dirs(version)
 
-    repos = {"Community": community_dir}
-    if with_enterprise:
-        repos["Enterprise"] = enterprise_dir
+    repos = [
+        ("Community", dirs.community, with_community),
+        ("Enterprise", dirs.enterprise, with_enterprise),
+        ("Themes", dirs.themes, with_themes),
+    ]
 
     date_str = date.strftime("%Y-%m-%d") if date else None
     errors: list[str] = []
 
-    for label, dest in repos.items():
+    for label, dest, enabled in repos:
+        if not enabled:
+            continue
         if not dest.exists():
             print_warning(f"'{dest}' not found — run oops-odoo-download first.")
             continue
@@ -91,4 +98,4 @@ def main(
                 click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
 
     if errors:
-        raise click.exceptions.Exit(1)
+        raise OopsError("; ".join(errors))

@@ -4,12 +4,13 @@
 # File: download.py — oops/commands/odoo/download.py
 
 """
-Download (or update) Odoo Community and Enterprise source code.
+Download (or update) Odoo Community, Enterprise, and Themes source code.
 
-Clones Community and Enterprise from GitHub using SSH into:
+Clones the requested repositories from GitHub using SSH into:
 
     <sources_dir>/<version>/community
     <sources_dir>/<version>/enterprise
+    <sources_dir>/<version>/themes
 
 The sources directory is read from odoo.sources_dir in ~/.oops.yaml.
 
@@ -22,6 +23,7 @@ import subprocess
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import OopsError
 from oops.io.file import get_odoo_sources_dirs
 from oops.utils.git import clone, update_latest
 from oops.utils.helpers import normalize_version
@@ -32,70 +34,70 @@ from oops.utils.render import print_success, print_warning
 @click.argument("version", callback=normalize_version, is_eager=True)
 @click.option("--update", "do_update", is_flag=True, help="Pull latest changes if repos already exist.")
 @click.option(
+    "--community/--no-community",
+    "with_community",
+    is_flag=True,
+    default=True,
+    help="Include or exclude Community sources.",
+)
+@click.option(
     "--enterprise/--no-enterprise",
     "with_enterprise",
     is_flag=True,
     default=True,
     help="Include or exclude Enterprise sources.",
 )
-def main(  # noqa: C901, PLR0912
+@click.option(
+    "--themes/--no-themes",
+    "with_themes",
+    is_flag=True,
+    default=True,
+    help="Include or exclude design-themes sources.",
+)
+def main(
     version: str,
     do_update: bool,
+    with_community: bool,
     with_enterprise: bool,
+    with_themes: bool,
 ) -> None:
+    dirs = get_odoo_sources_dirs(version)
+
+    repos = [
+        ("Community", config.odoo.community_url, dirs.community, with_community),
+        ("Enterprise", config.odoo.enterprise_url, dirs.enterprise, with_enterprise),
+        ("Themes", config.odoo.themes_url, dirs.themes, with_themes),
+    ]
 
     errors: list[str] = []
-    community_dir, enterprise_dir = get_odoo_sources_dirs(version)
 
-    # TODO: refactor, keep only a single loop
-    # --- Community ---
-    if community_dir.exists():
-        if do_update:
-            click.echo(f"Updating Odoo Community {version} in '{community_dir}'…")
-            try:
-                update_latest(community_dir)
-                print_success(f"Community {version} updated.")
-            except subprocess.CalledProcessError as exc:
-                errors.append(f"Community update failed: {exc}")
-                # TODO: replace by print_error, include err=True?
-                click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
+    for label, url, dest, enabled in repos:
+        if not enabled:
+            continue
+
+        if dest.exists():
+            if do_update:
+                click.echo(f"Updating Odoo {label} {version} in '{dest}'…")
+                try:
+                    update_latest(dest)
+                    print_success(f"{label} {version} updated.")
+                except subprocess.CalledProcessError as exc:
+                    msg = f"{label} update failed: {exc}"
+                    errors.append(msg)
+                    # TODO: replace by print_error, include err=True?
+                    click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
+            else:
+                print_warning(f"'{dest}' already exists — skipping {label} clone (use --update to pull).")
         else:
-            print_warning(f"'{community_dir}' already exists — skipping Community clone (use --update to pull).")
-    else:
-        click.echo(f"Cloning Odoo Community {version} into '{community_dir}'…")
-        try:
-            clone(config.odoo.community_url, community_dir, version)
-            print_success(f"Community {version} cloned.")
-        except subprocess.CalledProcessError as exc:
-            errors.append(f"Community clone failed: {exc}")
-            # TODO: replace by print_error, include err=True?
-            click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
-
-    # --- Enterprise ---
-    if not with_enterprise:
-        return
-
-    if enterprise_dir.exists():
-        if do_update:
-            click.echo(f"Updating Odoo Enterprise {version} in '{enterprise_dir}'…")
+            click.echo(f"Cloning Odoo {label} {version} into '{dest}'…")
             try:
-                update_latest(enterprise_dir)
-                print_success(f"Enterprise {version} updated.")
+                clone(url, dest, version)
+                print_success(f"{label} {version} cloned.")
             except subprocess.CalledProcessError as exc:
-                errors.append(f"Enterprise update failed: {exc}")
+                msg = f"{label} clone failed: {exc}"
+                errors.append(msg)
                 # TODO: replace by print_error, include err=True?
-                click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
-        else:
-            print_warning(f"'{enterprise_dir}' already exists — skipping Enterprise clone (use --update to pull).")
-    else:
-        click.echo(f"Cloning Odoo Enterprise {version} into '{enterprise_dir}'…")
-        try:
-            clone(config.odoo.enterprise_url, enterprise_dir, version)
-            print_success(f"Enterprise {version} cloned.")
-        except subprocess.CalledProcessError as exc:
-            errors.append(f"Enterprise clone failed: {exc}")
-            # TODO: replace by print_error, include err=True?
-            click.echo(click.style(f"  ✘ {errors[-1]}", fg="red"), err=True)
+                click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
 
     if errors:
-        raise click.exceptions.Exit(1)
+        raise OopsError("; ".join(errors))

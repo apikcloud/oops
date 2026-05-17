@@ -1015,8 +1015,14 @@ def volume_prefix(repo_path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
-def get_odoo_sources_dirs(version: str, base_dir: Optional[Path] = None) -> tuple[Path, Path]:
-    """Resolve the community and enterprise source directories for a given Odoo version.
+class OdooSourcesDirs(NamedTuple):
+    community: Path
+    enterprise: Path
+    themes: Path
+
+
+def get_odoo_sources_dirs(version: str, base_dir: Optional[Path] = None) -> OdooSourcesDirs:
+    """Resolve community, enterprise, and themes source directories for an Odoo version.
 
     The base directory is taken from ``base_dir`` when provided, otherwise falls back
     to ``odoo.sources_dir`` in ``~/.oops.yaml``. The version sub-directory is created

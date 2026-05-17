@@ -38,6 +38,7 @@ def _make_config_mock(sources_dir=None):
     cfg.odoo.sources_dir = sources_dir
     cfg.odoo.community_url = "git@github.com:odoo/odoo.git"
     cfg.odoo.enterprise_url = "git@github.com:odoo/enterprise.git"
+    cfg.odoo.themes_url = "git@github.com:odoo/design-themes.git"
     return cfg
 
 
@@ -189,12 +190,19 @@ class TestDownloadCommand:
     def _runner(self):
         return CliRunner()
 
-    def _patch_dirs(self, community_dir, enterprise_dir=None):
+    def _patch_dirs(self, community_dir, enterprise_dir=None, themes_dir=None):
         if enterprise_dir is None:
             enterprise_dir = community_dir.parent / "enterprise"
+        if themes_dir is None:
+            themes_dir = community_dir.parent / "themes"
+        from oops.io.file import OdooSourcesDirs
         return patch(
             "oops.commands.odoo.download.get_odoo_sources_dirs",
-            return_value=(community_dir, enterprise_dir),
+            return_value=OdooSourcesDirs(
+                community=community_dir,
+                enterprise=enterprise_dir,
+                themes=themes_dir,
+            ),
         )
 
     def test_version_normalization_short_form(self, tmp_path):
@@ -204,7 +212,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            result = self._runner().invoke(download_main, ["19", "--no-enterprise"])
+            result = self._runner().invoke(download_main, ["19", "--no-enterprise", "--no-themes"])
         mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "19.0")
         assert result.exit_code == 0
 
@@ -214,7 +222,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
+            self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
         mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "17.0")
 
     def test_missing_sources_dir_raises_usage_error(self):
@@ -233,7 +241,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
+            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
         mock_clone.assert_called_once()
         assert result.exit_code == 0
 
@@ -244,7 +252,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
+            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
         mock_clone.assert_not_called()
         assert "already exists" in result.output
         assert result.exit_code == 0
@@ -256,23 +264,25 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(download_main, ["17.0", "--update", "--no-enterprise"])
+            result = self._runner().invoke(download_main, ["17.0", "--update", "--no-enterprise", "--no-themes"])
         mock_update.assert_called_once_with(community_dir)
         assert result.exit_code == 0
 
     def test_enterprise_cloned_by_default(self, tmp_path):
         community_dir = tmp_path / "17.0" / "community"
         enterprise_dir = tmp_path / "17.0" / "enterprise"
+        themes_dir = tmp_path / "17.0" / "themes"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         clone_calls = []
         with patch("oops.commands.odoo.download.config", cfg_mock), \
-                self._patch_dirs(community_dir, enterprise_dir), \
+                self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
             result = self._runner().invoke(download_main, ["17.0"])
-        assert len(clone_calls) == 2
+        assert len(clone_calls) == 3
         cloned_dests = [c[1] for c in clone_calls]
         assert any("community" in str(d) for d in cloned_dests)
         assert any("enterprise" in str(d) for d in cloned_dests)
+        assert any("themes" in str(d) for d in cloned_dests)
         assert result.exit_code == 0
 
     def test_no_enterprise_flag_clones_community_only(self, tmp_path):
@@ -282,41 +292,43 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)
         ):
-            self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
+            self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
         assert len(clone_calls) == 1
         assert clone_calls[0][1].name == "community"
 
     def test_clone_failure_exits_with_code_1(self, tmp_path):
-        """Exit(1) is raised when errors accumulate (both repos attempted by default)."""
+        """Exit(1) is raised when errors accumulate (all three repos attempted by default)."""
         community_dir = tmp_path / "17.0" / "community"
         enterprise_dir = tmp_path / "17.0" / "enterprise"
+        themes_dir = tmp_path / "17.0" / "themes"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         with patch("oops.commands.odoo.download.config", cfg_mock), \
-                self._patch_dirs(community_dir, enterprise_dir), \
+                self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=subprocess.CalledProcessError(1, "git")):
             result = self._runner().invoke(download_main, ["17.0"])
         assert result.exit_code == 1
 
-    def test_community_clone_failure_no_enterprise_no_exit_code_1(self, tmp_path):
-        """Community-only clone failure does not raise Exit(1) — execution returns
-        before the error-check block (which is after the enterprise section)."""
+    def test_community_only_failure_exits_with_code_1(self, tmp_path):
+        """Community clone failure with --no-enterprise --no-themes now exits 1 (wart fixed)."""
         community_dir = tmp_path / "17.0" / "community"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone",
             side_effect=subprocess.CalledProcessError(1, "git"),
         ):
-            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
-        assert result.exit_code == 0
+            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
+        assert result.exit_code == 1
 
     def test_get_odoo_sources_dirs_called_with_version(self, tmp_path):
         """get_odoo_sources_dirs receives the normalised version string."""
         community_dir = tmp_path / "17.0" / "community"
         enterprise_dir = tmp_path / "17.0" / "enterprise"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        from oops.io.file import OdooSourcesDirs
+        themes_dir = community_dir.parent / "themes"
         with patch("oops.commands.odoo.download.config", cfg_mock), patch(
             "oops.commands.odoo.download.get_odoo_sources_dirs",
-            return_value=(community_dir, enterprise_dir),
+            return_value=OdooSourcesDirs(community=community_dir, enterprise=enterprise_dir, themes=themes_dir),
         ) as mock_dirs, patch("oops.commands.odoo.download.clone"):
             self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
         mock_dirs.assert_called_once_with("17.0")
@@ -333,8 +345,62 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir, enterprise_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=fake_clone):
-            result = self._runner().invoke(download_main, ["17.0"])
+            result = self._runner().invoke(download_main, ["17.0", "--no-themes"])
         assert result.exit_code == 1
+
+    def test_themes_cloned_by_default(self, tmp_path):
+        """With no flags, themes is cloned alongside community and enterprise."""
+        community_dir = tmp_path / "17.0" / "community"
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
+        themes_dir = tmp_path / "17.0" / "themes"
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        clone_calls = []
+        with patch("oops.commands.odoo.download.config", cfg_mock), \
+                self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
+            result = self._runner().invoke(download_main, ["17.0"])
+        cloned_dests = [c[1] for c in clone_calls]
+        assert any(d.name == "themes" for d in cloned_dests)
+        assert len(clone_calls) == 3
+        assert result.exit_code == 0
+
+    def test_no_themes_flag_skips_themes(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        clone_calls = []
+        with patch("oops.commands.odoo.download.config", cfg_mock), \
+                self._patch_dirs(community_dir), \
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
+            self._runner().invoke(download_main, ["17.0", "--no-themes"])
+        cloned_dests = [c[1] for c in clone_calls]
+        assert not any(d.name == "themes" for d in cloned_dests)
+        assert len(clone_calls) == 2
+
+    def test_no_community_flag_skips_community(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        clone_calls = []
+        with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
+            "oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)
+        ):
+            self._runner().invoke(download_main, ["17.0", "--no-community"])
+        cloned_dests = [c[1] for c in clone_calls]
+        assert not any(d.name == "community" for d in cloned_dests)
+
+    def test_themes_uses_themes_url_from_config(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        cfg_mock.odoo.themes_url = "git@github.com:my-fork/design-themes.git"
+        clone_calls = []
+        with patch("oops.commands.odoo.download.config", cfg_mock), \
+                self._patch_dirs(community_dir), \
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
+            self._runner().invoke(download_main, ["17.0", "--no-community", "--no-enterprise"])
+        assert len(clone_calls) == 1
+        url, dest, branch = clone_calls[0]
+        assert url == "git@github.com:my-fork/design-themes.git"
+        assert dest.name == "themes"
+        assert branch == "17.0"
 
 
 # ---------------------------------------------------------------------------
@@ -346,12 +412,19 @@ class TestUpdateCommand:
     def _runner(self):
         return CliRunner()
 
-    def _patch_dirs(self, community_dir, enterprise_dir=None):
+    def _patch_dirs(self, community_dir, enterprise_dir=None, themes_dir=None):
         if enterprise_dir is None:
             enterprise_dir = community_dir.parent / "enterprise"
+        if themes_dir is None:
+            themes_dir = community_dir.parent / "themes"
+        from oops.io.file import OdooSourcesDirs
         return patch(
             "oops.commands.odoo.update.get_odoo_sources_dirs",
-            return_value=(community_dir, enterprise_dir),
+            return_value=OdooSourcesDirs(
+                community=community_dir,
+                enterprise=enterprise_dir,
+                themes=themes_dir,
+            ),
         )
 
     def test_version_normalization(self, tmp_path):
@@ -360,7 +433,7 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["19"])
+            result = self._runner().invoke(update_main, ["19", "--no-enterprise", "--no-themes"])
         mock_update.assert_called_once_with(community_dir)
         assert result.exit_code == 0
 
@@ -380,7 +453,7 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["17.0"])
+            result = self._runner().invoke(update_main, ["17.0", "--no-enterprise", "--no-themes"])
         mock_update.assert_called_once_with(community_dir)
         assert result.exit_code == 0
 
@@ -390,33 +463,38 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_at_date"
         ) as mock_uad:
-            result = self._runner().invoke(update_main, ["17.0", "--date", "2024-01-15"])
+            result = self._runner().invoke(
+                update_main, ["17.0", "--date", "2024-01-15", "--no-enterprise", "--no-themes"]
+            )
         mock_uad.assert_called_once_with(community_dir, "2024-01-15")
         assert result.exit_code == 0
 
     def test_enterprise_updated_by_default(self, tmp_path):
         community_dir = tmp_path / "17.0" / "community"
         enterprise_dir = tmp_path / "17.0" / "enterprise"
+        themes_dir = tmp_path / "17.0" / "themes"
         community_dir.mkdir(parents=True)
         enterprise_dir.mkdir(parents=True)
-        with self._patch_dirs(community_dir, enterprise_dir), patch(
+        themes_dir.mkdir(parents=True)
+        with self._patch_dirs(community_dir, enterprise_dir, themes_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["17.0"])
-        assert mock_update.call_count == 2
+        assert mock_update.call_count == 3
         updated_paths = {c.args[0] for c in mock_update.call_args_list}
         assert community_dir in updated_paths
         assert enterprise_dir in updated_paths
+        assert themes_dir in updated_paths
         assert result.exit_code == 0
 
-    def test_no_enterprise_flag_updates_community_only(self, tmp_path):
+    def test_no_enterprise_no_themes_flag_updates_community_only(self, tmp_path):
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
         enterprise_dir = tmp_path / "17.0" / "enterprise"
         with self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["17.0", "--no-enterprise"])
+            result = self._runner().invoke(update_main, ["17.0", "--no-enterprise", "--no-themes"])
         assert mock_update.call_count == 1
         assert mock_update.call_args.args[0] == community_dir
         assert result.exit_code == 0
@@ -439,11 +517,13 @@ class TestUpdateCommand:
         community_dir = tmp_path / "17.0" / "community"
         community_dir.mkdir(parents=True)
         enterprise_dir = tmp_path / "17.0" / "enterprise"
+        from oops.io.file import OdooSourcesDirs
+        themes_dir = community_dir.parent / "themes"
         with patch(
             "oops.commands.odoo.update.get_odoo_sources_dirs",
-            return_value=(community_dir, enterprise_dir),
+            return_value=OdooSourcesDirs(community=community_dir, enterprise=enterprise_dir, themes=themes_dir),
         ) as mock_dirs, patch("oops.commands.odoo.update.update_latest"):
-            self._runner().invoke(update_main, ["17.0", "--no-enterprise"])
+            self._runner().invoke(update_main, ["17.0", "--no-enterprise", "--no-themes"])
         mock_dirs.assert_called_once_with("17.0")
 
     def test_update_failure_exits_with_code_1(self, tmp_path):
@@ -454,8 +534,51 @@ class TestUpdateCommand:
             "oops.commands.odoo.update.update_latest",
             side_effect=subprocess.CalledProcessError(1, "git"),
         ):
-            result = self._runner().invoke(update_main, ["17.0"])
+            result = self._runner().invoke(update_main, ["17.0", "--no-themes"])
         assert result.exit_code == 1
+
+    def test_themes_updated_by_default(self, tmp_path):
+        community_dir = tmp_path / "17.0" / "community"
+        enterprise_dir = tmp_path / "17.0" / "enterprise"
+        themes_dir = tmp_path / "17.0" / "themes"
+        for d in (community_dir, enterprise_dir, themes_dir):
+            d.mkdir(parents=True)
+        with self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
+                patch("oops.commands.odoo.update.update_latest") as mock_update:
+            result = self._runner().invoke(update_main, ["17.0"])
+        assert mock_update.call_count == 3
+        updated = {c.args[0] for c in mock_update.call_args_list}
+        assert themes_dir in updated
+        assert result.exit_code == 0
+
+    def test_themes_only_update(self, tmp_path):
+        """--no-community --no-enterprise updates only themes."""
+        themes_dir = tmp_path / "17.0" / "themes"
+        themes_dir.mkdir(parents=True)
+        with self._patch_dirs(
+            tmp_path / "17.0" / "community",
+            tmp_path / "17.0" / "enterprise",
+            themes_dir,
+        ), patch("oops.commands.odoo.update.update_latest") as mock_update:
+            result = self._runner().invoke(update_main, ["17.0", "--no-community", "--no-enterprise"])
+        assert mock_update.call_count == 1
+        assert mock_update.call_args.args[0] == themes_dir
+        assert result.exit_code == 0
+
+    def test_themes_update_with_date(self, tmp_path):
+        themes_dir = tmp_path / "17.0" / "themes"
+        themes_dir.mkdir(parents=True)
+        with self._patch_dirs(
+            tmp_path / "17.0" / "community",
+            tmp_path / "17.0" / "enterprise",
+            themes_dir,
+        ), patch("oops.commands.odoo.update.update_at_date") as mock_uad:
+            result = self._runner().invoke(
+                update_main,
+                ["17.0", "--no-community", "--no-enterprise", "--date", "2024-06-30"],
+            )
+        mock_uad.assert_called_once_with(themes_dir, "2024-06-30")
+        assert result.exit_code == 0
 
 
 # ---------------------------------------------------------------------------
@@ -490,7 +613,6 @@ class TestShowCommand:
         assert "No version directories found" in result.output
 
     def test_show_with_community_only(self, tmp_path):
-        # Use a non-numeric version name so tabulate does not strip the decimal part
         version_dir = tmp_path / "odoo-17"
         community_dir = version_dir / "community"
         community_dir.mkdir(parents=True)
@@ -510,7 +632,7 @@ class TestShowCommand:
 
         assert result.exit_code == 0
         assert "odoo-17" in result.output
-        assert fake_info in result.output
+        assert "abc1234" in result.output
 
     def test_show_with_community_and_enterprise(self, tmp_path):
         version_dir = tmp_path / "odoo-17"
@@ -536,8 +658,8 @@ class TestShowCommand:
             result = self._runner().invoke(show_main, [])
 
         assert result.exit_code == 0
-        assert community_info in result.output
-        assert enterprise_info in result.output
+        assert "abc1234" in result.output
+        assert "def5678" in result.output
 
     def test_version_dirs_with_no_repos_shows_no_checkouts(self, tmp_path):
         version_dir = tmp_path / "17.0"
@@ -573,6 +695,50 @@ class TestShowCommand:
         assert result.exit_code == 0
         assert "odoo-17" in result.output
         assert "odoo-18" in result.output
+
+    def test_show_with_themes(self, tmp_path):
+        """Themes are displayed alongside community and enterprise."""
+        version_dir = tmp_path / "odoo-17"
+        themes_dir = version_dir / "themes"
+        themes_dir.mkdir(parents=True)
+
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        themes_info = "9876abc  2024-02-01 12:00:00 +0200"
+
+        def fake_repo_info(path):
+            if path == themes_dir:
+                return themes_info
+            return ""
+
+        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+            "oops.commands.odoo.show.repo_info", side_effect=fake_repo_info
+        ):
+            result = self._runner().invoke(show_main, [])
+
+        assert result.exit_code == 0
+        assert "9876abc" in result.output
+        assert "Themes" in result.output
+
+    def test_show_includes_summary_panel(self, tmp_path):
+        version_dir = tmp_path / "odoo-17"
+        community_dir = version_dir / "community"
+        community_dir.mkdir(parents=True)
+
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+
+        def fake_repo_info(path):
+            if path == community_dir:
+                return "abc1234  2024-01-15 10:00:00 +0200"
+            return ""
+
+        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+            "oops.commands.odoo.show.repo_info", side_effect=fake_repo_info
+        ):
+            result = self._runner().invoke(show_main, [])
+
+        assert result.exit_code == 0
+        assert "Summary" in result.output
+        assert "Versions" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -617,8 +783,16 @@ class TestOdooConfig:
         _apply(cfg, {"odoo": {"community_url": "git@github.com:my-fork/odoo.git"}})
         assert cfg.odoo.community_url == "git@github.com:my-fork/odoo.git"
 
+    def test_apply_themes_url(self):
+        from oops.core.config import Config
+
+        cfg = Config()
+        _apply(cfg, {"odoo": {"themes_url": "git@github.com:my-fork/design-themes.git"}})
+        assert cfg.odoo.themes_url == "git@github.com:my-fork/design-themes.git"
+
     def test_defaults(self):
         cfg = OdooConfig()
         assert cfg.sources_dir is None
         assert cfg.community_url == "git@github.com:odoo/odoo.git"
         assert cfg.enterprise_url == "git@github.com:odoo/enterprise.git"
+        assert cfg.themes_url == "git@github.com:odoo/design-themes.git"

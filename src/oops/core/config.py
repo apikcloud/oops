@@ -109,7 +109,9 @@ class ImagesConfig:
 class SubmodulesConfig:
     current_path: Path = field(default_factory=lambda: Path(".third-party"))
     old_paths: List[Path] = field(default_factory=lambda: [Path("third-party")])
-    apik_path: Path = field(default_factory=lambda: Path("apik-addons"))
+    apik_path: Path = field(
+        default_factory=lambda: Path("apik-addons")
+    )  # TODO: do not mention this in the configuration
     force_scheme: str = "ssh"
     deprecated_repositories: dict = field(default_factory=lambda: {})
     checks: List[str] = field(
@@ -130,6 +132,7 @@ class OdooConfig:
     sources_dir: Optional[Path] = None
     community_url: str = "git@github.com:odoo/odoo.git"
     enterprise_url: str = "git@github.com:odoo/enterprise.git"
+    themes_url: str = "git@github.com:odoo/design-themes.git"
 
 
 @dataclass
@@ -162,6 +165,11 @@ class ProjectConfig:
     file_migrate: str = "migrate.sh"
     file_installed_modules: str = "installed_modules.txt"
     readme_file: str = "README.md"
+    slug: Optional[str] = None  # optional slug (default: folder name)
+    prefix: Optional[str] = (
+        None  # optional prefix for project add-ons, used for classification
+        # and the generation of new modules (to be configured locally)
+    )
 
 
 @dataclass

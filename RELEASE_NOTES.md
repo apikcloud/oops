@@ -9,6 +9,20 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [Unreleased]
+
+### New Features
+
+- `oops odoo download` and `oops odoo update` now manage three repositories — Community, Enterprise, and Themes (`odoo/design-themes`) — by default. New flags `--community/--no-community` and `--themes/--no-themes` mirror the existing `--enterprise/--no-enterprise` for targeted operations (e.g. `--no-community --no-enterprise` to update only themes).
+- `OdooConfig.themes_url` defaults to `git@github.com:odoo/design-themes.git`; override via `odoo.themes_url` in `~/.oops.yaml`.
+- `oops odoo show` migrated to Rich output: a summary panel (Versions / Community / Enterprise / Themes counts) is shown above the table, which now includes a Themes column.
+
+### Bug Fixes
+
+- `oops odoo download --no-enterprise` with a community clone failure now correctly exits 1. Previously, the error accumulator check was placed after the enterprise block, so an early return on `--no-enterprise` silently bypassed it.
+
+---
+
 ## [0.15.1] - 2026-05-13
 
 A small fix for the README update command.
