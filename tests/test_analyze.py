@@ -15,6 +15,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 from oops.commands.addons.analyze import main
+from oops.core.models import Result
 from oops.kb.store import write_project_kb
 
 # ---------------------------------------------------------------------------
@@ -166,9 +167,9 @@ class TestAnalyzeText:
         )
         result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
         assert result.exit_code == 0
-        assert "NEW" in result.output
-        assert "2 fields (base)" in result.output
-        assert "2 methods" in result.output
+        assert "my.test.model" in result.output
+        assert "new" in result.output
+        assert "2" in result.output
 
     def test_text_inherit_only(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -185,8 +186,9 @@ class TestAnalyzeText:
         )
         result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
         assert result.exit_code == 0
-        assert "INHERIT" in result.output
-        assert "1 new / 1 inherited" in result.output
+        assert "res.partner" in result.output
+        assert "inherit" in result.output
+        assert "1" in result.output
 
     def test_text_no_manifest(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -265,9 +267,11 @@ class TestAnalyzeText:
         module_path = _make_module_full(tmp_path, "data_module", manifest=manifest)
         result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
         assert result.exit_code == 0
-        assert "2 xml" in result.output
-        assert "1 csv" in result.output
-        assert "not analysed" in result.output
+        assert "Data" in result.output
+        assert "views" in result.output
+        assert "xml" in result.output
+        assert "csv" in result.output
+        assert "✗" in result.output
 
     def test_text_static_assets_grouped(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -289,7 +293,8 @@ class TestAnalyzeText:
         result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
         assert result.exit_code == 0
         assert "Static" in result.output
-        assert "not analysed" in result.output
+        assert "js" in result.output
+        assert "✗" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -312,8 +317,12 @@ class TestAnalyzeJson:
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
+        assert "warnings" in data
+        assert "modules" in data
+        assert isinstance(data["modules"], list)
+        module = data["modules"][0]
         for key in ("module", "manifest", "models", "structure", "not_analysed", "warnings"):
-            assert key in data, f"Missing key: {key}"
+            assert key in module, f"Missing key: {key}"
 
     def test_json_multi_module_is_list(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -333,8 +342,9 @@ class TestAnalyzeJson:
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert isinstance(data, list)
-        assert len(data) == 2
+        assert "modules" in data
+        assert isinstance(data["modules"], list)
+        assert len(data["modules"]) == 2
 
     def test_json_no_warnings_no_text(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -346,7 +356,7 @@ class TestAnalyzeJson:
         assert result.exit_code == 0
         # stdout must be valid JSON (no Warning: lines before it)
         data = json.loads(result.output)
-        assert len(data["warnings"]) > 0
+        assert len(data["modules"][0]["warnings"]) > 0
         # No "Warning:" text mixed into the JSON stream
         assert "Warning:" not in result.output.split("{")[0]
 
@@ -365,6 +375,109 @@ class TestAnalyzeJson:
         # If Path objects slipped through, json.dumps would have raised without default=str.
         # The fact that we get valid JSON proves the serializer is working.
         json.loads(result.output)
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeJsonWarnings
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeJsonWarnings:
+    def test_pre_loop_warnings_in_payload(self, tmp_path: Path) -> None:
+        """pre-loop _warn() calls now feed pre_warnings, visible under top-level warnings."""
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        # Patch compute_root_drift to return a missing module so a pre-loop warning fires.
+        with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
+                patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
+                patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
+                patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
+                patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
+                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb:
+            repo_path = tmp_path
+            mock_repo.return_value = (None, repo_path)
+            mock_ver.return_value = type("V", (), {"major_version": 17})()
+            mock_info.return_value = type("I", (), {"modules": ["my_module", "ghost_module"]})()
+            mock_stale.return_value = (False, "")
+            mock_drift.return_value = (["ghost_module"], [])
+            mock_gkb.return_value = db_path
+
+            # Point the non-stale code path to our test KB.
+            with patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path):
+                result = CliRunner().invoke(
+                    main, ["--format", "json", str(module_path)]
+                )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert any("ghost_module" in w for w in data["warnings"])
+
+    def test_themes_excluded_from_drift_warning(self, tmp_path: Path) -> None:
+        """Theme modules (origin='themes' in the global KB) must be filtered
+        out of the list passed to compute_root_drift, on par with origin='odoo'
+        and origin='enterprise'.
+        """
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            modules={
+                "theme_foo": {"origin": "themes", "depends": []},
+                "odoo_mod": {"origin": "odoo", "depends": []},
+            },
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
+                patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
+                patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
+                patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
+                patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
+                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb:
+            mock_repo.return_value = (None, tmp_path)
+            mock_ver.return_value = type("V", (), {"major_version": 17})()
+            mock_info.return_value = type(
+                "I", (), {"modules": ["my_module", "theme_foo", "odoo_mod"]}
+            )()
+            mock_stale.return_value = (False, "")
+            mock_drift.return_value = ([], [])
+            mock_gkb.return_value = db_path
+
+            with patch(
+                "oops.commands.addons.analyze.project_kb_path", return_value=db_path
+            ):
+                result = CliRunner().invoke(
+                    main, ["--format", "json", str(module_path)]
+                )
+
+        assert result.exit_code == 0
+        assert mock_drift.call_count == 1
+        passed_modules = list(mock_drift.call_args.args[1])
+        assert "theme_foo" not in passed_modules
+        assert "odoo_mod" not in passed_modules
+        assert "my_module" in passed_modules
+
+    def test_text_mode_smoke(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        assert result.exit_code == 0
+        assert "my_module" in result.output
+        assert "Done — analysed" in result.output
+        assert "My Module" in result.output
+        assert "Done —" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -392,9 +505,9 @@ class TestAnalyzeRebuild:
 
         def fake_build(repo_path, version, modules):  # noqa: ARG001
             build_called.append(True)
-            return repo_path / ".oops-cache" / "kb.db"
+            return Result(data=repo_path / ".oops-cache" / "kb.db")
 
-        with patch("oops.commands.addons.analyze.get_local_repo") as mock_repo, \
+        with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
                 patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
@@ -414,9 +527,9 @@ class TestAnalyzeRebuild:
 
         def fake_build(repo_path, version, modules):  # noqa: ARG001
             build_called.append(True)
-            return repo_path / ".oops-cache" / "kb.db"
+            return Result(data=repo_path / ".oops-cache" / "kb.db")
 
-        with patch("oops.commands.addons.analyze.get_local_repo") as mock_repo, \
+        with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
                 patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \

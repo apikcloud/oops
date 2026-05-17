@@ -14,6 +14,7 @@ from pathlib import Path
 import libcst as cst
 from click.testing import CliRunner
 from oops.commands.addons.refactor import main
+from oops.core.models import Result
 from oops.io.refactor import (
     ClassInfo,
     SymbolInfo,
@@ -867,13 +868,13 @@ class TestRefactorRebuild:
         return _make_module(tmp_path, "my_module", {"my_model.py": NEW_MODEL_SOURCE})
 
     def _patch_repo(self, monkeypatch, tmp_path: Path):
-        """Mock get_local_repo so tests don't need a real git repo."""
+        """Mock require_repository so tests don't need a real git repo."""
         from unittest.mock import MagicMock
 
         fake_repo = MagicMock()
         fake_repo.git.checkout = MagicMock()
         monkeypatch.setattr(
-            "oops.commands.addons.refactor.get_local_repo",
+            "oops.commands.addons.refactor.require_repository",
             lambda: (fake_repo, tmp_path),
         )
         return fake_repo, tmp_path
@@ -893,7 +894,7 @@ class TestRefactorRebuild:
         calls: list = []
         monkeypatch.setattr(
             "oops.commands.addons.refactor.build_project_kb",
-            lambda *a, **kw: (calls.append((a, kw)), kb_path)[1],
+            lambda *a, **kw: (calls.append((a, kw)), Result(data=kb_path))[1],
         )
         return calls
 
@@ -1016,10 +1017,10 @@ class TestRefactorRebuild:
         build_calls = self._patch_build(monkeypatch, kb_path)
 
         def _fail():
-            raise AssertionError("get_local_repo should not be called for KB resolution")
+            raise AssertionError("require_repository should not be called for KB resolution")
 
         monkeypatch.setattr(
-            "oops.commands.addons.refactor.get_local_repo",
+            "oops.commands.addons.refactor.require_repository",
             _fail,
         )
 
@@ -1116,7 +1117,7 @@ class TestRefactorCommit:
         fake_repo = MagicMock()
         fake_repo.git.checkout = MagicMock()
         monkeypatch.setattr(
-            "oops.commands.addons.refactor.get_local_repo",
+            "oops.commands.addons.refactor.require_repository",
             lambda: (fake_repo, tmp_path),
         )
         return fake_repo
@@ -1147,9 +1148,9 @@ class TestRefactorCommit:
         module_path, kb_path = self._setup(tmp_path)
 
         def _fail():
-            raise AssertionError("get_local_repo must not be called with --no-branch --no-commit")
+            raise AssertionError("require_repository must not be called with --no-branch --no-commit")
 
-        monkeypatch.setattr("oops.commands.addons.refactor.get_local_repo", _fail)
+        monkeypatch.setattr("oops.commands.addons.refactor.require_repository", _fail)
         commit_calls = self._patch_commit(monkeypatch)
 
         result = self._runner().invoke(
@@ -1190,7 +1191,7 @@ class TestRefactorCommit:
         fake_repo = MagicMock()
         fake_repo.git.checkout.side_effect = GitCommandError("checkout", 128)
         monkeypatch.setattr(
-            "oops.commands.addons.refactor.get_local_repo",
+            "oops.commands.addons.refactor.require_repository",
             lambda: (fake_repo, tmp_path),
         )
         commit_calls = self._patch_commit(monkeypatch)
@@ -1227,7 +1228,7 @@ class TestRefactorMultiModule:
 
         fake_repo = MagicMock()
         monkeypatch.setattr(
-            "oops.commands.addons.refactor.get_local_repo",
+            "oops.commands.addons.refactor.require_repository",
             lambda: (fake_repo, tmp_path),
         )
         return fake_repo

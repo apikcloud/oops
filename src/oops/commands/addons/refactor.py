@@ -42,6 +42,7 @@ import click
 from git import GitCommandError
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import OopsError
 from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import parse_odoo_version
 from oops.io.installed_modules import read_installed_modules
@@ -50,8 +51,8 @@ from oops.kb import setup_kb_logging
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
-from oops.services.git import commit, get_local_repo
-from oops.utils.render import OopsError, human_readable, print_rule, print_success, print_warning
+from oops.services.git import commit, require_repository
+from oops.utils.render import human_readable, print_rule, print_success, print_warning
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -70,10 +71,7 @@ from oops.utils.render import OopsError, human_readable, print_rule, print_succe
     "kb_path",
     default=None,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help=(
-        "Path to the project KB database. "
-        "When set, --refresh is ignored and no auto-rebuild happens."
-    ),
+    help=("Path to the project KB database. When set, --refresh is ignored and no auto-rebuild happens."),
 )
 @click.option(
     "--branch/--no-branch",
@@ -110,9 +108,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
-    print_warning(
-        "This command is experimental and may change without notice between releases."
-    )
+    print_warning("This command is experimental and may change without notice between releases.")
     log = logging.getLogger(__name__)
 
     for mp in module_paths:
@@ -129,44 +125,39 @@ def main(  # noqa: C901, PLR0912, PLR0915
     # --- Locate repo (KB resolution always anchors there now) ---
     if kb_path is None:
         try:
-            local_repo, repo_path = get_local_repo()
+            local_repo, repo_path = require_repository()
         except click.ClickException:
-            raise OopsError(
-                "oops refactor must run inside an oops project (no .git found)."
-            ) from None
+            raise OopsError("oops refactor must run inside an oops project (no .git found).") from None
 
         kb_path = project_kb_path(repo_path)
 
         try:
             version = str(parse_odoo_version(repo_path).major_version)
         except (ValueError, OSError) as exc:
-            raise OopsError(
-                f"Could not read Odoo version from {config.project.file_odoo_version}."
-            ) from exc
+            raise OopsError(f"Could not read Odoo version from {config.project.file_odoo_version}.") from exc
 
         # Read installed_modules.txt eagerly so we can both feed the build
         # and surface drift warnings on every run.
         info = read_installed_modules(repo_path)
 
         if info is not None:
-            # Odoo community/enterprise modules are never at the repo root;
-            # exclude them so only project-owned missing addons are surfaced.
+            # Odoo community/enterprise/themes modules are never at the repo
+            # root; exclude them so only project-owned missing addons are
+            # surfaced.
             _gkb = global_kb_path(version)
             _odoo_mods: set[str] = set()
             if _gkb.exists():
                 with KBReader(_gkb) as _kb:
                     _odoo_mods = {
-                        n for n, d in _kb.get_modules().items()
-                        if d["origin"] in {"odoo", "enterprise"}
+                        n
+                        for n, d in _kb.get_modules().items()
+                        if d["origin"] in {"odoo", "community", "enterprise", "themes"}
                     }
             _project_modules = [m for m in info.modules if m not in _odoo_mods]
 
             missing, extra = compute_root_drift(repo_path, _project_modules)
             if missing:
-                print_warning(
-                    f"Modules in installed_modules.txt with no addon at the "
-                    f"repo root: {missing}"
-                )
+                print_warning(f"Modules in installed_modules.txt with no addon at the repo root: {missing}")
             if extra:
                 print_warning(
                     f"Addons at the repo root not in installed_modules.txt "
@@ -187,9 +178,12 @@ def main(  # noqa: C901, PLR0912, PLR0915
             log.info("Rebuilding project KB (%s)…", why)
             print_warning(f"Rebuilding project KB: {why}")
             try:
-                kb_path = build_project_kb(repo_path, version, info.modules)
+                kb_result = build_project_kb(repo_path, version, info.modules)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
+            kb_path = kb_result.data
+            for w in kb_result.warnings:
+                print_warning(w)
         elif not kb_path.exists():
             raise OopsError(f"Project KB not found: {kb_path}")
     else:
@@ -199,11 +193,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     log.info("Using KB: %s", kb_path)
 
-    branch_name = (
-        f"refactor/doc-{resolved_paths[0].name}"
-        if len(resolved_paths) == 1
-        else "refactor/doc-multi"
-    )
+    branch_name = f"refactor/doc-{resolved_paths[0].name}" if len(resolved_paths) == 1 else "refactor/doc-multi"
 
     with KBReader(kb_path) as kb:
         modules_index = kb.get_modules()
@@ -213,7 +203,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
         if needs_repo and local_repo is None:
             try:
-                local_repo, repo_path = get_local_repo()
+                local_repo, repo_path = require_repository()
             except click.ClickException:
                 print_warning("Could not locate git repository — continuing without git.")
                 branch = False
@@ -266,9 +256,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     model_tag = ci.model_name or "+".join(ci.inherit) or "?"
                     n_fields = sum(1 for s in ci.symbols if s.kind == "field")
                     n_methods = sum(1 for s in ci.symbols if s.kind == "method")
-                    n_nodoc = sum(
-                        1 for s in ci.symbols if s.kind == "method" and not s.has_docstring
-                    )
+                    n_nodoc = sum(1 for s in ci.symbols if s.kind == "method" and not s.has_docstring)
                     n_override = sum(1 for s in ci.symbols if s.is_override)
                     log.info(
                         "  %s (%s): %d fields, %d methods (%d need docstring, %d overrides)",
@@ -298,16 +286,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 total_rewrites += 1
                 rewritten_rels.append(str(rel))
 
-            if (
-                not dry_run
-                and rewritten_rels
-                and local_repo is not None
-                and repo_path is not None
-            ):
-                file_paths = [
-                    str((module_path / rel).relative_to(repo_path))
-                    for rel in rewritten_rels
-                ]
+            if not dry_run and rewritten_rels and local_repo is not None and repo_path is not None:
+                file_paths = [str((module_path / rel).relative_to(repo_path)) for rel in rewritten_rels]
                 if no_commit:
                     local_repo.index.add([str(repo_path / f) for f in file_paths])
                 else:
@@ -324,8 +304,6 @@ def main(  # noqa: C901, PLR0912, PLR0915
             grand_total += total_rewrites
 
         if not dry_run:
-            print_success(
-                f"Done — {grand_total} file(s) rewritten across {len(resolved_paths)} module(s)."
-            )
+            print_success(f"Done — {grand_total} file(s) rewritten across {len(resolved_paths)} module(s).")
             if branch and grand_total:
                 click.echo(f"  Branch: {branch_name}")

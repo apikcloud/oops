@@ -15,18 +15,35 @@ and method breakdown, plus counts of declared data files and assets.
 This command is read-only. It rebuilds the project KB if stale (same
 semantics as `oops addons refactor`) but performs no source rewriting,
 no git operations, and no manifest edits.
+
+JSON output shape (--format json)::
+
+    {
+      "warnings": ["pre-loop drift or rebuild messages"],
+      "modules": [
+        {
+          "module": "...",
+          "manifest": { ... },
+          "models": [ ... ],
+          "structure": { ... },
+          "not_analysed": [ ... ],
+          "warnings": ["module-level warnings"]
+        }
+      ]
+    }
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import OopsError
+from oops.core.models import ClassSummary, ModuleSummary, StructureSummary
 from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import parse_odoo_version
 from oops.io.installed_modules import read_installed_modules
@@ -37,53 +54,9 @@ from oops.kb import setup_kb_logging
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
-from oops.services.git import get_local_repo
+from oops.services.git import require_repository
 from oops.utils.helpers import deep_visit
-from oops.utils.render import OopsError, print_rule, print_success, print_warning
-from tabulate import tabulate
-
-# ---------------------------------------------------------------------------
-# Internal dataclasses
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class ClassSummary:
-    class_name: str
-    model_name: str | None
-    is_new_model: bool
-    inherit: list[str]
-    fields_total: int
-    fields_base: int
-    fields_new: int
-    fields_inherited: int
-    fields_by_type: dict[str, int]
-    methods_total: int
-    methods_by_section: dict[str, int]
-    overrides: int
-    override_details: list[dict[str, str]]
-    missing_docstrings: int
-
-
-@dataclass
-class StructureSummary:
-    data: dict[str, dict[str, int]]
-    demo: dict[str, dict[str, int]]
-    controllers_py: int
-    wizard_py: int
-    report_py: int
-    static_by_ext: dict[str, int]
-
-
-@dataclass
-class ModuleSummary:
-    module_name: str
-    module_path: Path
-    manifest: dict
-    classes: list[ClassSummary]
-    structure: StructureSummary
-    warnings: list[str] = field(default_factory=list)
-
+from oops.utils.render import render_text, rule, warning_section
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -134,28 +107,23 @@ def main(  # noqa: C901, PLR0912, PLR0915
 ) -> None:
     setup_kb_logging(verbose)
     json_mode = output_format == "json"
+    pre_warnings: list[str] = []
     if not json_mode:
-        print_warning(
-            "This command is experimental and may change without notice between releases."
-        )
+        pre_warnings.append("This command is experimental and may change without notice between releases.")
     log = logging.getLogger(__name__)
 
     resolved_paths = [mp.resolve() for mp in module_paths]
 
     if kb_path is None:
         try:
-            _, repo_path = get_local_repo()
+            _, repo_path = require_repository()
         except click.ClickException:
-            raise OopsError(
-                "Not in a git repository, and --kb was not provided."
-            ) from None
+            raise OopsError("Not in a git repository, and --kb was not provided.") from None
 
         try:
             version = str(parse_odoo_version(repo_path).major_version)
         except (ValueError, OSError):
-            raise OopsError(
-                f"Could not read Odoo version from {config.project.file_odoo_version}."
-            ) from None
+            raise OopsError(f"Could not read Odoo version from {config.project.file_odoo_version}.") from None
 
         info = read_installed_modules(repo_path)
 
@@ -165,25 +133,25 @@ def main(  # noqa: C901, PLR0912, PLR0915
             if _gkb.exists():
                 with KBReader(_gkb) as _kb:
                     _odoo_mods = {
-                        n for n, d in _kb.get_modules().items()
-                        if d["origin"] in {"odoo", "enterprise"}
+                        n
+                        for n, d in _kb.get_modules().items()
+                        if d["origin"] in {"odoo", "community", "enterprise", "themes"}
                     }
             _project_modules = [m for m in info.modules if m not in _odoo_mods]
 
             missing, extra = compute_root_drift(repo_path, _project_modules)
             if missing:
                 _warn(
-                    f"Modules in installed_modules.txt with no addon at the "
-                    f"repo root: {missing}",
+                    f"Modules in installed_modules.txt with no addon at the repo root: {missing}",
                     json_mode,
-                    [],
+                    pre_warnings,
                 )
             if extra:
                 _warn(
                     f"Addons at the repo root not in installed_modules.txt "
                     f"(will not be scanned by the project KB): {extra}",
                     json_mode,
-                    [],
+                    pre_warnings,
                 )
 
         stale, reason = is_project_kb_stale(repo_path, version)
@@ -198,11 +166,14 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 )
             why = "forced via --refresh" if refresh else f"stale: {reason}"
             log.info("Rebuilding project KB (%s)…", why)
-            _warn(f"Rebuilding project KB: {why}", json_mode, [])
+            _warn(f"Rebuilding project KB: {why}", json_mode, pre_warnings)
             try:
-                kb_path = build_project_kb(repo_path, version, info.modules)
+                kb_result = build_project_kb(repo_path, version, info.modules)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
+            kb_path = kb_result.data
+            for w in kb_result.warnings:
+                _warn(w, json_mode, pre_warnings)
         else:
             kb_path = project_kb_path(repo_path)
             if not kb_path.exists():
@@ -215,6 +186,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     with KBReader(kb_path) as kb:
         modules_index = kb.get_modules()
+
+        if not json_mode:
+            warning_section(pre_warnings)
 
         for module_path in resolved_paths:
             module_name = module_path.name
@@ -239,9 +213,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
             all_classes: list[ClassSummary] = []
             for py_file in model_py_files:
-                class_infos = analyse_file(
-                    py_file, kb, modules_index, module_name, module_local_refs
-                )
+                class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
                 for ci in class_infos:
                     all_classes.append(_summarize_class(ci))
 
@@ -262,10 +234,13 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 render_text(summary)
 
     if json_mode:
-        payload = json_results if len(json_results) > 1 else (json_results[0] if json_results else {})
+        payload = {
+            "warnings": pre_warnings,
+            "modules": json_results,
+        }
         click.echo(json.dumps(payload, indent=2, default=str))
     else:
-        print_success(f"Done — analysed {len(resolved_paths)} module(s).")
+        rule(f"Done — analysed {len(resolved_paths)} module(s)")
 
 
 # ---------------------------------------------------------------------------
@@ -274,10 +249,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
 
 def _warn(msg: str, json_mode: bool, warnings: list[str]) -> None:
-    if json_mode:
-        warnings.append(msg)
-    else:
-        print_warning(msg)
+    warnings.append(msg)
 
 
 def _summarize_class(ci: ClassInfo) -> ClassSummary:
@@ -360,111 +332,6 @@ def _build_structure(module_path: Path, manifest: dict) -> StructureSummary:
         report_py=report_py,
         static_by_ext=static_by_ext,
     )
-
-
-# ---------------------------------------------------------------------------
-# Text renderer
-# ---------------------------------------------------------------------------
-
-
-def render_text(summary: ModuleSummary) -> None:
-    print_rule(f"oops analyze — {summary.module_name}")
-    m = summary.manifest
-    name = m.get("name", "<unknown>")
-    version = m.get("version", "")
-    author = m.get("author", "")
-    license_ = m.get("license", "")
-    category = m.get("category", "")
-    summary_text = m.get("summary", "")
-    installable = m.get("installable", True)
-
-    click.echo(f"Name:     {name:<25} Version:  {version}")
-    click.echo(f"Author:   {author:<25} License:  {license_}")
-    click.echo(f"Category: {category:<25} Installable: {'yes' if installable else 'no'}")
-    if summary_text:
-        click.echo(f"Summary:  {summary_text}")
-    click.echo()
-
-    depends = m.get("depends", [])
-    click.echo(f"Depends ({len(depends)}): {', '.join(depends) or '—'}")
-    click.echo()
-
-    if summary.classes:
-        click.echo("Models")
-        for c in summary.classes:
-            tag = "NEW    " if c.is_new_model else "INHERIT"
-            if c.is_new_model:
-                fields_summary = f"{c.fields_total} fields (base)"
-            else:
-                fields_summary = f"{c.fields_new} new / {c.fields_inherited} inherited"
-            label = c.model_name or ", ".join(c.inherit) or "—"
-            click.echo(
-                f"  {label:<22} {tag}   {fields_summary:<30} {c.methods_total} methods"
-            )
-        click.echo()
-        _render_model_table(summary.classes)
-        all_overrides = [d for c in summary.classes for d in c.override_details]
-        missing = sum(c.missing_docstrings for c in summary.classes)
-        click.echo(f"  Overrides: {len(all_overrides)}   Missing docstrings: {missing}")
-        if all_overrides:
-            click.echo()
-            click.echo("  Overridden methods (no super() call):")
-            for ov in all_overrides:
-                click.echo(f"    {ov['model']:<30} {ov['method']:<30} [{ov['origin_module']}]")
-        click.echo()
-
-    _render_structure_section("Data files (from manifest)", summary.structure.data)
-    if summary.structure.demo:
-        _render_structure_section("Demo files (from manifest)", summary.structure.demo)
-
-    other_py = [
-        ("controllers/", summary.structure.controllers_py),
-        ("wizard/", summary.structure.wizard_py),
-        ("report/", summary.structure.report_py),
-    ]
-    if any(n for _, n in other_py):
-        click.echo("Other Python")
-        for label, count in other_py:
-            if count:
-                click.echo(f"  {label:<13} {count} py   ⚬ not analysed")
-        click.echo()
-
-    if summary.structure.static_by_ext:
-        click.echo("Static")
-        for ext, count in sorted(summary.structure.static_by_ext.items()):
-            click.echo(f"  static/src/{ext:<5} {count} {ext}   ⚬ not analysed")
-        click.echo()
-
-
-def _render_model_table(classes: list[ClassSummary]) -> None:
-    all_sections = sorted({s for c in classes for s in c.methods_by_section})
-    headers = ["Model", "Origin", "New fld", "Inh fld"] + all_sections
-    rows = []
-    for c in classes:
-        label = c.model_name or ", ".join(c.inherit) or c.class_name
-        origin = "new" if c.is_new_model else "inherit"
-        new_fld = c.fields_base if c.is_new_model else c.fields_new
-        inh_fld = c.fields_inherited
-        row = (
-            [label, origin, new_fld or "", inh_fld or ""]
-            + [c.methods_by_section.get(sec, "") or "" for sec in all_sections]
-        )
-        rows.append(row)
-    click.echo(tabulate(rows, headers=headers, tablefmt="rounded_grid"))
-    click.echo()
-
-
-def _render_structure_section(
-    title: str,
-    data: dict[str, dict[str, int]],
-) -> None:
-    if not data:
-        return
-    click.echo(title)
-    for subdir, ext_counts in sorted(data.items()):
-        for ext, count in sorted(ext_counts.items()):
-            click.echo(f"  {subdir:<13} {count} {ext}   ⚬ not analysed")
-    click.echo()
 
 
 # ---------------------------------------------------------------------------
