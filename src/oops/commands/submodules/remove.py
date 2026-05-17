@@ -19,7 +19,8 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.services.git import commit, get_local_repo
+from oops.core.exceptions import AppAbort, EarlyExit
+from oops.services.git import commit, require_repository, require_submodules
 from oops.utils.render import print_success, print_warning, render_table
 
 
@@ -30,12 +31,8 @@ from oops.utils.render import print_success, print_warning, render_table
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, force: bool, names: tuple):  # noqa: C901
 
-    repo, repo_path = get_local_repo()
-
-    if not repo.submodules:
-        raise click.UsageError("No submodules found.")
-
-    submodules = list(repo.submodules)
+    repo, repo_path = require_repository()
+    submodules = list(require_submodules(repo))
 
     if not names:
         # Display indexed menu and prompt for selection
@@ -43,7 +40,7 @@ def main(dry_run: bool, no_commit: bool, force: bool, names: tuple):  # noqa: C9
         click.echo(render_table(rows, headers=["Name", "URL", "Path"], index=True))
         raw = click.prompt("\nEnter index(es) to remove (comma-separated, empty to abort)", default="")
         if not raw.strip():
-            raise click.Abort()
+            raise AppAbort()
 
         selected = []
         for token in raw.split(","):
@@ -65,7 +62,7 @@ def main(dry_run: bool, no_commit: bool, force: bool, names: tuple):  # noqa: C9
         selected = [name_map[n] for n in names]
 
     if not selected:
-        raise click.Abort()
+        raise EarlyExit()
 
     # Collect all symlinks in the repo once
     all_symlinks: list[Path] = []

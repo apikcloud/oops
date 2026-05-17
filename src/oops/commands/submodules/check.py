@@ -19,8 +19,9 @@ from pathlib import PurePosixPath
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import EarlyExit, OopsError
 from oops.io.file import check_prefix, desired_path, list_symlinks
-from oops.services.git import get_local_repo, is_pull_request, read_gitmodules
+from oops.services.git import is_pull_request, read_gitmodules, require_repository
 from oops.utils.net import _parse_url
 from oops.utils.render import print_error, print_success, print_warning
 
@@ -28,11 +29,11 @@ from oops.utils.render import print_error, print_success, print_warning
 @command(name="check", help=__doc__)
 def main():  # noqa: C901, PLR0912, PLR0915
 
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     if not repo.submodules:
         print_success("No submodules found.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     symlinks = list_symlinks(repo_path)
     broken_symlinks = list_symlinks(repo_path, broken_only=True)
@@ -146,7 +147,6 @@ def main():  # noqa: C901, PLR0912, PLR0915
 
     if res:
         print_success(f"{len(config.submodules.checks)} check(s) completed without errors for submodules")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
     else:
-        print_error("Submodule check failed. Please fix the above issues.")
-        raise click.exceptions.Exit(1)
+        raise OopsError("Submodule check failed. Please fix the above issues.")

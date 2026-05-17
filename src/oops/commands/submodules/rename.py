@@ -14,26 +14,22 @@ Specific submodules can be targeted by name.
 import click
 from oops.commands.base import command
 from oops.io.file import desired_path, get_symlink_map
-from oops.services.git import commit, get_local_repo, is_pull_request
+from oops.services.git import commit, is_pull_request, require_repository, require_submodules
 
 
 @command("rename", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--prompt/--no-prompt", is_flag=True, default=True, help="Prompt before renaming")
-@click.option(
-    "--pull-request", "--pr", "force_pr", is_flag=True, help="Mark submodules as pull request"
-)
+@click.option("--pull-request", "--pr", "force_pr", is_flag=True, help="Mark submodules as pull request")
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tuple):
 
-    repo, repo_path = get_local_repo()
-
-    if not repo.submodules:
-        raise click.UsageError("No .gitmodules found.")
+    repo, repo_path = require_repository()
+    require_submodules(repo)
 
     # Assume at most one symlink per submodule
-    mapping = get_symlink_map(repo.working_dir)
+    mapping = get_symlink_map(repo_path)
     changed = False
 
     for submodule in repo.submodules:
@@ -67,14 +63,10 @@ def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tu
                 submodule.rename(new_name)
                 changed = True
             except Exception as err:
-                raise click.UsageError(
-                    f"Error renaming submodule '{submodule.name}': {err}"
-                ) from err
+                raise click.UsageError(f"Error renaming submodule '{submodule.name}': {err}") from err
 
     if not changed:
-        click.echo(
-            "Nothing to rename." if not dry_run else "Dry run complete — no changes applied."
-        )
+        click.echo("Nothing to rename." if not dry_run else "Dry run complete — no changes applied.")
         return
 
     if not dry_run and not no_commit:

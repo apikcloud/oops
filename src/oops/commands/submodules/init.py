@@ -13,7 +13,7 @@ parallel across N worker jobs.
 
 import click
 from oops.commands.base import command
-from oops.services.git import get_local_repo
+from oops.services.git import require_repository
 from oops.utils.render import print_success
 
 
@@ -27,7 +27,7 @@ from oops.utils.render import print_success
     help="Number of parallel jobs.",
 )
 def main(jobs: int) -> None:
-    repo, _ = get_local_repo()
+    repo, _ = require_repository()
 
     click.echo(f"Updating submodules ({jobs} parallel job(s))...")
     repo.git.submodule("update", "--init", "--recursive", f"--jobs={jobs}")

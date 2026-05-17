@@ -14,7 +14,7 @@ automatically — use ``oops-sub-replace`` for those.
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.services.git import commit, get_local_repo
+from oops.services.git import commit, require_repository, require_submodules
 from oops.utils.net import _parse_url, encode_url
 from oops.utils.render import print_success, print_warning
 
@@ -24,10 +24,8 @@ from oops.utils.render import print_success, print_warning
 @click.option("--no-commit", is_flag=True, help="Do not commit automatically at the end.")
 def main(dry_run: bool, no_commit: bool) -> None:
 
-    repo, repo_path = get_local_repo()
-
-    if not repo.submodules:
-        raise click.UsageError("No .gitmodules found.")
+    repo, repo_path = require_repository()
+    require_submodules(repo)
 
     new_urls = []
     deprecated = []
@@ -37,14 +35,10 @@ def main(dry_run: bool, no_commit: bool) -> None:
         repository_name = f"{owner}/{repository}"
 
         if config.submodules.force_scheme and config.submodules.force_scheme != scheme:
-            new_urls.append(
-                (submodule, encode_url(submodule.url, config.submodules.force_scheme))
-            )
+            new_urls.append((submodule, encode_url(submodule.url, config.submodules.force_scheme)))
 
         if repository_name in config.submodules.deprecated_repositories:
-            deprecated.append(
-                (submodule.name, config.submodules.deprecated_repositories[repository_name])
-            )
+            deprecated.append((submodule.name, config.submodules.deprecated_repositories[repository_name]))
 
     # Report deprecated repos — replacement requires oops-sub-replace
     if deprecated:
@@ -68,9 +62,7 @@ def main(dry_run: bool, no_commit: bool) -> None:
                     repo_path,
                     [".gitmodules"],
                     "submodules_fix_urls",
-                    description="\n".join(
-                        f"- {sub.name}: {url}" for sub, url in new_urls
-                    ),
+                    description="\n".join(f"- {sub.name}: {url}" for sub, url in new_urls),
                 )
     elif not deprecated:
         print_success("No issues found.")

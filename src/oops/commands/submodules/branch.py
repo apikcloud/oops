@@ -15,7 +15,8 @@ import logging
 
 import click
 from oops.commands.base import command
-from oops.services.git import commit, get_local_repo, is_pull_request, read_gitmodules
+from oops.core.exceptions import EarlyExit
+from oops.services.git import commit, is_pull_request, read_gitmodules, require_repository, require_submodules
 
 
 @command(name="branch", help=__doc__)
@@ -36,11 +37,8 @@ from oops.services.git import commit, get_local_repo, is_pull_request, read_gitm
 )
 def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PLR0912
 
-    repo, repo_path = get_local_repo()
-
-    if not repo.submodules:
-        click.echo("No submodules found.")
-        raise click.Abort()
+    repo, repo_path = require_repository()
+    require_submodules(repo)
 
     to_fix = []
     gitmodules = read_gitmodules(repo)
@@ -56,9 +54,7 @@ def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PL
             pull_request = is_pull_request(submodule)
 
             if skip_pr and pull_request:
-                logging.debug(
-                    f"Skipping submodule {submodule.name!r} as it looks like a pull request path"
-                )
+                logging.debug(f"Skipping submodule {submodule.name!r} as it looks like a pull request path")
                 continue
 
             if default_branch and not pull_request:
@@ -75,7 +71,7 @@ def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PL
 
     if not to_fix:
         click.echo("Nothing to fix.")
-        raise click.Abort()
+        raise EarlyExit()
 
     for name, branch in to_fix:
         click.echo(f"Setting branch {branch!r} for submodule {name!r}...")

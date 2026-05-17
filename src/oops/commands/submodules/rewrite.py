@@ -22,13 +22,14 @@ from typing import Optional
 import click
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import EarlyExit
 from oops.core.messages import commit_messages
 from oops.io.file import (
     desired_path,
     get_symlink_map,
     rewrite_symlink,
 )
-from oops.services.git import get_local_repo, is_pull_request
+from oops.services.git import is_pull_request, require_repository, require_submodules
 
 
 @command(name="rewrite", help=__doc__)
@@ -47,14 +48,11 @@ from oops.services.git import get_local_repo, is_pull_request
 @click.argument("names", nargs=-1, required=False)
 def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Optional[tuple[str]]" = None):  # noqa: C901, PLR0912, PLR0915, UP045
 
-    repo, _ = get_local_repo()
-
-    if not repo.submodules:
-        click.echo("No .gitmodules found.")
-        raise click.Abort()
+    repo, repo_path = require_repository()
+    require_submodules(repo)
 
     # FIXME: assume there is only one symlink per submodule for now
-    mapping = get_symlink_map(repo.working_dir)
+    mapping = get_symlink_map(repo_path)
 
     plan = []
     for submodule in repo.submodules:
@@ -78,7 +76,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Opt
 
     if not plan:
         click.echo("No submodule needs rewriting.")
-        raise click.Abort()
+        raise EarlyExit()
 
     for submodule, new_path in plan:
         click.echo(f"[plan] {submodule.name}\n  url : {submodule.url}\n  path: {submodule.path} -> {new_path}")
@@ -100,7 +98,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Opt
                     accepted.append((submodule, custom))
     if not accepted:
         click.echo("Nothing accepted. Exiting.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     # Move submodules
     moved = []
@@ -117,7 +115,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Opt
         click.echo("\nDry run mode, no changes applied.")
         for oldp, newp in moved:
             click.echo(f"[dry-run] {oldp} -> {newp}")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     # Rewrite symlinks
     # Build a quick lookup for old->new prefixes

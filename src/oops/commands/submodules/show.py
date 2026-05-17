@@ -13,7 +13,7 @@ with --pull-request.
 
 import click
 from oops.commands.base import command
-from oops.services.git import get_last_commit, get_local_repo, is_pull_request
+from oops.services.git import get_last_commit, is_pull_request, require_repository, require_submodules
 from oops.utils.net import get_public_repo_url
 from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
 
@@ -26,10 +26,8 @@ from oops.utils.render import format_datetime, human_readable, render_boolean, r
 )
 def main(pull_request: bool):
 
-    repo, repo_path = get_local_repo()
-
-    if not repo.submodules:
-        raise click.UsageError("No submodules found.")
+    repo, repo_path = require_repository()
+    require_submodules(repo)
 
     rows = []
     for sub in repo.submodules:

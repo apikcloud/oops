@@ -13,7 +13,7 @@ by name; PR submodules can be skipped with --skip-pr.
 
 import click
 from oops.commands.base import command
-from oops.services.git import commit, get_local_repo, is_pull_request
+from oops.services.git import commit, is_pull_request, require_repository, require_submodules
 from oops.utils.render import print_warning
 
 
@@ -23,12 +23,10 @@ from oops.utils.render import print_warning
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")
 @click.argument("names", nargs=-1, required=False)
 def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | None" = None):
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
+    require_submodules(repo)
     changes = []
     files = []
-
-    if not repo.submodules:
-        raise click.UsageError("No .gitmodules found.")
 
     for submodule in repo.submodules:
         if names and submodule.name not in names:

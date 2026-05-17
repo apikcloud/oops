@@ -16,7 +16,7 @@ import shutil
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.services.git import get_local_repo
+from oops.services.git import require_repository, require_submodules
 from oops.utils.render import print_error
 
 
@@ -24,11 +24,8 @@ from oops.utils.render import print_error
 @click.option("--reset", is_flag=True, help="Do a hard reset before")
 def main(reset: bool):
 
-    repo, repo_path = get_local_repo()
-
-    if not (repo_path / ".gitmodules").exists():
-        click.echo("No .gitmodules found.")
-        raise click.Abort()
+    repo, repo_path = require_repository()
+    require_submodules(repo)
 
     if reset:
         repo.head.reset(index=True, working_tree=True)

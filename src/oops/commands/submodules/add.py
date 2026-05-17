@@ -15,11 +15,12 @@ import click
 from git import GitCommandError
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import AppAbort, EarlyExit, OopsError
 from oops.io.file import create_symlink, desired_path, ensure_parent, find_addon_dirs
-from oops.services.git import commit, get_local_repo, read_gitmodules
+from oops.services.git import commit, read_gitmodules, require_repository
 from oops.utils.helpers import str_to_list
 from oops.utils.net import encode_url, parse_repository_url
-from oops.utils.render import human_readable, print_error, print_success, print_warning, render_table
+from oops.utils.render import human_readable, print_success, print_warning, render_table
 
 
 @click.argument("branch")
@@ -73,7 +74,7 @@ def main(  # noqa: PLR0913
 ) -> None:
     addons_to_link = str_to_list(addons) if addons else []
 
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     # Validate URL and optionally normalise scheme
     try:
@@ -81,8 +82,7 @@ def main(  # noqa: PLR0913
         if config.submodules.force_scheme:
             url = encode_url(url, config.submodules.force_scheme)
     except ValueError as e:
-        print_error(str(e))
-        raise click.exceptions.Exit(1) from e
+        raise OopsError(str(e)) from e
 
     suffix = addons_to_link[0] if addons_to_link and pull_request else None
     sub_path_str = desired_path(url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
@@ -103,20 +103,18 @@ def main(  # noqa: PLR0913
 
     if dry_run:
         print_warning("This is a dry run. No changes will be made.")
-        raise click.Abort()
+        raise EarlyExit()
 
     if not yes and not click.confirm("Apply changes?", default=True):
-        raise click.Abort()
+        raise AppAbort()
 
     # Safety checks before touching anything
     if sub_path.exists():
-        print_error(f"Destination already exists: {sub_path_str}")
-        raise click.exceptions.Exit(1)
+        raise OopsError(f"Destination already exists: {sub_path_str}")
 
     git_modules_path = repo_path / ".git" / "modules" / sub_name
     if git_modules_path.exists():
-        print_error(f"Git module directory already exists: {git_modules_path}")
-        raise click.exceptions.Exit(1)
+        raise OopsError(f"Git module directory already exists: {git_modules_path}")
 
     ensure_parent(sub_path)
 
@@ -125,8 +123,7 @@ def main(  # noqa: PLR0913
     try:
         repo.create_submodule(name=sub_name, path=sub_path_str, url=url, branch=branch)
     except GitCommandError as exc:
-        print_error(f"Failed to add submodule: {exc}")
-        raise click.exceptions.Exit(1) from exc
+        raise OopsError(f"Failed to add submodule: {exc}") from exc
 
     # Pin branch in .gitmodules
     gitmodules = read_gitmodules(repo)
@@ -157,8 +154,6 @@ def main(  # noqa: PLR0913
                 print_warning(f"Addons not found: {human_readable(missing)}")
 
     staged_files += [".gitmodules"]
-
-    print(staged_files)
 
     if not no_commit:
         commit(

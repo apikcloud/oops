@@ -15,9 +15,10 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.exceptions import EarlyExit
 from oops.core.messages import commit_messages
 from oops.io.file import list_symlinks, relpath
-from oops.services.git import get_local_repo
+from oops.services.git import require_repository, require_submodules
 from oops.utils.compat import Optional
 from oops.utils.render import print_success, print_warning
 
@@ -36,11 +37,8 @@ from oops.utils.render import print_success, print_warning
 @click.argument("names", nargs=-1, required=False)
 def main(no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = None):  # noqa: C901, PLR0912
 
-    repo, repo_path = get_local_repo()
-
-    if not repo.submodules:
-        click.echo("No .gitmodules found.")
-        raise click.Abort()
+    repo, repo_path = require_repository()
+    require_submodules(repo)
 
     symlinks = list_symlinks(repo_path)
     unused = []
@@ -61,7 +59,7 @@ def main(no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = None): 
 
     if not unused:
         print_success("No unused submodules detected.")
-        raise click.exceptions.Exit(0)
+        raise EarlyExit()
 
     if not no_commit:
         repo.index.commit(commit_messages.submodules_prune, skip_hooks=True)

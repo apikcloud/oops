@@ -15,11 +15,12 @@ import os
 from pathlib import Path
 
 import click
-from git import Repo
 from oops.commands.base import command
 from oops.core.config import config
+from oops.core.exceptions import NotFoundError
 from oops.core.messages import commit_messages
 from oops.io.file import desired_path, rewrite_symlink
+from oops.services.git import require_repository, require_submodules
 from oops.utils.compat import Optional
 from oops.utils.net import encode_url
 
@@ -38,24 +39,20 @@ def main(  # noqa: C901, PLR0912
     branch: "Optional[str]" = None,
 ):
 
-    repo = Repo()
+    repo, _ = require_repository()
+    submodules = require_submodules(repo)
 
-    if not repo.submodules:
-        raise click.UsageError("No .gitmodules found.")
-
-    not_found = [name for name in names if name not in repo.submodules]
-    if not_found:
-        click.echo(f"✕ Submodule(s) not found: {', '.join(not_found)}")
-        return 1
+    if names:
+        not_found = [name for name in names if name not in submodules]
+        if not_found:
+            raise NotFoundError(f"Submodule(s) not found: {', '.join(not_found)}")
 
     new_url = encode_url(url, config.submodules.force_scheme)
     old_paths = []
 
     if not dry_run:
         new_name = desired_path(new_url, pull_request=False)
-        new_path = desired_path(
-            new_url, pull_request=False, prefix=str(config.submodules.current_path)
-        )
+        new_path = desired_path(new_url, pull_request=False, prefix=str(config.submodules.current_path))
 
         if new_name not in repo.submodules:
             click.echo(f"Adding new submodule '{new_url}' (branch={branch})")
@@ -112,9 +109,7 @@ def main(  # noqa: C901, PLR0912
         click.echo("Committing submodule replacements...")
         repo.index.commit(
             commit_messages.submodules_replace.format(
-                description="\n".join(
-                    f"- replaced '{name}' with '{new_name}' (branch={branch})" for name in names
-                ),
+                description="\n".join(f"- replaced '{name}' with '{new_name}' (branch={branch})" for name in names),
             ),
             skip_hooks=True,
         )
