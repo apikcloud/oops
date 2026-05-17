@@ -3,11 +3,11 @@
 #
 # File: models.py — oops/core/models.py
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from oops.utils.compat import Optional
+from oops.utils.compat import Generic, Optional, T
 from oops.utils.helpers import date_from_string
 from oops.utils.render import format_datetime
 
@@ -139,21 +139,36 @@ class WorkflowRunInfo:
 
 @dataclass
 class AddonInfo:
+    # Manifest + filesystem fields — always populated by from_path()
     path: str
     rel_path: str
     technical_name: str
     symlink: bool
-    root: bool  # is it in the root of the repo?
+    root: bool
     version: str
     author: str
     maintainers: "list[str]"
     summary: str
     external_dependencies: "dict[str, list[str]]"
     installable: bool
+    # Git-state fields — None until enrich_addon() is called
+    submodule: Optional[str] = None  # submodule name (e.g. "OCA/server-tools"), "" if not in one
+    branch: Optional[str] = None  # upstream branch tracked by the submodule
+    pull_request: Optional[bool] = None
+    classification: Optional[str] = None  # "custom" | "oca" | "third-party"
 
     @property
     def symlinked(self) -> bool:
         return self.symlink and self.root
+
+    @property
+    def location(self) -> str:
+        if self.symlinked:
+            return "active"
+        elif self.root:
+            return "local"
+        else:
+            return "inactive"
 
     @classmethod
     def from_path(cls, path: Path, root_path: Path, manifest: dict) -> "AddonInfo":
@@ -161,12 +176,8 @@ class AddonInfo:
         root = path.parent == root_path
 
         if symlink:
-            # resolve the symlink to get real path
             path = path.resolve()
-            rel_path = str(path.relative_to(root_path).parent)
-        else:
-            rel_path = str(path.relative_to(root_path).parent)
-
+        rel_path = str(path.relative_to(root_path).parent)
         rel_path = "" if rel_path == "." else rel_path
 
         return cls(

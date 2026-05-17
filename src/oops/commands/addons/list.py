@@ -12,13 +12,25 @@ PR flag, version, and author. Output can be formatted as text, JSON, or CSV.
 import csv
 import io
 import json
+from collections import Counter
 
 import click
 from oops.commands.base import command
-from oops.io.file import find_addons
-from oops.services.git import get_local_repo, is_pull_request
-from oops.utils.net import encode_url
-from oops.utils.render import human_readable, render_boolean, render_table
+from oops.core.models import AddonInfo
+from oops.io.file import enrich_addon, find_addons
+from oops.services.git import list_submodules, require_repository
+from oops.utils.render import (
+    colorize,
+    get_console,
+    human_readable,
+    make_table,
+    metrics_grid,
+    metrics_panel,
+    render_boolean,
+    rule,
+)
+
+console = get_console()
 
 
 @command(name="list", help=__doc__)
@@ -54,7 +66,7 @@ from oops.utils.render import human_readable, render_boolean, render_table
 )
 def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_all: bool):
 
-    repo, repo_path = get_local_repo()
+    repo, repo_path = require_repository()
 
     if init:
         for sub in repo.submodules:
@@ -63,33 +75,21 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
                 sub.update(init=True, recursive=False)
 
     # Build submodule lookup: rel_path → metadata
-    subs = {}
-    for sub in repo.submodules:
-        try:
-            canonical_url = encode_url(sub.url, "https", suffix=False)
-        except (ValueError, AttributeError):
-            canonical_url = ""
-        try:
-            branch = sub.branch_name
-        except Exception:
-            branch = ""
-        subs[sub.path] = {
-            "name": sub.name,
-            "branch": branch,
-            "url": canonical_url,
-            "pr": is_pull_request(sub),
-        }
+    subs = list_submodules(repo)
 
     # Filter submodule names if requested
     active_paths = {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
 
-    rows = []
-    seen: set = set()
+    # Deduplicate by resolved path, preferring root-level symlinks over real files.
+    # os.walk visits both when --all is used, and dotfile dirs (.third-party) sort
+    # first, so without this the real file wins and symlinks are miscounted.
+    seen: dict[str, AddonInfo] = {}
     for addon in find_addons(repo_path, shallow=not show_all):
-        if addon.path in seen:
-            continue
-        seen.add(addon.path)
+        if addon.path not in seen or addon.symlinked:
+            seen[addon.path] = addon
 
+    rows = []
+    for addon in seen.values():
         if active_paths is not None and addon.rel_path not in active_paths:
             continue
 
@@ -97,14 +97,18 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
             continue
 
         sub = subs.get(addon.rel_path, {})
+        enrich_addon(addon, sub)
+
         rows.append(
             {
                 "addon": addon.technical_name,
+                "location": addon.location,
                 "symlink": addon.symlink,
-                "submodule": sub.get("name", ""),
-                "upstream": sub.get("branch", ""),
-                "pr": sub.get("pr", False),
+                "submodule": addon.submodule or "",
+                "upstream": addon.branch or "",
+                "pr": addon.pull_request or False,
                 "version": addon.version,
+                "classification": addon.classification,
                 "author": addon.author,
             }
         )
@@ -121,22 +125,67 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
             writer.writerows(rows)
             click.echo(buf.getvalue(), nl=False)
     else:
-        table_rows = [
+        total = len(rows)
+        locations = Counter(row["location"] for row in rows)
+        classifications = Counter(row["classification"] for row in rows)
+
+        p1 = metrics_panel(
+            "Summary",
             [
-                r["addon"],
-                render_boolean(r["symlink"]),
-                human_readable(r["submodule"], width=30),
-                human_readable(r["upstream"]),
-                render_boolean(r["pr"]),
-                r["version"],
-                human_readable(r["author"], width=30),
-            ]
-            for r in rows
-        ]
-        click.echo(
-            render_table(
-                table_rows,
-                headers=["Addon", "S", "Submodule", "Upstream", "PR", "Version", "Author"],
-                index=True,
-            )
+                ["Total", str(total)],
+                ["Local", str(locations["local"])],
+                ["Active", str(locations["active"])],
+                ["Inactive", str(locations["inactive"])],
+            ],
         )
+
+        p2 = metrics_panel(
+            "Classification",
+            [
+                ["Custom", str(classifications["custom"])],
+                ["OCA", str(classifications["oca"])],
+                ["Third-party", str(classifications["third-party"])],
+            ],
+        )
+
+        console.print()
+        console.print(metrics_grid(p1, p2))
+        console.print()
+
+        # rule("Summary")
+
+        # kv_panel("Summary", {"Total": total, "Real": real_addons, "Symlinks": f"[green]●{symlinks}[/]"})
+
+        columns = [
+            ("Addon", "brand.primary", "left"),
+            ("Symlink", "green", "center"),
+            ("Submodule", "dim", "left"),
+            ("Branch", "dim", "center"),
+            ("PR", "green", "center"),
+            ("Version", "brand.primary", "left"),
+            ("Classification", "dim", ""),
+            ("Author", "dim", ""),
+        ]
+
+        t = make_table(
+            title=None,
+            columns=columns,
+            rows=[
+                [
+                    row["addon"],
+                    colorize(render_boolean(row["symlink"]), "green"),
+                    human_readable(row["submodule"]),
+                    human_readable(row["upstream"]),
+                    colorize(render_boolean(row["pr"]), "green"),
+                    row["version"],
+                    human_readable(row["classification"]),
+                    human_readable(row["author"]),
+                ]
+                for row in rows
+            ],
+        )
+        console.print(t)
+        console.print()
+        console.print("[brand.primary]label:[/] valeur")
+
+        rule("Results")

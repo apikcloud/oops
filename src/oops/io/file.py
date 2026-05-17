@@ -24,10 +24,12 @@ import shutil
 from collections.abc import Generator
 from os import PathLike
 from pathlib import Path
+from typing import NamedTuple
 
 import click
 from git.repo import Repo
 from oops.core.config import config
+from oops.core.exceptions import ConfigError
 from oops.core.models import AddonInfo, ImageInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.io.manifest import load_manifest
@@ -551,7 +553,7 @@ def list_symlinks(path: PathLike, broken_only: bool = False) -> list[str]:
     return targets
 
 
-def get_symlink_map(path: str) -> dict:
+def get_symlink_map(path: Path) -> dict:
     """Build a mapping of symlink parent directories to their single target name.
 
     Args:
@@ -563,7 +565,7 @@ def get_symlink_map(path: str) -> dict:
     """
 
     # FIXME: assume there is only one symlink per submodule for now
-    return {str(Path(t).parent): Path(t).name for t in list_symlinks(Path(path))}
+    return {str(Path(t).parent): Path(t).name for t in list_symlinks(path)}
 
 
 def get_symlink_complete_map(path: str) -> dict:
@@ -752,6 +754,49 @@ def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
         if "__manifest__.py" in filenames or "__openerp__.py" in filenames:
             addons.append(Path(dirpath))
     return addons
+
+
+def enrich_addon(addon: AddonInfo, sub: dict) -> None:
+    """Populate git-state and classification fields on an AddonInfo.
+
+    Args:
+        addon: The addon to enrich, mutated in place.
+        sub: Submodule metadata dict for this addon's rel_path (from list_submodules),
+            or an empty dict if the addon is not inside a submodule.
+    """
+    addon.submodule = sub.get("name", "")
+    addon.branch = sub.get("branch", "")
+    addon.pull_request = sub.get("pr", False)
+
+    # Classification priority (first match wins):
+    # 1. Author field contains "(OCA)" — reliable even without a submodule
+    # 2. Author matches the configured project author (config.manifest.author)
+    # 3. Technical name starts with the project addon prefix (config.project.prefix)
+    # 4. Submodule org is "OCA" or matches the configured GitHub owner
+    # 5. Fallback: third-party
+
+    if "(OCA)" in addon.author:
+        addon.classification = "oca"
+        return
+
+    if config.manifest.author and addon.author == config.manifest.author:
+        addon.classification = "custom"
+        return
+
+    if config.project.prefix and addon.technical_name.startswith(config.project.prefix):
+        addon.classification = "custom"
+        return
+
+    if addon.submodule:
+        owner = addon.submodule.split("/")[0]
+        if owner == "OCA":
+            addon.classification = "oca"
+            return
+        if config.github.owner and owner == config.github.owner:
+            addon.classification = "custom"
+            return
+
+    addon.classification = "third-party"
 
 
 def get_excluded_addon_names(repo_path: Path) -> list:
