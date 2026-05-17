@@ -9,17 +9,21 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
-## [Unreleased]
+## [0.16.0] - 2026-05-17
 
-### New Features
+Rich terminal output, Odoo Themes support, and automatic file formatting.
 
-- `oops odoo download` and `oops odoo update` now manage three repositories — Community, Enterprise, and Themes (`odoo/design-themes`) — by default. New flags `--community/--no-community` and `--themes/--no-themes` mirror the existing `--enterprise/--no-enterprise` for targeted operations (e.g. `--no-community --no-enterprise` to update only themes).
-- `OdooConfig.themes_url` defaults to `git@github.com:odoo/design-themes.git`; override via `odoo.themes_url` in `~/.oops.yaml`.
-- `oops odoo show` migrated to Rich output: a summary panel (Versions / Community / Enterprise / Themes counts) is shown above the table, which now includes a Themes column.
+### ✨ What's new
 
-### Bug Fixes
+- **Rich terminal output**: `oops addons analyze`, `oops addons refactor`, and `oops odoo show` now display enhanced, formatted output — cleaner panels, color-coded tables, and better structure at a glance
+- **Odoo Themes repository**: `oops odoo download` and `oops odoo update` now manage the Themes repository (`odoo/design-themes`) by default, alongside Community and Enterprise. Use `--themes/--no-themes` and `--community/--no-community` for targeted operations
+- **`oops odoo show`**: new summary panel (Versions / Community / Enterprise / Themes) and a Themes column in the table
+- **Commit-time auto-formatting**: Python and XML files are automatically formatted when committed through `oops`
 
-- `oops odoo download --no-enterprise` with a community clone failure now correctly exits 1. Previously, the error accumulator check was placed after the enterprise block, so an early return on `--no-enterprise` silently bypassed it.
+### 🐛 Fixes
+
+- `oops odoo download --no-enterprise`: a clone failure in the Community repository now correctly reports an error and exits
+- Documentation site display fix
 
 ---
 

@@ -10,6 +10,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-05-17
+
+### Added
+
+- `oops odoo download` / `oops odoo update`: manage the Themes repository (`odoo/design-themes`) alongside Community and Enterprise; new `--themes/--no-themes` and `--community/--no-community` flags; `OdooConfig.themes_url` defaults to `git@github.com:odoo/design-themes.git`
+- Rich library integration: terminal output for `addons analyze`, `addons refactor`, and `odoo show` migrated to Rich renderer
+- Commit-time auto-formatting for Python and XML files
+
+### Changed
+
+- `oops odoo show`: new summary panel (Versions / Community / Enterprise / Themes counts) and Themes column in the table
+- `services/git`: `get_local_repo()` renamed to `require_repository()`, guards and caching added
+- `AddonInfo` model refactored: pure model + `enrich_addon()` call-site pattern; `active` / `inactive` location values
+- Exception termination patterns unified to canonical vocabulary across all commands
+- `services/project` extracted as a dedicated service module with `require_project` guard
+- KB scanner, store, and build command restructured
+- Submodule and odoo subcommands restructured to canonical patterns
+
+### Fixed
+
+- `oops odoo download --no-enterprise`: community clone failure now correctly exits 1
+- Documentation site CSS styling repaired
+
 ## [0.15.1] - 2026-05-13
 
 ### Fixed
