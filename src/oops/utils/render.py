@@ -320,6 +320,17 @@ def conclude(ok: bool, message: str):
     console.print(Panel(f"{icon}  {message}", style=style, box=box.HORIZONTALS))
 
 
+def make_choices(items: set[str], preselected: set[str]) -> list[questionary.Choice]:
+    return [questionary.Choice(item, checked=(item in preselected)) for item in sorted(items)]
+
+
+def prompt_choices(items: set[str], preselected: set[str]):
+    return questionary.checkbox(
+        "Modules :",
+        choices=make_choices(items, preselected),
+    ).ask()
+
+
 def prompt_select(message: str, choices: list[str]) -> str:
     return questionary.select(message, choices=choices).ask()
 
