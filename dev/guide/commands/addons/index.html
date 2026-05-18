@@ -735,6 +735,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-addons-manage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops addons manage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-addons-materialize" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2788,6 +2799,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#oops-addons-manage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops addons manage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-addons-materialize" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2932,6 +2954,14 @@
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><span title="oops.commands.addons.manage">manage</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Interactively link or unlink addons from submodules at the repo root.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><span title="oops.commands.addons.materialize">materialize</span></code></td>
             <td>
               <div class="doc-md-description">
@@ -3037,6 +3067,7 @@ no git operations, and no manifest edits.</p>
       "manifest": { ... },
       "models": [ ... ],
       "structure": { ... },
+      "loc": {"python": 0, "xml": 0, "javascript": 0, "docs": 0, "total": 0, "pct": 0.0},
       "not_analysed": [ ... ],
       "warnings": ["module-level warnings"]
     }
@@ -3057,12 +3088,6 @@ no git operations, and no manifest edits.</p>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>--kb</code></td>
-<td>file</td>
-<td>Use an explicit KB file instead of the project KB.</td>
-<td>None</td>
-</tr>
 <tr>
 <td><code>--refresh</code></td>
 <td>boolean</td>
@@ -3345,6 +3370,44 @@ PR flag, version, and author. Output can be formatted as text, JSON, or CSV.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>-n<span class="w"> </span>apikcloud/apik-addons
 </span></code></pre></div>
 <hr>
+<h3 id="oops-addons-manage">oops addons manage<a class="headerlink" href="#oops-addons-manage" title="Permanent link">¶</a></h3>
+<p>Interactively link or unlink addons from submodules at the repo root.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops addons manage [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--no-commit</code></td>
+<td>boolean</td>
+<td>If set, symlink changes will not be committed.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>Open the interactive picker to link or unlink addons:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage
+</span></code></pre></div>
+<p>Apply changes without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage<span class="w"> </span>--no-commit
+</span></code></pre></div>
+<hr>
 <h3 id="oops-addons-materialize">oops addons materialize<a class="headerlink" href="#oops-addons-materialize" title="Permanent link">¶</a></h3>
 <p>Replace addon symlinks with a real copy of the addon directory.</p>
 <p>Useful when you need to modify a third-party addon locally. The symlink is
@@ -3353,7 +3416,7 @@ processed; real directories are skipped.</p>
 <p>By default all symlinks found at the repository root are processed.
 Use --include to restrict to a subset, or --exclude to skip specific addons.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops addons materialize [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops addons materialize [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3400,19 +3463,19 @@ Use --include to restrict to a subset, or --exclude to skip specific addons.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Preview all symlinks that would be materialized:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Materialize all symlinks at the repository root:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize
 </span></code></pre></div>
 <p>Materialize only specific addons:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--include<span class="w"> </span>my_addon,other_addon
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--include<span class="w"> </span>my_addon,other_addon
 </span></code></pre></div>
 <p>Materialize all symlinks except specific ones:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--exclude<span class="w"> </span>legacy_addon
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--exclude<span class="w"> </span>legacy_addon
 </span></code></pre></div>
 <p>Materialize without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-refactor">oops addons refactor<a class="headerlink" href="#oops-addons-refactor" title="Permanent link">¶</a></h3>
@@ -3443,7 +3506,7 @@ per module is produced. Use --no-branch to stay on the current branch and
 <li>It never touches non-model Python files, XML, CSV, or <strong>manifest</strong>.py.</li>
 </ul>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops addons refactor [OPTIONS] MODULE_PATHS...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops addons refactor [OPTIONS] MODULE_PATHS...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3507,22 +3570,22 @@ notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Rewrite a single module on a dedicated <code>refactor/doc-&lt;module&gt;</code> branch with one commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module
 </span></code></pre></div>
 <p>Rewrite several modules in one run (one commit per module on <code>refactor/doc-multi</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>other_module
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>other_module
 </span></code></pre></div>
 <p>Preview the changes without writing any file:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Stay on the current branch and skip the commit (edits are staged):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--no-branch<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--no-branch<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <p>Force a project KB rebuild before running:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--refresh
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--refresh
 </span></code></pre></div>
 <p>Use an external KB database (skips the project-KB freshness check and <code>--refresh</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--kb<span class="w"> </span>/path/to/project_kb.db
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--kb<span class="w"> </span>/path/to/project_kb.db
 </span></code></pre></div>
 
 
@@ -3546,7 +3609,7 @@ notice between releases. The same warning is printed at runtime.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="May 8, 2026 19:11:47 UTC"><span class="timeago" datetime="2026-05-08T19:11:47+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="May 8, 2026 19:11:47 UTC">2026-05-08</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="May 18, 2026 14:03:24 UTC"><span class="timeago" datetime="2026-05-18T14:03:24+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="May 18, 2026 14:03:24 UTC">2026-05-18</span>
   </span>
 
     
