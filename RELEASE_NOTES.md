@@ -9,6 +9,19 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.17.0] - 2026-05-18
+
+New commands for addon management and code statistics.
+
+### ✨ What's new
+
+- **`oops addons manage`**: interactively link and unlink addon symlinks — manage which addons are visible to Odoo without touching the filesystem by hand
+- **`oops addons list`**: new LOC (lines of code) columns show module size at a glance, with a progress spinner for large projects
+- **`oops addons analyze`**: structured summary of an Odoo module — instantly see what a module contains
+- New per-addon LOC statistics powering the updated list and analyze features
+
+---
+
 ## [0.16.0] - 2026-05-17
 
 Rich terminal output, Odoo Themes support, and automatic file formatting.
