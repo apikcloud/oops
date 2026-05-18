@@ -19,9 +19,11 @@ from oops.commands.base import command
 from oops.core.models import AddonInfo
 from oops.io.file import enrich_addon, find_addons
 from oops.services.git import list_submodules, require_repository
+from oops.services.loc import get_addon_loc
 from oops.utils.render import (
     colorize,
     get_console,
+    get_error_console,
     human_readable,
     make_table,
     metrics_grid,
@@ -29,6 +31,8 @@ from oops.utils.render import (
     render_boolean,
     rule,
 )
+from rich.live import Live
+from rich.spinner import Spinner
 
 console = get_console()
 
@@ -68,52 +72,69 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
 
     repo, repo_path = require_repository()
 
-    if init:
-        for sub in repo.submodules:
-            if not (repo_path / sub.path).exists():
-                click.echo(f"Initialising submodule: {sub.name}")
-                sub.update(init=True, recursive=False)
+    # using Live for long-time processing
+    with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10, console=get_error_console()) as live:
+        if init:
+            for sub in repo.submodules:
+                if not (repo_path / sub.path).exists():
+                    live.update(Spinner("dots", text=f"Initialising submodule: {sub.name}"))
+                    sub.update(init=True, recursive=False)
 
-    # Build submodule lookup: rel_path → metadata
-    subs = list_submodules(repo)
+        # Build submodule lookup: rel_path → metadata
+        subs = list_submodules(repo)
 
-    # Filter submodule names if requested
-    active_paths = {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
+        # Filter submodule names if requested
+        active_paths = {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
 
-    # Deduplicate by resolved path, preferring root-level symlinks over real files.
-    # os.walk visits both when --all is used, and dotfile dirs (.third-party) sort
-    # first, so without this the real file wins and symlinks are miscounted.
-    seen: dict[str, AddonInfo] = {}
-    for addon in find_addons(repo_path, shallow=not show_all):
-        if addon.path not in seen or addon.symlinked:
-            seen[addon.path] = addon
+        # Deduplicate by resolved path, preferring root-level symlinks over real files.
+        # os.walk visits both when --all is used, and dotfile dirs (.third-party) sort
+        # first, so without this the real file wins and symlinks are miscounted.
+        seen: dict[str, AddonInfo] = {}
+        for addon in find_addons(repo_path, shallow=not show_all):
+            if addon.path not in seen or addon.symlinked:
+                seen[addon.path] = addon
 
-    rows = []
-    for addon in seen.values():
-        if active_paths is not None and addon.rel_path not in active_paths:
-            continue
+        rows = []
+        for addon in seen.values():
+            if active_paths is not None and addon.rel_path not in active_paths:
+                continue
 
-        if symlinks_only and not addon.symlink:
-            continue
+            if symlinks_only and not addon.symlink:
+                continue
 
-        sub = subs.get(addon.rel_path, {})
-        enrich_addon(addon, sub)
+            live.update(Spinner("dots", text=f"Enrichment of {addon.technical_name}"))
 
-        rows.append(
-            {
-                "addon": addon.technical_name,
-                "location": addon.location,
-                "symlink": addon.symlink,
-                "submodule": addon.submodule or "",
-                "upstream": addon.branch or "",
-                "pr": addon.pull_request or False,
-                "version": addon.version,
-                "classification": addon.classification,
-                "author": addon.author,
-            }
-        )
+            sub = subs.get(addon.rel_path, {})
+            enrich_addon(addon, sub)
 
-    rows.sort(key=lambda r: r["addon"])
+            loc = get_addon_loc(addon.path)
+            rows.append(
+                {
+                    "addon": addon.technical_name,
+                    "location": addon.location,
+                    "symlink": addon.symlink,
+                    "submodule": addon.submodule or "",
+                    "upstream": addon.branch or "",
+                    "pr": addon.pull_request or False,
+                    "version": addon.version,
+                    "classification": addon.classification,
+                    "author": addon.author,
+                    "loc_python": loc.python,
+                    "loc_xml": loc.xml,
+                    "loc_js": loc.javascript,
+                    "loc_docs": loc.docs,
+                    "loc_total": loc.total,
+                    "loc_pct": 0.0,
+                }
+            )
+
+        live.update(Spinner("dots", text="Finalizing..."))
+        rows.sort(key=lambda r: r["addon"])
+
+        total_loc = sum(r["loc_total"] for r in rows)
+        if total_loc:
+            for r in rows:
+                r["loc_pct"] = round(100.0 * r["loc_total"] / total_loc, 1)
 
     if format == "json":
         click.echo(json.dumps(rows, indent=2, default=str))
@@ -148,8 +169,24 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
             ],
         )
 
+        loc_sum_py = sum(r["loc_python"] for r in rows)
+        loc_sum_xml = sum(r["loc_xml"] for r in rows)
+        loc_sum_js = sum(r["loc_js"] for r in rows)
+        loc_sum_docs = sum(r["loc_docs"] for r in rows)
+
+        p3 = metrics_panel(
+            "Lines of code",
+            [
+                ["Python", str(loc_sum_py)],
+                ["XML", str(loc_sum_xml)],
+                ["JavaScript", str(loc_sum_js)],
+                ["Docs", str(loc_sum_docs)],
+                ["Total", str(total_loc)],
+            ],
+        )
+
         console.print()
-        console.print(metrics_grid(p1, p2))
+        console.print(metrics_grid(p1, p2, p3))
         console.print()
 
         # rule("Summary")
@@ -165,6 +202,11 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
             ("Version", "brand.primary", "left"),
             ("Classification", "dim", ""),
             ("Author", "dim", ""),
+            ("Py", "dim", "right"),
+            ("XML", "dim", "right"),
+            ("JS", "dim", "right"),
+            ("Docs", "dim", "right"),
+            ("LOC", "brand.primary", "right"),
         ]
 
         t = make_table(
@@ -180,12 +222,16 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
                     row["version"],
                     human_readable(row["classification"]),
                     human_readable(row["author"]),
+                    str(row["loc_python"]) if row["loc_python"] else "",
+                    str(row["loc_xml"]) if row["loc_xml"] else "",
+                    str(row["loc_js"]) if row["loc_js"] else "",
+                    str(row["loc_docs"]) if row["loc_docs"] else "",
+                    str(row["loc_total"]) if row["loc_total"] else "",
                 ]
                 for row in rows
             ],
         )
         console.print(t)
         console.print()
-        console.print("[brand.primary]label:[/] valeur")
 
         rule("Results")
