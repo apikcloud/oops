@@ -3,13 +3,19 @@
 #
 # File: models.py — oops/core/models.py
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from oops.utils.compat import Generic, Optional, T
 from oops.utils.helpers import date_from_string
 from oops.utils.render import format_datetime
+
+if TYPE_CHECKING:
+    from oops.services.loc import LocStats
 
 UTC = timezone.utc
 
@@ -230,7 +236,8 @@ class ModuleSummary:
     manifest: dict
     classes: "list[ClassSummary]"
     structure: StructureSummary
-    warnings: "list[str]" = field(default_factory=list)
+    loc: "Optional[LocStats]" = None
+    loc_pct: float = 0.0
 
 
 @dataclass

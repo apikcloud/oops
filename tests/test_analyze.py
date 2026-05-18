@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import textwrap
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -17,6 +18,7 @@ from click.testing import CliRunner
 from oops.commands.addons.analyze import main
 from oops.core.models import Result
 from oops.kb.store import write_project_kb
+from oops.services.loc import LocStats
 
 # ---------------------------------------------------------------------------
 # KB and module helpers (duplicated from test_refactor.py to avoid cross-file import)
@@ -118,6 +120,23 @@ INHERIT_MODEL_SOURCE = textwrap.dedent("""\
 
 
 # ---------------------------------------------------------------------------
+# Helper: mock the infrastructure required by the refactored analyze command
+# ---------------------------------------------------------------------------
+
+
+@contextmanager
+def _mock_analyze(tmp_path: Path, db_path: Path):
+    """Patch require_repository / require_project / KB detection for unit tests."""
+    with patch("oops.commands.addons.analyze.require_repository", return_value=(MagicMock(), tmp_path)), \
+            patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17.0)), \
+            patch("oops.commands.addons.analyze.read_installed_modules", return_value=None), \
+            patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(False, "")), \
+            patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+            patch("oops.commands.addons.analyze.Live", MagicMock()):
+        yield
+
+
+# ---------------------------------------------------------------------------
 # TestAnalyzeCLI
 # ---------------------------------------------------------------------------
 
@@ -136,7 +155,7 @@ class TestAnalyzeCLI:
         result = CliRunner().invoke(main, [str(tmp_path / "nonexistent")])  # noqa: ARG002
         assert result.exit_code == 2
 
-    def test_explicit_kb(self, tmp_path: Path) -> None:
+    def test_basic_analysis_works(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
         _make_kb(db_path)
         module_path = _make_module_full(
@@ -145,7 +164,8 @@ class TestAnalyzeCLI:
             manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
             models={"my_model.py": NEW_MODEL_SOURCE},
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "my_module" in result.output
 
@@ -165,7 +185,8 @@ class TestAnalyzeText:
             manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
             models={"my_model.py": NEW_MODEL_SOURCE},
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "my.test.model" in result.output
         assert "new" in result.output
@@ -184,7 +205,8 @@ class TestAnalyzeText:
             manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
             models={"res_partner_ext.py": INHERIT_MODEL_SOURCE},
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "res.partner" in result.output
         assert "inherit" in result.output
@@ -199,7 +221,8 @@ class TestAnalyzeText:
             manifest=None,
             models={"my_model.py": NEW_MODEL_SOURCE},
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "<unknown>" in result.output
 
@@ -212,7 +235,8 @@ class TestAnalyzeText:
             manifest={"name": "No Models", "depends": ["base"]},
             models=None,
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "Models" not in result.output.split("Depends")[1]
 
@@ -246,7 +270,8 @@ class TestAnalyzeText:
         (models_dir / "a.py").write_text(a_source, encoding="utf-8")
         (models_dir / "b.py").write_text(b_source, encoding="utf-8")
 
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "model.a" in result.output
         assert "model.b" not in result.output
@@ -265,7 +290,8 @@ class TestAnalyzeText:
             ],
         }
         module_path = _make_module_full(tmp_path, "data_module", manifest=manifest)
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "Data" in result.output
         assert "views" in result.output
@@ -290,7 +316,8 @@ class TestAnalyzeText:
             },
         }
         module_path = _make_module_full(tmp_path, "static_module", manifest=manifest)
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "Static" in result.output
         assert "js" in result.output
@@ -312,16 +339,15 @@ class TestAnalyzeJson:
             manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
             models={"my_model.py": NEW_MODEL_SOURCE},
         )
-        result = CliRunner().invoke(
-            main, ["--kb", str(db_path), "--format", "json", str(module_path)]
-        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "warnings" in data
         assert "modules" in data
         assert isinstance(data["modules"], list)
         module = data["modules"][0]
-        for key in ("module", "manifest", "models", "structure", "not_analysed", "warnings"):
+        for key in ("module", "manifest", "models", "structure", "loc", "not_analysed", "warnings"):
             assert key in module, f"Missing key: {key}"
 
     def test_json_multi_module_is_list(self, tmp_path: Path) -> None:
@@ -337,9 +363,8 @@ class TestAnalyzeJson:
             "mod2",
             manifest={"name": "Mod2", "depends": ["base"]},
         )
-        result = CliRunner().invoke(
-            main, ["--kb", str(db_path), "--format", "json", str(m1), str(m2)]
-        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(m1), str(m2)])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "modules" in data
@@ -350,15 +375,33 @@ class TestAnalyzeJson:
         db_path = tmp_path / "kb.db"
         _make_kb(db_path)
         module_path = _make_module_full(tmp_path, "no_mf", manifest=None)
-        result = CliRunner().invoke(
-            main, ["--kb", str(db_path), "--format", "json", str(module_path)]
-        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
-        # stdout must be valid JSON (no Warning: lines before it)
         data = json.loads(result.output)
         assert len(data["modules"][0]["warnings"]) > 0
-        # No "Warning:" text mixed into the JSON stream
         assert "Warning:" not in result.output.split("{")[0]
+
+    def test_json_includes_loc_block(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        fake_loc = LocStats(python=120, xml=10, javascript=0, docs=5)
+        fake_addon = MagicMock()
+        fake_addon.path = str(module_path)
+        with _mock_analyze(tmp_path, db_path), \
+                patch("oops.commands.addons.analyze.get_addon_loc", return_value=fake_loc), \
+                patch("oops.commands.addons.analyze.find_addons", return_value=[fake_addon]):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        loc = data["modules"][0]["loc"]
+        assert loc == {"python": 120, "xml": 10, "javascript": 0, "docs": 5, "total": 135, "pct": 100.0}
 
     def test_json_default_serialiser_handles_paths(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -368,12 +411,9 @@ class TestAnalyzeJson:
             "my_module",
             manifest={"name": "My Module", "depends": ["base"]},
         )
-        result = CliRunner().invoke(
-            main, ["--kb", str(db_path), "--format", "json", str(module_path)]
-        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
-        # If Path objects slipped through, json.dumps would have raised without default=str.
-        # The fact that we get valid JSON proves the serializer is working.
         json.loads(result.output)
 
 
@@ -392,26 +432,20 @@ class TestAnalyzeJsonWarnings:
             "my_module",
             manifest={"name": "My Module", "depends": ["base"]},
         )
-        # Patch compute_root_drift to return a missing module so a pre-loop warning fires.
         with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
-                patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17.0)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
                 patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
-                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb:
-            repo_path = tmp_path
-            mock_repo.return_value = (None, repo_path)
-            mock_ver.return_value = type("V", (), {"major_version": 17})()
+                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
+                patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+                patch("oops.commands.addons.analyze.Live", MagicMock()):
+            mock_repo.return_value = (MagicMock(), tmp_path)
             mock_info.return_value = type("I", (), {"modules": ["my_module", "ghost_module"]})()
             mock_stale.return_value = (False, "")
             mock_drift.return_value = (["ghost_module"], [])
             mock_gkb.return_value = db_path
-
-            # Point the non-stale code path to our test KB.
-            with patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path):
-                result = CliRunner().invoke(
-                    main, ["--format", "json", str(module_path)]
-                )
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert any("ghost_module" in w for w in data["warnings"])
@@ -435,26 +469,21 @@ class TestAnalyzeJsonWarnings:
             manifest={"name": "My Module", "depends": ["base"]},
         )
         with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
-                patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17.0)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
                 patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
-                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb:
-            mock_repo.return_value = (None, tmp_path)
-            mock_ver.return_value = type("V", (), {"major_version": 17})()
+                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
+                patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+                patch("oops.commands.addons.analyze.Live", MagicMock()):
+            mock_repo.return_value = (MagicMock(), tmp_path)
             mock_info.return_value = type(
                 "I", (), {"modules": ["my_module", "theme_foo", "odoo_mod"]}
             )()
             mock_stale.return_value = (False, "")
             mock_drift.return_value = ([], [])
             mock_gkb.return_value = db_path
-
-            with patch(
-                "oops.commands.addons.analyze.project_kb_path", return_value=db_path
-            ):
-                result = CliRunner().invoke(
-                    main, ["--format", "json", str(module_path)]
-                )
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
 
         assert result.exit_code == 0
         assert mock_drift.call_count == 1
@@ -472,7 +501,8 @@ class TestAnalyzeJsonWarnings:
             manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
             models={"my_model.py": NEW_MODEL_SOURCE},
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(module_path)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "my_module" in result.output
         assert "Done — analysed" in result.output
@@ -503,17 +533,17 @@ class TestAnalyzeRebuild:
         repo_path, module_path = self._make_fake_repo(tmp_path)
         build_called = []
 
-        def fake_build(repo_path, version, modules):  # noqa: ARG001
+        def fake_build(rp, version, modules):  # noqa: ARG001
             build_called.append(True)
-            return Result(data=repo_path / ".oops-cache" / "kb.db")
+            return Result(data=rp / ".oops-cache" / "kb.db")
 
         with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
-                patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
-                patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build):
+                patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
+                patch("oops.commands.addons.analyze.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
-            mock_ver.return_value = MagicMock(major_version=17)
             mock_info.return_value = MagicMock(modules=["my_module"])
             mock_stale.return_value = (True, "test stale reason")
 
@@ -525,17 +555,17 @@ class TestAnalyzeRebuild:
         repo_path, module_path = self._make_fake_repo(tmp_path)
         build_called = []
 
-        def fake_build(repo_path, version, modules):  # noqa: ARG001
+        def fake_build(rp, version, modules):  # noqa: ARG001
             build_called.append(True)
-            return Result(data=repo_path / ".oops-cache" / "kb.db")
+            return Result(data=rp / ".oops-cache" / "kb.db")
 
         with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
-                patch("oops.commands.addons.analyze.parse_odoo_version") as mock_ver, \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
-                patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build):
+                patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
+                patch("oops.commands.addons.analyze.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
-            mock_ver.return_value = MagicMock(major_version=17)
             mock_info.return_value = MagicMock(modules=["my_module"])
             mock_stale.return_value = (False, "")
 
@@ -559,7 +589,8 @@ class TestAnalyzeMultiModule:
         m2 = _make_module_full(
             tmp_path, "mod_beta", manifest={"name": "Beta", "depends": ["base"]}
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(m1), str(m2)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(m1), str(m2)])
         assert result.exit_code == 0
         assert "mod_alpha" in result.output
         assert "mod_beta" in result.output
@@ -571,7 +602,8 @@ class TestAnalyzeMultiModule:
         m2 = _make_module_full(
             tmp_path, "good_mod", manifest={"name": "Good", "depends": ["base"]}
         )
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(m1), str(m2)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(m1), str(m2)])
         assert result.exit_code == 0
         assert "no_manifest_mod" in result.output
         assert "good_mod" in result.output
@@ -593,7 +625,8 @@ class TestAnalyzeSymlinks:
         )
         link = tmp_path / "my_module"
         link.symlink_to(real_module)
-        result = CliRunner().invoke(main, ["--kb", str(db_path), str(link)])
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(link)])
         assert result.exit_code == 0
         assert "my_module" in result.output
 
@@ -613,7 +646,6 @@ def test_analyze_exits_cleanly_both_formats(tmp_path: Path, fmt: str) -> None:
         manifest={"name": "My Module", "depends": ["base"]},
         models={"my_model.py": NEW_MODEL_SOURCE},
     )
-    result = CliRunner().invoke(
-        main, ["--kb", str(db_path), "--format", fmt, str(module_path)]
-    )
+    with _mock_analyze(tmp_path, db_path):
+        result = CliRunner().invoke(main, ["--format", fmt, str(module_path)])
     assert result.exit_code == 0

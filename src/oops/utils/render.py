@@ -230,6 +230,10 @@ def rule(title: str):
     console.rule(f"[brand.primary bold]{title}[/]", style="dim")
 
 
+def counter_rule(title: str, value: Any) -> None:
+    return rule(f"{title} ({value})")
+
+
 def warning_section(messages: list[str]) -> None:
     if not messages:
         return
@@ -342,7 +346,9 @@ if TYPE_CHECKING:
     from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
 
 
-def render_text(summary: ModuleSummary) -> None:
+def render_text(result: "Result[ModuleSummary]") -> None:
+    assert result.data is not None
+    summary = result.data
     console = get_console()
     m = summary.manifest
     name = m.get("name", "<unknown>")
@@ -382,8 +388,23 @@ def render_text(summary: ModuleSummary) -> None:
     p_manifest = metrics_panel("Manifest", manifest_values)
     p_stats = metrics_panel("Stats", stats_values)
 
+    panels = [p_manifest, p_stats]
+    if summary.loc and summary.loc.total:
+        lc = summary.loc
+        loc_rows = [
+            ["Python", str(lc.python)],
+            ["XML", str(lc.xml)],
+            ["JavaScript", str(lc.javascript)],
+            ["Docs", str(lc.docs)],
+            ["Total", str(lc.total)],
+        ]
+        if summary.loc_pct:
+            loc_rows.append(["% of total", f"{summary.loc_pct}%"])
+        p_loc = metrics_panel("Lines of code", loc_rows)
+        panels.append(p_loc)
+
     console.print()
-    console.print(metrics_grid(p_manifest, p_stats))
+    console.print(metrics_grid(*panels))
     console.print()
 
     depends = m.get("depends", [])
@@ -391,16 +412,17 @@ def render_text(summary: ModuleSummary) -> None:
     console.print()
 
     if summary.classes:
-        rule("Models")
+        counter_rule("Models", len(summary.classes))
         _render_model_table(summary.classes)
         all_overrides = [d for c in summary.classes for d in c.override_details]
         if all_overrides:
+            counter_rule("Overrides", len(all_overrides))
             _render_overrides_table(all_overrides)
 
     _render_structure_table(summary.structure)
 
-    if summary.warnings:
-        warning_section(summary.warnings)
+    if result.warnings:
+        warning_section(result.warnings)
 
 
 def _render_model_table(classes: list[ClassSummary]) -> None:
@@ -432,7 +454,7 @@ def _render_overrides_table(overrides: list[dict[str, str]]) -> None:
         ("Origin", "dim", "left"),
     ]
     rows = [[ov["model"], ov["method"], ov["origin_module"]] for ov in overrides]
-    console.print(make_table(title="Overrides", columns=columns, rows=rows))
+    console.print(make_table(title=None, columns=columns, rows=rows))
     console.print()
 
 
@@ -472,3 +494,84 @@ def _render_structure_table(s: StructureSummary) -> None:
     ]
     console.print(make_table(title=None, columns=columns, rows=rows))
     console.print()
+
+
+def render_json(result: "Result[ModuleSummary]") -> dict:
+    assert result.data is not None
+    summary = result.data
+    not_analysed: list[str] = []
+    s = summary.structure
+    if s.data:
+        not_analysed.append("data")
+    if s.demo:
+        not_analysed.append("demo")
+    if s.controllers_py:
+        not_analysed.append("controllers/")
+    if s.wizard_py:
+        not_analysed.append("wizard/")
+    if s.report_py:
+        not_analysed.append("report/")
+    if s.static_by_ext:
+        not_analysed.append("static/")
+
+    loc = summary.loc
+    loc_block = (
+        {
+            "python": loc.python,
+            "xml": loc.xml,
+            "javascript": loc.javascript,
+            "docs": loc.docs,
+            "total": loc.total,
+            "pct": summary.loc_pct,
+        }
+        if loc is not None
+        else {"python": 0, "xml": 0, "javascript": 0, "docs": 0, "total": 0, "pct": 0.0}
+    )
+
+    return {
+        "module": summary.module_name,
+        "manifest": {
+            "name": summary.manifest.get("name", "<unknown>"),
+            "version": summary.manifest.get("version", ""),
+            "author": summary.manifest.get("author", ""),
+            "license": summary.manifest.get("license", ""),
+            "category": summary.manifest.get("category", ""),
+            "installable": summary.manifest.get("installable", True),
+            "depends": summary.manifest.get("depends", []),
+            "summary": summary.manifest.get("summary", ""),
+        },
+        "models": [
+            {
+                "class_name": c.class_name,
+                "model_name": c.model_name,
+                "is_new_model": c.is_new_model,
+                "inherit": c.inherit,
+                "fields": {
+                    "total": c.fields_total,
+                    "base": c.fields_base,
+                    "new": c.fields_new,
+                    "inherited": c.fields_inherited,
+                    "by_type": c.fields_by_type,
+                },
+                "methods": {
+                    "total": c.methods_total,
+                    "by_section": c.methods_by_section,
+                    "overrides": c.overrides,
+                    "override_details": c.override_details,
+                    "missing_docstrings": c.missing_docstrings,
+                },
+            }
+            for c in summary.classes
+        ],
+        "structure": {
+            "data": s.data,
+            "demo": s.demo,
+            "controllers_py": s.controllers_py,
+            "wizard_py": s.wizard_py,
+            "report_py": s.report_py,
+            "static_by_ext": s.static_by_ext,
+        },
+        "loc": loc_block,
+        "not_analysed": not_analysed,
+        "warnings": result.warnings,
+    }

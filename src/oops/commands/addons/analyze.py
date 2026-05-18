@@ -26,6 +26,7 @@ JSON output shape (--format json)::
           "manifest": { ... },
           "models": [ ... ],
           "structure": { ... },
+          "loc": {"python": 0, "xml": 0, "javascript": 0, "docs": 0, "total": 0, "pct": 0.0},
           "not_analysed": [ ... ],
           "warnings": ["module-level warnings"]
         }
@@ -36,16 +37,15 @@ JSON output shape (--format json)::
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.core.exceptions import OopsError
-from oops.core.models import ClassSummary, ModuleSummary, StructureSummary
+from oops.core.exceptions import OopsError, get_error_console
+from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
 from oops.core.paths import global_kb_path, project_kb_path
-from oops.io.file import parse_odoo_version
+from oops.io.file import find_addons
 from oops.io.installed_modules import read_installed_modules
 from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
@@ -55,8 +55,12 @@ from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_st
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
 from oops.services.git import require_repository
+from oops.services.loc import get_addon_loc
+from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
-from oops.utils.render import render_text, rule, warning_section
+from oops.utils.render import conclude, render_json, render_text, warning_section
+from rich.live import Live
+from rich.spinner import Spinner
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -69,13 +73,6 @@ from oops.utils.render import render_text, rule, warning_section
     nargs=-1,
     required=True,
     type=click.Path(exists=True, file_okay=False, path_type=Path),
-)
-@click.option(
-    "--kb",
-    "kb_path",
-    default=None,
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    help="Use an explicit KB file instead of the project KB.",
 )
 @click.option(
     "--refresh",
@@ -100,31 +97,23 @@ from oops.utils.render import render_text, rule, warning_section
 )
 def main(  # noqa: C901, PLR0912, PLR0915
     module_paths: tuple[Path, ...],
-    kb_path: Path | None,
     refresh: bool,
     output_format: str,
     verbose: bool,
 ) -> None:
     setup_kb_logging(verbose)
     json_mode = output_format == "json"
-    pre_warnings: list[str] = []
+    outer: Result[None] = Result()
     if not json_mode:
-        pre_warnings.append("This command is experimental and may change without notice between releases.")
-    log = logging.getLogger(__name__)
+        outer.add_warning("This command is experimental and may change without notice between releases.")
 
     resolved_paths = [mp.resolve() for mp in module_paths]
+    _, repo_path = require_repository()
+    odoo_image = require_project(repo_path)
 
-    if kb_path is None:
-        try:
-            _, repo_path = require_repository()
-        except click.ClickException:
-            raise OopsError("Not in a git repository, and --kb was not provided.") from None
-
-        try:
-            version = str(parse_odoo_version(repo_path).major_version)
-        except (ValueError, OSError):
-            raise OopsError(f"Could not read Odoo version from {config.project.file_odoo_version}.") from None
-
+    # using Live for long-time processing
+    with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10, console=get_error_console()) as live:
+        version = str(odoo_image.major_version)
         info = read_installed_modules(repo_path)
 
         if info is not None:
@@ -141,23 +130,21 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
             missing, extra = compute_root_drift(repo_path, _project_modules)
             if missing:
-                _warn(
-                    f"Modules in installed_modules.txt with no addon at the repo root: {missing}",
-                    json_mode,
-                    pre_warnings,
+                outer.add_warning(
+                    f"Modules in installed_modules.txt with no addon at the repo root: {missing}"
                 )
             if extra:
-                _warn(
+                outer.add_warning(
                     f"Addons at the repo root not in installed_modules.txt "
-                    f"(will not be scanned by the project KB): {extra}",
-                    json_mode,
-                    pre_warnings,
+                    f"(will not be scanned by the project KB): {extra}"
                 )
 
         stale, reason = is_project_kb_stale(repo_path, version)
         needs_build = refresh or stale
 
+        kb_path: Path | None = None
         if needs_build:
+            live.update(Spinner("dots", text="Rebuild project KB..."))
             if info is None:
                 raise OopsError(
                     f"installed_modules.txt not found at "
@@ -165,91 +152,93 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     "Create the file (one module per line) and re-run oops analyze."
                 )
             why = "forced via --refresh" if refresh else f"stale: {reason}"
-            log.info("Rebuilding project KB (%s)…", why)
-            _warn(f"Rebuilding project KB: {why}", json_mode, pre_warnings)
+            outer.add_warning(f"Rebuilding project KB: {why}")
             try:
                 kb_result = build_project_kb(repo_path, version, info.modules)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
+            outer.merge(kb_result)
             kb_path = kb_result.data
-            for w in kb_result.warnings:
-                _warn(w, json_mode, pre_warnings)
         else:
             kb_path = project_kb_path(repo_path)
             if not kb_path.exists():
                 raise OopsError(f"Project KB not found: {kb_path}")
 
-    assert kb_path is not None
-    log.info("Using KB: %s", kb_path)
+        assert kb_path is not None
 
-    json_results: list[dict] = []
+        if len(resolved_paths) == 1:
+            try:
+                _, _root = require_repository()
+                total_loc = sum(get_addon_loc(a.path).total for a in find_addons(_root, shallow=True))
+            except Exception:
+                total_loc = get_addon_loc(str(resolved_paths[0])).total
+        else:
+            total_loc = sum(get_addon_loc(str(mp)).total for mp in resolved_paths)
 
-    with KBReader(kb_path) as kb:
-        modules_index = kb.get_modules()
+        module_results: list[Result[ModuleSummary]] = []
 
-        if not json_mode:
-            warning_section(pre_warnings)
+        with KBReader(kb_path) as kb:
+            modules_index = kb.get_modules()
 
-        for module_path in resolved_paths:
-            module_name = module_path.name
-            module_warnings: list[str] = []
+            for i, module_path in enumerate(resolved_paths, start=1):
+                live.update(Spinner("dots", text=f"Analysing {module_path.name} ({i}/{len(resolved_paths)})..."))
+                module_name = module_path.name
+                module_result: Result[ModuleSummary] = Result()
 
-            manifest = load_manifest(module_path)
-            if not manifest:
-                msg = f"{module_name}: no manifest found — header will show <unknown>"
-                _warn(msg, json_mode, module_warnings)
+                manifest = load_manifest(module_path)
+                if not manifest:
+                    module_result.add_warning(f"{module_name}: no manifest found — header will show <unknown>")
 
-            models_dir = module_path / "models"
-            model_py_files = discover_imported_files(models_dir)
+                models_dir = module_path / "models"
+                model_py_files = discover_imported_files(models_dir)
 
-            if not model_py_files:
-                if models_dir.is_dir():
-                    msg = f"{module_name}: models/ has no imported .py files"
-                else:
-                    msg = f"{module_name}: no models/ directory"
-                _warn(msg, json_mode, module_warnings)
+                if not model_py_files:
+                    if models_dir.is_dir():
+                        module_result.add_warning(f"{module_name}: models/ has no imported .py files")
+                    else:
+                        module_result.add_warning(f"{module_name}: no models/ directory")
 
-            module_local_refs = build_module_field_refs(model_py_files)
+                module_local_refs = build_module_field_refs(model_py_files)
 
-            all_classes: list[ClassSummary] = []
-            for py_file in model_py_files:
-                class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
-                for ci in class_infos:
-                    all_classes.append(_summarize_class(ci))
+                all_classes: list[ClassSummary] = []
+                for py_file in model_py_files:
+                    class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
+                    for ci in class_infos:
+                        all_classes.append(_summarize_class(ci))
 
-            structure = _build_structure(module_path, manifest)
+                structure = _build_structure(module_path, manifest)
+                loc = get_addon_loc(str(module_path))
+                loc_pct = round(100.0 * loc.total / total_loc, 1) if total_loc else 0.0
 
-            summary = ModuleSummary(
-                module_name=module_name,
-                module_path=module_path,
-                manifest=manifest,
-                classes=all_classes,
-                structure=structure,
-                warnings=module_warnings,
-            )
+                module_result.data = ModuleSummary(
+                    module_name=module_name,
+                    module_path=module_path,
+                    manifest=manifest,
+                    classes=all_classes,
+                    structure=structure,
+                    loc=loc,
+                    loc_pct=loc_pct,
+                )
 
-            if json_mode:
-                json_results.append(_to_json_dict(summary))
-            else:
-                render_text(summary)
+                module_results.append(module_result)
 
     if json_mode:
         payload = {
-            "warnings": pre_warnings,
-            "modules": json_results,
+            "warnings": outer.warnings,
+            "modules": [render_json(r) for r in module_results],
         }
         click.echo(json.dumps(payload, indent=2, default=str))
     else:
-        rule(f"Done — analysed {len(resolved_paths)} module(s)")
+        warning_section(outer.warnings)
+        for r in module_results:
+            render_text(r)
+        all_ok = outer.ok and all(r.ok for r in module_results)
+        conclude(all_ok, f"Done — analysed {len(resolved_paths)} module(s)")
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _warn(msg: str, json_mode: bool, warnings: list[str]) -> None:
-    warnings.append(msg)
 
 
 def _summarize_class(ci: ClassInfo) -> ClassSummary:
@@ -334,70 +323,3 @@ def _build_structure(module_path: Path, manifest: dict) -> StructureSummary:
     )
 
 
-# ---------------------------------------------------------------------------
-# JSON renderer
-# ---------------------------------------------------------------------------
-
-
-def _to_json_dict(summary: ModuleSummary) -> dict:
-    not_analysed: list[str] = []
-    s = summary.structure
-    if s.data:
-        not_analysed.append("data")
-    if s.demo:
-        not_analysed.append("demo")
-    if s.controllers_py:
-        not_analysed.append("controllers/")
-    if s.wizard_py:
-        not_analysed.append("wizard/")
-    if s.report_py:
-        not_analysed.append("report/")
-    if s.static_by_ext:
-        not_analysed.append("static/")
-
-    return {
-        "module": summary.module_name,
-        "manifest": {
-            "name": summary.manifest.get("name", "<unknown>"),
-            "version": summary.manifest.get("version", ""),
-            "author": summary.manifest.get("author", ""),
-            "license": summary.manifest.get("license", ""),
-            "category": summary.manifest.get("category", ""),
-            "installable": summary.manifest.get("installable", True),
-            "depends": summary.manifest.get("depends", []),
-            "summary": summary.manifest.get("summary", ""),
-        },
-        "models": [
-            {
-                "class_name": c.class_name,
-                "model_name": c.model_name,
-                "is_new_model": c.is_new_model,
-                "inherit": c.inherit,
-                "fields": {
-                    "total": c.fields_total,
-                    "base": c.fields_base,
-                    "new": c.fields_new,
-                    "inherited": c.fields_inherited,
-                    "by_type": c.fields_by_type,
-                },
-                "methods": {
-                    "total": c.methods_total,
-                    "by_section": c.methods_by_section,
-                    "overrides": c.overrides,
-                    "override_details": c.override_details,
-                    "missing_docstrings": c.missing_docstrings,
-                },
-            }
-            for c in summary.classes
-        ],
-        "structure": {
-            "data": s.data,
-            "demo": s.demo,
-            "controllers_py": s.controllers_py,
-            "wizard_py": s.wizard_py,
-            "report_py": s.report_py,
-            "static_by_ext": s.static_by_ext,
-        },
-        "not_analysed": not_analysed,
-        "warnings": summary.warnings,
-    }
