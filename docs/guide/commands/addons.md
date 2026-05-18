@@ -192,6 +192,29 @@ oops addons list -n apikcloud/apik-addons
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.addons.manage
+    :command: main
+    :prog_name: oops addons manage
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Open the interactive picker to link or unlink addons:
+
+```bash
+oops addons manage
+```
+
+Apply changes without committing:
+
+```bash
+oops addons manage --no-commit
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.addons.materialize
     :command: main
     :prog_name: oops addons materialize
