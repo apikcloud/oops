@@ -9,6 +9,20 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.18.0] - 2026-05-19
+
+New project bootstrap command and improvements to module analysis.
+
+### ✨ What's new
+
+- **`oops project convert`**: new guided command to bootstrap an Odoo project — sets the Odoo version and syncs mandatory project files in one step; supports `--version`, `--release`, and `--enterprise` flags
+
+### 🔄 Improvements
+
+- **`oops addons analyze`**: the model table now shows a "Type" column (model/transient/abstract) and columns are reorganised in a fixed logical order; "New fld"/"Inh fld" renamed to "Own"/"Inh"
+
+---
+
 ## [0.17.0] - 2026-05-18
 
 New commands for addon management and code statistics.

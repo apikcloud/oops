@@ -10,6 +10,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-05-19
+
+### Added
+
+- `oops project convert`: new bootstrap command — sets the Odoo version and syncs mandatory project files in one step; supports `--version`, `--release`, and `--enterprise` flags
+
+### Changed
+
+- `oops addons analyze`: model table now shows 9 fixed columns in logical order; new "Type" column (model/transient/abstract); columns renamed from "New fld"/"Inh fld" to "Own"/"Inh"
+
 ## [0.17.0] - 2026-05-18
 
 ### Added
