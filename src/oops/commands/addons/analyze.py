@@ -274,6 +274,7 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
         model_name=ci.model_name,
         is_new_model=ci.is_new_model,
         inherit=ci.inherit,
+        model_type=ci.model_type,
         fields_total=len(fields),
         fields_base=fields_base,
         fields_new=fields_new,

@@ -23,6 +23,18 @@ from rich.table import Table
 from rich.theme import Theme
 from tabulate import tabulate
 
+_METHOD_COLUMNS: list[tuple[str, str]] = [
+    ("COMPUTE METHODS", "Compute"),
+    ("SELECTION METHODS", "Select"),
+    ("DEFAULT METHODS", "Default"),
+    ("ONCHANGE METHODS", "Onchange"),
+    ("CONSTRAINT METHODS", "Constrain"),
+    ("CRUD METHODS", "CRUD"),
+    ("HELPER METHODS", "Helper"),
+    ("ACTION METHODS", "Action"),
+    ("BUSINESS METHODS", "Business"),
+]
+
 RICH_THEME = Theme(
     {
         "brand.bg": Style(color="#2e3548"),
@@ -438,22 +450,24 @@ def render_text(result: "Result[ModuleSummary]") -> None:
 
 def _render_model_table(classes: list[ClassSummary]) -> None:
     console = get_console()
-    all_sections = sorted({s for c in classes for s in c.methods_by_section})
     columns = [
         ("Model", "brand.primary", "left"),
+        ("Type", "dim", "left"),
         ("Origin", "dim", "left"),
-        ("New fld", "", "right"),
-        ("Inh fld", "", "right"),
-    ] + [(sec, "dim", "right") for sec in all_sections]
+        ("Own", "green", "right"),
+        ("Inh", "green", "right"),
+    ] + [(label, "green", "right") for _, label in _METHOD_COLUMNS]
     rows = []
-    for c in classes:
+    for c in sorted(classes, key=lambda item: item.class_name):
         label = c.model_name or ", ".join(c.inherit) or c.class_name
         origin = "new" if c.is_new_model else "inherit"
-        new_fld = str(c.fields_base if c.is_new_model else c.fields_new) if (c.fields_base or c.fields_new) else ""
-        inh_fld = str(c.fields_inherited) if c.fields_inherited else ""
-        row = [label, origin, new_fld, inh_fld] + [str(c.methods_by_section.get(sec, "")) or "" for sec in all_sections]
+        own = str(c.fields_base if c.is_new_model else c.fields_new) if (c.fields_base or c.fields_new) else ""
+        inh = str(c.fields_inherited) if c.fields_inherited else ""
+        row = [label, c.model_type, origin, own, inh] + [
+            str(c.methods_by_section.get(sec, "")) or "" for sec, _ in _METHOD_COLUMNS
+        ]
         rows.append(row)
-    console.print(make_table(title=None, columns=columns, rows=rows))
+    console.print(make_table(title=None, columns=columns, rows=rows, expand=True))
     console.print()
 
 

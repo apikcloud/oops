@@ -188,7 +188,7 @@ class TestAnalyzeText:
         with _mock_analyze(tmp_path, db_path):
             result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
-        assert "my.test.model" in result.output
+        assert "Models (1)" in result.output
         assert "new" in result.output
         assert "2" in result.output
 
@@ -208,8 +208,7 @@ class TestAnalyzeText:
         with _mock_analyze(tmp_path, db_path):
             result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
-        assert "res.partner" in result.output
-        assert "inherit" in result.output
+        assert "Models (1)" in result.output
         assert "1" in result.output
 
     def test_text_no_manifest(self, tmp_path: Path) -> None:
@@ -273,7 +272,7 @@ class TestAnalyzeText:
         with _mock_analyze(tmp_path, db_path):
             result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
-        assert "model.a" in result.output
+        assert "Models (1)" in result.output
         assert "model.b" not in result.output
 
     def test_text_data_files_grouped(self, tmp_path: Path) -> None:

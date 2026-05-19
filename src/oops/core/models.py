@@ -217,6 +217,7 @@ class ClassSummary:
     override_details: "list[dict[str, str]]"
     missing_docstrings: int
     model_name: Optional[str] = None
+    model_type: str = "model"
 
 
 @dataclass

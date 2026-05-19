@@ -35,6 +35,7 @@ from oops.kb.scanner import (
     classify_method,
     extract_field_refs,
     get_model_names,
+    get_model_type,
     is_field_assignment,
     is_odoo_model_class,
 )
@@ -116,6 +117,8 @@ class ClassInfo:
     is_new_model: bool
     """True when this class is the creator of the model, as determined by the KB model_origins table."""
     lineno: int
+    model_type: str = "model"
+    """One of 'model', 'transient', 'abstract'."""
     symbols: List[SymbolInfo] = field(default_factory=lambda: [])
 
     @property
@@ -263,6 +266,7 @@ def analyse_file(
             model_name=_name,
             inherit=_inherit,
             is_new_model=is_new_model,
+            model_type=get_model_type(node),
             lineno=node.lineno,
         )
         ci._needs_class_docstring = is_new_model and not has_class_doc  # type: ignore[attr-defined]
