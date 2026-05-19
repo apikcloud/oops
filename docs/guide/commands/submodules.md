@@ -85,17 +85,19 @@ oops submodules check
 
 **Examples:**
 
-Remove stale directories and re-init submodules:
+Launch the interactive cleanup (picks a reset target, then wipes and re-inits):
 
 ```bash
 oops submodules clean
 ```
 
-Hard-reset the repo before cleaning:
+Same command, via the alias:
 
 ```bash
-oops submodules clean --reset
+oops-i-did-it-again
 ```
+
+This command is fully interactive. Cancel any prompt to abort without changes.
 
 ---
 
