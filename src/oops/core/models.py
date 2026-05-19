@@ -218,6 +218,8 @@ class ClassSummary:
     missing_docstrings: int
     model_name: Optional[str] = None
     model_type: str = "model"
+    inherited_methods: int = 0
+    inherited_method_details: "list[dict[str, str]]" = field(default_factory=list)
 
 
 @dataclass

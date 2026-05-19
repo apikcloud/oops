@@ -648,3 +648,177 @@ def test_analyze_exits_cleanly_both_formats(tmp_path: Path, fmt: str) -> None:
     with _mock_analyze(tmp_path, db_path):
         result = CliRunner().invoke(main, ["--format", fmt, str(module_path)])
     assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# Fixtures for inherited-methods tests
+# ---------------------------------------------------------------------------
+
+INHERIT_MODEL_WITH_SUPER_SOURCE = textwrap.dedent("""\
+    from odoo import models
+
+
+    class ResPartnerExt(models.Model):
+        _inherit = 'res.partner'
+
+        def write(self, vals):
+            return super().write(vals)
+""")
+
+MIXED_OVERRIDE_SUPER_SOURCE = textwrap.dedent("""\
+    from odoo import models
+
+
+    class ResPartnerExt(models.Model):
+        _inherit = 'res.partner'
+
+        def name_get(self):
+            return []
+
+        def write(self, vals):
+            return super().write(vals)
+""")
+
+NEW_MODEL_WITH_KB_METHOD_SOURCE = textwrap.dedent("""\
+    from odoo import models
+
+
+    class MyNewModel(models.Model):
+        _name = 'my.test.model'
+
+        def write(self, vals):
+            return super().write(vals)
+""")
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeInheritedMethods
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeInheritedMethods:
+    def test_text_inherited_methods_table_present(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[_kb_symbol("res.partner", "write", "method", "base")],
+            modules={"res.partner": {"origin": "odoo", "depends": []}},
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"res_partner_ext.py": INHERIT_MODEL_WITH_SUPER_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "Inherited methods (1)" in result.output
+        assert "write" in result.output
+
+    def test_text_inherited_methods_table_absent_when_zero(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[_kb_symbol("res.partner", "name", "field", "base")],
+            modules={"res.partner": {"origin": "odoo", "depends": []}},
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"res_partner_ext.py": INHERIT_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "Inherited methods (" not in result.output
+
+    def test_json_methods_inherited_keys(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[_kb_symbol("res.partner", "write", "method", "base")],
+            modules={"res.partner": {"origin": "odoo", "depends": []}},
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"res_partner_ext.py": INHERIT_MODEL_WITH_SUPER_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        methods = data["modules"][0]["models"][0]["methods"]
+        assert "inherited" in methods
+        assert "inherited_details" in methods
+        assert isinstance(methods["inherited"], int)
+        assert isinstance(methods["inherited_details"], list)
+        assert methods["inherited"] >= 1
+        for detail in methods["inherited_details"]:
+            assert set(detail.keys()) == {"model", "method", "origin_module"}
+
+    def test_stats_panel_field_totals_present(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "Fields (own)" in result.output
+        assert "Fields (inherited)" in result.output
+
+    def test_inherited_method_counter_excludes_overrides(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[
+                _kb_symbol("res.partner", "name_get", "method", "base"),
+                _kb_symbol("res.partner", "write", "method", "base"),
+            ],
+            modules={"res.partner": {"origin": "odoo", "depends": []}},
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"res_partner_ext.py": MIXED_OVERRIDE_SUPER_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        methods = data["modules"][0]["models"][0]["methods"]
+        assert methods["overrides"] == 1
+        assert methods["inherited"] == 1
+        override_names = {d["method"] for d in methods["override_details"]}
+        inherited_names = {d["method"] for d in methods["inherited_details"]}
+        assert override_names.isdisjoint(inherited_names)
+
+    def test_inherited_method_counter_excludes_new_model_class(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[_kb_symbol("my.test.model", "write", "method", "base")],
+            modules={"my.test.model": {"origin": "odoo", "depends": []}},
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_new_model.py": NEW_MODEL_WITH_KB_METHOD_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        methods = data["modules"][0]["models"][0]["methods"]
+        assert methods["inherited"] == 0
+        assert methods["inherited_details"] == []

@@ -268,6 +268,15 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
         for m in methods
         if m.is_override
     ]
+    inherited_method_details = [
+        {
+            "model": model_label,
+            "method": m.name,
+            "origin_module": m.kb_entry.get("module", "") if m.kb_entry else "",
+        }
+        for m in methods
+        if m.kb_entry and not m.is_override and not ci.is_new_model
+    ]
 
     return ClassSummary(
         class_name=ci.class_name,
@@ -285,6 +294,8 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
         overrides=len(override_details),
         override_details=override_details,
         missing_docstrings=sum(1 for m in methods if not m.has_docstring),
+        inherited_methods=len(inherited_method_details),
+        inherited_method_details=inherited_method_details,
     )
 
 

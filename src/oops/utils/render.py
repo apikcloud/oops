@@ -397,12 +397,20 @@ def render_text(result: "Result[ModuleSummary]") -> None:
 
     total_methods = sum(c.methods_total for c in summary.classes)
     total_overrides = sum(c.overrides for c in summary.classes)
+    total_inherited_methods = sum(c.inherited_methods for c in summary.classes)
     total_missing = sum(c.missing_docstrings for c in summary.classes)
     data_count = sum(n for ext in summary.structure.data.values() for n in ext.values())
+    fields_own_total = sum(
+        (c.fields_base if c.is_new_model else c.fields_new) for c in summary.classes
+    )
+    fields_inherited_total = sum(c.fields_inherited for c in summary.classes)
 
     stats_values = [
         ["Models", str(len(summary.classes))],
+        ["Fields (own)", str(fields_own_total)],
+        ["Fields (inherited)", str(fields_inherited_total)],
         ["Methods", str(total_methods)],
+        ["Inherited methods", str(total_inherited_methods)],
         ["Overrides", str(total_overrides)],
         ["Missing docs", str(total_missing)],
         ["Data files", str(data_count)],
@@ -441,6 +449,10 @@ def render_text(result: "Result[ModuleSummary]") -> None:
         if all_overrides:
             counter_rule("Overrides", len(all_overrides))
             _render_overrides_table(all_overrides)
+        all_inherited = [d for c in summary.classes for d in c.inherited_method_details]
+        if all_inherited:
+            counter_rule("Inherited methods", len(all_inherited))
+            _render_inherited_methods_table(all_inherited)
 
     _render_structure_table(summary.structure)
 
@@ -479,6 +491,18 @@ def _render_overrides_table(overrides: list[dict[str, str]]) -> None:
         ("Origin", "dim", "left"),
     ]
     rows = [[ov["model"], ov["method"], ov["origin_module"]] for ov in overrides]
+    console.print(make_table(title=None, columns=columns, rows=rows))
+    console.print()
+
+
+def _render_inherited_methods_table(items: list[dict[str, str]]) -> None:
+    console = get_console()
+    columns = [
+        ("Model", "brand.primary", "left"),
+        ("Method", "dim", "left"),
+        ("Origin", "dim", "left"),
+    ]
+    rows = [[it["model"], it["method"], it["origin_module"]] for it in items]
     console.print(make_table(title=None, columns=columns, rows=rows))
     console.print()
 
@@ -583,6 +607,8 @@ def render_json(result: "Result[ModuleSummary]") -> dict:
                     "by_section": c.methods_by_section,
                     "overrides": c.overrides,
                     "override_details": c.override_details,
+                    "inherited": c.inherited_methods,
+                    "inherited_details": c.inherited_method_details,
                     "missing_docstrings": c.missing_docstrings,
                 },
             }
