@@ -77,7 +77,7 @@ class ManifestConfig:
 class SyncConfig:
     remote_url: Optional[str] = None
     branch: Optional[str] = None
-    files: List[str] = field(default_factory=lambda: [])
+    files: "set[str]" = field(default_factory=lambda: set())
 
 
 @dataclass
@@ -157,8 +157,12 @@ class PrecommitConfig:
 
 @dataclass
 class ProjectConfig:
-    mandatory_files: set = field(default_factory=lambda: {"requirements.txt", "odoo_version.txt", "packages.txt"})
-    recommended_files: set = field(default_factory=lambda: {"README.md", "CODEOWNERS", "CHANGELOG.md", ".gitignore"})
+    mandatory_files: "set[str]" = field(
+        default_factory=lambda: {"requirements.txt", "odoo_version.txt", "packages.txt"}
+    )
+    recommended_files: "set[str]" = field(
+        default_factory=lambda: {"README.md", "CODEOWNERS", "CHANGELOG.md", ".gitignore"}
+    )
     file_packages: str = "packages.txt"
     file_requirements: str = "requirements.txt"
     file_odoo_version: str = "odoo_version.txt"

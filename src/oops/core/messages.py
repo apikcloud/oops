@@ -40,6 +40,7 @@ class CommitMessages:
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."
     pre_commit_exclude: str = "chore: update pre-commit exclusions"
     project_sync: str = "chore: sync from source-repo"
+    project_bootstrap: str = "chore: bootstrap Odoo {version} project\n\nImage: {image}"
     migration_script: str = "chore: add migration script"
     release_create: str = "chore: release {version}"
     manifest_update: str = "chore: update manifest(s)"

@@ -5,14 +5,24 @@
 
 """Project-state helpers: validate the local layout and resolve the Odoo image."""
 
+from __future__ import annotations
+
 import os
+import shutil
 from pathlib import Path
 
 import click
+import git
 from oops.core.config import config
-from oops.core.exceptions import MissingMandatoryFiles, MissingRecommendedFiles, OopsError
+from oops.core.exceptions import (
+    APIError,
+    MissingMandatoryFiles,
+    MissingRecommendedFiles,
+    OopsError,
+)
 from oops.core.models import ImageInfo, Result
 from oops.io.file import parse_odoo_version
+from oops.utils.net import sparse_clone
 
 
 def check_project(path: Path, strict: bool = True) -> Result[None]:
@@ -69,3 +79,45 @@ def require_project(repo_path: Path) -> ImageInfo:
             f"Could not parse {config.project.file_odoo_version}. "
             "Make sure the file contains a valid Odoo Docker image tag."
         ) from e
+
+
+def fetch_project_files(
+    url: str,
+    branch: "str | None",
+    files: list[str],
+    tmpdir: Path,
+) -> None:
+    """Sparse-clone the listed files/directories from a remote repository.
+
+    Raises:
+        APIError: If the remote clone fails.
+    """
+    try:
+        sparse_clone(url, tmpdir, files, branch)
+    except git.GitCommandError as exc:
+        raise APIError(f"Clone failed: {exc.stderr.strip()}") from exc
+
+
+def copy_project_files(
+    tmpdir: Path,
+    files: list[str],
+    repo_path: Path,
+) -> list[str]:
+    """Copy fetched files from *tmpdir* into the local repository.
+
+    Returns:
+        Subset of *files* actually present in *tmpdir* and copied.
+    """
+    applied: list[str] = []
+    for f in files:
+        src = tmpdir / f
+        dst = repo_path / f
+        if not src.exists():
+            continue
+        if src.is_dir():
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+        else:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+        applied.append(f)
+    return applied

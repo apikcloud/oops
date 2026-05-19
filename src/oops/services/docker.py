@@ -195,41 +195,51 @@ def check_image(image: ImageInfo, strict: bool = True) -> "Result[None]":
     return result
 
 
-def find_available_images(release: date, enterprise: bool, version: float) -> list:
-    """Find Odoo images newer than a given release date that match version and edition.
+def find_available_images(
+    version: float,
+    enterprise: bool,
+    release: "Optional[date]" = None,
+    target_date: "Optional[date]" = None,
+) -> list:
+    """Find Odoo images matching version and edition.
+
+    When *target_date* is given, returns all matching images sorted by
+    absolute distance to *target_date* (closest first) with no lower-bound
+    filter on release date. Otherwise filters ``item.release > release`` and
+    sorts descending by release date.
 
     Args:
-        release: Reference release date; only images with a newer release are returned.
-        enterprise: If True, filter for enterprise images; otherwise community.
         version: Odoo major version to filter on (e.g. 18.0).
+        enterprise: If True, filter for enterprise images; otherwise community.
+        release: Reference release date for the default (newer-than) mode.
+        target_date: Target date for proximity sort mode.
 
     Returns:
-        List of matching ImageInfo objects sorted by release date descending,
-        each annotated with a delta attribute (days from release).
+        List of matching ImageInfo objects annotated with a ``delta`` attribute
+        (days from the anchor date).
     """
     available = fetch_odoo_images()
 
-    # TODO: improve filtering, add conditions on release date
-    def filter_out(item):
-        if (
-            item.major_version == version
-            and item.enterprise == enterprise
-            and item.release > release
-            and item.collection in config.images.collections
-        ):
-            return item
-
-    items = list(filter(filter_out, available))
+    items = [
+        i for i in available
+        if i.major_version == version
+        and i.enterprise == enterprise
+        and i.collection in config.images.collections
+        and (target_date is not None or release is None or i.release > release)
+    ]
 
     if not items:
         return []
 
-    items = sorted(items, key=lambda item: item.release, reverse=True)
+    if target_date is not None:
+        items.sort(key=lambda i: abs((target_date - i.release).days))
+        for item in items:
+            item.delta = abs((target_date - item.release).days)
+    else:
+        items.sort(key=lambda i: i.release, reverse=True)
+        for item in items:
+            item.delta = abs((release - item.release).days) if release else 0
 
-    def improve(item):
-        item.delta = abs((release - item.release).days)
-        return item
-
-    return list(map(improve, items))
+    return items
 
 

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import git as gitlib
 import pytest
 from click.testing import CliRunner
-from oops.commands.project.sync import _apply, main
+from oops.commands.project.sync import main
 from oops.services.git import commit, show_diff
 from oops.utils.net import sparse_clone
 
@@ -71,7 +71,7 @@ class TestMainDryRun:
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), patch(
             "oops.commands.project.sync.require_repository", return_value=local_repo_rv
-        ), patch("oops.commands.project.sync.sparse_clone"), patch(
+        ), patch("oops.commands.project.sync.fetch_project_files"), patch(
             "oops.commands.project.sync.show_diff", return_value=False
         ):
             result = runner.invoke(main, ["--dry-run"])
@@ -84,7 +84,7 @@ class TestMainDryRun:
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), patch(
             "oops.commands.project.sync.require_repository", return_value=local_repo_rv
-        ), patch("oops.commands.project.sync.sparse_clone"), patch(
+        ), patch("oops.commands.project.sync.fetch_project_files"), patch(
             "oops.commands.project.sync.show_diff", return_value=True
         ):
             result = runner.invoke(main, ["--dry-run"])
@@ -104,29 +104,53 @@ class TestMainApply:
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), patch(
             "oops.commands.project.sync.require_repository", return_value=local_repo_rv
-        ), patch("oops.commands.project.sync.sparse_clone"), patch(
+        ), patch("oops.commands.project.sync.fetch_project_files"), patch(
             "oops.commands.project.sync.show_diff", return_value=True
-        ), patch("oops.commands.project.sync._apply") as mock_apply, patch(
+        ), patch(
+            "oops.commands.project.sync.copy_project_files", return_value=["Makefile"]
+        ) as mock_copy, patch(
             "oops.commands.project.sync.commit"
         ) as mock_commit:
             result = runner.invoke(main, ["--force"])
 
         assert result.exit_code == 0
-        mock_apply.assert_called_once()
+        mock_copy.assert_called_once()
         mock_commit.assert_called_once_with(mock_repo, tmp_path, ["Makefile"], "project_sync")
 
-    def test_branch_forwarded_to_sparse_clone(self, tmp_path):
+    def test_empty_applied_skips_commit(self, tmp_path):
+        mock_repo = _make_local_repo(tmp_path)
+        local_repo_rv = (mock_repo, tmp_path)
+        runner = CliRunner()
+        with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), patch(
+            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
+        ), patch("oops.commands.project.sync.fetch_project_files"), patch(
+            "oops.commands.project.sync.show_diff", return_value=True
+        ), patch(
+            "oops.commands.project.sync.copy_project_files", return_value=[]
+        ), patch(
+            "oops.commands.project.sync.commit"
+        ) as mock_commit:
+            result = runner.invoke(main, ["--force"])
+
+        assert result.exit_code == 0
+        mock_commit.assert_not_called()
+
+    def test_branch_forwarded_to_fetch_project_files(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
         local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config(branch="main")), patch(
             "oops.commands.project.sync.require_repository", return_value=local_repo_rv
-        ), patch("oops.commands.project.sync.sparse_clone") as mock_clone, patch(
+        ), patch(
+            "oops.commands.project.sync.fetch_project_files"
+        ) as mock_fetch, patch(
             "oops.commands.project.sync.show_diff", return_value=True
-        ), patch("oops.commands.project.sync._apply"), patch("oops.commands.project.sync.commit"):
+        ), patch(
+            "oops.commands.project.sync.copy_project_files", return_value=["Makefile"]
+        ), patch("oops.commands.project.sync.commit"):
             runner.invoke(main, ["--force"])
 
-        _, _, _, branch_arg = mock_clone.call_args[0]
+        _, branch_arg, _, _ = mock_fetch.call_args[0]
         assert branch_arg == "main"
 
 
@@ -219,56 +243,6 @@ class TestShowDiff:
 
         result = show_diff(remote_dir, ["file.txt"], mock_repo, local_root)
         assert result is True
-
-
-# ---------------------------------------------------------------------------
-# _apply
-# ---------------------------------------------------------------------------
-
-
-class TestApply:
-    def test_copies_file(self, tmp_path):
-        remote_dir = tmp_path / "remote"
-        remote_dir.mkdir()
-        local_root = tmp_path / "local"
-        local_root.mkdir()
-        (remote_dir / "Makefile").write_text("all:\n\techo hi\n")
-
-        _apply(remote_dir, ["Makefile"], local_root, MagicMock())
-
-        assert (local_root / "Makefile").read_text() == "all:\n\techo hi\n"
-
-    def test_copies_directory(self, tmp_path):
-        remote_dir = tmp_path / "remote"
-        (remote_dir / "subdir").mkdir(parents=True)
-        (remote_dir / "subdir" / "file.txt").write_text("content")
-        local_root = tmp_path / "local"
-        local_root.mkdir()
-
-        _apply(remote_dir, ["subdir"], local_root, MagicMock())
-
-        assert (local_root / "subdir" / "file.txt").read_text() == "content"
-
-    def test_skips_missing_remote_file(self, tmp_path):
-        remote_dir = tmp_path / "remote"
-        remote_dir.mkdir()
-        local_root = tmp_path / "local"
-        local_root.mkdir()
-
-        _apply(remote_dir, ["nonexistent.txt"], local_root, MagicMock())  # must not raise
-
-        assert not (local_root / "nonexistent.txt").exists()
-
-    def test_creates_parent_directories(self, tmp_path):
-        remote_dir = tmp_path / "remote"
-        (remote_dir / "deep" / "nested").mkdir(parents=True)
-        (remote_dir / "deep" / "nested" / "file.txt").write_text("hi")
-        local_root = tmp_path / "local"
-        local_root.mkdir()
-
-        _apply(remote_dir, ["deep/nested/file.txt"], local_root, MagicMock())
-
-        assert (local_root / "deep" / "nested" / "file.txt").read_text() == "hi"
 
 
 # ---------------------------------------------------------------------------

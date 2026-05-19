@@ -31,6 +31,35 @@ oops project check --strict
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.project.convert
+    :command: main
+    :prog_name: oops project convert
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Bootstrap a repository as an Odoo 19 enterprise project, picking the image closest to a target date:
+
+```bash
+oops project convert -v 19 -r 2025-03-15
+```
+
+Bootstrap with the most recent available image:
+
+```bash
+oops project convert -v 19
+```
+
+Bootstrap with the community edition:
+
+```bash
+oops project convert -v 18 --no-enterprise
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.project.exclude
     :command: main
     :prog_name: oops project exclude
