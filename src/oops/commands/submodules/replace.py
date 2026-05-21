@@ -10,7 +10,6 @@ Removes the named submodules, adds the new repository as a submodule, and
 rewrites any symlinks that pointed to the old paths to point to the new one.
 """
 
-import logging
 import os
 from pathlib import Path
 
@@ -18,6 +17,7 @@ import click
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import NotFoundError
+from oops.core.logger import log
 from oops.core.messages import commit_messages
 from oops.io.file import desired_path, rewrite_symlink
 from oops.services.git import require_repository, require_submodules
@@ -96,7 +96,7 @@ def main(  # noqa: C901, PLR0912
                 p = Path(root) / name
                 if p.is_symlink():
                     for oldp in old_paths:
-                        logging.debug(p, ":", oldp, "->", new_path)
+                        log.debug(p, ":", oldp, "->", new_path)
                         if rewrite_symlink(p, oldp, new_path):
                             rewrites += 1
                             repo.index.add([str(p)])

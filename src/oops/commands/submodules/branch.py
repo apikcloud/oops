@@ -11,11 +11,11 @@ prompts interactively or applies the default branch provided via --branch.
 """
 
 import configparser
-import logging
 
 import click
 from oops.commands.base import command
 from oops.core.exceptions import EarlyExit
+from oops.core.logger import log
 from oops.services.git import commit, is_pull_request, read_gitmodules, require_repository, require_submodules
 
 
@@ -49,12 +49,12 @@ def main(default_branch: str, skip_pr: bool, no_commit: bool):  # noqa: C901, PL
         section = f'submodule "{submodule.name}"'
         try:
             branch = gitmodules.get_value(section, "branch")
-            logging.debug(f"{submodule.name}: branch = {branch!r}")
+            log.debug(f"{submodule.name}: branch = {branch!r}")
         except configparser.NoOptionError:
             pull_request = is_pull_request(submodule)
 
             if skip_pr and pull_request:
-                logging.debug(f"Skipping submodule {submodule.name!r} as it looks like a pull request path")
+                log.debug(f"Skipping submodule {submodule.name!r} as it looks like a pull request path")
                 continue
 
             if default_branch and not pull_request:

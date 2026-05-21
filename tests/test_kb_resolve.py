@@ -156,9 +156,7 @@ class TestFormatSourceLine:
         assert result.count("?") >= 3
 
     def test_third_party_origin(self):
-        result = format_source_line(
-            {"origin": "third-party", "source_file": "path/to/model.py", "source_line": 10}
-        )
+        result = format_source_line({"origin": "third-party", "source_file": "path/to/model.py", "source_line": 10})
         assert result.startswith("[third-party]")
 
 
@@ -241,7 +239,7 @@ class TestResolveSymbol:
             _entry("winner_mod", origin="third-party"),
             _entry("loser_mod", origin="odoo"),
         ]
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="oops"):
             resolve_symbol(entries, "my_module", index)
         assert any("winner_mod" in msg for msg in caplog.messages)
         assert any("my_module" in msg for msg in caplog.messages)
@@ -249,7 +247,7 @@ class TestResolveSymbol:
     def test_no_warning_when_module_is_in_chain(self, caplog):
         index = _index(("my_module", "apik", ["sale"]), ("sale", "odoo", []))
         entries = [_entry("sale", origin="odoo")]
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="oops"):
             resolve_symbol(entries, "my_module", index)
         assert not caplog.messages
 
@@ -295,12 +293,14 @@ class TestResolveViewTypes:
 
     def test_primary_view_unchanged(self):
         from oops.kb.build import _resolve_view_types
+
         v = self._primary("sale.view_form", "form")
         _resolve_view_types([{"views": [v]}])
         assert v["view_type"] == "form"
 
     def test_extension_inherits_parent_type(self):
         from oops.kb.build import _resolve_view_types
+
         parent = self._primary("sale.view_form", "form")
         child = self._extension("apik.view_form_ext", "sale.view_form")
         _resolve_view_types([{"views": [parent, child]}])
@@ -308,6 +308,7 @@ class TestResolveViewTypes:
 
     def test_cross_layer_resolution(self):
         from oops.kb.build import _resolve_view_types
+
         global_view = self._primary("sale.view_form", "form", module="sale")
         project_view = self._extension("apik.view_form_ext", "sale.view_form")
         _resolve_view_types([{"views": [global_view]}, {"views": [project_view]}])
@@ -315,6 +316,7 @@ class TestResolveViewTypes:
 
     def test_chain_resolves_within_depth(self):
         from oops.kb.build import _resolve_view_types
+
         a = self._primary("sale.view_a", "kanban")
         b = self._extension("mod.view_b", "sale.view_a")
         c = self._extension("mod.view_c", "mod.view_b")
@@ -323,6 +325,7 @@ class TestResolveViewTypes:
 
     def test_chain_exceeding_depth_resolves_to_unresolved(self):
         from oops.kb.build import _VIEW_TYPE_MAX_DEPTH, _resolve_view_types
+
         # Build primary + _VIEW_TYPE_MAX_DEPTH extension views.
         # Reversed so the deepest child is processed first (ancestors still None).
         primary = self._primary("root.view", "form", module="base")
@@ -338,6 +341,7 @@ class TestResolveViewTypes:
 
     def test_cycle_resolves_to_unresolved(self):
         from oops.kb.build import _resolve_view_types
+
         a = self._extension("mod.view_a", "mod.view_b")
         b = self._extension("mod.view_b", "mod.view_a")
         _resolve_view_types([{"views": [a, b]}])
@@ -346,12 +350,14 @@ class TestResolveViewTypes:
 
     def test_missing_parent_resolves_to_unresolved(self):
         from oops.kb.build import _resolve_view_types
+
         child = self._extension("apik.view_ext", "sale.view_nonexistent")
         _resolve_view_types([{"views": [child]}])
         assert child["view_type"] == "unresolved"
 
     def test_qweb_template_unchanged(self):
         from oops.kb.build import _resolve_view_types
+
         tpl = {
             "xml_id": "mod.my_template",
             "view_type": "qweb",

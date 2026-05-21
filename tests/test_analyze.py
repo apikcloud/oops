@@ -132,7 +132,7 @@ def _mock_analyze(tmp_path: Path, db_path: Path):
             patch("oops.commands.addons.analyze.read_installed_modules", return_value=None), \
             patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(False, "")), \
             patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
-            patch("oops.commands.addons.analyze.Live", MagicMock()):
+            patch("oops.core.logger.Live", MagicMock()):
         yield
 
 
@@ -438,7 +438,7 @@ class TestAnalyzeJsonWarnings:
                 patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
                 patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
                 patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
-                patch("oops.commands.addons.analyze.Live", MagicMock()):
+                patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), tmp_path)
             mock_info.return_value = type("I", (), {"modules": ["my_module", "ghost_module"]})()
             mock_stale.return_value = (False, "")
@@ -474,7 +474,7 @@ class TestAnalyzeJsonWarnings:
                 patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
                 patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
                 patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
-                patch("oops.commands.addons.analyze.Live", MagicMock()):
+                patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), tmp_path)
             mock_info.return_value = type(
                 "I", (), {"modules": ["my_module", "theme_foo", "odoo_mod"]}
@@ -541,7 +541,7 @@ class TestAnalyzeRebuild:
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
-                patch("oops.commands.addons.analyze.Live", MagicMock()):
+                patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
             mock_info.return_value = MagicMock(modules=["my_module"])
             mock_stale.return_value = (True, "test stale reason")
@@ -563,7 +563,7 @@ class TestAnalyzeRebuild:
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
-                patch("oops.commands.addons.analyze.Live", MagicMock()):
+                patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
             mock_info.return_value = MagicMock(modules=["my_module"])
             mock_stale.return_value = (False, "")

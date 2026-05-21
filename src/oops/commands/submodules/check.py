@@ -13,13 +13,13 @@ Exits non-zero if any issue is found.
 """
 
 import configparser
-import logging
 from pathlib import PurePosixPath
 
 import click
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import EarlyExit, OopsError
+from oops.core.logger import log
 from oops.io.file import check_prefix, desired_path, list_symlinks
 from oops.services.git import is_pull_request, read_gitmodules, require_repository
 from oops.utils.net import _parse_url
@@ -63,7 +63,7 @@ def main():  # noqa: C901, PLR0912, PLR0915
         section = f'submodule "{submodule.name}"'
         try:
             branch = gitmodules.get_value(section, "branch")
-            logging.debug(f"{submodule.name}: branch = {branch!r}")
+            log.debug(f"{submodule.name}: branch = {branch!r}")
         except configparser.NoOptionError:
             missing_branches.append((submodule.name, submodule.path))
 
@@ -96,7 +96,7 @@ def main():  # noqa: C901, PLR0912, PLR0915
                 if expected not in actual.parents:
                     misplaced_prs.append((submodule.name, submodule.path))
             except ValueError:
-                logging.debug(f"Could not compute desired path for {submodule.name!r}, skipping check_pr")
+                log.debug(f"Could not compute desired path for {submodule.name!r}, skipping check_pr")
 
     if "check_path" in config.submodules.checks and bad_paths:
         print_error(f"Submodules not under {config.submodules.current_path} ({len(bad_paths)}):")

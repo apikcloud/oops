@@ -35,7 +35,6 @@ What the tool does NOT do
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 import click
@@ -43,11 +42,11 @@ from git import GitCommandError
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import OopsError
+from oops.core.logger import log
 from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import parse_odoo_version
 from oops.io.installed_modules import read_installed_modules
 from oops.io.refactor import analyse_file, rewrite_file
-from oops.kb import setup_kb_logging
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
@@ -107,9 +106,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
     refresh: bool,
     verbose: bool,
 ) -> None:
-    setup_kb_logging(verbose)
+
     print_warning("This command is experimental and may change without notice between releases.")
-    log = logging.getLogger(__name__)
 
     for mp in module_paths:
         if mp.is_symlink():

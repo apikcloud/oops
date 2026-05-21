@@ -15,16 +15,14 @@ dropped. Markdown and reStructuredText are merged into `docs`.
 from __future__ import annotations
 
 import json
-import logging
 import shutil
 import subprocess
 from dataclasses import dataclass
 from functools import lru_cache
 
+from oops.core.logger import log
 from oops.io.tools import run
 from oops.utils.render import print_warning
-
-log = logging.getLogger(__name__)
 
 CLOC_LANGS = "Python,XML,JavaScript,Markdown,reStructuredText"
 

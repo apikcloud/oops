@@ -15,12 +15,12 @@ Entry points:
 """
 
 import json
-import logging
 import xml.etree.ElementTree as ET
 import xml.parsers.expat as expat
 from pathlib import Path
 from typing import Set
 
+from oops.core.logger import log
 from oops.core.models import Result
 from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
@@ -32,10 +32,21 @@ XML_DIR_BLACKLIST = frozenset({"demo", "test", "tests", "static", "migrations", 
 
 _VIEW_TAG_ALIASES: Dict[str, str] = {"tree": "list"}
 
-_KNOWN_VIEW_TAGS = frozenset({
-    "form", "list", "tree", "search", "kanban", "pivot",
-    "graph", "calendar", "activity", "gantt", "map",
-})
+_KNOWN_VIEW_TAGS = frozenset(
+    {
+        "form",
+        "list",
+        "tree",
+        "search",
+        "kanban",
+        "pivot",
+        "graph",
+        "calendar",
+        "activity",
+        "gantt",
+        "map",
+    }
+)
 
 _INDEXED_MODELS = frozenset({"ir.ui.view", "ir.actions.act_window", "ir.ui.menu"})
 
@@ -84,9 +95,9 @@ def _parse_xml(path: Path) -> Optional[ET.Element]:
         p.Parse(source, True)
         return stack[0] if stack else None
     except expat.ExpatError as exc:
-        logging.warning("XML parse error in %s: %s", path, exc)
+        log.warning("XML parse error in %s: %s", path, exc)
     except Exception as exc:
-        logging.warning("Cannot read %s: %s", path, exc)
+        log.warning("Cannot read %s: %s", path, exc)
     return None
 
 
@@ -116,7 +127,7 @@ def _load_manifest_or_fallback(module_dir: Path) -> Optional[dict]:
             try:
                 return parse_manifest(path)
             except Exception as exc:
-                logging.warning(
+                log.warning(
                     "Manifest parse failure in %s: %s — falling back to recursive XML scan",
                     path,
                     exc,
@@ -283,7 +294,7 @@ def _parse_view_record(
 ) -> Optional[Dict[str, Any]]:
     raw_id = record.get("id")
     if not raw_id:
-        logging.warning("View record missing id in %s:%d", rel_path, _line_of(record))
+        log.warning("View record missing id in %s:%d", rel_path, _line_of(record))
         return None
 
     xml_id = _qualify(raw_id, module)
@@ -327,7 +338,7 @@ def _parse_template(
 ) -> Optional[Dict[str, Any]]:
     raw_id = elem.get("id")
     if not raw_id:
-        logging.warning("Template missing id in %s:%d", rel_path, _line_of(elem))
+        log.warning("Template missing id in %s:%d", rel_path, _line_of(elem))
         return None
     inherit_ref = elem.get("inherit_id")
     inherit_id = _qualify(inherit_ref, module) if inherit_ref else None
@@ -356,7 +367,7 @@ def _parse_action_record(
 ) -> Optional[Dict[str, Any]]:
     raw_id = record.get("id")
     if not raw_id:
-        logging.warning("Action record missing id in %s:%d", rel_path, _line_of(record))
+        log.warning("Action record missing id in %s:%d", rel_path, _line_of(record))
         return None
     return {
         "xml_id": _qualify(raw_id, module),

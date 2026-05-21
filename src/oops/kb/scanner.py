@@ -15,11 +15,11 @@ Sections:
 
 import ast
 import json
-import logging
 from pathlib import Path
 from typing import Set
 
 from oops.core.config import config
+from oops.core.logger import log
 from oops.core.models import Result
 from oops.io.manifest import load_manifest
 from oops.utils.compat import Any, Dict, Iterable, List, Optional, Tuple
@@ -103,9 +103,9 @@ def _parse_file(path: Path) -> Optional[ast.Module]:
         source = path.read_text(encoding="utf-8", errors="replace")
         return ast.parse(source, filename=str(path))
     except SyntaxError as exc:
-        logging.warning("Syntax error in %s: %s", path, exc)
+        log.warning("Syntax error in %s: %s", path, exc)
     except Exception as exc:
-        logging.warning("Cannot read %s: %s", path, exc)
+        log.warning("Cannot read %s: %s", path, exc)
     return None
 
 
@@ -632,7 +632,7 @@ def odoo_addons_roots(odoo_path: Path) -> List[Path]:
     candidates = [odoo_path / "addons", odoo_path / "odoo" / "addons"]
     roots = [p for p in candidates if p.is_dir()]
     if not roots:
-        # logging.warning("No addons/ or odoo/addons/ found under %s — falling back to root.", odoo_path)
+        # log.warning("No addons/ or odoo/addons/ found under %s — falling back to root.", odoo_path)
         roots = [odoo_path]
     return roots
 
@@ -695,7 +695,7 @@ def discover_root_addons(
                         matched = True
                         break
                 if not matched:
-                    logging.warning(
+                    log.warning(
                         "Symlink %s → %s does not match any known tier root, skipping.",
                         entry,
                         real,

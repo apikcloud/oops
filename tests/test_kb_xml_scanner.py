@@ -192,11 +192,7 @@ class TestContentExtraction:
         return ET.fromstring(xml)
 
     def test_fields_extracted(self):
-        arch = self._arch(
-            "<field name='arch'><form>"
-            "<field name='name'/><field name='partner_id'/>"
-            "</form></field>"
-        )
+        arch = self._arch("<field name='arch'><form><field name='name'/><field name='partner_id'/></form></field>")
         fields, buttons = _extract_content(arch, "form")
         assert fields == ["name", "partner_id"]
         assert buttons == []
@@ -212,39 +208,25 @@ class TestContentExtraction:
         assert "amount" in fields
 
     def test_duplicate_fields_deduplicated(self):
-        arch = self._arch(
-            "<field name='arch'><form>"
-            "<field name='name'/><field name='name'/>"
-            "</form></field>"
-        )
+        arch = self._arch("<field name='arch'><form><field name='name'/><field name='name'/></form></field>")
         fields, _ = _extract_content(arch, "form")
         assert fields.count("name") == 1
 
     def test_button_object_extracted(self):
-        arch = self._arch(
-            "<field name='arch'><form>"
-            "<button type='object' name='action_confirm'/>"
-            "</form></field>"
-        )
+        arch = self._arch("<field name='arch'><form><button type='object' name='action_confirm'/></form></field>")
         _, buttons = _extract_content(arch, "form")
         assert len(buttons) == 1
         assert buttons[0] == {"button_type": "object", "name": "action_confirm"}
 
     def test_button_action_with_ref_stripped(self):
         arch = self._arch(
-            "<field name='arch'><form>"
-            "<button type='action' name='%(account.action_invoice)s'/>"
-            "</form></field>"
+            "<field name='arch'><form><button type='action' name='%(account.action_invoice)s'/></form></field>"
         )
         _, buttons = _extract_content(arch, "form")
         assert buttons[0]["name"] == "account.action_invoice"
 
     def test_button_unknown_type_ignored(self):
-        arch = self._arch(
-            "<field name='arch'><form>"
-            "<button type='url' name='google'/>"
-            "</form></field>"
-        )
+        arch = self._arch("<field name='arch'><form><button type='url' name='google'/></form></field>")
         _, buttons = _extract_content(arch, "form")
         assert buttons == []
 
@@ -473,7 +455,7 @@ class TestErrorHandling:
     def test_malformed_xml_logs_warning_and_skips(self, tmp_path, caplog):
         _write_manifest(tmp_path, "{'data': ['views/bad.xml']}")
         _write_xml(tmp_path / "views" / "bad.xml", "<odoo><unclosed>")
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="oops"):
             result = scan_module_xml(tmp_path, "odoo", tmp_path.parent)
         assert result == {"views": [], "actions": [], "menus": []}
         assert any("bad.xml" in msg for msg in caplog.messages)
@@ -488,7 +470,7 @@ class TestErrorHandling:
                 </record>"""
             ),
         )
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="oops"):
             result = scan_module_xml(tmp_path, "odoo", tmp_path.parent)
         assert result["views"] == []
         assert any("missing id" in msg.lower() for msg in caplog.messages)
@@ -532,8 +514,8 @@ class TestSourceLines:
         xml_content = (
             '<?xml version="1.0" encoding="utf-8"?>\n'
             "<odoo>\n"
-            "  <record id=\"view_form\" model=\"ir.ui.view\">\n"
-            "    <field name=\"arch\" type=\"xml\"><form/></field>\n"
+            '  <record id="view_form" model="ir.ui.view">\n'
+            '    <field name="arch" type="xml"><form/></field>\n'
             "  </record>\n"
             "</odoo>\n"
         )

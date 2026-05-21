@@ -14,7 +14,6 @@ Sections:
 """
 
 import ast
-import logging
 import os
 from collections.abc import Generator
 from pathlib import Path
@@ -22,6 +21,7 @@ from pathlib import Path
 import libcst as cst
 from oops.core.config import config
 from oops.core.exceptions import NoManifestFound
+from oops.core.logger import log
 from oops.utils.compat import Optional, Union
 
 # ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ def parse_manifest(filepath: Path) -> dict:
     # Convert the exact dict literal slice to a Python object (safe: literals only).
     manifest = ast.literal_eval(source)
     if not isinstance(manifest, dict):
-        logging.error("Parsed manifest is not a dict after literal evaluation.")
+        log.error("Parsed manifest is not a dict after literal evaluation.")
         return {}
     return manifest
 
@@ -81,7 +81,7 @@ def load_manifest(addon_dir: Path) -> dict:
         manifest_path = addon_dir / manifest_name
         if manifest_path.is_file():
             return parse_manifest(manifest_path)
-    logging.debug(f"No Odoo manifest found in {addon_dir}")
+    log.debug(f"No Odoo manifest found in {addon_dir}")
     return {}
 
 

@@ -42,7 +42,8 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.core.exceptions import OopsError, get_error_console
+from oops.core.exceptions import OopsError
+from oops.core.logger import live_progress, log
 from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
 from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import find_addons
@@ -50,7 +51,6 @@ from oops.io.installed_modules import read_installed_modules
 from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
 from oops.io.refactor import ClassInfo, analyse_file
-from oops.kb import setup_kb_logging
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
@@ -59,8 +59,6 @@ from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
 from oops.utils.render import conclude, render_json, render_text, warning_section
-from rich.live import Live
-from rich.spinner import Spinner
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -101,7 +99,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     output_format: str,
     verbose: bool,
 ) -> None:
-    setup_kb_logging(verbose)
+
     json_mode = output_format == "json"
     outer: Result[None] = Result()
     if not json_mode:
@@ -112,7 +110,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
     odoo_image = require_project(repo_path)
 
     # using Live for long-time processing
-    with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10, console=get_error_console()) as live:
+    # with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10, console=get_error_console()) as live:
+
+    with live_progress():
         version = str(odoo_image.major_version)
         info = read_installed_modules(repo_path)
 
@@ -130,9 +130,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
             missing, extra = compute_root_drift(repo_path, _project_modules)
             if missing:
-                outer.add_warning(
-                    f"Modules in installed_modules.txt with no addon at the repo root: {missing}"
-                )
+                outer.add_warning(f"Modules in installed_modules.txt with no addon at the repo root: {missing}")
             if extra:
                 outer.add_warning(
                     f"Addons at the repo root not in installed_modules.txt "
@@ -144,7 +142,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
         kb_path: Path | None = None
         if needs_build:
-            live.update(Spinner("dots", text="Rebuild project KB..."))
+            log.info("Rebuild project KB...")
             if info is None:
                 raise OopsError(
                     f"installed_modules.txt not found at "
@@ -181,7 +179,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
             modules_index = kb.get_modules()
 
             for i, module_path in enumerate(resolved_paths, start=1):
-                live.update(Spinner("dots", text=f"Analysing {module_path.name} ({i}/{len(resolved_paths)})..."))
+                log.info(f"Analysing {module_path.name} ({i}/{len(resolved_paths)})...")
                 module_name = module_path.name
                 module_result: Result[ModuleSummary] = Result()
 
@@ -333,5 +331,3 @@ def _build_structure(module_path: Path, manifest: dict) -> StructureSummary:
         report_py=report_py,
         static_by_ext=static_by_ext,
     )
-
-

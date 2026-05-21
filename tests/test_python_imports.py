@@ -96,20 +96,16 @@ class TestDiscoverImportedFiles:
     def test_absolute_imports_skipped(self, tmp_path: Path) -> None:
         pkg = tmp_path / "pkg"
         pkg.mkdir()
-        (pkg / "__init__.py").write_text(
-            "from odoo import models\nfrom . import a"
-        )
+        (pkg / "__init__.py").write_text("from odoo import models\nfrom . import a")
         (pkg / "a.py").write_text("a = 1")
         result = discover_imported_files(pkg)
         assert result == [(pkg / "a.py").resolve()]
 
-    def test_syntax_error_returns_empty_with_log(
-        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_syntax_error_returns_empty_with_log(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
         pkg = tmp_path / "pkg"
         pkg.mkdir()
         (pkg / "__init__.py").write_text("from . import (")  # syntax error
-        with caplog.at_level(logging.DEBUG, logger="oops.io.python_imports"):
+        with caplog.at_level(logging.DEBUG, logger="oops"):
             result = discover_imported_files(pkg)
         assert result == []
         assert any("parse failed" in r.message for r in caplog.records)
@@ -152,14 +148,12 @@ class TestDiscoverImportedFiles:
         result = discover_imported_files(pkg)
         assert result == [(pkg / "a.py").resolve()]
 
-    def test_resolve_name_to_nothing_ignored(
-        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
-    ) -> None:
+    def test_resolve_name_to_nothing_ignored(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
         pkg = tmp_path / "pkg"
         pkg.mkdir()
         (pkg / "__init__.py").write_text("from . import ghost\nfrom . import a")
         (pkg / "a.py").write_text("a = 1")
-        with caplog.at_level(logging.DEBUG, logger="oops.io.python_imports"):
+        with caplog.at_level(logging.DEBUG, logger="oops"):
             result = discover_imported_files(pkg)
         assert result == [(pkg / "a.py").resolve()]
         assert any("resolves to nothing" in r.message for r in caplog.records)

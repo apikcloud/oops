@@ -1,0 +1,48 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
+#
+# File: logger.py — src/oops/core/logger.py
+
+import logging
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Callable, Optional
+
+from oops.core.exceptions import get_error_console
+from rich.live import Live
+from rich.spinner import Spinner
+
+ProgressCallback = Callable[[str], None]
+
+_progress_callback: ContextVar[Optional[ProgressCallback]] = ContextVar("progress_callback", default=None)
+
+
+class ProgressHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        callback = _progress_callback.get()
+        if callback is not None:
+            callback(self.format(record))
+        # sinon, on laisse les autres handlers faire leur travail
+
+
+@contextmanager
+def live_progress(renderable=None, spinner: str = "dots"):
+    with Live(renderable, console=get_error_console(), refresh_per_second=10) as live:
+
+        def update_status(message: str):
+            live.update(Spinner(spinner, text=message))
+
+        token = _progress_callback.set(update_status)
+        # log.propagate = False
+        try:
+            yield live
+        finally:
+            # log.propagate = True
+            _progress_callback.reset(token)
+
+
+# setup
+log = logging.getLogger("oops")
+log.setLevel(logging.INFO)
+log.propagate = False
+log.addHandler(ProgressHandler())

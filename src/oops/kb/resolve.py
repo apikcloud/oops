@@ -21,9 +21,9 @@ Algorithm
    tier order and emit a warning.
 """
 
-import logging
 from collections import deque
 
+from oops.core.logger import log
 from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
 # Static tier precedence used as tie-breaker (lower index = higher precedence).
@@ -122,7 +122,7 @@ def resolve_symbol(
     # Warn if the winning module is not in the depends chain at all —
     # likely a missing depends declaration.
     if best["module"] not in chain_index:
-        logging.warning(
+        log.warning(
             "Symbol resolved via tier fallback (module '%s' not in depends chain "
             "of '%s'). Consider adding it to the manifest depends.",
             best["module"],

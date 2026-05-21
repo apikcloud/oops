@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import contextlib
 import difflib
-import logging
 import os
 import re
 import shutil
@@ -30,6 +29,7 @@ import click
 from git.repo import Repo
 from oops.core.config import config
 from oops.core.exceptions import ConfigError
+from oops.core.logger import log
 from oops.core.models import AddonInfo, ImageInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
 from oops.io.manifest import load_manifest
@@ -640,8 +640,8 @@ def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
     if tmp.exists():
         raise ValueError(f"Temporary path already exists: {tmp}")
 
-    logging.debug(f"[oops] materialize: {symlink_path} -> {target}")
-    logging.debug(f"[oops] tmp copy:   {tmp}")
+    log.debug(f"[oops] materialize: {symlink_path} -> {target}")
+    log.debug(f"[oops] tmp copy:   {tmp}")
 
     if dry_run:
         return

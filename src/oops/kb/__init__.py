@@ -5,16 +5,4 @@
 
 """Knowledge Base package: scanner, store, resolver, and shared logging setup."""
 
-import logging
 
-
-def setup_kb_logging(verbose: bool) -> None:
-    """Configure root logging for KB commands.
-
-    Args:
-        verbose: If True, set level to DEBUG; otherwise INFO.
-    """
-    logging.basicConfig(
-        level=logging.DEBUG if verbose else logging.INFO,
-        format="%(message)s",
-    )

@@ -9,13 +9,13 @@ Odoo only loads Python files that are explicitly imported through the
 package's __init__.py chain. This module resolves that set so callers
 can mirror Odoo's loading semantics rather than what's on disk.
 """
+
 from __future__ import annotations
 
 import ast
-import logging
 from pathlib import Path
 
-log = logging.getLogger(__name__)
+from oops.core.logger import log
 
 
 def discover_imported_files(package_dir: Path) -> list[Path]:
@@ -77,9 +77,7 @@ def _walk(package_dir: Path, seen: set[Path], out: list[Path]) -> None:
                 _resolve_name(package_dir, node.module, seen, out)
 
 
-def _resolve_name(
-    package_dir: Path, name: str, seen: set[Path], out: list[Path]
-) -> None:
+def _resolve_name(package_dir: Path, name: str, seen: set[Path], out: list[Path]) -> None:
     py_file = package_dir / f"{name}.py"
     if py_file.is_file():
         resolved = py_file.resolve()

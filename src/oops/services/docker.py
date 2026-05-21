@@ -221,7 +221,8 @@ def find_available_images(
     available = fetch_odoo_images()
 
     items = [
-        i for i in available
+        i
+        for i in available
         if i.major_version == version
         and i.enterprise == enterprise
         and i.collection in config.images.collections
@@ -241,5 +242,3 @@ def find_available_images(
             item.delta = abs((release - item.release).days) if release else 0
 
     return items
-
-

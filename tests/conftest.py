@@ -1,5 +1,7 @@
 """Shared pytest fixtures for the oops test suite."""
 
+import logging
+
 import pytest
 
 MINIMAL_CONFIG = (
@@ -12,6 +14,16 @@ MINIMAL_CONFIG = (
     "    warn:\n      - odoo\n"
     "manifest:\n  author: Acme\n"
 )
+
+
+@pytest.fixture(autouse=True)
+def _oops_log_propagate():
+    """Re-enable propagation so caplog can capture oops logger output."""
+    logger = logging.getLogger("oops")
+    old = logger.propagate
+    logger.propagate = True
+    yield
+    logger.propagate = old
 
 
 @pytest.fixture(autouse=True)

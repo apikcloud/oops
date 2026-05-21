@@ -3,7 +3,6 @@
 #
 # File: github.py — oops/services/github.py
 
-import logging
 import os
 import subprocess
 import zipfile
@@ -11,6 +10,7 @@ import zipfile
 import requests
 from oops.core.config import config
 from oops.core.exceptions import APIError
+from oops.core.logger import log
 from oops.core.models import WorkflowRunInfo
 from oops.utils.compat import Optional, Tuple
 from oops.utils.net import make_json_get
@@ -124,7 +124,7 @@ def get_latest_workflow_run(
     try:
         res = WorkflowRunInfo.from_dict(data)
     except Exception as e:
-        logging.error(f"Could not parse workflow run data: {e}")
+        log.error(f"Could not parse workflow run data: {e}")
         return None
 
     return res

@@ -10,12 +10,12 @@ rewrites class bodies to apply canonical section headers and Google-style
 docstring skeletons. Pure file-I/O — no git, no CLI."""
 
 import ast
-import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union
 
 import libcst as cst
+from oops.core.logger import log
 from oops.kb.resolve import (
     format_source_line,
     resolve_symbol,
@@ -221,7 +221,7 @@ def analyse_file(
     try:
         tree = ast.parse(source, filename=str(py_file))
     except SyntaxError as exc:
-        logging.getLogger(__name__).warning("Syntax error in %s: %s", py_file, exc)
+        log.warning("Syntax error in %s: %s", py_file, exc)
         return []
 
     results: List[ClassInfo] = []
@@ -241,18 +241,11 @@ def analyse_file(
         # _name absent → pure _inherit class; always an extender regardless of KB.
         # _name in _inherit → Odoo "reopen same model" extension pattern.
         # Only query the KB when _name is set and not self-referential.
-        is_new_model = (
-            _name is not None
-            and _name not in _inherit
-            and kb.is_model_creator(model_name, custom_module)
-        )
+        is_new_model = _name is not None and _name not in _inherit and kb.is_model_creator(model_name, custom_module)
         if is_new_model:
-            other_creators = [
-                c for c in kb.get_model_creators(model_name)
-                if c["module"] != custom_module
-            ]
+            other_creators = [c for c in kb.get_model_creators(model_name) if c["module"] != custom_module]
             if other_creators:
-                logging.getLogger(__name__).warning(
+                log.warning(
                     "Model '%s' claimed by multiple creators: %s (also in %s). "
                     "These modules may be mutually exclusive.",
                     model_name,
@@ -454,7 +447,7 @@ def _build_header_leading_line(section_name: str) -> List[cst.EmptyLine]:
 class _ModelRewriter(cst.CSTTransformer):
     def __init__(self, classes: List[ClassInfo]) -> None:
         self._classes = {ci.class_name: ci for ci in classes}
-        self._log = logging.getLogger(__name__)
+        self._log = log
 
     def leave_ClassDef(
         self,
@@ -696,7 +689,7 @@ def rewrite_file(py_file: Path, classes: List[ClassInfo]) -> str:
     try:
         tree = cst.parse_module(source)
     except cst.ParserSyntaxError as exc:
-        logging.getLogger(__name__).error("Cannot parse %s: %s", py_file, exc)
+        log.error("Cannot parse %s: %s", py_file, exc)
         return source
     new_tree = tree.visit(_ModelRewriter(classes))
     return new_tree.code

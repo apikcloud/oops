@@ -6,11 +6,11 @@
 from __future__ import annotations
 
 import json
-import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+from oops.core.logger import log
 from oops.core.models import Result
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
 from oops.io.file import find_addons
@@ -22,8 +22,6 @@ from oops.kb.scanner import (
 )
 from oops.kb.store import SCHEMA_VERSION, KBReader, write_project_kb
 from oops.kb.xml_scanner import scan_module_xml
-
-log = logging.getLogger(__name__)
 
 
 def _resolve_prototype_roles(scan_results: list[dict]) -> None:
@@ -135,8 +133,7 @@ def build_project_kb(
         _sv = _gkb.get_meta().get("schema_version")
     if _sv != str(SCHEMA_VERSION):
         raise FileNotFoundError(
-            f"Global KB at {global_kb} is on schema {_sv!r}, expected "
-            f"{SCHEMA_VERSION!r}. Re-run oops misc build-kb."
+            f"Global KB at {global_kb} is on schema {_sv!r}, expected {SCHEMA_VERSION!r}. Re-run oops misc build-kb."
         )
 
     cache_dir = repo_path / CACHE_DIR_NAME
@@ -146,45 +143,50 @@ def build_project_kb(
     allowed_modules: set[str] = set(modules_list)
 
     # --- Seed from global KB ---
-    log.info("Loading global KB: %s", global_kb)
+
+    log.info(f"Loading global KB: {global_kb}")
+
     with KBReader(global_kb) as kb:
         global_meta = kb.get_meta()
         global_sources = kb.get_sources()
         global_modules = kb.get_modules()
         global_symbols = [
-            dict(r) for r in kb._con.execute(
-                "SELECT model, name, kind, origin, module, source_file, "
-                "source_line, field_type, section FROM symbols"
+            dict(r)
+            for r in kb._con.execute(
+                "SELECT model, name, kind, origin, module, source_file, source_line, field_type, section FROM symbols"
             ).fetchall()
         ]
         global_field_refs = [
-            dict(r) for r in kb._con.execute(
+            dict(r)
+            for r in kb._con.execute(
                 "SELECT model, field_name, module, kwarg, target_method FROM field_refs"
             ).fetchall()
         ]
         global_model_origins = [
-            dict(r) for r in kb._con.execute(
+            dict(r)
+            for r in kb._con.execute(
                 "SELECT model, module, origin, role, model_type, "
                 "inherit_json, inherits_json, source_file, source_line "
                 "FROM model_origins"
             ).fetchall()
         ]
         global_views = [
-            dict(r) for r in kb._con.execute(
+            dict(r)
+            for r in kb._con.execute(
                 "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
                 "mode, source_file, source_line, fields_json, buttons_json FROM views"
             ).fetchall()
         ]
         global_actions = [
-            dict(r) for r in kb._con.execute(
-                "SELECT xml_id, module, origin, name, model, view_id, domain, "
-                "source_file, source_line FROM actions"
+            dict(r)
+            for r in kb._con.execute(
+                "SELECT xml_id, module, origin, name, model, view_id, domain, source_file, source_line FROM actions"
             ).fetchall()
         ]
         global_menus = [
-            dict(r) for r in kb._con.execute(
-                "SELECT xml_id, module, origin, name, action, parent_id, "
-                "source_file, source_line FROM menus"
+            dict(r)
+            for r in kb._con.execute(
+                "SELECT xml_id, module, origin, name, action, parent_id, source_file, source_line FROM menus"
             ).fetchall()
         ]
 
@@ -214,7 +216,8 @@ def build_project_kb(
         if not tier_modules:
             continue
 
-        log.info("Scanning %s tier (%d modules)…", origin, len(tier_modules))
+        log.info(f"Scanning {origin} tier ({len(tier_modules)}) modules)…")
+
         scanned = 0
 
         if origin == "local":
@@ -233,15 +236,20 @@ def build_project_kb(
         sources[origin] = str(tier_root)
 
         tier_result: dict = {
-            "modules": {}, "symbols": [], "field_refs": [], "model_origins": [],
-            "views": [], "actions": [], "menus": [],
+            "modules": {},
+            "symbols": [],
+            "field_refs": [],
+            "model_origins": [],
+            "views": [],
+            "actions": [],
+            "menus": [],
         }
         for _, real_module_path in tier_modules:
             manifest = real_module_path / "__manifest__.py"
             if not manifest.exists():
                 manifest = real_module_path / "__openerp__.py"
             if not manifest.exists():
-                log.debug("No manifest in %s, skipping.", real_module_path)
+                log.info(f"No manifest in {real_module_path}, skipping.")
                 continue
 
             scan = scan_module(real_module_path, origin, tier_root)
@@ -257,7 +265,7 @@ def build_project_kb(
 
             scanned += 1
 
-        log.info("  → %d modules scanned", scanned)
+        log.info(f"{scanned} modules scanned")
         project_scan_results.append(tier_result)
 
     # --- Scope (input list, not actually-scanned set) ---
@@ -269,7 +277,7 @@ def build_project_kb(
     _resolve_view_types(all_scan_results)
 
     # --- Write ---
-    log.info("Writing project KB → %s", db_path)
+    log.info(f"Writing project KB → {db_path}")
     write_result = write_project_kb(
         db_path=db_path,
         odoo_version=global_odoo_version,
@@ -329,8 +337,7 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
         sv = meta.get("schema_version")
         if sv != str(SCHEMA_VERSION):
             return True, (
-                f"project KB schema version {sv!r} differs from current "
-                f"{SCHEMA_VERSION!r} — rebuild required"
+                f"project KB schema version {sv!r} differs from current {SCHEMA_VERSION!r} — rebuild required"
             )
         project_ts = _parse_kb_timestamp(meta.get("generated_at"))
 

@@ -86,13 +86,13 @@ def read_installed_modules(repo_root: Path) -> InstalledModules | None:
             continue
         if line.startswith("#"):
             if line.startswith("# generated_at:"):
-                value = line[len("# generated_at:"):].strip()
+                value = line[len("# generated_at:") :].strip()
                 try:
                     generated_at = datetime.fromisoformat(value.replace("Z", "+00:00"))
                 except ValueError:
                     generated_at = None
             elif line.startswith("# generated_by:"):
-                generated_by = line[len("# generated_by:"):].strip()
+                generated_by = line[len("# generated_by:") :].strip()
             continue
         seen[line] = None
 

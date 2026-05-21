@@ -10,9 +10,9 @@ Sections:
     - Subprocess: wrappers around subprocess.run and shell script execution
 """
 
-import logging
 import subprocess
 
+from oops.core.logger import log
 from oops.utils.compat import Optional
 
 # ---------------------------------------------------------------------------
@@ -45,7 +45,7 @@ def run(
         kwargs["stdout"] = subprocess.PIPE
         kwargs["stderr"] = subprocess.PIPE
 
-    logging.debug(f"[{name or 'run'}] {' '.join(cmd)}")
+    log.debug(f"[{name or 'run'}] {' '.join(cmd)}")
 
     res = subprocess.run(cmd, check=check, **kwargs)
     return res.stdout if capture else None

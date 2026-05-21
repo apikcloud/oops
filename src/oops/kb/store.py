@@ -50,11 +50,11 @@ idx_menus_module        on menus(module)
 """
 
 import json
-import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+from oops.core.logger import log
 from oops.core.models import Result
 from oops.utils.compat import Any, Dict, List, Optional
 
@@ -270,8 +270,15 @@ def _write_kb(
             # Schema may have evolved: drop and re-create all data tables so column
             # additions always land on existing on-disk databases.
             for table in (
-                "views", "actions", "menus",
-                "field_refs", "symbols", "model_origins", "modules", "sources", "meta",
+                "views",
+                "actions",
+                "menus",
+                "field_refs",
+                "symbols",
+                "model_origins",
+                "modules",
+                "sources",
+                "meta",
             ):
                 con.execute(f"DROP TABLE IF EXISTS {table}")
             con.executescript(_DDL)
@@ -377,11 +384,18 @@ def _write_kb(
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
-                            view["xml_id"], view["module"], view["origin"],
-                            view.get("name"), view.get("model"), view.get("view_type"),
-                            view.get("inherit_id"), view["mode"],
-                            view["source_file"], view["source_line"],
-                            view.get("fields_json", "[]"), view.get("buttons_json", "[]"),
+                            view["xml_id"],
+                            view["module"],
+                            view["origin"],
+                            view.get("name"),
+                            view.get("model"),
+                            view.get("view_type"),
+                            view.get("inherit_id"),
+                            view["mode"],
+                            view["source_file"],
+                            view["source_line"],
+                            view.get("fields_json", "[]"),
+                            view.get("buttons_json", "[]"),
                         ),
                     )
 
@@ -394,10 +408,15 @@ def _write_kb(
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
-                            action["xml_id"], action["module"], action["origin"],
-                            action.get("name"), action.get("model"),
-                            action.get("view_id"), action.get("domain"),
-                            action["source_file"], action["source_line"],
+                            action["xml_id"],
+                            action["module"],
+                            action["origin"],
+                            action.get("name"),
+                            action.get("model"),
+                            action.get("view_id"),
+                            action.get("domain"),
+                            action["source_file"],
+                            action["source_line"],
                         ),
                     )
 
@@ -410,9 +429,14 @@ def _write_kb(
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
-                            menu["xml_id"], menu["module"], menu["origin"],
-                            menu.get("name"), menu.get("action"), menu.get("parent_id"),
-                            menu["source_file"], menu["source_line"],
+                            menu["xml_id"],
+                            menu["module"],
+                            menu["origin"],
+                            menu.get("name"),
+                            menu.get("action"),
+                            menu.get("parent_id"),
+                            menu["source_file"],
+                            menu["source_line"],
                         ),
                     )
     except sqlite3.Error as exc:
@@ -439,10 +463,19 @@ def _get_stats(db_path: Path) -> Result[dict]:
     n_actions = con.execute("SELECT COUNT(*) FROM actions").fetchone()[0]
     n_menus = con.execute("SELECT COUNT(*) FROM menus").fetchone()[0]
     con.close()
-    logging.debug(
+    log.debug(
         "KB written → %s  [%d modules | %d symbols: %d fields, %d methods | "
         "%d field_refs | %d model_origins | %d views | %d actions | %d menus]",
-        db_path, n_mod, n_sym, n_fld, n_mth, n_refs, n_orig, n_views, n_actions, n_menus,
+        db_path,
+        n_mod,
+        n_sym,
+        n_fld,
+        n_mth,
+        n_refs,
+        n_orig,
+        n_views,
+        n_actions,
+        n_menus,
     )
 
     result.data = {
@@ -758,8 +791,7 @@ class KBReader:
             List of action dicts with all columns.
         """
         rows = self._con.execute(
-            "SELECT xml_id, module, origin, name, model, view_id, domain, "
-            "source_file, source_line FROM actions"
+            "SELECT xml_id, module, origin, name, model, view_id, domain, source_file, source_line FROM actions"
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -770,8 +802,7 @@ class KBReader:
             List of menu dicts with all columns.
         """
         rows = self._con.execute(
-            "SELECT xml_id, module, origin, name, action, parent_id, "
-            "source_file, source_line FROM menus"
+            "SELECT xml_id, module, origin, name, action, parent_id, source_file, source_line FROM menus"
         ).fetchall()
         return [dict(r) for r in rows]
 

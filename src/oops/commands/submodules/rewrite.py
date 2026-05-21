@@ -13,7 +13,6 @@ the old path. Prompts for confirmation unless --force is used.
 
 from __future__ import annotations
 
-import logging
 import os
 import shutil
 from pathlib import Path
@@ -23,6 +22,7 @@ import click
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import EarlyExit
+from oops.core.logger import log
 from oops.core.messages import commit_messages
 from oops.io.file import (
     desired_path,
@@ -109,7 +109,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Opt
         if not dry_run:
             submodule.move(new_path)
 
-        logging.debug(moved)
+        log.debug(moved)
 
     if dry_run:
         click.echo("\nDry run mode, no changes applied.")
@@ -127,7 +127,7 @@ def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Opt
             p = Path(root) / name
             if p.is_symlink():
                 for oldp, newp in moved:
-                    logging.debug(p, ":", oldp, "->", newp)
+                    log.debug(p, ":", oldp, "->", newp)
                     if rewrite_symlink(p, oldp, newp):
                         rewrites += 1
                         repo.index.add([str(p)])

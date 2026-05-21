@@ -28,9 +28,10 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.logger import live_progress, log
+from oops.core.models import Result
 from oops.core.paths import global_kb_dir
 from oops.io.file import get_odoo_sources_dirs, list_odoo_sources_versions, parse_odoo_version
-from oops.kb import setup_kb_logging
 from oops.kb.build import _resolve_prototype_roles, _resolve_view_types
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
@@ -48,8 +49,6 @@ from oops.utils.render import (
     rule,
     warning_section,
 )
-from rich.live import Live
-from rich.spinner import Spinner
 
 
 @command("build-kb", help=__doc__)
@@ -72,7 +71,7 @@ def main(
     cache_dir: Path | None,
     verbose: bool,
 ) -> None:
-    setup_kb_logging(verbose)
+
     print_warning("This command is experimental and may change without notice between releases.")
     console = get_console()
 
@@ -107,21 +106,28 @@ def main(
     rule(f"Build global KB for Odoo {version}")
 
     # using Live for long-time processing
-    with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10) as live:
+    with live_progress():
         for path in get_odoo_sources_dirs(version):
             name = _ORIGIN_MAP.get(path.name, path.name)
 
-            live.update(Spinner("dots", text=f"Analyzing {name.capitalize()}..."))
+            log.info(f"Analyzing {name.capitalize()}...")
 
             if not path.exists():
                 continue
 
             for root in odoo_addons_roots(path):
-                result = scan_tier(root, name)
+                result: Result[dict] = scan_tier(root, name)
                 for w in result.warnings:
                     scan_warnings.append(f"[{name}] {w}")
 
                 xml_result = scan_tier_xml(root, name)
+
+                if result.data is None:
+                    result.data = {}
+
+                if xml_result.data is None:
+                    xml_result.data = {}
+
                 result.data["views"] = xml_result.data["views"]
                 result.data["actions"] = xml_result.data["actions"]
                 result.data["menus"] = xml_result.data["menus"]
@@ -147,12 +153,13 @@ def main(
 
             sources[name] = str(path)
 
-        live.update(Spinner("dots", text="Resolving prototype roles…"))
+        log.info("Resolving prototype roles…")
         _resolve_prototype_roles(scan_results)
-        live.update(Spinner("dots", text="Resolving view types…"))
+
+        log.info("Resolving view types…")
         _resolve_view_types(scan_results)
 
-        live.update(Spinner("dots", text=f"Writing file to {db_path}"))
+        log.info(f"Writing file to {db_path}")
         result = write_global_kb(
             db_path=db_path,
             odoo_version=version,

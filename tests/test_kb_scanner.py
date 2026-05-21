@@ -127,13 +127,13 @@ class TestParseFile:
     def test_syntax_error_returns_none(self, tmp_path, caplog):
         f = tmp_path / "bad.py"
         f.write_text("def broken(:\n    pass")
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="oops"):
             result = _parse_file(f)
         assert result is None
         assert any("bad.py" in msg or "Syntax" in msg for msg in caplog.messages)
 
     def test_missing_file_returns_none(self, tmp_path, caplog):
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="oops"):
             result = _parse_file(tmp_path / "nonexistent.py")
         assert result is None
 
@@ -275,9 +275,7 @@ class TestScanModule:
         assert result["modules"]["my_sale"]["origin"] == "apik"
 
     def test_manifest_depends_parsed(self, tmp_path):
-        module_dir = _make_module(
-            tmp_path, "my_sale", manifest="{'name': 'X', 'depends': ['sale', 'base']}"
-        )
+        module_dir = _make_module(tmp_path, "my_sale", manifest="{'name': 'X', 'depends': ['sale', 'base']}")
         result = scan_module(module_dir, origin="apik", tier_root=tmp_path)
         assert result["modules"]["my_sale"]["depends"] == ["sale", "base"]
 
@@ -490,7 +488,7 @@ class TestDiscoverRootAddons:
         repo_path = tmp_path / "project"
         repo_path.mkdir()
         (repo_path / "mod").symlink_to(real)
-        with caplog.at_level(logging.WARNING):
+        with caplog.at_level(logging.WARNING, logger="oops"):
             tiers = discover_root_addons(repo_path)
         assert all(len(v) == 0 for v in tiers.values())
         assert any("mod" in msg or "skip" in msg.lower() for msg in caplog.messages)
@@ -686,30 +684,36 @@ class TestClassifyMethod:
 class TestBuildModuleFieldRefs:
     def test_single_file_compute(self, tmp_path):
         f = tmp_path / "m.py"
-        f.write_text(textwrap.dedent("""\
+        f.write_text(
+            textwrap.dedent("""\
             from odoo import fields, models
             class M(models.Model):
                 _name = 'my.model'
                 x = fields.Boolean(compute='_compute_x')
-        """))
+        """)
+        )
         refs = build_module_field_refs([f])
         assert refs.get(("my.model", "_compute_x")) == ["compute"]
 
     def test_cross_file(self, tmp_path):
         fa = tmp_path / "a.py"
         fb = tmp_path / "b.py"
-        fa.write_text(textwrap.dedent("""\
+        fa.write_text(
+            textwrap.dedent("""\
             from odoo import fields, models
             class M(models.Model):
                 _name = 'my.model'
                 x = fields.Boolean(compute='_compute_x')
-        """))
-        fb.write_text(textwrap.dedent("""\
+        """)
+        )
+        fb.write_text(
+            textwrap.dedent("""\
             from odoo import fields, models
             class M(models.Model):
                 _inherit = 'my.model'
                 def _compute_x(self): pass
-        """))
+        """)
+        )
         refs = build_module_field_refs([fa, fb])
         assert ("my.model", "_compute_x") in refs
         assert "compute" in refs[("my.model", "_compute_x")]

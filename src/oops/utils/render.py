@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import logging
 import textwrap
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -13,6 +12,7 @@ from typing import TYPE_CHECKING
 import questionary
 from oops.core.config import config
 from oops.core.exceptions import OopsError
+from oops.core.logger import log
 from oops.utils.compat import Any, List, Optional
 from rich import box
 from rich.columns import Columns
@@ -353,9 +353,9 @@ def prompt_confirm(message: str, default: bool = False) -> bool:
 
 def render_result(result: "Result") -> None:
     """Surface a Result's diagnostics to the terminal."""
-    _log = logging.getLogger("oops")
+
     for m in result.messages:
-        _log.info(m)
+        log.info(m)
     warning_section(result.warnings)
     if result.errors:
         raise OopsError("\n".join(result.errors))
@@ -400,9 +400,7 @@ def render_text(result: "Result[ModuleSummary]") -> None:
     total_inherited_methods = sum(c.inherited_methods for c in summary.classes)
     total_missing = sum(c.missing_docstrings for c in summary.classes)
     data_count = sum(n for ext in summary.structure.data.values() for n in ext.values())
-    fields_own_total = sum(
-        (c.fields_base if c.is_new_model else c.fields_new) for c in summary.classes
-    )
+    fields_own_total = sum((c.fields_base if c.is_new_model else c.fields_new) for c in summary.classes)
     fields_inherited_total = sum(c.fields_inherited for c in summary.classes)
 
     stats_values = [
