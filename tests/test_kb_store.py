@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from oops.kb.store import SCHEMA_VERSION, KBReader, write_project_kb
+from oops.kb.store import KBReader, write_project_kb
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -85,7 +85,7 @@ class TestDDL:
         _write(db_path)
         with KBReader(db_path) as kb:
             meta = kb.get_meta()
-        assert meta.get("schema_version") == str(SCHEMA_VERSION)
+        assert meta.get("schema_version") == "4"
 
     def test_write_twice_applies_schema_cleanly(self, tmp_path):
         db_path = tmp_path / "kb.db"
@@ -249,7 +249,10 @@ class TestWriteResult:
         )
         assert result.ok
         assert result.data is not None
-        for key in ("file", "modules", "symbols", "fields", "methods", "field_refs", "model_origins"):
+        for key in (
+            "file", "modules", "symbols", "fields", "methods",
+            "field_refs", "model_origins", "views", "actions", "menus",
+        ):
             assert key in result.data, f"Missing key: {key}"
 
     def test_result_counters_match_inserted_data(self, tmp_path):
@@ -289,3 +292,155 @@ class TestWriteResult:
         )
         assert result.warnings == []
         assert result.errors == []
+
+
+# ---------------------------------------------------------------------------
+# TestXmlTables — views / actions / menus ingestion
+# ---------------------------------------------------------------------------
+
+
+def _view(xml_id: str, module: str = "sale", **kw: object) -> dict:
+    return {
+        "xml_id": xml_id,
+        "module": module,
+        "origin": kw.get("origin", "odoo"),
+        "name": kw.get("name"),
+        "model": kw.get("model", "sale.order"),
+        "view_type": kw.get("view_type", "form"),
+        "inherit_id": kw.get("inherit_id"),
+        "mode": kw.get("mode", "primary"),
+        "source_file": kw.get("source_file", "sale/views/form.xml"),
+        "source_line": kw.get("source_line", 1),
+        "fields_json": kw.get("fields_json", "[]"),
+        "buttons_json": kw.get("buttons_json", "[]"),
+    }
+
+
+def _action(xml_id: str, module: str = "sale", **kw: object) -> dict:
+    return {
+        "xml_id": xml_id,
+        "module": module,
+        "origin": kw.get("origin", "odoo"),
+        "name": kw.get("name", "My Action"),
+        "model": kw.get("model", "sale.order"),
+        "view_id": kw.get("view_id"),
+        "domain": kw.get("domain"),
+        "source_file": kw.get("source_file", "sale/views/act.xml"),
+        "source_line": kw.get("source_line", 1),
+    }
+
+
+def _menu(xml_id: str, module: str = "sale", **kw: object) -> dict:
+    return {
+        "xml_id": xml_id,
+        "module": module,
+        "origin": kw.get("origin", "odoo"),
+        "name": kw.get("name", "My Menu"),
+        "action": kw.get("action"),
+        "parent_id": kw.get("parent_id"),
+        "source_file": kw.get("source_file", "sale/views/menu.xml"),
+        "source_line": kw.get("source_line", 1),
+    }
+
+
+class TestXmlTables:
+    def test_tables_exist_after_empty_write(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(db_path)
+        import sqlite3
+        con = sqlite3.connect(str(db_path))
+        tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        con.close()
+        assert "views" in tables
+        assert "actions" in tables
+        assert "menus" in tables
+
+    def test_view_ingestion_round_trip(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        v = _view("sale.view_order_form", fields_json='["name","partner_id"]')
+        write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{"views": [v], "actions": [], "menus": []}],
+        )
+        with KBReader(db_path) as kb:
+            views = kb.get_views()
+            single = kb.get_view("sale.view_order_form")
+        assert len(views) == 1
+        assert views[0]["xml_id"] == "sale.view_order_form"
+        assert views[0]["view_type"] == "form"
+        assert single is not None
+        assert single["xml_id"] == "sale.view_order_form"
+
+    def test_action_ingestion_round_trip(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        a = _action("sale.action_orders")
+        write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{"views": [], "actions": [a], "menus": []}],
+        )
+        with KBReader(db_path) as kb:
+            actions = kb.get_actions()
+        assert len(actions) == 1
+        assert actions[0]["xml_id"] == "sale.action_orders"
+
+    def test_menu_ingestion_round_trip(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        m = _menu("sale.menu_root")
+        write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{"views": [], "actions": [], "menus": [m]}],
+        )
+        with KBReader(db_path) as kb:
+            menus = kb.get_menus()
+        assert len(menus) == 1
+        assert menus[0]["xml_id"] == "sale.menu_root"
+
+    def test_second_write_clears_old_rows(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{"views": [_view("sale.view_a")], "actions": [], "menus": []}],
+        )
+        write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{"views": [_view("sale.view_b")], "actions": [], "menus": []}],
+        )
+        with KBReader(db_path) as kb:
+            views = kb.get_views()
+        xml_ids = {v["xml_id"] for v in views}
+        assert "sale.view_a" not in xml_ids
+        assert "sale.view_b" in xml_ids
+
+    def test_duplicate_xml_id_uses_last_write(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        v1 = _view("sale.view_form", view_type="form")
+        v2 = _view("sale.view_form", view_type="list")
+        write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{"views": [v1, v2], "actions": [], "menus": []}],
+        )
+        with KBReader(db_path) as kb:
+            views = kb.get_views()
+        assert len(views) == 1
+        assert views[0]["view_type"] == "list"
+
+    def test_get_view_missing_returns_none(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(db_path)
+        with KBReader(db_path) as kb:
+            assert kb.get_view("nonexistent.view") is None
+
+    def test_stats_include_xml_counts(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        result = write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{
+                "views": [_view("sale.view_form")],
+                "actions": [_action("sale.action")],
+                "menus": [_menu("sale.menu")],
+            }],
+        )
+        assert result.data is not None
+        assert result.data["views"] == 1
+        assert result.data["actions"] == 1
+        assert result.data["menus"] == 1

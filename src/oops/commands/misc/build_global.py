@@ -31,9 +31,10 @@ from oops.commands.base import command
 from oops.core.paths import global_kb_dir
 from oops.io.file import get_odoo_sources_dirs, list_odoo_sources_versions, parse_odoo_version
 from oops.kb import setup_kb_logging
-from oops.kb.build import _resolve_prototype_roles
+from oops.kb.build import _resolve_prototype_roles, _resolve_view_types
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
+from oops.kb.xml_scanner import scan_tier_xml
 from oops.services.git import require_repository
 from oops.utils.render import (
     conclude,
@@ -117,10 +118,17 @@ def main(
 
             for root in odoo_addons_roots(path):
                 result = scan_tier(root, name)
-                scan_results.append(result.data)
                 for w in result.warnings:
                     scan_warnings.append(f"[{name}] {w}")
 
+                xml_result = scan_tier_xml(root, name)
+                result.data["views"] = xml_result.data["views"]
+                result.data["actions"] = xml_result.data["actions"]
+                result.data["menus"] = xml_result.data["menus"]
+                for w in xml_result.warnings:
+                    scan_warnings.append(f"[{name}] {w}")
+
+                scan_results.append(result.data)
                 data = result.data or {}
 
                 summary.append(
@@ -131,6 +139,9 @@ def main(
                         "symbols": len(data.get("symbols", [])),
                         "field_refs": len(data.get("field_refs", [])),
                         "origins": len(data.get("model_origins", [])),
+                        "views": len(data.get("views", [])),
+                        "actions": len(data.get("actions", [])),
+                        "menus": len(data.get("menus", [])),
                     }
                 )
 
@@ -138,6 +149,8 @@ def main(
 
         live.update(Spinner("dots", text="Resolving prototype roles…"))
         _resolve_prototype_roles(scan_results)
+        live.update(Spinner("dots", text="Resolving view types…"))
+        _resolve_view_types(scan_results)
 
         live.update(Spinner("dots", text=f"Writing file to {db_path}"))
         result = write_global_kb(
@@ -178,6 +191,9 @@ def main(
             ["Symbols", str(stats["symbols"])],
             ["Fields", str(stats["fields"])],
             ["Methods", str(stats["methods"])],
+            ["Views", str(stats["views"])],
+            ["Actions", str(stats["actions"])],
+            ["Menus", str(stats["menus"])],
         ],
     )
 

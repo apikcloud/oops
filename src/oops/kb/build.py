@@ -21,6 +21,7 @@ from oops.kb.scanner import (
     tier_root_from_real_path,
 )
 from oops.kb.store import SCHEMA_VERSION, KBReader, write_project_kb
+from oops.kb.xml_scanner import scan_module_xml
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +51,48 @@ def _resolve_prototype_roles(scan_results: list[dict]) -> None:
             inherit_targets: list[str] = json.loads(entry.get("inherit_json", "[]"))
             if any(t in concrete_models for t in inherit_targets):
                 entry["role"] = "prototype"
+
+
+_VIEW_TYPE_MAX_DEPTH = 10
+
+
+def _resolve_view_types(scan_results: list[dict]) -> None:
+    """In-place: fill `view_type` for extension views (those with view_type=None).
+
+    Recursively follows `inherit_id` chains up to _VIEW_TYPE_MAX_DEPTH. On
+    failure (missing parent, cycle, or depth exceeded) sets `view_type` to
+    'unresolved' — never leaves it as None.
+
+    Args:
+        scan_results: List of ScanResult dicts, mutated in place.
+    """
+    index: dict[str, dict] = {}
+    for result in scan_results:
+        for view in result.get("views", []):
+            index[view["xml_id"]] = view
+
+    def resolve(view: dict, depth: int = 0, seen: set | None = None) -> str:
+        if seen is None:
+            seen = set()
+        if depth >= _VIEW_TYPE_MAX_DEPTH:
+            return "unresolved"
+        vt = view.get("view_type")
+        if vt is not None:
+            return vt
+        parent_id = view.get("inherit_id")
+        if not parent_id or parent_id in seen:
+            return "unresolved"
+        parent = index.get(parent_id)
+        if parent is None:
+            return "unresolved"
+        seen.add(parent_id)
+        resolved = resolve(parent, depth + 1, seen)
+        return resolved if resolved else "unresolved"
+
+    for result in scan_results:
+        for view in result.get("views", []):
+            if view.get("view_type") is None:
+                view["view_type"] = resolve(view)
 
 
 def build_project_kb(
@@ -126,12 +169,33 @@ def build_project_kb(
                 "FROM model_origins"
             ).fetchall()
         ]
+        global_views = [
+            dict(r) for r in kb._con.execute(
+                "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
+                "mode, source_file, source_line, fields_json, buttons_json FROM views"
+            ).fetchall()
+        ]
+        global_actions = [
+            dict(r) for r in kb._con.execute(
+                "SELECT xml_id, module, origin, name, model, view_id, domain, "
+                "source_file, source_line FROM actions"
+            ).fetchall()
+        ]
+        global_menus = [
+            dict(r) for r in kb._con.execute(
+                "SELECT xml_id, module, origin, name, action, parent_id, "
+                "source_file, source_line FROM menus"
+            ).fetchall()
+        ]
 
     global_scan = {
         "modules": global_modules,
         "symbols": global_symbols,
         "field_refs": global_field_refs,
         "model_origins": global_model_origins,
+        "views": global_views,
+        "actions": global_actions,
+        "menus": global_menus,
     }
 
     global_odoo_version = global_meta.get("odoo_version", version)
@@ -168,7 +232,10 @@ def build_project_kb(
 
         sources[origin] = str(tier_root)
 
-        tier_result: dict = {"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}
+        tier_result: dict = {
+            "modules": {}, "symbols": [], "field_refs": [], "model_origins": [],
+            "views": [], "actions": [], "menus": [],
+        }
         for _, real_module_path in tier_modules:
             manifest = real_module_path / "__manifest__.py"
             if not manifest.exists():
@@ -182,6 +249,12 @@ def build_project_kb(
             tier_result["symbols"].extend(scan["symbols"])
             tier_result["field_refs"].extend(scan.get("field_refs", []))
             tier_result["model_origins"].extend(scan.get("model_origins", []))
+
+            xml_scan = scan_module_xml(real_module_path, origin, tier_root)
+            tier_result["views"].extend(xml_scan.get("views", []))
+            tier_result["actions"].extend(xml_scan.get("actions", []))
+            tier_result["menus"].extend(xml_scan.get("menus", []))
+
             scanned += 1
 
         log.info("  → %d modules scanned", scanned)
@@ -190,9 +263,10 @@ def build_project_kb(
     # --- Scope (input list, not actually-scanned set) ---
     scope = sorted(modules_list)
 
-    # --- Resolve prototype roles across all scan results ---
+    # --- Resolve prototype roles and view types across all scan results ---
     all_scan_results = [global_scan] + project_scan_results
     _resolve_prototype_roles(all_scan_results)
+    _resolve_view_types(all_scan_results)
 
     # --- Write ---
     log.info("Writing project KB → %s", db_path)

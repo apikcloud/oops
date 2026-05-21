@@ -9,7 +9,7 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema (v3)
+Schema (v4)
 -----------
 meta          (key, value)
 sources       (origin, path)
@@ -21,6 +21,14 @@ model_origins (model, module, origin, role, model_type,
                inherit_json, inherits_json, source_file, source_line)
               role: 'create' | 'extend' | 'prototype'
               model_type: 'model' | 'transient' | 'abstract'
+views         (xml_id, module, origin, name, model, view_type, inherit_id,
+               mode, source_file, source_line, fields_json, buttons_json)
+              mode: 'primary' | 'extension'
+              view_type: NULL during pass 1, 'unresolved' if pass 2 fails
+actions       (xml_id, module, origin, name, model, view_id, domain,
+               source_file, source_line)
+menus         (xml_id, module, origin, name, action, parent_id,
+               source_file, source_line)
 
 Indexes
 -------
@@ -30,6 +38,15 @@ idx_modules_origin      on modules(origin)
 idx_field_refs_target   on field_refs(model, target_method)
 idx_model_origins_model on model_origins(model)
 idx_model_origins_role  on model_origins(model, role)
+idx_views_model         on views(model)
+idx_views_inherit       on views(inherit_id)
+idx_views_module        on views(module)
+idx_views_origin        on views(origin)
+idx_actions_model       on actions(model)
+idx_actions_module      on actions(module)
+idx_menus_action        on menus(action)
+idx_menus_parent        on menus(parent_id)
+idx_menus_module        on menus(module)
 """
 
 import json
@@ -45,7 +62,7 @@ from oops.utils.compat import Any, Dict, List, Optional
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 3  # added model_origins table (role, model_type, inherit_json, inherits_json)
+SCHEMA_VERSION = 4  # added views/actions/menus tables
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -112,6 +129,53 @@ CREATE TABLE IF NOT EXISTS model_origins (
 );
 CREATE INDEX IF NOT EXISTS idx_model_origins_model ON model_origins (model);
 CREATE INDEX IF NOT EXISTS idx_model_origins_role  ON model_origins (model, role);
+
+CREATE TABLE IF NOT EXISTS views (
+    xml_id       TEXT NOT NULL PRIMARY KEY,
+    module       TEXT NOT NULL,
+    origin       TEXT NOT NULL,
+    name         TEXT,
+    model        TEXT,
+    view_type    TEXT,
+    inherit_id   TEXT,
+    mode         TEXT NOT NULL,
+    source_file  TEXT NOT NULL,
+    source_line  INTEGER NOT NULL,
+    fields_json  TEXT NOT NULL DEFAULT '[]',
+    buttons_json TEXT NOT NULL DEFAULT '[]'
+);
+CREATE INDEX IF NOT EXISTS idx_views_model   ON views (model);
+CREATE INDEX IF NOT EXISTS idx_views_inherit ON views (inherit_id);
+CREATE INDEX IF NOT EXISTS idx_views_module  ON views (module);
+CREATE INDEX IF NOT EXISTS idx_views_origin  ON views (origin);
+
+CREATE TABLE IF NOT EXISTS actions (
+    xml_id       TEXT NOT NULL PRIMARY KEY,
+    module       TEXT NOT NULL,
+    origin       TEXT NOT NULL,
+    name         TEXT,
+    model        TEXT,
+    view_id      TEXT,
+    domain       TEXT,
+    source_file  TEXT NOT NULL,
+    source_line  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_actions_model  ON actions (model);
+CREATE INDEX IF NOT EXISTS idx_actions_module ON actions (module);
+
+CREATE TABLE IF NOT EXISTS menus (
+    xml_id       TEXT NOT NULL PRIMARY KEY,
+    module       TEXT NOT NULL,
+    origin       TEXT NOT NULL,
+    name         TEXT,
+    action       TEXT,
+    parent_id    TEXT,
+    source_file  TEXT NOT NULL,
+    source_line  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_menus_action  ON menus (action);
+CREATE INDEX IF NOT EXISTS idx_menus_parent  ON menus (parent_id);
+CREATE INDEX IF NOT EXISTS idx_menus_module  ON menus (module);
 """
 
 
@@ -205,7 +269,10 @@ def _write_kb(
         with con:
             # Schema may have evolved: drop and re-create all data tables so column
             # additions always land on existing on-disk databases.
-            for table in ("field_refs", "symbols", "model_origins", "modules", "sources", "meta"):
+            for table in (
+                "views", "actions", "menus",
+                "field_refs", "symbols", "model_origins", "modules", "sources", "meta",
+            ):
                 con.execute(f"DROP TABLE IF EXISTS {table}")
             con.executescript(_DDL)
 
@@ -300,6 +367,54 @@ def _write_kb(
                             orig["source_line"],
                         ),
                     )
+
+                for view in scan.get("views", []):
+                    con.execute(
+                        """
+                        INSERT OR REPLACE INTO views
+                            (xml_id, module, origin, name, model, view_type, inherit_id,
+                             mode, source_file, source_line, fields_json, buttons_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            view["xml_id"], view["module"], view["origin"],
+                            view.get("name"), view.get("model"), view.get("view_type"),
+                            view.get("inherit_id"), view["mode"],
+                            view["source_file"], view["source_line"],
+                            view.get("fields_json", "[]"), view.get("buttons_json", "[]"),
+                        ),
+                    )
+
+                for action in scan.get("actions", []):
+                    con.execute(
+                        """
+                        INSERT OR REPLACE INTO actions
+                            (xml_id, module, origin, name, model, view_id, domain,
+                             source_file, source_line)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            action["xml_id"], action["module"], action["origin"],
+                            action.get("name"), action.get("model"),
+                            action.get("view_id"), action.get("domain"),
+                            action["source_file"], action["source_line"],
+                        ),
+                    )
+
+                for menu in scan.get("menus", []):
+                    con.execute(
+                        """
+                        INSERT OR REPLACE INTO menus
+                            (xml_id, module, origin, name, action, parent_id,
+                             source_file, source_line)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            menu["xml_id"], menu["module"], menu["origin"],
+                            menu.get("name"), menu.get("action"), menu.get("parent_id"),
+                            menu["source_file"], menu["source_line"],
+                        ),
+                    )
     except sqlite3.Error as exc:
         kb_result.add_error(f"KB write failed: {exc}")
         return kb_result
@@ -320,16 +435,14 @@ def _get_stats(db_path: Path) -> Result[dict]:
     n_mth = con.execute("SELECT COUNT(*) FROM symbols WHERE kind='method'").fetchone()[0]
     n_refs = con.execute("SELECT COUNT(*) FROM field_refs").fetchone()[0]
     n_orig = con.execute("SELECT COUNT(*) FROM model_origins").fetchone()[0]
+    n_views = con.execute("SELECT COUNT(*) FROM views").fetchone()[0]
+    n_actions = con.execute("SELECT COUNT(*) FROM actions").fetchone()[0]
+    n_menus = con.execute("SELECT COUNT(*) FROM menus").fetchone()[0]
     con.close()
     logging.debug(
-        "KB written → %s  [%d modules | %d symbols: %d fields, %d methods | %d field_refs | %d model_origins]",
-        db_path,
-        n_mod,
-        n_sym,
-        n_fld,
-        n_mth,
-        n_refs,
-        n_orig,
+        "KB written → %s  [%d modules | %d symbols: %d fields, %d methods | "
+        "%d field_refs | %d model_origins | %d views | %d actions | %d menus]",
+        db_path, n_mod, n_sym, n_fld, n_mth, n_refs, n_orig, n_views, n_actions, n_menus,
     )
 
     result.data = {
@@ -340,6 +453,9 @@ def _get_stats(db_path: Path) -> Result[dict]:
         "methods": n_mth,
         "field_refs": n_refs,
         "model_origins": n_orig,
+        "views": n_views,
+        "actions": n_actions,
+        "menus": n_menus,
     }
 
     return result
@@ -601,6 +717,61 @@ class KBReader:
             ORDER  BY module, kwarg, field_name
             """,
             (model, target_method),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    # --- views / actions / menus ---
+
+    def get_views(self) -> List[Dict[str, Any]]:
+        """Return all indexed views.
+
+        Returns:
+            List of view dicts with all columns.
+        """
+        rows = self._con.execute(
+            "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
+            "mode, source_file, source_line, fields_json, buttons_json FROM views"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_view(self, xml_id: str) -> Optional[Dict[str, Any]]:
+        """Return a single view by xml_id, or None if absent.
+
+        Args:
+            xml_id: Fully-qualified xml_id (e.g. ``'sale.view_order_form'``).
+
+        Returns:
+            Dict with all view columns, or None.
+        """
+        row = self._con.execute(
+            "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
+            "mode, source_file, source_line, fields_json, buttons_json FROM views "
+            "WHERE xml_id = ?",
+            (xml_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_actions(self) -> List[Dict[str, Any]]:
+        """Return all indexed actions.
+
+        Returns:
+            List of action dicts with all columns.
+        """
+        rows = self._con.execute(
+            "SELECT xml_id, module, origin, name, model, view_id, domain, "
+            "source_file, source_line FROM actions"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_menus(self) -> List[Dict[str, Any]]:
+        """Return all indexed menus.
+
+        Returns:
+            List of menu dicts with all columns.
+        """
+        rows = self._con.execute(
+            "SELECT xml_id, module, origin, name, action, parent_id, "
+            "source_file, source_line FROM menus"
         ).fetchall()
         return [dict(r) for r in rows]
 

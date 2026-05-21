@@ -513,3 +513,127 @@ class TestKBReaderModelOrigins:
         with KBReader(db) as kb:
             assert kb.get_model_origin("res.client", "partner_hub") == "create"
             assert kb.get_model_origin("res.client", "unknown") is None
+
+
+# ---------------------------------------------------------------------------
+# TestXmlEndToEnd — cross-layer view-type resolution
+# ---------------------------------------------------------------------------
+
+
+def _make_global_kb_with_views(path: Path) -> Path:
+    """Write a global KB containing a primary form view from the base module."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_global_kb(
+        db_path=path,
+        odoo_version="17.0",
+        sources={"odoo": "/odoo/src"},
+        scan_results=[
+            {
+                "modules": {"base": {"origin": "odoo", "depends": []}},
+                "symbols": [],
+                "views": [
+                    {
+                        "xml_id": "base.view_form_primary",
+                        "module": "base",
+                        "origin": "odoo",
+                        "name": "base.form.primary",
+                        "model": "res.partner",
+                        "view_type": "form",
+                        "inherit_id": None,
+                        "mode": "primary",
+                        "source_file": "base/views/res_partner_views.xml",
+                        "source_line": 5,
+                        "fields_json": '["name"]',
+                        "buttons_json": "[]",
+                    }
+                ],
+                "actions": [],
+                "menus": [],
+            }
+        ],
+    )
+    return path
+
+
+def _odoo_xml(body: str) -> str:
+    return f'<?xml version="1.0" encoding="utf-8"?>\n<odoo>\n{body}\n</odoo>\n'
+
+
+class TestXmlEndToEnd:
+    def _make_apik_module_with_extension(self, parent: Path, name: str) -> Path:
+        """Create an apik module with an extension view for base.view_form_primary."""
+        mod = parent / name
+        mod.mkdir(parents=True, exist_ok=True)
+        (mod / "__manifest__.py").write_text(
+            "{'name': 'Apik Module', 'depends': ['base'], 'data': ['views/ext.xml']}",
+            encoding="utf-8",
+        )
+        views_dir = mod / "views"
+        views_dir.mkdir()
+        (views_dir / "ext.xml").write_text(
+            _odoo_xml(
+                """<record id="view_form_ext" model="ir.ui.view">
+                    <field name="inherit_id" ref="base.view_form_primary"/>
+                    <field name="arch" type="xml">
+                        <xpath expr="//field[@name='name']" position="after">
+                            <field name="ref"/>
+                        </xpath>
+                    </field>
+                </record>"""
+            ),
+            encoding="utf-8",
+        )
+        return mod
+
+    def test_extension_view_type_resolved_from_global_kb(self, tmp_path):
+        """Cross-layer resolution: apik extension inherits view_type from global KB."""
+        global_kb = _make_global_kb_with_views(tmp_path / "global.db")
+
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        apik_dir = repo / "apik-addons"
+        apik_dir.mkdir()
+        mod_dir = self._make_apik_module_with_extension(apik_dir, "my_apik_mod")
+        (repo / "my_apik_mod").symlink_to(mod_dir)
+
+        db_path = build_project_kb(
+            repo, "17.0", ["my_apik_mod"], global_kb=global_kb
+        ).data
+        assert db_path is not None
+
+        with KBReader(db_path) as kb:
+            views = kb.get_views()
+
+        by_id = {v["xml_id"]: v for v in views}
+
+        # Global view seeded from global KB — origin odoo
+        assert "base.view_form_primary" in by_id
+        assert by_id["base.view_form_primary"]["origin"] == "odoo"
+        assert by_id["base.view_form_primary"]["view_type"] == "form"
+
+        # Apik extension resolved to form via pass-2
+        ext_id = "my_apik_mod.view_form_ext"
+        assert ext_id in by_id, f"Extension view {ext_id!r} missing from KB"
+        assert by_id[ext_id]["origin"] == "apik"
+        assert by_id[ext_id]["view_type"] == "form"
+
+    def test_origins_correct_across_tiers(self, tmp_path):
+        """Global-tier views keep origin='odoo'; project-tier views get origin='apik'."""
+        global_kb = _make_global_kb_with_views(tmp_path / "global.db")
+
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        apik_dir = repo / "apik-addons"
+        apik_dir.mkdir()
+        mod_dir = self._make_apik_module_with_extension(apik_dir, "mod_a")
+        (repo / "mod_a").symlink_to(mod_dir)
+
+        db_path = build_project_kb(repo, "17.0", ["mod_a"], global_kb=global_kb).data
+        assert db_path is not None
+
+        with KBReader(db_path) as kb:
+            views = kb.get_views()
+
+        origins = {v["xml_id"]: v["origin"] for v in views}
+        assert origins.get("base.view_form_primary") == "odoo"
+        assert origins.get("mod_a.view_form_ext") == "apik"

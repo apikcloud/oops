@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- XML scanner: KB pipeline now indexes `ir.ui.view`, `ir.actions.act_window`, and `ir.ui.menu`
+  records (plus `<template>`, `<menuitem>`, `<act_window>` shorthands) from each module's
+  manifest `data` files. View-type resolution for extension views handled in a two-pass algorithm.
+
+### Changed
+
+- KB schema bumped to version 4. Existing global KBs (`~/.cache/oops/kb/`) must be rebuilt via
+  `oops misc build-kb`. Project KBs auto-rebuild on next `oops addons analyze` / `oops addons refactor`.
+
 ## [0.18.0] - 2026-05-19
 
 ### Added

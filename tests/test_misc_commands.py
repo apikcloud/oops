@@ -363,6 +363,7 @@ class TestBuildKb:
 
         from oops.commands.misc.build_global import main as build_kb_main
 
+        _xml_scan_data = {"views": [], "actions": [], "menus": []}
         with patch(
             "oops.commands.misc.build_global.get_odoo_sources_dirs",
             return_value=dirs,
@@ -375,7 +376,12 @@ class TestBuildKb:
                 data={"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}
             ),
         ) as mock_scan, patch(
+            "oops.commands.misc.build_global.scan_tier_xml",
+            return_value=Result(data=_xml_scan_data),
+        ), patch(
             "oops.commands.misc.build_global._resolve_prototype_roles"
+        ), patch(
+            "oops.commands.misc.build_global._resolve_view_types"
         ), patch(
             "oops.commands.misc.build_global.write_global_kb",
             return_value=Result(
@@ -387,6 +393,9 @@ class TestBuildKb:
                     "methods": 0,
                     "field_refs": 0,
                     "model_origins": 0,
+                    "views": 0,
+                    "actions": 0,
+                    "menus": 0,
                 }
             ),
         ) as mock_write:
@@ -420,6 +429,13 @@ class TestBuildKb:
         assert result.exit_code == 0, result.output
         tiers = [call.args[1] for call in mock_scan.call_args_list]
         assert "themes" not in tiers
+
+    def test_summary_panel_includes_xml_rows(self, tmp_path):
+        result, _, _ = self._invoke(tmp_path)
+        assert result.exit_code == 0, result.output
+        assert "Views" in result.output
+        assert "Actions" in result.output
+        assert "Menus" in result.output
 
     def test_writes_sources_map_with_themes_when_present(self, tmp_path):
         _, _, mock_write = self._invoke(tmp_path)

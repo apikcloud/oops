@@ -265,3 +265,99 @@ class TestResolveSymbol:
         result_a = resolve_symbol([not_in_chain, transitive, in_chain], "my_module", index)
         result_b = resolve_symbol([in_chain, not_in_chain, transitive], "my_module", index)
         assert result_a["module"] == result_b["module"] == "sale"
+
+
+# ---------------------------------------------------------------------------
+# TestResolveViewTypes
+# ---------------------------------------------------------------------------
+
+
+class TestResolveViewTypes:
+    from oops.kb.build import _resolve_view_types
+
+    def _primary(self, xml_id: str, view_type: str, module: str = "sale") -> dict:
+        return {
+            "xml_id": xml_id,
+            "view_type": view_type,
+            "inherit_id": None,
+            "mode": "primary",
+            "module": module,
+        }
+
+    def _extension(self, xml_id: str, inherit_id: str, module: str = "apik") -> dict:
+        return {
+            "xml_id": xml_id,
+            "view_type": None,
+            "inherit_id": inherit_id,
+            "mode": "extension",
+            "module": module,
+        }
+
+    def test_primary_view_unchanged(self):
+        from oops.kb.build import _resolve_view_types
+        v = self._primary("sale.view_form", "form")
+        _resolve_view_types([{"views": [v]}])
+        assert v["view_type"] == "form"
+
+    def test_extension_inherits_parent_type(self):
+        from oops.kb.build import _resolve_view_types
+        parent = self._primary("sale.view_form", "form")
+        child = self._extension("apik.view_form_ext", "sale.view_form")
+        _resolve_view_types([{"views": [parent, child]}])
+        assert child["view_type"] == "form"
+
+    def test_cross_layer_resolution(self):
+        from oops.kb.build import _resolve_view_types
+        global_view = self._primary("sale.view_form", "form", module="sale")
+        project_view = self._extension("apik.view_form_ext", "sale.view_form")
+        _resolve_view_types([{"views": [global_view]}, {"views": [project_view]}])
+        assert project_view["view_type"] == "form"
+
+    def test_chain_resolves_within_depth(self):
+        from oops.kb.build import _resolve_view_types
+        a = self._primary("sale.view_a", "kanban")
+        b = self._extension("mod.view_b", "sale.view_a")
+        c = self._extension("mod.view_c", "mod.view_b")
+        _resolve_view_types([{"views": [a, b, c]}])
+        assert c["view_type"] == "kanban"
+
+    def test_chain_exceeding_depth_resolves_to_unresolved(self):
+        from oops.kb.build import _VIEW_TYPE_MAX_DEPTH, _resolve_view_types
+        # Build primary + _VIEW_TYPE_MAX_DEPTH extension views.
+        # Reversed so the deepest child is processed first (ancestors still None).
+        primary = self._primary("root.view", "form", module="base")
+        extensions = []
+        for i in range(_VIEW_TYPE_MAX_DEPTH + 1):
+            parent = "root.view" if i == 0 else f"mod.view_{i - 1}"
+            extensions.append(self._extension(f"mod.view_{i}", parent))
+        # Process deepest child first so no ancestor is pre-resolved
+        views = list(reversed(extensions)) + [primary]
+        _resolve_view_types([{"views": views}])
+        # Deepest child (views[0] = mod.view_{MAX}) requires MAX+1 hops → unresolved
+        assert views[0]["view_type"] == "unresolved"
+
+    def test_cycle_resolves_to_unresolved(self):
+        from oops.kb.build import _resolve_view_types
+        a = self._extension("mod.view_a", "mod.view_b")
+        b = self._extension("mod.view_b", "mod.view_a")
+        _resolve_view_types([{"views": [a, b]}])
+        assert a["view_type"] == "unresolved"
+        assert b["view_type"] == "unresolved"
+
+    def test_missing_parent_resolves_to_unresolved(self):
+        from oops.kb.build import _resolve_view_types
+        child = self._extension("apik.view_ext", "sale.view_nonexistent")
+        _resolve_view_types([{"views": [child]}])
+        assert child["view_type"] == "unresolved"
+
+    def test_qweb_template_unchanged(self):
+        from oops.kb.build import _resolve_view_types
+        tpl = {
+            "xml_id": "mod.my_template",
+            "view_type": "qweb",
+            "inherit_id": None,
+            "mode": "primary",
+            "module": "mod",
+        }
+        _resolve_view_types([{"views": [tpl]}])
+        assert tpl["view_type"] == "qweb"
