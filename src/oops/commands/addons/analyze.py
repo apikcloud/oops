@@ -36,7 +36,6 @@ JSON output shape (--format json)::
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import click
@@ -54,11 +53,18 @@ from oops.io.refactor import ClassInfo, analyse_file
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
+from oops.output.formatters import AnalyzeJsonFormatter, OutputFormatter, SummaryConsoleFormatter
+from oops.presenters.analyze import prepare
 from oops.services.git import require_repository
 from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
-from oops.utils.render import conclude, render_json, render_text, warning_section
+
+FORMATTERS: dict[str, type[OutputFormatter]] = {
+    "text": SummaryConsoleFormatter,
+    "json": AnalyzeJsonFormatter,
+}
+
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -100,6 +106,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
     verbose: bool,
 ) -> None:
 
+    formatter: OutputFormatter = FORMATTERS[output_format]()
+
     json_mode = output_format == "json"
     outer: Result[None] = Result()
     if not json_mode:
@@ -109,8 +117,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     _, repo_path = require_repository()
     odoo_image = require_project(repo_path)
 
-    # using Live for long-time processing
-    # with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10, console=get_error_console()) as live:
+    # 1. Long-running processing — produces a typed Result of domain dataclasses.
 
     with live_progress():
         version = str(odoo_image.major_version)
@@ -222,18 +229,11 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
                 module_results.append(module_result)
 
-    if json_mode:
-        payload = {
-            "warnings": outer.warnings,
-            "modules": [render_json(r) for r in module_results],
-        }
-        click.echo(json.dumps(payload, indent=2, default=str))
-    else:
-        warning_section(outer.warnings)
-        for r in module_results:
-            render_text(r)
-        all_ok = outer.ok and all(r.ok for r in module_results)
-        conclude(all_ok, f"Done — analysed {len(resolved_paths)} module(s)")
+    # 2. Presenter prepares neutral dicts according to the formatter's audience.
+    output = prepare(module_results, outer, target=formatter.target)
+
+    # 3. Formatter renders. It does not know the domain dataclasses.
+    formatter.render(output)
 
 
 # ---------------------------------------------------------------------------

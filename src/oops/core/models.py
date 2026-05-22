@@ -281,3 +281,40 @@ class Result(Generic[T]):
         self.warnings.extend(other.warnings)
         self.errors.extend(other.errors)
         return self
+
+
+@dataclass
+class Table:
+    title: str
+    columns: list[tuple[str, str, str]]
+    rows: list
+    counter: Optional[int] = None
+
+
+@dataclass
+class MetricsPanel:
+    title: str
+    values: list[list[str]]
+
+
+@dataclass
+class Section:
+    title: str
+    panels: list[MetricsPanel]
+    tables: list[Table]
+    info: Optional[list] = field(default_factory=list)
+    warnings: Optional[list] = field(default_factory=list)
+
+
+@dataclass
+class Conclusion:
+    status: bool
+    message: str
+
+
+@dataclass
+class SummaryView:
+    title: str
+    sections: list[Section]
+    conclusion: Conclusion
+    warnings: Optional[list] = field(default_factory=list)
