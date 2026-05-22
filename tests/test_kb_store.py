@@ -22,12 +22,18 @@ def _write(
     symbols: list[dict] | None = None,
     field_refs: list[dict] | None = None,
     modules: dict | None = None,
+    views: list[dict] | None = None,
+    actions: list[dict] | None = None,
+    menus: list[dict] | None = None,
 ) -> None:
     scan_results = [
         {
             "modules": modules or {},
             "symbols": symbols or [],
             "field_refs": field_refs or [],
+            "views": views or [],
+            "actions": actions or [],
+            "menus": menus or [],
         }
     ]
     write_project_kb(
@@ -444,3 +450,58 @@ class TestXmlTables:
         assert result.data["views"] == 1
         assert result.data["actions"] == 1
         assert result.data["menus"] == 1
+
+
+# ---------------------------------------------------------------------------
+# TestModuleHelpers
+# ---------------------------------------------------------------------------
+
+
+class TestModuleHelpers:
+    def test_get_module_views_filtered(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            views=[
+                _view("mod_a.view_form_1", module="mod_a"),
+                _view("mod_a.view_list_1", module="mod_a"),
+                _view("mod_b.view_form_1", module="mod_b"),
+            ],
+        )
+        with KBReader(db_path) as kb:
+            rows = kb.get_module_views("mod_a")
+        assert len(rows) == 2
+        assert all(r["xml_id"].startswith("mod_a.") for r in rows)
+
+    def test_get_module_action_count(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            actions=[
+                _action("mod_a.act1", module="mod_a"),
+                _action("mod_a.act2", module="mod_a"),
+                _action("mod_b.act1", module="mod_b"),
+            ],
+        )
+        with KBReader(db_path) as kb:
+            assert kb.get_module_action_count("mod_a") == 2
+
+    def test_get_module_menu_count(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            menus=[
+                _menu("mod_a.menu1", module="mod_a"),
+                _menu("mod_a.menu2", module="mod_a"),
+                _menu("mod_b.menu1", module="mod_b"),
+            ],
+        )
+        with KBReader(db_path) as kb:
+            assert kb.get_module_menu_count("mod_a") == 2
+
+    def test_get_module_views_empty(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(db_path)
+        with KBReader(db_path) as kb:
+            rows = kb.get_module_views("nonexistent_module")
+        assert rows == []

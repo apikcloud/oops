@@ -366,7 +366,7 @@ def render_result(result: "Result") -> None:
 # ---------------------------------------------------------------------------
 
 if TYPE_CHECKING:
-    from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
+    from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary, ViewsSummary
 
 
 def render_text(result: "Result[ModuleSummary]") -> None:
@@ -414,6 +414,23 @@ def render_text(result: "Result[ModuleSummary]") -> None:
         ["Data files", str(data_count)],
     ]
 
+    vs = summary.views_summary
+    if vs is not None:
+        primary_total = sum(vs.primary_by_type.values())
+        if primary_total or vs.extensions or vs.actions or vs.menus:
+            stats_values.append(["Views (primary)", str(primary_total)])
+            if vs.extensions:
+                ext_str = str(vs.extensions)
+                if vs.extensions_upstream:
+                    ext_str += f" ({vs.extensions_upstream} upstream)"
+                stats_values.append(["Views (ext.)", ext_str])
+            if vs.actions:
+                stats_values.append(["Actions", str(vs.actions)])
+            if vs.menus:
+                stats_values.append(["Menus", str(vs.menus)])
+            if vs.unresolved:
+                stats_values.append(["Views unresolved", str(vs.unresolved)])
+
     p_manifest = metrics_panel("Manifest", manifest_values)
     p_stats = metrics_panel("Stats", stats_values)
 
@@ -451,6 +468,9 @@ def render_text(result: "Result[ModuleSummary]") -> None:
         if all_inherited:
             counter_rule("Inherited methods", len(all_inherited))
             _render_inherited_methods_table(all_inherited)
+
+    if summary.views_summary is not None:
+        _render_views_table(summary.views_summary)
 
     _render_structure_table(summary.structure)
 
@@ -505,13 +525,54 @@ def _render_inherited_methods_table(items: list[dict[str, str]]) -> None:
     console.print()
 
 
+_VIEW_TYPE_COLUMNS: tuple = (
+    "form", "list", "kanban", "search", "pivot", "graph",
+    "calendar", "gantt", "activity", "qweb", "cohort", "map",
+)
+
+
+def _render_views_table(vs: "ViewsSummary") -> None:
+    console = get_console()
+    primary_total = sum(vs.primary_by_type.values())
+    ext_total = sum(vs.extensions_by_type.values())
+    if not primary_total and not ext_total:
+        return
+
+    known = set(_VIEW_TYPE_COLUMNS)
+    extra = sorted(
+        t for t in (set(vs.primary_by_type) | set(vs.extensions_by_type))
+        if t not in known and t != "unresolved"
+    )
+    cols = list(_VIEW_TYPE_COLUMNS) + extra
+
+    def _cell(d: "dict[str, int]", key: str) -> str:
+        v = d.get(key, 0)
+        return str(v) if v else ""
+
+    columns = [("", "dim", "left")] + [(t, "green", "right") for t in cols] + [("total", "green", "right")]
+    rows = [
+        ["Primary"] + [_cell(vs.primary_by_type, t) for t in cols] + [str(primary_total)],
+        ["Inherited"] + [_cell(vs.extensions_by_type, t) for t in cols] + [str(ext_total)],
+    ]
+    counter_rule("Views", primary_total + ext_total)
+    console.print(make_table(title=None, columns=columns, rows=rows))
+    console.print()
+
+
 def _render_structure_table(s: StructureSummary) -> None:
     console = get_console()
     rows = []
 
     for subdir, ext_counts in sorted(s.data.items()):
         for ext, count in sorted(ext_counts.items()):
-            rows.append(["Data", subdir, str(count), ext, colorize("✗", "red")])
+            if ext == "xml" and any(
+                e.startswith(subdir + "/") and e.endswith(".xml")
+                for e in s.xml_analysed
+            ):
+                analysed_cell = colorize("✓", "green")
+            else:
+                analysed_cell = colorize("✗", "red")
+            rows.append(["Data", subdir, str(count), ext, analysed_cell])
 
     for subdir, ext_counts in sorted(s.demo.items()):
         for ext, count in sorted(ext_counts.items()):
@@ -541,6 +602,23 @@ def _render_structure_table(s: StructureSummary) -> None:
     ]
     console.print(make_table(title=None, columns=columns, rows=rows))
     console.print()
+
+
+def _views_block(vs: "Optional[ViewsSummary]") -> dict:
+    if vs is None:
+        return {
+            "primary": {}, "extensions": 0, "extensions_by_type": {},
+            "extensions_upstream": 0, "actions": 0, "menus": 0, "unresolved": 0,
+        }
+    return {
+        "primary": vs.primary_by_type,
+        "extensions": vs.extensions,
+        "extensions_by_type": vs.extensions_by_type,
+        "extensions_upstream": vs.extensions_upstream,
+        "actions": vs.actions,
+        "menus": vs.menus,
+        "unresolved": vs.unresolved,
+    }
 
 
 def render_json(result: "Result[ModuleSummary]") -> dict:
@@ -621,6 +699,7 @@ def render_json(result: "Result[ModuleSummary]") -> dict:
             "static_by_ext": s.static_by_ext,
         },
         "loc": loc_block,
+        "views": _views_block(summary.views_summary),
         "not_analysed": not_analysed,
         "warnings": result.warnings,
     }

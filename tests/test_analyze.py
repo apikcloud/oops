@@ -29,8 +29,19 @@ def _make_kb(
     db_path: Path,
     symbols: list[dict] | None = None,
     modules: dict | None = None,
+    views: list[dict] | None = None,
+    actions: list[dict] | None = None,
+    menus: list[dict] | None = None,
 ) -> None:
-    scan_results = [{"modules": modules or {}, "symbols": symbols or []}]
+    scan_results = [
+        {
+            "modules": modules or {},
+            "symbols": symbols or [],
+            "views": views or [],
+            "actions": actions or [],
+            "menus": menus or [],
+        }
+    ]
     write_project_kb(
         db_path=db_path,
         odoo_version="17.0",
@@ -346,7 +357,7 @@ class TestAnalyzeJson:
         assert "modules" in data
         assert isinstance(data["modules"], list)
         module = data["modules"][0]
-        for key in ("module", "manifest", "models", "structure", "loc", "not_analysed", "warnings"):
+        for key in ("module", "manifest", "models", "structure", "loc", "views", "not_analysed", "warnings"):
             assert key in module, f"Missing key: {key}"
 
     def test_json_multi_module_is_list(self, tmp_path: Path) -> None:
@@ -822,3 +833,219 @@ class TestAnalyzeInheritedMethods:
         methods = data["modules"][0]["models"][0]["methods"]
         assert methods["inherited"] == 0
         assert methods["inherited_details"] == []
+
+
+# ---------------------------------------------------------------------------
+# View helpers for new test classes
+# ---------------------------------------------------------------------------
+
+
+def _kb_view(
+    xml_id: str,
+    module: str,
+    mode: str = "primary",
+    view_type: str | None = "form",
+    inherit_id: str | None = None,
+    source_file: str | None = None,
+) -> dict:
+    return {
+        "xml_id": xml_id,
+        "module": module,
+        "origin": "project",
+        "name": xml_id,
+        "model": "my.model",
+        "view_type": view_type,
+        "inherit_id": inherit_id,
+        "mode": mode,
+        "source_file": source_file or f"{module}/views/{xml_id.split('.', 1)[-1]}.xml",
+        "source_line": 1,
+    }
+
+
+def _kb_action(xml_id: str, module: str, source_file: str | None = None) -> dict:
+    return {
+        "xml_id": xml_id,
+        "module": module,
+        "origin": "project",
+        "name": xml_id,
+        "source_file": source_file or f"{module}/views/actions.xml",
+        "source_line": 1,
+    }
+
+
+def _kb_menu(xml_id: str, module: str, source_file: str | None = None) -> dict:
+    return {
+        "xml_id": xml_id,
+        "module": module,
+        "origin": "project",
+        "name": xml_id,
+        "source_file": source_file or f"{module}/views/menus.xml",
+        "source_line": 1,
+    }
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeViews
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeViews:
+    def test_views_summary_primary_counts(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            views=[
+                _kb_view("my_module.view_form_1", "my_module", mode="primary", view_type="form"),
+                _kb_view("my_module.view_form_2", "my_module", mode="primary", view_type="form"),
+                _kb_view("my_module.view_list_1", "my_module", mode="primary", view_type="list"),
+            ],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "(primary)" in result.output
+        assert "Views (3)" in result.output
+        assert "2" in result.output  # form count
+
+    def test_views_summary_extensions(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            views=[
+                _kb_view(
+                    "my_module.inherit_sale_order_form",
+                    "my_module",
+                    mode="extension",
+                    view_type=None,
+                    inherit_id="sale.view_order_form",
+                ),
+            ],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "(ext.)" in result.output
+        assert "upstream" in result.output
+        assert "Views (1)" in result.output
+
+    def test_views_summary_all_zero_no_rows(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "(primary)" not in result.output
+        assert "(ext.)" not in result.output
+
+    def test_json_views_block_shape(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            views=[_kb_view("my_module.v1", "my_module", mode="primary", view_type="form")],
+            actions=[_kb_action("my_module.act1", "my_module")],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        views = data["modules"][0]["views"]
+        expected_keys = (
+            "primary", "extensions", "extensions_by_type",
+            "extensions_upstream", "actions", "menus", "unresolved",
+        )
+        for key in expected_keys:
+            assert key in views, f"Missing views key: {key}"
+        assert views["actions"] == 1
+
+    def test_json_views_all_zero_still_present(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        views = data["modules"][0]["views"]
+        assert views == {
+            "primary": {},
+            "extensions": 0,
+            "extensions_by_type": {},
+            "extensions_upstream": 0,
+            "actions": 0,
+            "menus": 0,
+            "unresolved": 0,
+        }
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeStructureAnalysed
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeStructureAnalysed:
+    def test_analysed_cell_flips_green(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            views=[
+                _kb_view(
+                    "my_module.view_form",
+                    "my_module",
+                    source_file="my_module/views/form.xml",
+                ),
+            ],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={
+                "name": "My Module",
+                "depends": ["base"],
+                "data": ["views/form.xml"],
+            },
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "✓" in result.output
+
+    def test_unindexed_xml_stays_red(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={
+                "name": "My Module",
+                "depends": ["base"],
+                "data": ["data/cron.xml"],
+            },
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, [str(module_path)])
+        assert result.exit_code == 0
+        assert "✗" in result.output

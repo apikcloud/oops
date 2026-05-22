@@ -45,6 +45,8 @@ _KNOWN_VIEW_TAGS = frozenset(
         "activity",
         "gantt",
         "map",
+        "cohort",
+        "qweb",
     }
 )
 
@@ -276,8 +278,8 @@ def _find_arch(record: ET.Element) -> Optional[ET.Element]:
 
 def _primary_view_type(arch: ET.Element) -> Optional[str]:
     for child in arch:
-        tag = child.tag
-        return _VIEW_TAG_ALIASES.get(tag, tag)
+        tag = _VIEW_TAG_ALIASES.get(child.tag, child.tag)
+        return tag if tag in _KNOWN_VIEW_TAGS else None
     return None
 
 

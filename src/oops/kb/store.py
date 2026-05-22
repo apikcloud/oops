@@ -806,6 +806,48 @@ class KBReader:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    def get_module_views(self, module: str) -> List[Dict[str, Any]]:
+        """Return all views for the given module.
+
+        Args:
+            module: Module name to filter by.
+
+        Returns:
+            List of dicts with keys: xml_id, mode, view_type, inherit_id, source_file.
+        """
+        rows = self._con.execute(
+            "SELECT xml_id, mode, view_type, inherit_id, source_file "
+            "FROM views WHERE module = ?",
+            (module,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_module_action_count(self, module: str) -> int:
+        """Return the number of actions belonging to the given module.
+
+        Args:
+            module: Module name.
+
+        Returns:
+            Integer count.
+        """
+        return self._con.execute(
+            "SELECT COUNT(*) FROM actions WHERE module = ?", (module,)
+        ).fetchone()[0]
+
+    def get_module_menu_count(self, module: str) -> int:
+        """Return the number of menus belonging to the given module.
+
+        Args:
+            module: Module name.
+
+        Returns:
+            Integer count.
+        """
+        return self._con.execute(
+            "SELECT COUNT(*) FROM menus WHERE module = ?", (module,)
+        ).fetchone()[0]
+
     def get_field_refs_for_field(
         self, model: str, field_name: str, module: Optional[str] = None
     ) -> List[Dict[str, Any]]:

@@ -44,7 +44,7 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
-from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
+from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary, ViewsSummary
 from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import find_addons
 from oops.io.installed_modules import read_installed_modules
@@ -204,7 +204,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     for ci in class_infos:
                         all_classes.append(_summarize_class(ci))
 
-                structure = _build_structure(module_path, manifest)
+                views_summary, xml_analysed = _build_views_summary(module_name, manifest, kb)
+                structure = _build_structure(module_path, manifest, xml_analysed)
                 loc = get_addon_loc(str(module_path))
                 loc_pct = round(100.0 * loc.total / total_loc, 1) if total_loc else 0.0
 
@@ -216,6 +217,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     structure=structure,
                     loc=loc,
                     loc_pct=loc_pct,
+                    views_summary=views_summary,
                 )
 
                 module_results.append(module_result)
@@ -308,7 +310,66 @@ def _group_manifest_data(entries: list) -> dict[str, dict[str, int]]:
     return result
 
 
-def _build_structure(module_path: Path, manifest: dict) -> StructureSummary:
+def _build_views_summary(
+    module_name: str,
+    manifest: dict,
+    kb: "KBReader",
+) -> "tuple[ViewsSummary, frozenset[str]]":
+    views = kb.get_module_views(module_name)
+    actions = kb.get_module_action_count(module_name)
+    menus = kb.get_module_menu_count(module_name)
+
+    primary_by_type: dict[str, int] = {}
+    extensions = 0
+    extensions_by_type: dict[str, int] = {}
+    extensions_upstream = 0
+    unresolved = 0
+
+    for v in views:
+        if v["mode"] == "primary":
+            vt = v["view_type"] or "unknown"
+            primary_by_type[vt] = primary_by_type.get(vt, 0) + 1
+        else:
+            extensions += 1
+            vt = v["view_type"] or "unknown"
+            extensions_by_type[vt] = extensions_by_type.get(vt, 0) + 1
+            iid = v.get("inherit_id") or ""
+            if iid and not iid.startswith(f"{module_name}."):
+                extensions_upstream += 1
+        if v.get("view_type") == "unresolved":
+            unresolved += 1
+
+    # source_file in KB is tier-root-relative (e.g. "my_module/views/form.xml");
+    # manifest entry is module-relative (e.g. "views/form.xml"). Match via endswith.
+    # Edge case: a top-level entry like "views.xml" could match a path ending in
+    # "/views.xml" from another module — acceptable given Odoo's convention of
+    # always placing XML in subdirectories.
+    indexed_source_files = {v["source_file"] for v in views}
+    data_entries = manifest.get("data", []) or []
+    xml_analysed_list: list[str] = []
+    for entry in data_entries:
+        if not entry.endswith(".xml"):
+            continue
+        if any(sf.endswith("/" + entry) or sf == entry for sf in indexed_source_files):
+            xml_analysed_list.append(entry)
+
+    return (
+        ViewsSummary(
+            primary_by_type=primary_by_type,
+            extensions=extensions,
+            extensions_by_type=extensions_by_type,
+            extensions_upstream=extensions_upstream,
+            actions=actions,
+            menus=menus,
+            unresolved=unresolved,
+        ),
+        frozenset(xml_analysed_list),
+    )
+
+
+def _build_structure(
+    module_path: Path, manifest: dict, xml_analysed: "frozenset[str] | None" = None
+) -> StructureSummary:
     data = _group_manifest_data(manifest.get("data", []))
     demo = _group_manifest_data(manifest.get("demo", []))
 
@@ -330,4 +391,5 @@ def _build_structure(module_path: Path, manifest: dict) -> StructureSummary:
         wizard_py=wizard_py,
         report_py=report_py,
         static_by_ext=static_by_ext,
+        xml_analysed=xml_analysed if xml_analysed is not None else frozenset(),
     )

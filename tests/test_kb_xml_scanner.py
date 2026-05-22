@@ -174,8 +174,20 @@ class TestPrimaryViewType:
     def test_kanban(self):
         assert _primary_view_type(self._arch("kanban")) == "kanban"
 
-    def test_unknown_tag_preserved(self):
-        assert _primary_view_type(self._arch("custom_view")) == "custom_view"
+    def test_unknown_tag_returns_none(self):
+        assert _primary_view_type(self._arch("custom_view")) is None
+
+    def test_filter_tag_returns_none(self):
+        assert _primary_view_type(self._arch("filter")) is None
+
+    def test_xpath_tag_returns_none(self):
+        assert _primary_view_type(self._arch("xpath")) is None
+
+    def test_cohort(self):
+        assert _primary_view_type(self._arch("cohort")) == "cohort"
+
+    def test_qweb(self):
+        assert _primary_view_type(self._arch("qweb")) == "qweb"
 
     def test_empty_arch_returns_none(self):
         arch = ET.fromstring("<field name='arch'></field>")

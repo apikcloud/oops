@@ -223,6 +223,17 @@ class ClassSummary:
 
 
 @dataclass
+class ViewsSummary:
+    primary_by_type: "dict[str, int]"
+    extensions: int
+    extensions_by_type: "dict[str, int]"
+    extensions_upstream: int
+    actions: int
+    menus: int
+    unresolved: int
+
+
+@dataclass
 class StructureSummary:
     data: "dict[str, dict[str, int]]"
     demo: "dict[str, dict[str, int]]"
@@ -230,6 +241,7 @@ class StructureSummary:
     wizard_py: int
     report_py: int
     static_by_ext: "dict[str, int]"
+    xml_analysed: "frozenset[str]" = field(default_factory=frozenset)
 
 
 @dataclass
@@ -241,6 +253,7 @@ class ModuleSummary:
     structure: StructureSummary
     loc: "Optional[LocStats]" = None
     loc_pct: float = 0.0
+    views_summary: "Optional[ViewsSummary]" = None
 
 
 @dataclass
