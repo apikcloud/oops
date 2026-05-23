@@ -8,9 +8,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Literal
 
-from oops.core.models import Result
+from oops.output.layout import Output
 
-Target = Literal["summary", "full"]
+Target = Literal["console", "json"]
 
 
 class OutputFormatter(ABC):
@@ -24,12 +24,12 @@ class OutputFormatter(ABC):
     has its own typed signature (e.g. AnalyzeFormatter.render(outer, modules)).
     """
 
-    target: Target = "summary"
+    target: Target = "console"
 
     @abstractmethod
     def render(
         self,
-        result: Result,
+        output: Output,
     ) -> None:
         """Render the final result.
 

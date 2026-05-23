@@ -43,6 +43,7 @@ try:
 except Exception:
     from backports.zoneinfo import ZoneInfo  # type: ignore
 
+L = TypeVar("L")
 T = TypeVar("T")
 
 __all__ = [
@@ -53,6 +54,7 @@ __all__ = [
     "get_type_hints",
     "importlib_metadata",
     "Iterable",
+    "L",
     "List",
     "Literal",
     "Mapping",

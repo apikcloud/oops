@@ -10,22 +10,18 @@
 # Rules:
 #   - No imports from `formatters/`.
 #   - No imports from Rich or any rendering library.
-#   - Receives Result[SomeDataclass], returns list[dict].
+#   - Receives Result[SomeDataclass], returns Output[Generic].
 
 from __future__ import annotations
 
 from oops.core.models import (
     ClassSummary,
-    Conclusion,
-    MetricsPanel,
     ModuleSummary,
     Result,
-    Section,
     StructureSummary,
-    SummaryView,
-    Table,
     ViewsSummary,
 )
+from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SectionBlock, SummaryLayout, TableBlock
 from oops.utils.compat import Optional
 from oops.utils.render import (
     colorize,
@@ -59,7 +55,7 @@ _VIEW_TYPE_COLUMNS: tuple = (
 )
 
 
-def _render_views_table(vs: "ViewsSummary") -> Optional[Table]:
+def _make_views_table(vs: "ViewsSummary") -> Optional[TableBlock]:
 
     primary_total = sum(vs.primary_by_type.values())
     ext_total = sum(vs.extensions_by_type.values())
@@ -82,10 +78,10 @@ def _render_views_table(vs: "ViewsSummary") -> Optional[Table]:
         ["Inherited"] + [_cell(vs.extensions_by_type, t) for t in cols] + [str(ext_total)],
     ]
 
-    return Table(title="Views", counter=primary_total + ext_total, columns=columns, rows=rows)
+    return TableBlock(title="Views", counter=primary_total + ext_total, columns=columns, rows=rows)
 
 
-def _render_structure_table(s: StructureSummary) -> Optional[Table]:
+def _make_structure_table(s: StructureSummary) -> Optional[TableBlock]:
 
     rows = []
 
@@ -123,10 +119,10 @@ def _render_structure_table(s: StructureSummary) -> Optional[Table]:
         ("Analysed", "", "center"),
     ]
 
-    return Table(title="Structure", columns=columns, rows=rows)
+    return TableBlock(title="Structure", columns=columns, rows=rows)
 
 
-def _render_model_table(classes: list[ClassSummary]) -> Table:
+def _make_model_table(classes: list[ClassSummary]) -> TableBlock:
 
     columns = [
         ("Model", "brand.primary", "left"),
@@ -146,10 +142,10 @@ def _render_model_table(classes: list[ClassSummary]) -> Table:
         ]
         rows.append(row)
 
-    return Table(title="Models", columns=columns, rows=rows, counter=len(rows))
+    return TableBlock(title="Models", columns=columns, rows=rows, counter=len(rows))
 
 
-def _render_overrides_table(overrides: list[dict[str, str]]) -> Table:
+def _make_overrides_table(overrides: list[dict[str, str]]) -> TableBlock:
 
     columns = [
         ("Model", "brand.primary", "left"),
@@ -158,10 +154,10 @@ def _render_overrides_table(overrides: list[dict[str, str]]) -> Table:
     ]
     rows = [[ov["model"], ov["method"], ov["origin_module"]] for ov in overrides]
 
-    return Table(title="Overrides", columns=columns, rows=rows, counter=len(rows))
+    return TableBlock(title="Overrides", columns=columns, rows=rows, counter=len(rows))
 
 
-def _render_inherited_methods_table(items: list[dict[str, str]]) -> Table:
+def _make_inherited_methods_table(items: list[dict[str, str]]) -> TableBlock:
 
     columns = [
         ("Model", "brand.primary", "left"),
@@ -170,10 +166,10 @@ def _render_inherited_methods_table(items: list[dict[str, str]]) -> Table:
     ]
     rows = [[it["model"], it["method"], it["origin_module"]] for it in items]
 
-    return Table(title="Inherited", columns=columns, rows=rows, counter=len(rows))
+    return TableBlock(title="Inherited", columns=columns, rows=rows, counter=len(rows))
 
 
-def _make_section(result: "Result[ModuleSummary]") -> Section:
+def _make_section(result: "Result[ModuleSummary]") -> SectionBlock:
     assert result.data is not None
     summary = result.data
 
@@ -237,7 +233,7 @@ def _make_section(result: "Result[ModuleSummary]") -> Section:
             if vs.unresolved:
                 stats_values.append(["Views unresolved", str(vs.unresolved)])
 
-    panels += [MetricsPanel("Manifest", manifest_values), MetricsPanel("Stats", stats_values)]
+    panels += [MetricsPanelBlock("Manifest", manifest_values), MetricsPanelBlock("Stats", stats_values)]
 
     if summary.loc and summary.loc.total:
         lc = summary.loc
@@ -250,31 +246,31 @@ def _make_section(result: "Result[ModuleSummary]") -> Section:
         ]
         if summary.loc_pct:
             loc_rows.append(["% of total", f"{summary.loc_pct}%"])
-        p_loc = MetricsPanel("Lines of code", loc_rows)
+        p_loc = MetricsPanelBlock("Lines of code", loc_rows)
         panels.append(p_loc)
 
     depends = m.get("depends", [])
     info += [f"Depends ({len(depends)}): {', '.join(depends) or '—'}"]
 
     if summary.classes:
-        tables.append(_render_model_table(summary.classes))
+        tables.append(_make_model_table(summary.classes))
 
         all_overrides = [d for c in summary.classes for d in c.override_details]
         if all_overrides:
-            tables.append(_render_overrides_table(all_overrides))
+            tables.append(_make_overrides_table(all_overrides))
         all_inherited = [d for c in summary.classes for d in c.inherited_method_details]
         if all_inherited:
-            tables.append(_render_inherited_methods_table(all_inherited))
+            tables.append(_make_inherited_methods_table(all_inherited))
 
     if summary.views_summary is not None:
-        tables.append(_render_views_table(summary.views_summary))
+        tables.append(_make_views_table(summary.views_summary))
 
-    tables.append(_render_structure_table(summary.structure))
+    tables.append(_make_structure_table(summary.structure))
 
     # if result.warnings:
     #     warning_section(result.warnings)
 
-    return Section(title=summary.module_name, panels=panels, tables=tables, info=info, warnings=result.warnings)
+    return SectionBlock(title=summary.module_name, panels=panels, tables=tables, info=info, warnings=result.warnings)
 
 
 def _views_block(vs: "Optional[ViewsSummary]") -> dict:
@@ -299,7 +295,7 @@ def _views_block(vs: "Optional[ViewsSummary]") -> dict:
     }
 
 
-def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> Result[dict]:
+def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> Output[dict]:
     """Full payload for JSON / scripts / downstream agents.
 
     Includes every field: ids, metadata, timestamps, internal details.
@@ -388,7 +384,7 @@ def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") 
             "warnings": result.warnings,
         }
 
-    return Result(
+    return Output(
         {
             "warnings": outer.warnings,
             "modules": [_make(r) for r in results],
@@ -396,7 +392,7 @@ def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") 
     )
 
 
-def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> "Result[SummaryView]":  # noqa: C901
+def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> "Output[SummaryLayout]":
     """Reduced payload for console / HTML.
 
     Drops internal fields (ids, refs, metadata) and keeps only what is
@@ -408,18 +404,18 @@ def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]
     all_ok = outer.ok and all(r.ok for r in results)
     sections = [_make_section(result) for result in results]
 
-    return Result(
-        SummaryView(
+    return Output(
+        SummaryLayout(
             title="",
             sections=sections,
             warnings=outer.warnings,
-            conclusion=Conclusion(all_ok, f"Done — analysed {len(results)} module(s)"),
+            conclusion=ConclusionBlock(all_ok, f"Done — analysed {len(results)} module(s)"),
         )
     )
 
 
-def prepare(results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: str) -> Result:
+def prepare(results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: str) -> Output:
     """Single entry point — dispatches based on the formatter target."""
-    if target == "full":
+    if target == "json":
         return prepare_full(results, outer)
     return prepare_summary(results, outer)

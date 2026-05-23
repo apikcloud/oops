@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import sys
 
-from oops.core.models import Result, SummaryView
 from oops.output.base import OutputFormatter
+from oops.output.layout import Output, SummaryLayout
 from oops.output.serializers import to_json_string
 from oops.utils.render import (
     conclude,
@@ -17,17 +17,6 @@ from oops.utils.render import (
 )
 
 
-class AnalyzeFormatter(OutputFormatter):
-    """Command-specific contract for the `example` command.
-
-    Inherits `target`, `error`, `success` from OutputFormatter.
-    Adds a typed `render` signature that matches what this command produces.
-
-    Each command in family C defines its own contract — `render` signatures
-    differ between commands and are not shared.
-    """
-
-
 class SummaryConsoleFormatter(OutputFormatter):
     """Human-readable Rich output for the `example` command.
 
@@ -35,11 +24,11 @@ class SummaryConsoleFormatter(OutputFormatter):
     Has no knowledge of the domain dataclasses.
     """
 
-    target = "summary"
+    target = "console"
 
-    def render(self, result: "Result[SummaryView]") -> None:
-        data = result.data
+    def render(self, output: "Output[SummaryLayout]") -> None:
 
+        data = output.layout
         assert data
 
         console = get_console()
@@ -87,17 +76,20 @@ class SummaryConsoleFormatter(OutputFormatter):
         pass
 
 
-class AnalyzeJsonFormatter(OutputFormatter):
+class JsonFormatter(OutputFormatter):
     """Machine-readable JSON output for the `example` command.
 
     Receives dicts already prepared by `presenter.prepare_for_machine()`.
     Has no knowledge of the domain dataclasses.
     """
 
-    target = "full"
+    target = "json"
 
-    def render(self, result: Result) -> None:
-        print(to_json_string(result.data))
+    def render(self, output: Output) -> None:
+        data = output.layout
+        assert data
+
+        print(to_json_string(data))
 
     def error(self, message: str, code: int = 1) -> None:
         print(to_json_string({"error": message, "code": code}), file=sys.stderr)
