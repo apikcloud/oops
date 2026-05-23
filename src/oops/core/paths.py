@@ -4,6 +4,7 @@
 # File: paths.py — oops/core/paths.py
 
 import os
+from importlib.resources import files
 from pathlib import Path
 
 WORKING_DIR = Path.cwd()
@@ -97,3 +98,11 @@ def stats_flush_marker() -> Path:
         ``<stats_dir>/stats_last_flush``
     """
     return stats_dir() / "stats_last_flush"
+
+
+# ---------------------------------------------------------------------------
+# Templates
+# ---------------------------------------------------------------------------
+
+
+TEMPLATES = files("oops.output") / "templates"

@@ -26,11 +26,11 @@ class ProgressHandler(logging.Handler):
 
 
 @contextmanager
-def live_progress(renderable=None, spinner: str = "dots"):
-    with Live(renderable, console=get_error_console(), refresh_per_second=10) as live:
+def live_progress(message: str, spinner: str = "dots"):
+    with Live(Spinner(spinner, text=message), console=get_error_console(), refresh_per_second=10) as live:
 
-        def update_status(message: str):
-            live.update(Spinner(spinner, text=message))
+        def update_status(_message: str):
+            live.update(Spinner(spinner, text=_message))
 
         token = _progress_callback.set(update_status)
         # log.propagate = False

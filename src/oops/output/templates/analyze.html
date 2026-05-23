@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Module Analysis Report</title>
+
+        <!-- D3.js from CDN for future graphs -->
+        <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+
+        <style>
+            :root {
+                --bg: #fafafa;
+                --bg-card: #ffffff;
+                --bg-soft: #f4f4f5;
+                --border: #e4e4e7;
+                --text: #18181b;
+                --text-muted: #71717a;
+                --accent: #2563eb;
+                --warning: #d97706;
+                --warning-bg: #fef3c7;
+                --success: #16a34a;
+                --danger: #dc2626;
+                --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                margin: 0;
+                padding: 2rem;
+                line-height: 1.5;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            header {
+                border-bottom: 2px solid var(--border);
+                padding-bottom: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            header h1 {
+                margin: 0 0 0.25rem;
+                font-size: 1.75rem;
+            }
+            header .subtitle {
+                color: var(--text-muted);
+                font-size: 0.9rem;
+            }
+
+            h2 {
+                font-size: 1.3rem;
+                margin: 2.5rem 0 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }
+            h3 {
+                font-size: 1.05rem;
+                margin: 1.5rem 0 0.75rem;
+                color: var(--text);
+            }
+            h4 {
+                font-size: 0.9rem;
+                margin: 1rem 0 0.5rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .warnings {
+                background: var(--warning-bg);
+                border-left: 3px solid var(--warning);
+                padding: 0.75rem 1rem;
+                margin: 1rem 0;
+                border-radius: 0 4px 4px 0;
+            }
+            .warnings ul {
+                margin: 0;
+                padding-left: 1.2rem;
+            }
+            .warnings li {
+                color: #78350f;
+                font-size: 0.9rem;
+                margin: 0.25rem 0;
+            }
+
+            .module {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .manifest-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
+            .manifest-grid .item {
+                font-size: 0.85rem;
+            }
+            .manifest-grid .item .label {
+                color: var(--text-muted);
+                display: block;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .manifest-grid .item .value {
+                font-weight: 500;
+            }
+
+            .depends-list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+                font-family: var(--mono);
+                font-size: 0.8rem;
+            }
+            .depends-list .dep {
+                background: var(--bg-soft);
+                padding: 0.15rem 0.5rem;
+                border-radius: 4px;
+                color: var(--text-muted);
+            }
+
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 0.75rem;
+                margin: 1rem 0;
+            }
+            .metric {
+                background: var(--bg-soft);
+                padding: 0.75rem 1rem;
+                border-radius: 6px;
+            }
+            .metric .value {
+                font-size: 1.4rem;
+                font-weight: 600;
+                font-family: var(--mono);
+            }
+            .metric .label {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.85rem;
+                margin: 0.5rem 0;
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 0.5rem 0.75rem;
+                border-bottom: 1px solid var(--border);
+            }
+            th {
+                background: var(--bg-soft);
+                font-weight: 600;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                font-size: 0.7rem;
+                letter-spacing: 0.05em;
+            }
+            td.num {
+                font-family: var(--mono);
+                text-align: right;
+            }
+            td.muted {
+                color: var(--text-muted);
+            }
+
+            .badge {
+                display: inline-block;
+                padding: 0.1rem 0.4rem;
+                border-radius: 3px;
+                font-size: 0.7rem;
+                font-family: var(--mono);
+                background: var(--bg-soft);
+                color: var(--text-muted);
+            }
+            .badge.warn {
+                background: var(--warning-bg);
+                color: #78350f;
+            }
+            .badge.ok {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            details {
+                margin: 0.5rem 0;
+            }
+            details summary {
+                cursor: pointer;
+                color: var(--accent);
+                font-size: 0.85rem;
+                padding: 0.25rem 0;
+            }
+            details[open] summary {
+                margin-bottom: 0.5rem;
+            }
+
+            .chart-container {
+                margin: 1rem 0;
+                min-height: 200px;
+            }
+
+            footer {
+                margin-top: 3rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid var(--border);
+                color: var(--text-muted);
+                font-size: 0.8rem;
+            }
+
+            .raw-json {
+                background: var(--bg-soft);
+                padding: 1rem;
+                border-radius: 4px;
+                font-family: var(--mono);
+                font-size: 0.75rem;
+                overflow-x: auto;
+                max-height: 400px;
+                overflow-y: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>Module Analysis Report</h1>
+                <div class="subtitle" id="meta-subtitle"></div>
+            </header>
+
+            <section id="global-warnings"></section>
+            <section id="modules"></section>
+
+            <details>
+                <summary>Raw JSON payload</summary>
+                <pre class="raw-json" id="raw-json"></pre>
+            </details>
+
+            <footer>
+                Generated by <code>oops analyze</code> &middot;
+                <span id="meta-timestamp"></span>
+            </footer>
+        </div>
+
+        <!-- Data injection: the CLI replaces this <script> body -->
+        <script id="report-data" type="application/json">
+            __REPORT_DATA__
+        </script>
+
+        <script>
+            // Read the injected JSON
+            const DATA = JSON.parse(document.getElementById("report-data").textContent);
+
+            // Helpers
+            const el = (tag, attrs = {}, children = []) => {
+                const node = document.createElement(tag);
+                for (const [k, v] of Object.entries(attrs)) {
+                    if (k === "class") node.className = v;
+                    else if (k === "html") node.innerHTML = v;
+                    else node.setAttribute(k, v);
+                }
+                for (const child of [].concat(children)) {
+                    if (child == null) continue;
+                    node.append(child instanceof Node ? child : String(child));
+                }
+                return node;
+            };
+
+            const metric = (label, value) =>
+                el("div", { class: "metric" }, [
+                    el("div", { class: "value" }, value),
+                    el("div", { class: "label" }, label),
+                ]);
+
+            const warningBox = (warnings) => {
+                if (!warnings || !warnings.length) return null;
+                return el("div", { class: "warnings" }, [
+                    el(
+                        "ul",
+                        {},
+                        warnings.map((w) => el("li", {}, w)),
+                    ),
+                ]);
+            };
+
+            // Render global warnings
+            const globalWarnings = warningBox(DATA.warnings);
+            if (globalWarnings) document.getElementById("global-warnings").append(globalWarnings);
+
+            // Render each module
+            const modulesContainer = document.getElementById("modules");
+
+            DATA.modules.forEach((mod) => {
+                const moduleEl = el("section", { class: "module" });
+
+                // Title
+                moduleEl.append(
+                    el("h2", {}, [mod.module, " ", el("span", { class: "badge" }, mod.manifest.version || "—")]),
+                );
+
+                // Manifest
+                moduleEl.append(el("h4", {}, "Manifest"));
+                const manifestGrid = el("div", { class: "manifest-grid" });
+                const manifestFields = ["name", "author", "license", "category", "installable", "summary"];
+                manifestFields.forEach((f) => {
+                    const v = mod.manifest[f];
+                    if (v == null || v === "") return;
+                    manifestGrid.append(
+                        el("div", { class: "item" }, [
+                            el("span", { class: "label" }, f),
+                            el("span", { class: "value" }, String(v)),
+                        ]),
+                    );
+                });
+                moduleEl.append(manifestGrid);
+
+                // Dependencies
+                if (mod.manifest.depends && mod.manifest.depends.length) {
+                    moduleEl.append(el("h4", {}, `Depends (${mod.manifest.depends.length})`));
+                    const depsList = el("div", { class: "depends-list" });
+                    mod.manifest.depends.forEach((d) => depsList.append(el("span", { class: "dep" }, d)));
+                    moduleEl.append(depsList);
+                }
+
+                // Module warnings
+                const modWarnings = warningBox(mod.warnings);
+                if (modWarnings) moduleEl.append(modWarnings);
+
+                // LoC + Views metrics
+                moduleEl.append(el("h4", {}, "Metrics"));
+                moduleEl.append(
+                    el("div", { class: "metrics-grid" }, [
+                        metric("Total LoC", mod.loc.total.toLocaleString()),
+                        metric("Python", mod.loc.python.toLocaleString()),
+                        metric("XML", mod.loc.xml.toLocaleString()),
+                        metric("Share of repo", `${mod.loc.pct}%`),
+                        metric(
+                            "Primary views",
+                            Object.values(mod.views.primary).reduce((a, b) => a + b, 0),
+                        ),
+                        metric("Extensions", mod.views.extensions),
+                        metric("Actions", mod.views.actions),
+                        metric("Menus", mod.views.menus),
+                    ]),
+                );
+
+                // Models
+                if (mod.models && mod.models.length) {
+                    moduleEl.append(el("h3", {}, `Models (${mod.models.length})`));
+
+                    const modelsTable = el("table");
+                    modelsTable.append(
+                        el(
+                            "thead",
+                            {},
+                            el("tr", {}, [
+                                el("th", {}, "Class"),
+                                el("th", {}, "Inherits"),
+                                el("th", {}, "Fields"),
+                                el("th", {}, "Methods"),
+                                el("th", {}, "Overrides"),
+                                el("th", {}, "Missing docs"),
+                            ]),
+                        ),
+                    );
+
+                    const tbody = el("tbody");
+                    mod.models.forEach((m) => {
+                        const inheritStr = (m.inherit || []).join(", ") || "—";
+                        const missing = m.methods.missing_docstrings;
+                        tbody.append(
+                            el("tr", {}, [
+                                el("td", {}, m.class_name),
+                                el("td", { class: "muted" }, inheritStr),
+                                el("td", { class: "num" }, m.fields.total),
+                                el("td", { class: "num" }, m.methods.total),
+                                el("td", { class: "num" }, m.methods.overrides || "—"),
+                                el(
+                                    "td",
+                                    { class: "num" },
+                                    missing
+                                        ? el("span", { class: "badge warn" }, missing)
+                                        : el("span", { class: "badge ok" }, "0"),
+                                ),
+                            ]),
+                        );
+                    });
+                    modelsTable.append(tbody);
+                    moduleEl.append(modelsTable);
+
+                    // Override details per model
+                    mod.models.forEach((m) => {
+                        if (!m.methods.override_details || !m.methods.override_details.length) return;
+
+                        const det = el("details");
+                        det.append(el("summary", {}, `${m.class_name} — ${m.methods.overrides} override(s)`));
+
+                        const ovTable = el("table");
+                        ovTable.append(
+                            el("thead", {}, el("tr", {}, [el("th", {}, "Method"), el("th", {}, "Origin module")])),
+                        );
+                        const ovBody = el("tbody");
+                        m.methods.override_details.forEach((o) => {
+                            ovBody.append(
+                                el("tr", {}, [el("td", { class: "muted" }, o.method), el("td", {}, o.origin_module)]),
+                            );
+                        });
+                        ovTable.append(ovBody);
+                        det.append(ovTable);
+                        moduleEl.append(det);
+                    });
+                }
+
+                // Structure
+                moduleEl.append(el("h3", {}, "Structure"));
+                const structureItems = [];
+                if (mod.structure.controllers_py)
+                    structureItems.push(metric("Controllers", mod.structure.controllers_py));
+                if (mod.structure.wizard_py) structureItems.push(metric("Wizards", mod.structure.wizard_py));
+                if (mod.structure.report_py) structureItems.push(metric("Reports", mod.structure.report_py));
+                if (structureItems.length) {
+                    moduleEl.append(el("div", { class: "metrics-grid" }, structureItems));
+                }
+
+                // Not analysed
+                if (mod.not_analysed && mod.not_analysed.length) {
+                    moduleEl.append(el("h4", {}, "Not analysed"));
+                    moduleEl.append(
+                        el(
+                            "div",
+                            { class: "depends-list" },
+                            mod.not_analysed.map((p) => el("span", { class: "dep" }, p)),
+                        ),
+                    );
+                }
+
+                // Placeholder for future D3 charts (fields by type, methods by section, etc.)
+                // Example: a D3 bar chart could be appended here using mod.models data
+                // const chartContainer = el("div", { class: "chart-container", id: `chart-${mod.module}` });
+                // moduleEl.append(chartContainer);
+                // renderFieldsByTypeChart(`#chart-${mod.module}`, mod.models);
+
+                modulesContainer.append(moduleEl);
+            });
+
+            // Meta footer
+            document.getElementById("meta-subtitle").textContent = `${DATA.modules.length} module(s) analysed`;
+            document.getElementById("meta-timestamp").textContent = new Date().toLocaleString();
+
+            // Raw JSON dump
+            document.getElementById("raw-json").textContent = JSON.stringify(DATA, null, 2);
+        </script>
+    </body>
+</html>

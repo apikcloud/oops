@@ -10,7 +10,7 @@ from typing import Literal
 
 from oops.output.layout import Output
 
-Target = Literal["console", "json"]
+Target = Literal["human", "machine"]
 
 
 class OutputFormatter(ABC):
@@ -24,7 +24,7 @@ class OutputFormatter(ABC):
     has its own typed signature (e.g. AnalyzeFormatter.render(outer, modules)).
     """
 
-    target: Target = "console"
+    target: Target = "human"
 
     @abstractmethod
     def render(

@@ -416,6 +416,6 @@ def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]
 
 def prepare(results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: str) -> Output:
     """Single entry point — dispatches based on the formatter target."""
-    if target == "json":
+    if target == "machine":
         return prepare_full(results, outer)
     return prepare_summary(results, outer)

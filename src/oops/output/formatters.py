@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 
+from oops.core.paths import TEMPLATES
 from oops.output.base import OutputFormatter
 from oops.output.layout import Output, SummaryLayout
 from oops.output.serializers import to_json_string
@@ -24,7 +25,7 @@ class SummaryConsoleFormatter(OutputFormatter):
     Has no knowledge of the domain dataclasses.
     """
 
-    target = "console"
+    target = "human"
 
     def render(self, output: "Output[SummaryLayout]") -> None:
 
@@ -76,6 +77,26 @@ class SummaryConsoleFormatter(OutputFormatter):
         pass
 
 
+class SummaryReportFormatter(OutputFormatter):
+    """TODO: implement html report formatter"""
+
+    target = "machine"
+
+    def render(self, output: "Output[dict]") -> str:
+        template = (TEMPLATES / "analyze.html").read_text()
+        payload = to_json_string(output.layout)
+        return template.replace("__REPORT_DATA__", payload)
+
+    def error(self, message: str, code: int = 1) -> None:
+        # HTML has no meaningful inline error rendering — delegate to stderr.
+        import sys
+
+        print(f"Error ({code}): {message}", file=sys.stderr)
+
+    def success(self, message: str) -> None:
+        pass
+
+
 class JsonFormatter(OutputFormatter):
     """Machine-readable JSON output for the `example` command.
 
@@ -83,13 +104,13 @@ class JsonFormatter(OutputFormatter):
     Has no knowledge of the domain dataclasses.
     """
 
-    target = "json"
+    target = "machine"
 
-    def render(self, output: Output) -> None:
+    def render(self, output: Output[dict]) -> str:
         data = output.layout
         assert data
 
-        print(to_json_string(data))
+        return to_json_string(data)
 
     def error(self, message: str, code: int = 1) -> None:
         print(to_json_string({"error": message, "code": code}), file=sys.stderr)

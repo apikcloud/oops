@@ -53,7 +53,8 @@ from oops.io.refactor import ClassInfo, analyse_file
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
-from oops.output.formatters import JsonFormatter, OutputFormatter, SummaryConsoleFormatter
+from oops.output.formatters import JsonFormatter, OutputFormatter, SummaryConsoleFormatter, SummaryReportFormatter
+from oops.output.sinks import write_output
 from oops.presenters.analyze import prepare
 from oops.services.git import require_repository
 from oops.services.loc import get_addon_loc
@@ -63,6 +64,7 @@ from oops.utils.helpers import deep_visit
 FORMATTERS: dict[str, type[OutputFormatter]] = {
     "text": SummaryConsoleFormatter,
     "json": JsonFormatter,
+    "html": SummaryReportFormatter,
 }
 
 
@@ -87,7 +89,7 @@ FORMATTERS: dict[str, type[OutputFormatter]] = {
 @click.option(
     "--format",
     "output_format",
-    type=click.Choice(["text", "json"]),
+    type=click.Choice(["text", "json", "html"]),
     default="text",
     show_default=True,
     help="Output format. 'json' is suited for downstream LLM agent consumption.",
@@ -99,11 +101,19 @@ FORMATTERS: dict[str, type[OutputFormatter]] = {
     default=False,
     help="Enable verbose KB logging.",
 )
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout (json) or a temp file (html).",
+)
 def main(  # noqa: C901, PLR0912, PLR0915
     module_paths: tuple[Path, ...],
     refresh: bool,
     output_format: str,
     verbose: bool,
+    output_path: Path,
 ) -> None:
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
@@ -119,7 +129,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
 
-    with live_progress():
+    with live_progress("Analysis..."):
         version = str(odoo_image.major_version)
         info = read_installed_modules(repo_path)
 
@@ -233,7 +243,17 @@ def main(  # noqa: C901, PLR0912, PLR0915
     output = prepare(module_results, outer, target=formatter.target)
 
     # 3. Formatter renders. It does not know the domain dataclasses.
-    formatter.render(output)
+    if formatter.target == "human":
+        formatter.render(output)
+        return
+
+    # 4. Write the output into a file or print on stdout (only for machine target)
+    content = formatter.render(output)
+    assert content
+
+    path = write_output(content, output_format, output_path)
+    if path:
+        print(path)
 
 
 # ---------------------------------------------------------------------------
