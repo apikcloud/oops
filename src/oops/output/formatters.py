@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import sys
 
 from oops.core.paths import TEMPLATES
@@ -77,13 +79,12 @@ class SummaryConsoleFormatter(OutputFormatter):
         pass
 
 
-class SummaryReportFormatter(OutputFormatter):
-    """TODO: implement html report formatter"""
-
+class HtmlFormatter(OutputFormatter):
     target = "machine"
+    template: str
 
     def render(self, output: "Output[dict]") -> str:
-        template = (TEMPLATES / "analyze.html").read_text()
+        template = (TEMPLATES / self.template).read_text()
         payload = to_json_string(output.layout)
         return template.replace("__REPORT_DATA__", payload)
 
@@ -95,6 +96,14 @@ class SummaryReportFormatter(OutputFormatter):
 
     def success(self, message: str) -> None:
         pass
+
+
+class AnalysisReportFormatter(HtmlFormatter):
+    template = "analyze.html"
+
+
+class AddonsReportFormatter(HtmlFormatter):
+    template = "list.html"
 
 
 class JsonFormatter(OutputFormatter):
@@ -111,6 +120,28 @@ class JsonFormatter(OutputFormatter):
         assert data
 
         return to_json_string(data)
+
+    def error(self, message: str, code: int = 1) -> None:
+        print(to_json_string({"error": message, "code": code}), file=sys.stderr)
+
+    def success(self, message: str) -> None:
+        print(to_json_string({"success": True, "message": message}))
+
+
+class CsvFormatter(OutputFormatter):
+    """TODO: csv formatter"""
+
+    target = "machine"
+
+    def render(self, output: Output[dict]) -> str:
+        rows = output.layout
+        assert rows
+
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
+        # click.echo(buf.getvalue(), nl=False)
 
     def error(self, message: str, code: int = 1) -> None:
         print(to_json_string({"error": message, "code": code}), file=sys.stderr)

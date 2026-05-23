@@ -53,7 +53,7 @@ from oops.io.refactor import ClassInfo, analyse_file
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
-from oops.output.formatters import JsonFormatter, OutputFormatter, SummaryConsoleFormatter, SummaryReportFormatter
+from oops.output.formatters import AnalysisReportFormatter, JsonFormatter, OutputFormatter, SummaryConsoleFormatter
 from oops.output.sinks import write_output
 from oops.presenters.analyze import prepare
 from oops.services.git import require_repository
@@ -64,7 +64,7 @@ from oops.utils.helpers import deep_visit
 FORMATTERS: dict[str, type[OutputFormatter]] = {
     "text": SummaryConsoleFormatter,
     "json": JsonFormatter,
-    "html": SummaryReportFormatter,
+    "html": AnalysisReportFormatter,
 }
 
 

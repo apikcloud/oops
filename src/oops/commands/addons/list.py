@@ -9,38 +9,38 @@ Displays a table with addon name, symlink flag, submodule, upstream branch,
 PR flag, version, and author. Output can be formatted as text, JSON, or CSV.
 """
 
-import csv
-import io
-import json
-from collections import Counter
+from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.models import AddonInfo
+from oops.core.logger import live_progress, log
+from oops.core.models import AddonInfo, Result
 from oops.io.file import enrich_addon, find_addons
+from oops.output.formatters import (
+    AddonsReportFormatter,
+    CsvFormatter,
+    JsonFormatter,
+    OutputFormatter,
+    SummaryConsoleFormatter,
+)
+from oops.output.sinks import write_output
+from oops.presenters.list import prepare
 from oops.services.git import list_submodules, require_repository
 from oops.services.loc import get_addon_loc
-from oops.utils.render import (
-    colorize,
-    get_console,
-    get_error_console,
-    human_readable,
-    make_table,
-    metrics_grid,
-    metrics_panel,
-    render_boolean,
-    rule,
-)
-from rich.live import Live
-from rich.spinner import Spinner
 
-console = get_console()
+FORMATTERS: dict[str, type[OutputFormatter]] = {
+    "text": SummaryConsoleFormatter,
+    "json": JsonFormatter,
+    "html": AddonsReportFormatter,
+    "csv": CsvFormatter,
+}
 
 
 @command(name="list", help=__doc__)
 @click.option(
     "--format",
-    type=click.Choice(["text", "json", "csv"]),
+    "output_format",
+    type=click.Choice(["text", "json", "csv", "html"]),
     default="text",
     show_default=True,
     help="Output format",
@@ -68,16 +68,29 @@ console = get_console()
     is_flag=True,
     help="List all addons, including those not in submodules (i.e. in the root of the repo)",
 )
-def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_all: bool):
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout (json) or a temp file (html).",
+)
+def main(output_format: str, init: bool, submodules: tuple, symlinks_only: bool, show_all: bool, output_path: Path):
 
     repo, repo_path = require_repository()
 
-    # using Live for long-time processing
-    with Live(Spinner("dots", text="Initialisation..."), refresh_per_second=10, console=get_error_console()) as live:
+    formatter: OutputFormatter = FORMATTERS[output_format]()
+
+    rows: Result[list] = Result()
+    rows.data = []
+    outer: Result[None] = Result()
+
+    # 1. Long-running processing — produces a typed Result of domain dataclasses.
+    with live_progress("Initialisation..."):
         if init:
             for sub in repo.submodules:
                 if not (repo_path / sub.path).exists():
-                    live.update(Spinner("dots", text=f"Initialising submodule: {sub.name}"))
+                    log.info(f"Initialising submodule: {sub.name}")
                     sub.update(init=True, recursive=False)
 
         # Build submodule lookup: rel_path → metadata
@@ -94,7 +107,6 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
             if addon.path not in seen or addon.symlinked:
                 seen[addon.path] = addon
 
-        rows = []
         for addon in seen.values():
             if active_paths is not None and addon.rel_path not in active_paths:
                 continue
@@ -102,13 +114,13 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
             if symlinks_only and not addon.symlink:
                 continue
 
-            live.update(Spinner("dots", text=f"Enrichment of {addon.technical_name}"))
+            log.info(f"Enrichment of {addon.technical_name}")
 
             sub = subs.get(addon.rel_path, {})
             enrich_addon(addon, sub)
 
             loc = get_addon_loc(addon.path)
-            rows.append(
+            rows.data.append(
                 {
                     "addon": addon.technical_name,
                     "location": addon.location,
@@ -128,110 +140,26 @@ def main(format: str, init: bool, submodules: tuple, symlinks_only: bool, show_a
                 }
             )
 
-        live.update(Spinner("dots", text="Finalizing..."))
-        rows.sort(key=lambda r: r["addon"])
+        log.info("Finalizing...")
+        rows.data.sort(key=lambda r: r["addon"])
 
-        total_loc = sum(r["loc_total"] for r in rows)
+        total_loc = sum(r["loc_total"] for r in rows.data)
         if total_loc:
-            for r in rows:
+            for r in rows.data:
                 r["loc_pct"] = round(100.0 * r["loc_total"] / total_loc, 1)
 
-    if format == "json":
-        click.echo(json.dumps(rows, indent=2, default=str))
-    elif format == "csv":
-        if rows:
-            buf = io.StringIO()
-            writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
-            writer.writeheader()
-            writer.writerows(rows)
-            click.echo(buf.getvalue(), nl=False)
-    else:
-        total = len(rows)
-        locations = Counter(row["location"] for row in rows)
-        classifications = Counter(row["classification"] for row in rows)
+    # 2. Presenter prepares neutral dicts according to the formatter's audience.
+    output = prepare(rows, outer, target=formatter.target)
 
-        p1 = metrics_panel(
-            "Summary",
-            [
-                ["Total", str(total)],
-                ["Local", str(locations["local"])],
-                ["Active", str(locations["active"])],
-                ["Inactive", str(locations["inactive"])],
-            ],
-        )
+    # 3. Formatter renders. It does not know the domain dataclasses.
+    if formatter.target == "human":
+        formatter.render(output)
+        return
 
-        p2 = metrics_panel(
-            "Classification",
-            [
-                ["Custom", str(classifications["custom"])],
-                ["OCA", str(classifications["oca"])],
-                ["Third-party", str(classifications["third-party"])],
-            ],
-        )
+    # 4. Write the output into a file or print on stdout (only for machine target)
+    content = formatter.render(output)
+    assert content
 
-        loc_sum_py = sum(r["loc_python"] for r in rows)
-        loc_sum_xml = sum(r["loc_xml"] for r in rows)
-        loc_sum_js = sum(r["loc_js"] for r in rows)
-        loc_sum_docs = sum(r["loc_docs"] for r in rows)
-
-        p3 = metrics_panel(
-            "Lines of code",
-            [
-                ["Python", str(loc_sum_py)],
-                ["XML", str(loc_sum_xml)],
-                ["JavaScript", str(loc_sum_js)],
-                ["Docs", str(loc_sum_docs)],
-                ["Total", str(total_loc)],
-            ],
-        )
-
-        console.print()
-        console.print(metrics_grid(p1, p2, p3))
-        console.print()
-
-        # rule("Summary")
-
-        # kv_panel("Summary", {"Total": total, "Real": real_addons, "Symlinks": f"[green]●{symlinks}[/]"})
-
-        columns = [
-            ("Addon", "brand.primary", "left"),
-            ("Symlink", "green", "center"),
-            ("Submodule", "dim", "left"),
-            ("Branch", "dim", "center"),
-            ("PR", "green", "center"),
-            ("Version", "brand.primary", "left"),
-            ("Classification", "dim", ""),
-            ("Author", "dim", ""),
-            ("Py", "dim", "right"),
-            ("XML", "dim", "right"),
-            ("JS", "dim", "right"),
-            ("Docs", "dim", "right"),
-            ("LOC", "brand.primary", "right"),
-        ]
-
-        t = make_table(
-            title=None,
-            columns=columns,
-            rows=[
-                [
-                    row["addon"],
-                    colorize(render_boolean(row["symlink"]), "green"),
-                    human_readable(row["submodule"]),
-                    human_readable(row["upstream"]),
-                    colorize(render_boolean(row["pr"]), "green"),
-                    row["version"],
-                    human_readable(row["classification"]),
-                    human_readable(row["author"]),
-                    str(row["loc_python"]) if row["loc_python"] else "",
-                    str(row["loc_xml"]) if row["loc_xml"] else "",
-                    str(row["loc_js"]) if row["loc_js"] else "",
-                    str(row["loc_docs"]) if row["loc_docs"] else "",
-                    str(row["loc_total"]) if row["loc_total"] else "",
-                ]
-                for row in rows
-            ],
-        )
-        console.print(t)
-        console.print()
-
-        rule("Results")
+    path = write_output(content, output_format, output_path)
+    if path:
+        print(path)
