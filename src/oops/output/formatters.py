@@ -148,3 +148,16 @@ class CsvFormatter(OutputFormatter):
 
     def success(self, message: str) -> None:
         print(to_json_string({"success": True, "message": message}))
+
+
+class PrecommitFormatter(OutputFormatter):
+    target = "human"
+
+    def render(self, output: Output[dict]) -> None:
+        pass
+
+    def error(self, message: str, code: int = 1) -> None:
+        pass
+
+    def success(self, message: str) -> None:
+        pass
