@@ -154,6 +154,7 @@ class AddonInfo:
     version: str
     author: str
     maintainers: "list[str]"
+    depends: "list[str]"
     summary: str
     external_dependencies: "dict[str, list[str]]"
     installable: bool
@@ -195,6 +196,7 @@ class AddonInfo:
             version=manifest.get("version", "unknown"),
             author=manifest.get("author", "unknown"),
             maintainers=manifest.get("maintainers", []),
+            depends=manifest.get("depends", []),
             summary=manifest.get("summary", ""),
             external_dependencies=manifest.get("external_dependencies", {}),
             installable=manifest.get("installable", True),

@@ -17,6 +17,7 @@ from rich import box
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
+from rich.prompt import Prompt
 from rich.style import Style
 from rich.table import Table
 from rich.theme import Theme
@@ -313,6 +314,10 @@ def prompt_select(message: str, choices: list[str]) -> str:
 
 def prompt_confirm(message: str, default: bool = False) -> bool:
     return bool(questionary.confirm(message, default=default).ask())
+
+
+def ask(message: str) -> str:
+    return Prompt.ask(message)
 
 
 def render_result(result) -> None:

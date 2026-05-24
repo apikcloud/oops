@@ -106,6 +106,10 @@ class AddonsReportFormatter(HtmlFormatter):
     template = "list.html"
 
 
+class DependsReportFormatter(HtmlFormatter):
+    template = "depends_v4.html"
+
+
 class JsonFormatter(OutputFormatter):
     """Machine-readable JSON output for the `example` command.
 
