@@ -54,6 +54,15 @@ class SummaryLayout:
     warnings: Optional[list] = field(default_factory=list)
 
 
+@dataclass
+class MetricsLayout:
+    title: str
+    panels: list[MetricsPanelBlock]
+    conclusion: ConclusionBlock
+    info: Optional[list] = field(default_factory=list)
+    warnings: Optional[list] = field(default_factory=list)
+
+
 Status = Literal["ok", "warning", "failed"]
 
 

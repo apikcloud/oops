@@ -6,8 +6,9 @@ import sys
 
 from oops.core.paths import TEMPLATES
 from oops.output.base import OutputFormatter
-from oops.output.layout import Output, SummaryLayout
+from oops.output.layout import MetricsLayout, Output, SummaryLayout
 from oops.output.serializers import to_json_string
+from oops.utils.compat import Dict, Type
 from oops.utils.render import (
     conclude,
     counter_rule,
@@ -18,6 +19,8 @@ from oops.utils.render import (
     rule,
     warning_section,
 )
+
+FormatterRegistry = Dict[str, Type[OutputFormatter]]
 
 
 class SummaryConsoleFormatter(OutputFormatter):
@@ -67,6 +70,42 @@ class SummaryConsoleFormatter(OutputFormatter):
 
                 console.print(make_table(title=None, columns=table.columns, rows=table.rows, expand=True))
                 console.print()
+
+        conclude(data.conclusion.status, data.conclusion.message)
+
+    def error(self, message: str, code: int = 1) -> None:
+        # error(message, code)
+        pass
+
+    def success(self, message: str) -> None:
+        # success(message)
+        pass
+
+
+class MetricsConsoleFormatter(OutputFormatter):
+    """Human-readable Rich output for the `example` command.
+
+    Receives dicts already prepared by `presenter.prepare_for_human()`.
+    Has no knowledge of the domain dataclasses.
+    """
+
+    target = "human"
+
+    def render(self, output: "Output[MetricsLayout]") -> None:
+
+        data = output.layout
+        assert data
+
+        console = get_console()
+
+        rule(data.title)
+
+        panels = [metrics_panel(panel.title, panel.values) for panel in data.panels]
+        console.print()
+        console.print(metrics_grid(*panels))
+
+        if data.warnings:
+            warning_section(data.warnings)
 
         conclude(data.conclusion.status, data.conclusion.message)
 
@@ -146,6 +185,9 @@ class CsvFormatter(OutputFormatter):
         writer.writeheader()
         writer.writerows(rows)
         # click.echo(buf.getvalue(), nl=False)
+
+        # FIXME: Formatter must returns string so...
+        return ""
 
     def error(self, message: str, code: int = 1) -> None:
         print(to_json_string({"error": message, "code": code}), file=sys.stderr)

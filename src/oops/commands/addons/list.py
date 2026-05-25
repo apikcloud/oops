@@ -19,6 +19,7 @@ from oops.io.file import enrich_addon, find_addons
 from oops.output.formatters import (
     AddonsReportFormatter,
     CsvFormatter,
+    FormatterRegistry,
     JsonFormatter,
     OutputFormatter,
     SummaryConsoleFormatter,
@@ -28,7 +29,7 @@ from oops.presenters.list import prepare
 from oops.services.git import list_submodules, require_repository
 from oops.services.loc import get_addon_loc
 
-FORMATTERS: dict[str, type[OutputFormatter]] = {
+FORMATTERS: FormatterRegistry = {
     "text": SummaryConsoleFormatter,
     "json": JsonFormatter,
     "html": AddonsReportFormatter,

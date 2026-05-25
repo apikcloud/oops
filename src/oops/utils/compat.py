@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Iterable, Mapping
-from typing import TYPE_CHECKING, Any, Dict, Final, Generic, List, Optional, Tuple, TypeVar, Union, get_type_hints
+from typing import TYPE_CHECKING, Any, Dict, Final, Generic, List, Optional, Tuple, Type, TypeVar, Union, get_type_hints
 
 PY37 = sys.version_info < (3, 8)
 PY38 = sys.version_info < (3, 9)
@@ -66,6 +66,7 @@ __all__ = [
     "tomllib",
     "Tuple",
     "TYPE_CHECKING",
+    "Type",
     "TypedDict",
     "Union",
     "ZoneInfo",

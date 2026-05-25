@@ -13,6 +13,7 @@ from oops.core.models import ImageInfo, Result
 from oops.utils.compat import Optional
 from oops.utils.helpers import date_from_string
 from oops.utils.net import make_json_get
+from requests import RequestException
 
 # try:
 #     import odoo as odoo
@@ -242,3 +243,22 @@ def find_available_images(
             item.delta = abs((release - item.release).days) if release else 0
 
     return items
+
+
+def format_image_updates(image_info: "Optional[ImageInfo]" = None) -> str:
+    if not image_info:
+        return "-"
+    if not image_info.release:
+        return "No release date in current image tag"
+    try:
+        available = find_available_images(
+            release=image_info.release,
+            version=image_info.major_version,
+            enterprise=image_info.enterprise,
+        )
+    except RequestException as e:
+        return f"Could not fetch: {e}"
+    if not available:
+        return "Up to date"
+    latest = available[0]
+    return f"{len(available)} available, latest is {latest.delta} days newer ({latest.release.isoformat()})"
