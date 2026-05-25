@@ -9,6 +9,7 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.logger import live_progress, log
 from oops.core.models import Result
 from oops.io.file import enrich_addon, find_addons, parse_odoo_version
@@ -20,7 +21,6 @@ from oops.output.formatters import (
 from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.kb import load_odoo_kb, require_kb
-from oops.utils.compat import Optional
 from oops.utils.render import ask
 
 from .presenters.show import prepare

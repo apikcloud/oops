@@ -15,13 +15,13 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.exceptions import NotFoundError
 from oops.core.logger import log
 from oops.core.messages import commit_messages
 from oops.io.file import desired_path, rewrite_symlink
 from oops.services.git import require_repository, require_submodules
-from oops.utils.compat import Optional
 from oops.utils.net import encode_url
 
 

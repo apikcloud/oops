@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+from oops.core.compat import Optional
 from oops.core.models import (
     ClassSummary,
     ModuleSummary,
@@ -22,7 +23,6 @@ from oops.core.models import (
     ViewsSummary,
 )
 from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SectionBlock, SummaryLayout, TableBlock
-from oops.utils.compat import Optional
 from oops.utils.render import (
     colorize,
     human_readable,

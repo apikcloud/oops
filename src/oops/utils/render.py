@@ -9,10 +9,10 @@ import textwrap
 from datetime import datetime
 
 import questionary
+from oops.core.compat import Any, List, Optional
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import log
-from oops.utils.compat import Any, List, Optional
 from rich import box
 from rich.columns import Columns
 from rich.console import Console

@@ -2,12 +2,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
+from oops.core.compat import List
 from oops.core.config import _MISSING, Config, ConfigurationError, _apply, _is_list_of_path, load_config
-from oops.utils.compat import List
 
 # ---------------------------------------------------------------------------
 # _is_list_of_path
 # ---------------------------------------------------------------------------
+
 
 class TestIsListOfPath:
     def test_list_of_path_true(self):
@@ -26,6 +27,7 @@ class TestIsListOfPath:
 # ---------------------------------------------------------------------------
 # _apply
 # ---------------------------------------------------------------------------
+
 
 class TestApply:
     def test_scalar(self):
@@ -85,9 +87,7 @@ class TestApply:
 # ---------------------------------------------------------------------------
 
 REQUIRED_YAML = (
-    "version: 1\n"
-    "images:\n  source:\n    repository: test/repo\n    file: tags.json\n"
-    "manifest:\n  author: Apik\n"
+    "version: 1\nimages:\n  source:\n    repository: test/repo\n    file: tags.json\nmanifest:\n  author: Apik\n"
 )
 
 

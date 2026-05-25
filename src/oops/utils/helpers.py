@@ -11,7 +11,7 @@ from collections.abc import Generator
 from datetime import date
 
 import click
-from oops.utils.compat import PY38, Any, List
+from oops.core.compat import PY38, Any, List
 
 
 def removesuffix(raw: Any, suffix: str) -> str:

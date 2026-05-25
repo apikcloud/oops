@@ -7,10 +7,10 @@ import re
 import warnings
 from datetime import date
 
+from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
 from oops.core.models import ImageInfo, Result
-from oops.utils.compat import Optional
 from oops.utils.helpers import date_from_string
 from oops.utils.net import make_json_get
 from requests import RequestException

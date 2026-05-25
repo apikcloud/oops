@@ -20,9 +20,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import click
+from oops.core.compat import Literal, Optional
 from oops.output.base import OutputFormatter
 from oops.output.layout import Output
-from oops.utils.compat import Literal, Optional
 
 DefaultSink = Literal["stdout", "tempfile"]
 

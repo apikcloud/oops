@@ -8,11 +8,11 @@ import subprocess
 import zipfile
 
 import requests
+from oops.core.compat import Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import APIError
 from oops.core.logger import log
 from oops.core.models import WorkflowRunInfo
-from oops.utils.compat import Optional, Tuple
 from oops.utils.net import make_json_get
 
 

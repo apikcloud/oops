@@ -11,9 +11,9 @@ from pathlib import Path
 
 import click
 import yaml
+from oops.core.compat import Dict, Final, List, Optional, Union, get_type_hints
 from oops.core.exceptions import ConfigurationError
 from oops.core.paths import CONFIG_PATHS as _CONFIG_PATHS
-from oops.utils.compat import Dict, Final, List, Optional, Union, get_type_hints
 
 logger = logging.getLogger(__name__)
 

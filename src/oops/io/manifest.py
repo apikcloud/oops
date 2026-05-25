@@ -19,10 +19,10 @@ from collections.abc import Generator
 from pathlib import Path
 
 import libcst as cst
+from oops.core.compat import Optional, Union
 from oops.core.config import config
 from oops.core.exceptions import NoManifestFound
 from oops.core.logger import log
-from oops.utils.compat import Optional, Union
 
 # ---------------------------------------------------------------------------
 # Path lookup

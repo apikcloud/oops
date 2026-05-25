@@ -16,9 +16,9 @@ Use --include to restrict to a subset, or --exclude to skip specific addons.
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.io.file import materialize_symlink
 from oops.services.git import commit, require_repository
-from oops.utils.compat import Optional
 from oops.utils.helpers import str_to_list
 from oops.utils.render import human_readable, print_error, print_success
 

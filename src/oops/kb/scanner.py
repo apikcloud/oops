@@ -18,11 +18,11 @@ import json
 from pathlib import Path
 from typing import Set
 
+from oops.core.compat import Any, Dict, Iterable, List, Optional, Tuple
 from oops.core.config import config
 from oops.core.logger import log
 from oops.core.models import Result
 from oops.io.manifest import load_manifest
-from oops.utils.compat import Any, Dict, Iterable, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Constants

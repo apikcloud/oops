@@ -10,7 +10,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from oops.utils.compat import Generic, Optional, T
+from oops.core.compat import Generic, Optional, T
 from oops.utils.helpers import date_from_string
 from oops.utils.render import format_datetime
 

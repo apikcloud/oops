@@ -54,9 +54,9 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+from oops.core.compat import Any, Dict, List, Optional
 from oops.core.logger import log
 from oops.core.models import Result
-from oops.utils.compat import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # Schema versioning
@@ -816,8 +816,7 @@ class KBReader:
             List of dicts with keys: xml_id, mode, view_type, inherit_id, source_file.
         """
         rows = self._con.execute(
-            "SELECT xml_id, mode, view_type, inherit_id, source_file "
-            "FROM views WHERE module = ?",
+            "SELECT xml_id, mode, view_type, inherit_id, source_file FROM views WHERE module = ?",
             (module,),
         ).fetchall()
         return [dict(r) for r in rows]
@@ -831,9 +830,7 @@ class KBReader:
         Returns:
             Integer count.
         """
-        return self._con.execute(
-            "SELECT COUNT(*) FROM actions WHERE module = ?", (module,)
-        ).fetchone()[0]
+        return self._con.execute("SELECT COUNT(*) FROM actions WHERE module = ?", (module,)).fetchone()[0]
 
     def get_module_menu_count(self, module: str) -> int:
         """Return the number of menus belonging to the given module.
@@ -844,9 +841,7 @@ class KBReader:
         Returns:
             Integer count.
         """
-        return self._con.execute(
-            "SELECT COUNT(*) FROM menus WHERE module = ?", (module,)
-        ).fetchone()[0]
+        return self._con.execute("SELECT COUNT(*) FROM menus WHERE module = ?", (module,)).fetchone()[0]
 
     def get_field_refs_for_field(
         self, model: str, field_name: str, module: Optional[str] = None

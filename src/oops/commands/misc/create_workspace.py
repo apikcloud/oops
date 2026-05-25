@@ -19,11 +19,11 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.io.file import get_odoo_sources_dirs, parse_odoo_version
 from oops.services.git import require_repository
-from oops.utils.compat import Optional
 from oops.utils.render import print_success, print_warning
 
 

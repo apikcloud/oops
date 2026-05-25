@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import timezone
 from typing import TYPE_CHECKING
 
-from oops.utils.compat import Generic, L, Literal, Optional
+from oops.core.compat import Generic, L, List, Literal, Optional
 
 if TYPE_CHECKING:
     pass
@@ -20,24 +20,24 @@ UTC = timezone.utc
 @dataclass
 class TableBlock:
     title: str
-    columns: list[tuple[str, str, str]]
-    rows: list
+    columns: List[tuple[str, str, str]]
+    rows: List
     counter: Optional[int] = None
 
 
 @dataclass
 class MetricsPanelBlock:
     title: str
-    values: list[list[str]]
+    values: List[List[str]]
 
 
 @dataclass
 class SectionBlock:
     title: str
-    panels: list[MetricsPanelBlock]
-    tables: list[TableBlock]
-    info: Optional[list] = field(default_factory=list)
-    warnings: Optional[list] = field(default_factory=list)
+    panels: List[MetricsPanelBlock]
+    tables: List[TableBlock]
+    info: Optional[List] = field(default_factory=List)
+    warnings: Optional[List] = field(default_factory=List)
 
 
 @dataclass
@@ -49,18 +49,18 @@ class ConclusionBlock:
 @dataclass
 class SummaryLayout:
     title: str
-    sections: list[SectionBlock]
+    sections: List[SectionBlock]
     conclusion: ConclusionBlock
-    warnings: Optional[list] = field(default_factory=list)
+    warnings: Optional[List] = field(default_factory=List)
 
 
 @dataclass
 class MetricsLayout:
     title: str
-    panels: list[MetricsPanelBlock]
+    panels: List[MetricsPanelBlock]
     conclusion: ConclusionBlock
-    info: Optional[list] = field(default_factory=list)
-    warnings: Optional[list] = field(default_factory=list)
+    info: Optional[List] = field(default_factory=List)
+    warnings: Optional[List] = field(default_factory=List)
 
 
 Status = Literal["ok", "warning", "failed"]

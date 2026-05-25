@@ -27,6 +27,7 @@ from typing import NamedTuple
 
 import click
 from git.repo import Repo
+from oops.core.compat import Optional, Union
 from oops.core.config import config
 from oops.core.exceptions import ConfigError
 from oops.core.logger import log
@@ -36,7 +37,6 @@ from oops.io.manifest import load_manifest
 from oops.io.templates import COMPOSE_TEMPLATE, MAILDEV_ENV, MAILDEV_SERVICE, SFTP_SERVICE
 from oops.services.docker import parse_image_tag
 from oops.services.git import get_submodule_sha
-from oops.utils.compat import Optional, Union
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
 from oops.utils.render import print_warning

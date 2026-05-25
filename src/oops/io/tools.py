@@ -12,8 +12,8 @@ Sections:
 
 import subprocess
 
+from oops.core.compat import Optional
 from oops.core.logger import log
-from oops.utils.compat import Optional
 
 # ---------------------------------------------------------------------------
 # Subprocess

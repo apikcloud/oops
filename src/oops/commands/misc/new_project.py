@@ -18,10 +18,10 @@ Requires gh to be authenticated (run 'gh auth login' if needed).
 
 import click
 from oops.commands.base import command
+from oops.core.compat import List
 from oops.core.config import config
 from oops.core.exceptions import ConfigError
 from oops.services.github import check_gh, gh
-from oops.utils.compat import List
 from oops.utils.helpers import slugify
 from oops.utils.render import print_success, print_warning
 

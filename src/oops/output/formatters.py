@@ -4,11 +4,11 @@ import csv
 import io
 import sys
 
+from oops.core.compat import Dict, Type
 from oops.core.paths import TEMPLATES
 from oops.output.base import OutputFormatter
 from oops.output.layout import MetricsLayout, Output, SummaryLayout
 from oops.output.serializers import to_json_string
-from oops.utils.compat import Dict, Type
 from oops.utils.render import (
     conclude,
     counter_rule,

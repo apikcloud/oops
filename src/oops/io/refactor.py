@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Union
 
 import libcst as cst
+from oops.core.compat import Any, Dict, List, Optional, Tuple
 from oops.core.logger import log
 from oops.kb.resolve import (
     format_source_line,
@@ -40,7 +41,6 @@ from oops.kb.scanner import (
     is_odoo_model_class,
 )
 from oops.kb.store import KBReader
-from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Constants

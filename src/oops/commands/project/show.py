@@ -16,6 +16,7 @@ from pathlib import Path
 import click
 import requests
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.logger import live_progress
 from oops.core.models import Result
 from oops.io.file import parse_odoo_version
@@ -25,7 +26,6 @@ from oops.services.docker import check_image, format_image_updates
 from oops.services.git import get_last_commit, require_repository
 from oops.services.github import get_latest_workflow_run
 from oops.services.project import check_project
-from oops.utils.compat import Optional
 from oops.utils.net import get_public_repo_url, parse_repository_url
 from oops.utils.render import (
     format_datetime,

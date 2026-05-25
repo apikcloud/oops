@@ -20,9 +20,9 @@ import xml.parsers.expat as expat
 from pathlib import Path
 from typing import Set
 
+from oops.core.compat import Any, Dict, List, Optional, Tuple
 from oops.core.logger import log
 from oops.core.models import Result
-from oops.utils.compat import Any, Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Constants

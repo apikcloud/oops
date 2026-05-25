@@ -15,11 +15,11 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.exceptions import EarlyExit
 from oops.core.messages import commit_messages
 from oops.io.file import list_symlinks, relpath
 from oops.services.git import require_repository, require_submodules
-from oops.utils.compat import Optional
 from oops.utils.render import print_success, print_warning
 
 

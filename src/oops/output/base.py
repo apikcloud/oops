@@ -8,8 +8,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Literal
 
+from oops.core.compat import Optional
 from oops.output.layout import Output
-from oops.utils.compat import Optional
 
 Target = Literal["human", "machine"]
 

@@ -28,9 +28,9 @@ from datetime import date as Date
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.exceptions import OopsError
 from oops.io.file import get_odoo_sources_dirs
-from oops.utils.compat import Optional
 from oops.utils.git import update_at_date, update_latest
 from oops.utils.helpers import normalize_version
 from oops.utils.render import print_success, print_warning
@@ -45,12 +45,27 @@ from oops.utils.render import print_success, print_warning
     help="Checkout the last commit at or before this date.",
     type=click.DateTime(formats=["%Y-%m-%d"]),
 )
-@click.option("--community/--no-community", "with_community", is_flag=True, default=True,
-              help="Include or exclude Community in the update.")
-@click.option("--enterprise/--no-enterprise", "with_enterprise", is_flag=True, default=True,
-              help="Include or exclude Enterprise in the update.")
-@click.option("--themes/--no-themes", "with_themes", is_flag=True, default=True,
-              help="Include or exclude design-themes in the update.")
+@click.option(
+    "--community/--no-community",
+    "with_community",
+    is_flag=True,
+    default=True,
+    help="Include or exclude Community in the update.",
+)
+@click.option(
+    "--enterprise/--no-enterprise",
+    "with_enterprise",
+    is_flag=True,
+    default=True,
+    help="Include or exclude Enterprise in the update.",
+)
+@click.option(
+    "--themes/--no-themes",
+    "with_themes",
+    is_flag=True,
+    default=True,
+    help="Include or exclude design-themes in the update.",
+)
 def main(
     version: str,
     date: Optional[Date],

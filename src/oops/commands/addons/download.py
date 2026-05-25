@@ -18,10 +18,10 @@ from pathlib import Path
 import click
 import git
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.exceptions import APIError, EarlyExit
 from oops.io.file import file_updater, find_addons, read_tagged_block
 from oops.services.git import commit, require_repository
-from oops.utils.compat import Optional
 from oops.utils.helpers import str_to_list
 from oops.utils.net import encode_url
 from oops.utils.render import print_warning

@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 
 import requests
 from git import Repo
+from oops.core.compat import Optional, Tuple
 from oops.core.config import config
-from oops.utils.compat import Optional, Tuple
 from oops.utils.helpers import removesuffix
 
 

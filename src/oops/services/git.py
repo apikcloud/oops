@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 import click
 from git import GitCommandError, InvalidGitRepositoryError, Repo, Submodule
 from git.config import GitConfigParser
+from oops.core.compat import Optional
 from oops.core.exceptions import OopsError
 from oops.core.messages import commit_messages
 from oops.core.models import CommitInfo
@@ -21,7 +22,6 @@ from oops.core.paths import PR_DIR
 from oops.io.format import format_file
 from oops.io.manifest import find_addons_extended
 from oops.io.tools import run
-from oops.utils.compat import Optional
 from oops.utils.net import encode_url
 from oops.utils.render import print_success, print_warning
 
