@@ -24,11 +24,7 @@ FormatterRegistry = Dict[str, Type[OutputFormatter]]
 
 
 class SummaryConsoleFormatter(OutputFormatter):
-    """Human-readable Rich output for the `example` command.
-
-    Receives dicts already prepared by `presenter.prepare_for_human()`.
-    Has no knowledge of the domain dataclasses.
-    """
+    """Human-readable Rich console output for addons list and analyze."""
 
     target = "human"
 
@@ -65,29 +61,20 @@ class SummaryConsoleFormatter(OutputFormatter):
                 else:
                     rule(table.title)
 
-                # console.print(make_table(title=None, columns=columns, rows=rows))
-                # console.print()
-
                 console.print(make_table(title=None, columns=table.columns, rows=table.rows, expand=True))
                 console.print()
 
         conclude(data.conclusion.status, data.conclusion.message)
 
     def error(self, message: str, code: int = 1) -> None:
-        # error(message, code)
         pass
 
     def success(self, message: str) -> None:
-        # success(message)
         pass
 
 
 class MetricsConsoleFormatter(OutputFormatter):
-    """Human-readable Rich output for the `example` command.
-
-    Receives dicts already prepared by `presenter.prepare_for_human()`.
-    Has no knowledge of the domain dataclasses.
-    """
+    """Human-readable Rich console output for project show."""
 
     target = "human"
 
@@ -110,11 +97,9 @@ class MetricsConsoleFormatter(OutputFormatter):
         conclude(data.conclusion.status, data.conclusion.message)
 
     def error(self, message: str, code: int = 1) -> None:
-        # error(message, code)
         pass
 
     def success(self, message: str) -> None:
-        # success(message)
         pass
 
 
@@ -150,11 +135,7 @@ class DependsReportFormatter(HtmlFormatter):
 
 
 class JsonFormatter(OutputFormatter):
-    """Machine-readable JSON output for the `example` command.
-
-    Receives dicts already prepared by `presenter.prepare_for_machine()`.
-    Has no knowledge of the domain dataclasses.
-    """
+    """Machine-readable JSON output."""
 
     target = "machine"
 
@@ -172,7 +153,7 @@ class JsonFormatter(OutputFormatter):
 
 
 class CsvFormatter(OutputFormatter):
-    """TODO: csv formatter"""
+    """Machine-readable CSV output (unimplemented — emits empty body)."""
 
     target = "machine"
 
@@ -186,7 +167,7 @@ class CsvFormatter(OutputFormatter):
         writer.writerows(rows)
         # click.echo(buf.getvalue(), nl=False)
 
-        # FIXME: Formatter must returns string so...
+        # TODO: CsvFormatter unimplemented — emits an empty body until finished.
         return ""
 
     def error(self, message: str, code: int = 1) -> None:
@@ -194,16 +175,3 @@ class CsvFormatter(OutputFormatter):
 
     def success(self, message: str) -> None:
         print(to_json_string({"success": True, "message": message}))
-
-
-class PrecommitFormatter(OutputFormatter):
-    target = "human"
-
-    def render(self, output: Output[dict]) -> None:
-        pass
-
-    def error(self, message: str, code: int = 1) -> None:
-        pass
-
-    def success(self, message: str) -> None:
-        pass

@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Literal
 
 from oops.output.layout import Output
+from oops.utils.compat import Optional
 
 Target = Literal["human", "machine"]
 
@@ -27,17 +28,11 @@ class OutputFormatter(ABC):
     target: Target = "human"
 
     @abstractmethod
-    def render(
-        self,
-        output: Output,
-    ) -> None:
-        """Render the final result.
+    def render(self, output: Output) -> Optional[str]:
+        """Render `output`.
 
-        Args:
-            outer: top-level Result holding global warnings/errors.
-            items: list of dicts already prepared by the presenter.
-                The shape depends on `self.target` — the command calls
-                the matching presenter function before invoking render.
+        Human formatters print via Rich and return None.
+        Machine formatters return a string to be delivered by a sink.
         """
 
     @abstractmethod

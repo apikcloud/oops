@@ -20,7 +20,7 @@ from oops.core.logger import live_progress
 from oops.core.models import Result
 from oops.io.file import parse_odoo_version
 from oops.output.formatters import FormatterRegistry, JsonFormatter, MetricsConsoleFormatter
-from oops.output.sinks import write_output
+from oops.output.sinks import deliver
 from oops.services.docker import check_image, format_image_updates
 from oops.services.git import get_last_commit, require_repository
 from oops.services.github import get_latest_workflow_run
@@ -50,7 +50,7 @@ FORMATTERS: FormatterRegistry = {
 @click.option(
     "--format",
     "output_format",
-    type=click.Choice(["text", "html"]),
+    type=click.Choice(["text", "json"]),
     default="text",
     show_default=True,
     help="Output format",
@@ -138,10 +138,4 @@ def main(token: Optional[str], output_format: str, output_path: Path):  # noqa: 
 
     # 4. Prepare for the chosen audience and render.
     output = prepare(result, outer, target=formatter.target)
-    content = formatter.render(output)
-
-    # 5. Deliver to the right sink.
-    if content is not None:  # console returns None, JSON/HTML return a string
-        path = write_output(content, output_format, output_path)
-        if path is not None:
-            click.echo(f"Report written to {path}", err=True)
+    deliver(formatter, output, output_format, output_path)

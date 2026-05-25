@@ -17,12 +17,13 @@ from oops.output.formatters import (
     JsonFormatter,
     OutputFormatter,
 )
-from oops.output.layout import Output
-from oops.output.sinks import write_output
+from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.kb import load_odoo_kb, require_kb
 from oops.utils.compat import Optional
 from oops.utils.render import ask
+
+from .presenters.show import prepare
 
 FORMATTERS: dict[str, type[OutputFormatter]] = {
     "json": JsonFormatter,
@@ -97,28 +98,17 @@ def main(output_format: str, output_path: Optional[Path]) -> None:
         graph_stats = compute_dependency_metrics(result.data)
 
     # 3. Build the payload.
-    payload = {
-        "warnings": outer.warnings,
-        "stats": {
-            "total": len(result.data),
-            "by_origin": _count_by_origin(result.data),
-            "roots": graph_stats["roots"],
-            "leaves_count": len(graph_stats["leaves"]),
-            "unresolved": truly_unresolved,
-        },
-        "addons": result.data,
+    stats = {
+        "total": len(result.data),
+        "by_origin": _count_by_origin(result.data),
+        "roots": graph_stats["roots"],
+        "leaves_count": len(graph_stats["leaves"]),
+        "unresolved": truly_unresolved,
     }
 
     # 4. Prepare for the chosen audience and render.
-    # output = prepare(payload, target=formatter.target)
-    output: Output[dict] = Output(payload)
-    content = formatter.render(output)
-
-    # 5. Deliver to the right sink.
-    if content is not None:  # console returns None, JSON/HTML return a string
-        path = write_output(content, output_format, output_path)
-        if path is not None:
-            click.echo(f"Report written to {path}", err=True)
+    output = prepare(result, outer, target=formatter.target, stats=stats)
+    deliver(formatter, output, output_format, output_path)
 
 
 # ---------------------------------------------------------------------------

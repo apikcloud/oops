@@ -19,6 +19,9 @@ import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
 
+import click
+from oops.output.base import OutputFormatter
+from oops.output.layout import Output
 from oops.utils.compat import Literal, Optional
 
 DefaultSink = Literal["stdout", "tempfile"]
@@ -45,6 +48,7 @@ class SinkPolicy:
 SINK_POLICIES: dict[str, SinkPolicy] = {
     "json": SinkPolicy(default="stdout", suffix=".json", open_browser=False),
     "html": SinkPolicy(default="tempfile", suffix=".html", open_browser=True),
+    "csv": SinkPolicy(default="stdout", suffix=".csv", open_browser=False),
 }
 
 
@@ -87,3 +91,18 @@ def write_output(
         webbrowser.open(path.as_uri())
 
     return path
+
+
+def deliver(
+    formatter: OutputFormatter,
+    output: Output,
+    output_format: str,
+    output_path: Optional[Path],
+) -> None:
+    """Render then route: human formatters return None; machine formatters
+    return a string sent through write_output."""
+    content = formatter.render(output)
+    if content is not None:
+        path = write_output(content, output_format, output_path)
+        if path is not None:
+            click.echo(f"Report written to {path}", err=True)

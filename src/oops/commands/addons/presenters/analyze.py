@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: presenters.py — src/oops/output/presenters.py
+# File: analyze.py — src/oops/commands/addons/presenters/analyze.py
 
 # The presenter receives the typed domain Result from the command,
 # transforms it into neutral dicts ready to render, and is the ONLY
@@ -267,9 +267,6 @@ def _make_section(result: "Result[ModuleSummary]") -> SectionBlock:
 
     tables.append(_make_structure_table(summary.structure))
 
-    # if result.warnings:
-    #     warning_section(result.warnings)
-
     return SectionBlock(title=summary.module_name, panels=panels, tables=tables, info=info, warnings=result.warnings)
 
 
@@ -296,10 +293,7 @@ def _views_block(vs: "Optional[ViewsSummary]") -> dict:
 
 
 def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> Output[dict]:
-    """Full payload for JSON / scripts / downstream agents.
-
-    Includes every field: ids, metadata, timestamps, internal details.
-    """
+    """Full payload for JSON / scripts / downstream agents."""
 
     def _make(result) -> dict:
         assert result.data is not None
@@ -393,13 +387,7 @@ def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") 
 
 
 def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> "Output[SummaryLayout]":
-    """Reduced payload for console / HTML.
-
-    Drops internal fields (ids, refs, metadata) and keeps only what is
-    relevant to read.
-    """
-
-    # warning_section(outer.warnings)
+    """Reduced payload for console output."""
 
     all_ok = outer.ok and all(r.ok for r in results)
     sections = [_make_section(result) for result in results]

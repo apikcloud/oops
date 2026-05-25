@@ -13,7 +13,7 @@ def prepare_full(result: Result[dict], outer: "Result[None]") -> "Output[dict]":
     return Output(
         {
             "warnings": outer.warnings,
-            "project": result.data["title"],
+            "project": result.data["project"],
             "metrics": result.data["metrics"],
         }
     )

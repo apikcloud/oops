@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: list.py — src/oops/presenters/list.py
+# File: list.py — src/oops/commands/addons/presenters/list.py
 
 from collections import Counter
 

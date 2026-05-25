@@ -24,10 +24,11 @@ from oops.output.formatters import (
     OutputFormatter,
     SummaryConsoleFormatter,
 )
-from oops.output.sinks import write_output
-from oops.presenters.list import prepare
+from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.loc import get_addon_loc
+
+from .presenters.list import prepare
 
 FORMATTERS: FormatterRegistry = {
     "text": SummaryConsoleFormatter,
@@ -151,16 +152,4 @@ def main(output_format: str, init: bool, submodules: tuple, symlinks_only: bool,
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
     output = prepare(rows, outer, target=formatter.target)
-
-    # 3. Formatter renders. It does not know the domain dataclasses.
-    if formatter.target == "human":
-        formatter.render(output)
-        return
-
-    # 4. Write the output into a file or print on stdout (only for machine target)
-    content = formatter.render(output)
-    assert content
-
-    path = write_output(content, output_format, output_path)
-    if path:
-        print(path)
+    deliver(formatter, output, output_format, output_path)
