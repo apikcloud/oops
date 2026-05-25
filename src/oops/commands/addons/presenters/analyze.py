@@ -166,7 +166,7 @@ def _make_inherited_methods_table(items: list[dict[str, str]]) -> TableBlock:
     ]
     rows = [[it["model"], it["method"], it["origin_module"]] for it in items]
 
-    return TableBlock(title="Inherited", columns=columns, rows=rows, counter=len(rows))
+    return TableBlock(title="Inherited methods", columns=columns, rows=rows, counter=len(rows))
 
 
 def _make_section(result: "Result[ModuleSummary]") -> SectionBlock:
@@ -263,9 +263,13 @@ def _make_section(result: "Result[ModuleSummary]") -> SectionBlock:
             tables.append(_make_inherited_methods_table(all_inherited))
 
     if summary.views_summary is not None:
-        tables.append(_make_views_table(summary.views_summary))
+        vt = _make_views_table(summary.views_summary)
+        if vt is not None:
+            tables.append(vt)
 
-    tables.append(_make_structure_table(summary.structure))
+    st = _make_structure_table(summary.structure)
+    if st is not None:
+        tables.append(st)
 
     return SectionBlock(title=summary.module_name, panels=panels, tables=tables, info=info, warnings=result.warnings)
 

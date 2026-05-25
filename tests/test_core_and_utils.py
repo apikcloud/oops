@@ -437,6 +437,7 @@ class TestAddonInfo:
             maintainers=[],
             summary="",
             external_dependencies={},
+            depends=[],
             installable=True,
         )
         assert addon.symlinked is True
@@ -454,6 +455,7 @@ class TestAddonInfo:
             maintainers=[],
             summary="",
             external_dependencies={},
+            depends=[],
             installable=True,
         )
         assert addon.symlinked is False

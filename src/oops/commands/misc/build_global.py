@@ -106,7 +106,7 @@ def main(
     rule(f"Build global KB for Odoo {version}")
 
     # using Live for long-time processing
-    with live_progress():
+    with live_progress("Building global KB..."):
         for path in get_odoo_sources_dirs(version):
             name = _ORIGIN_MAP.get(path.name, path.name)
 

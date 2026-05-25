@@ -33,6 +33,7 @@ def _make_addon(technical_name: str, python_deps: list) -> AddonInfo:
         maintainers=[],
         summary="",
         external_dependencies={"python": python_deps},
+        depends=[],
         installable=True,
     )
 
@@ -53,6 +54,7 @@ def _make_addon_full_deps(technical_name: str, external_dependencies: dict) -> A
         maintainers=[],
         summary="",
         external_dependencies=external_dependencies,
+        depends=[],
         installable=True,
     )
 

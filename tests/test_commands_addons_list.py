@@ -32,6 +32,7 @@ def _make_addon_info(
         maintainers=[],
         summary="",
         external_dependencies={},
+        depends=[],
         installable=True,
         submodule="",
         branch="",
@@ -49,12 +50,12 @@ def _invoke_list_json(tmp_path: Path, addons: list[AddonInfo], loc_map: dict[str
             patch("oops.commands.addons.list.find_addons", return_value=iter(addons)), \
             patch("oops.commands.addons.list.enrich_addon"), \
             patch("oops.commands.addons.list.get_addon_loc", side_effect=_fake_loc), \
-            patch("oops.commands.addons.list.Live", MagicMock()):
+            patch("oops.core.logger.Live", MagicMock()):
         mock_repo.return_value = (MagicMock(), tmp_path)
         result = CliRunner().invoke(main, ["--format", "json"])
 
     assert result.exit_code == 0, result.output
-    return json.loads(result.output)
+    return json.loads(result.output)["addons"]
 
 
 class TestListLocKeys:
