@@ -365,6 +365,9 @@ class TestBuildKb:
 
         _xml_scan_data = {"views": [], "actions": [], "menus": []}
         with patch(
+            "oops.commands.misc.build_global.global_kb_dir",
+            return_value=cache_dir,
+        ), patch(
             "oops.commands.misc.build_global.get_odoo_sources_dirs",
             return_value=dirs,
         ), patch(
@@ -401,7 +404,7 @@ class TestBuildKb:
         ) as mock_write:
             result = self._runner().invoke(
                 build_kb_main,
-                ["--version", version, "--cache-dir", str(cache_dir)],
+                ["--version", version],
             )
         return result, mock_scan, mock_write
 

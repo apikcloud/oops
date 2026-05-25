@@ -211,6 +211,10 @@ def print_warning(message: str, symbol: str = "⚠") -> None:
     get_console().print(f"{symbol} {message}", style="yellow")
 
 
+def experimental_warning() -> None:
+    print_warning("This command is experimental and may change without notice between releases.")
+
+
 def print_rule(text: str) -> None:
     """Print a styled section banner to the terminal.
 

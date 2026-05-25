@@ -23,6 +23,7 @@ from oops.utils.render import render_table
 @command(name="usage", help=__doc__)
 def main() -> None:
     path = stats_file()
+    print(path)
 
     if not path.exists() or not path.read_text(encoding="utf-8").strip():
         click.echo("No usage data found.")
@@ -32,6 +33,7 @@ def main() -> None:
     oldest_ts = ""
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
+
         if not line:
             continue
         try:

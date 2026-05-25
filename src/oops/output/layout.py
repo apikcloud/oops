@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import dataclass, field
 from datetime import timezone
 from typing import TYPE_CHECKING
@@ -36,8 +37,8 @@ class SectionBlock:
     title: str
     panels: List[MetricsPanelBlock]
     tables: List[TableBlock]
-    info: Optional[List] = field(default_factory=List)
-    warnings: Optional[List] = field(default_factory=List)
+    info: Optional[List] = field(default_factory=list)
+    warnings: Optional[List] = field(default_factory=list)
 
 
 @dataclass
@@ -47,20 +48,37 @@ class ConclusionBlock:
 
 
 @dataclass
-class SummaryLayout:
+class BaseLayout(ABC):
     title: str
-    sections: List[SectionBlock]
     conclusion: ConclusionBlock
-    warnings: Optional[List] = field(default_factory=List)
 
 
 @dataclass
-class MetricsLayout:
-    title: str
+class SummaryLayout(BaseLayout):
+    sections: List[SectionBlock]
+
+    # Optional attributes
+    info: Optional[List] = field(default_factory=list)
+    warnings: Optional[List] = field(default_factory=list)
+
+
+@dataclass
+class SimpleSummaryLayout(BaseLayout):
+    panel: MetricsPanelBlock
+    table: TableBlock
+
+    # Optional attributes
+    info: Optional[List] = field(default_factory=list)
+    warnings: Optional[List] = field(default_factory=list)
+
+
+@dataclass
+class MetricsLayout(BaseLayout):
     panels: List[MetricsPanelBlock]
-    conclusion: ConclusionBlock
-    info: Optional[List] = field(default_factory=List)
-    warnings: Optional[List] = field(default_factory=List)
+
+    # Optional attributes
+    info: Optional[List] = field(default_factory=list)
+    warnings: Optional[List] = field(default_factory=list)
 
 
 Status = Literal["ok", "warning", "failed"]

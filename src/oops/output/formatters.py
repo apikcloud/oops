@@ -7,7 +7,7 @@ import sys
 from oops.core.compat import Dict, Type
 from oops.core.paths import TEMPLATES
 from oops.output.base import OutputFormatter
-from oops.output.layout import MetricsLayout, Output, SummaryLayout
+from oops.output.layout import MetricsLayout, Output, SimpleSummaryLayout, SummaryLayout
 from oops.output.serializers import to_json_string
 from oops.utils.render import (
     conclude,
@@ -23,18 +23,28 @@ from oops.utils.render import (
 FormatterRegistry = Dict[str, Type[OutputFormatter]]
 
 
-class SummaryConsoleFormatter(OutputFormatter):
-    """Human-readable Rich console output for addons list and analyze."""
+class RichFormatter(OutputFormatter):
+    """Base class for human-readable Rich console formatters."""
 
     target = "human"
+    console = get_console()
+
+    def error(self, message: str, code: int = 1) -> None:
+        pass
+
+    def success(self, message: str) -> None:
+        pass
+
+
+class SummaryConsoleFormatter(RichFormatter):
+    """Human-readable Rich console output for addons list and analyze."""
 
     def render(self, output: "Output[SummaryLayout]") -> None:
 
         data = output.layout
         assert data
 
-        console = get_console()
-        console.print(data.title)
+        self.console.print(data.title)
 
         if data.warnings:
             warning_section(data.warnings)
@@ -46,61 +56,71 @@ class SummaryConsoleFormatter(OutputFormatter):
                 warning_section(section.warnings)
 
             panels = [metrics_panel(panel.title, panel.values) for panel in section.panels]
-            console.print()
-            console.print(metrics_grid(*panels))
+            self.console.print()
+            self.console.print(metrics_grid(*panels))
 
             if section.info:
                 for info in section.info:
-                    console.print()
-                    console.print(info)
+                    self.console.print()
+                    self.console.print(info)
 
             for table in section.tables:
-                console.print()
+                self.console.print()
                 if table.counter:
                     counter_rule(table.title, table.counter)
                 else:
                     rule(table.title)
 
-                console.print(make_table(title=None, columns=table.columns, rows=table.rows, expand=True))
-                console.print()
+                self.console.print(make_table(title=None, columns=table.columns, rows=table.rows, expand=True))
+                self.console.print()
 
         conclude(data.conclusion.status, data.conclusion.message)
 
-    def error(self, message: str, code: int = 1) -> None:
-        pass
 
-    def success(self, message: str) -> None:
-        pass
-
-
-class MetricsConsoleFormatter(OutputFormatter):
-    """Human-readable Rich console output for project show."""
-
-    target = "human"
-
-    def render(self, output: "Output[MetricsLayout]") -> None:
+class SimpleSummaryConsoleFormatter(RichFormatter):
+    def render(self, output: "Output[SimpleSummaryLayout]") -> None:
 
         data = output.layout
         assert data
 
-        console = get_console()
-
         rule(data.title)
+        self.console.print()
 
-        panels = [metrics_panel(panel.title, panel.values) for panel in data.panels]
-        console.print()
-        console.print(metrics_grid(*panels))
+        table = make_table(title=None, columns=data.table.columns, rows=data.table.rows, expand=True)
+        panel = metrics_panel(data.panel.title, data.panel.values)
+
+        self.console.print(metrics_grid(table, panel, ratios=[2, 1]))
+
+        # TODO: improve this
+        if data.info:
+            for info in data.info:
+                self.console.print()
+                self.console.print(info)
 
         if data.warnings:
             warning_section(data.warnings)
 
         conclude(data.conclusion.status, data.conclusion.message)
 
-    def error(self, message: str, code: int = 1) -> None:
-        pass
 
-    def success(self, message: str) -> None:
-        pass
+class MetricsConsoleFormatter(RichFormatter):
+    """Human-readable Rich console output for project show."""
+
+    def render(self, output: "Output[MetricsLayout]") -> None:
+
+        data = output.layout
+        assert data
+
+        rule(data.title)
+
+        panels = [metrics_panel(panel.title, panel.values) for panel in data.panels]
+        self.console.print()
+        self.console.print(metrics_grid(*panels))
+
+        if data.warnings:
+            warning_section(data.warnings)
+
+        conclude(data.conclusion.status, data.conclusion.message)
 
 
 class HtmlFormatter(OutputFormatter):

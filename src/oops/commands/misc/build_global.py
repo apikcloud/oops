@@ -36,19 +36,27 @@ from oops.kb.build import _resolve_prototype_roles, _resolve_view_types
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
 from oops.kb.xml_scanner import scan_tier_xml
+from oops.output.formatters import (
+    FormatterRegistry,
+    JsonFormatter,
+    OutputFormatter,
+    SimpleSummaryConsoleFormatter,
+)
+from oops.output.sinks import deliver
 from oops.services.git import require_repository
 from oops.utils.render import (
-    conclude,
-    get_console,
-    make_table,
-    metrics_grid,
-    metrics_panel,
-    print_warning,
+    experimental_warning,
     prompt_select,
-    render_result,
-    rule,
-    warning_section,
 )
+
+from .presenters.build_global import prepare
+
+_ORIGIN_MAP = {"community": "odoo"}
+
+FORMATTERS: FormatterRegistry = {
+    "text": SimpleSummaryConsoleFormatter,
+    "json": JsonFormatter,
+}
 
 
 @command("build-kb", help=__doc__)
@@ -60,20 +68,30 @@ from oops.utils.render import (
     ),
 )
 @click.option(
-    "--cache-dir",
-    default=None,
-    type=click.Path(file_okay=False, path_type=Path),
-    help="Directory where <version>.db is written. Defaults to ~/.cache/oops/kb/.",
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+    help="Output format. 'json' is suited for downstream LLM agent consumption.",
 )
-@click.option("--verbose", "-v", is_flag=True, default=False)
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout (json) or a temp file (html).",
+)
 def main(
     version: str | None,
-    cache_dir: Path | None,
-    verbose: bool,
+    output_format: str,
+    output_path: Path | None,
 ) -> None:
 
-    print_warning("This command is experimental and may change without notice between releases.")
-    console = get_console()
+    formatter: OutputFormatter = FORMATTERS[output_format]()
+    outer: Result[None] = Result()
+
+    experimental_warning()
 
     if version is None:
         try:
@@ -89,23 +107,24 @@ def main(
                     "Could not detect Odoo version from odoo_version.txt. Use --version to specify it explicitly."
                 ) from None
 
-    if cache_dir is None:
-        cache_dir = global_kb_dir()
+    cache_dir = global_kb_dir()
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / f"{version}.db"
 
     scan_results = []
     sources: dict[str, str] = {}
-    summary = []
-    scan_warnings: list[str] = []
+    result: Result[dict] = Result(
+        {
+            "cmd": f"Build global KB for Odoo {version}",
+            "kb": {},
+            "stats": [],
+        }
+    )
 
-    # Map filesystem directory names to semantic KB origin labels.
-    # The sources dir uses "community" but the KB and drift filter expect "odoo".
-    _ORIGIN_MAP = {"community": "odoo"}
+    assert result.data is not None
 
-    rule(f"Build global KB for Odoo {version}")
+    # 1. Long-running processing — produces a typed Result of domain dataclasses.
 
-    # using Live for long-time processing
     with live_progress("Building global KB..."):
         for path in get_odoo_sources_dirs(version):
             name = _ORIGIN_MAP.get(path.name, path.name)
@@ -116,28 +135,28 @@ def main(
                 continue
 
             for root in odoo_addons_roots(path):
-                result: Result[dict] = scan_tier(root, name)
-                for w in result.warnings:
-                    scan_warnings.append(f"[{name}] {w}")
+                local_result: Result[dict] = scan_tier(root, name)
+                for w in local_result.warnings:
+                    outer.add_warning(f"[{name}] {w}")
 
                 xml_result = scan_tier_xml(root, name)
 
-                if result.data is None:
-                    result.data = {}
+                if local_result.data is None:
+                    local_result.data = {}
 
                 if xml_result.data is None:
                     xml_result.data = {}
 
-                result.data["views"] = xml_result.data["views"]
-                result.data["actions"] = xml_result.data["actions"]
-                result.data["menus"] = xml_result.data["menus"]
+                local_result.data["views"] = xml_result.data["views"]
+                local_result.data["actions"] = xml_result.data["actions"]
+                local_result.data["menus"] = xml_result.data["menus"]
                 for w in xml_result.warnings:
-                    scan_warnings.append(f"[{name}] {w}")
+                    outer.add_warning(f"[{name}] {w}")
 
-                scan_results.append(result.data)
-                data = result.data or {}
+                scan_results.append(local_result.data)
+                data = local_result.data
 
-                summary.append(
+                result.data["stats"].append(
                     {
                         "name": name,
                         "path": root,
@@ -160,51 +179,14 @@ def main(
         _resolve_view_types(scan_results)
 
         log.info(f"Writing file to {db_path}")
-        result = write_global_kb(
+        temp_result = write_global_kb(
             db_path=db_path,
             odoo_version=version,
             sources=sources,
             scan_results=scan_results,
         )
+        result.data["kb"] = temp_result.data
 
-    warning_section(scan_warnings)
-    render_result(result)
-    assert result.data is not None
-    stats = result.data
-
-    # Summary table
-    t = make_table(
-        title=None,
-        columns=[
-            ("Name", "brand.primary", "left"),
-            ("Path", "dim", "left"),
-            ("Modules", "green", "left"),
-        ],
-        rows=[
-            [
-                row["name"],
-                str(row["path"]),
-                str(row["modules"]),
-            ]
-            for row in summary
-        ],
-    )
-
-    # Stats Panel
-    p1 = metrics_panel(
-        "Summary",
-        [
-            ["Modules", str(stats["modules"])],
-            ["Symbols", str(stats["symbols"])],
-            ["Fields", str(stats["fields"])],
-            ["Methods", str(stats["methods"])],
-            ["Views", str(stats["views"])],
-            ["Actions", str(stats["actions"])],
-            ["Menus", str(stats["menus"])],
-        ],
-    )
-
-    rule("Results")
-    console.print(metrics_grid(t, p1, ratios=[2, 1]))
-    console.print()
-    conclude(result.ok, "All done")
+    # 2. Presenter prepares neutral dicts according to the formatter's audience.
+    output = prepare(result, outer, target=formatter.target)
+    deliver(formatter, output, output_format, output_path)
