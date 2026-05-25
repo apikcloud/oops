@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import textwrap
-from datetime import datetime
+from datetime import date, datetime
 
 import questionary
 from oops.core.compat import Any, List, Optional
@@ -59,6 +59,19 @@ def format_datetime(dt: datetime) -> str:
     """
 
     return dt.strftime(config.datetime_format)
+
+
+def format_date(dt: date) -> str:
+    """Format a date as a string using the configured date format.
+
+    Args:
+        dt: Date object to format.
+
+    Returns:
+        Formatted date string.
+    """
+
+    return dt.strftime(config.date_format)
 
 
 def human_readable(raw: Any, sep: str = ", ", width: Optional[int] = None) -> str:

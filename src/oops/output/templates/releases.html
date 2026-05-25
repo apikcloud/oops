@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Release Timeline</title>
+
+        <style>
+            :root {
+                --bg: #fafafa;
+                --bg-card: #ffffff;
+                --bg-soft: #f4f4f5;
+                --border: #e4e4e7;
+                --text: #18181b;
+                --text-muted: #71717a;
+                --accent: #2563eb;
+                --warning: #d97706;
+                --warning-bg: #fef3c7;
+
+                --major: #dc2626;
+                --major-bg: #fee2e2;
+                --minor: #2563eb;
+                --minor-bg: #dbeafe;
+                --fix: #059669;
+                --fix-bg: #d1fae5;
+                --unknown: #71717a;
+                --unknown-bg: #f4f4f5;
+
+                --section-added: #059669;
+                --section-changed: #2563eb;
+                --section-fixed: #d97706;
+                --section-removed: #dc2626;
+                --section-deprecated: #7c3aed;
+                --section-security: #be185d;
+
+                --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                margin: 0;
+                padding: 2rem;
+                line-height: 1.5;
+            }
+
+            .container {
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+
+            /* ---------------- Header ---------------- */
+            header {
+                border-bottom: 2px solid var(--border);
+                padding-bottom: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            header h1 {
+                margin: 0 0 0.25rem;
+                font-size: 1.75rem;
+            }
+            header .subtitle {
+                color: var(--text-muted);
+                font-size: 0.9rem;
+            }
+
+            /* ---------------- Warnings ---------------- */
+            .warnings {
+                background: var(--warning-bg);
+                border-left: 3px solid var(--warning);
+                padding: 0.75rem 1rem;
+                margin-bottom: 1.5rem;
+                border-radius: 0 4px 4px 0;
+            }
+            .warnings ul {
+                margin: 0;
+                padding-left: 1.2rem;
+            }
+            .warnings li {
+                color: #78350f;
+                font-size: 0.9rem;
+                margin: 0.25rem 0;
+            }
+
+            /* ---------------- Summary cards ---------------- */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 0.75rem;
+                margin-bottom: 2rem;
+            }
+            .summary-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 1rem;
+            }
+            .summary-card .value {
+                font-size: 1.6rem;
+                font-weight: 600;
+                font-family: var(--mono);
+            }
+            .summary-card .label {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                margin-top: 0.15rem;
+            }
+            .summary-card.major .value {
+                color: var(--major);
+            }
+            .summary-card.minor .value {
+                color: var(--minor);
+            }
+            .summary-card.fix .value {
+                color: var(--fix);
+            }
+
+            /* ---------------- Filters ---------------- */
+            .filters {
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                align-items: center;
+                margin-bottom: 1.5rem;
+            }
+            .filters input[type="search"] {
+                flex: 1;
+                min-width: 200px;
+                padding: 0.5rem 0.75rem;
+                border: 1px solid var(--border);
+                border-radius: 4px;
+                font-size: 0.85rem;
+                font-family: inherit;
+            }
+            .filters input[type="search"]:focus {
+                outline: 2px solid var(--accent);
+                outline-offset: -1px;
+            }
+            .filter-btn {
+                padding: 0.4rem 0.75rem;
+                border: 1px solid var(--border);
+                background: var(--bg-card);
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.8rem;
+                font-family: inherit;
+                color: var(--text-muted);
+                transition: all 0.15s;
+            }
+            .filter-btn:hover {
+                color: var(--text);
+            }
+            .filter-btn.active {
+                background: var(--text);
+                color: white;
+                border-color: var(--text);
+            }
+            .filter-count {
+                font-family: var(--mono);
+                font-size: 0.75rem;
+                opacity: 0.7;
+                margin-left: 0.25rem;
+            }
+            .expand-controls {
+                display: flex;
+                gap: 0.25rem;
+                margin-left: auto;
+            }
+            .expand-controls button {
+                padding: 0.35rem 0.65rem;
+                background: transparent;
+                border: 1px solid var(--border);
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.75rem;
+                color: var(--text-muted);
+            }
+            .expand-controls button:hover {
+                color: var(--text);
+            }
+
+            /* ---------------- Timeline ---------------- */
+            .timeline {
+                position: relative;
+                padding-left: 2.5rem;
+            }
+            .timeline::before {
+                content: "";
+                position: absolute;
+                left: 11px;
+                top: 6px;
+                bottom: 6px;
+                width: 2px;
+                background: var(--border);
+            }
+
+            .year-marker {
+                position: relative;
+                margin: 1.5rem 0 0.75rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--text-muted);
+            }
+            .year-marker::before {
+                content: "";
+                position: absolute;
+                left: -2.5rem;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: var(--bg);
+                border: 2px solid var(--border);
+            }
+
+            .release {
+                position: relative;
+                margin-bottom: 1.5rem;
+            }
+            .release::before {
+                content: "";
+                position: absolute;
+                left: -2.5rem;
+                top: 1rem;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: var(--bg-card);
+                border: 3px solid var(--unknown);
+                z-index: 1;
+            }
+            .release.major::before {
+                border-color: var(--major);
+            }
+            .release.minor::before {
+                border-color: var(--minor);
+            }
+            .release.fix::before {
+                border-color: var(--fix);
+            }
+
+            .release.major::after {
+                content: "";
+                position: absolute;
+                left: -2.85rem;
+                top: 0.65rem;
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                border: 2px solid var(--major);
+                opacity: 0.25;
+                z-index: 0;
+            }
+
+            .release-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            .release.major .release-card {
+                border-color: var(--major);
+                border-width: 2px;
+            }
+
+            .release-header {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.75rem 1rem;
+                cursor: pointer;
+                user-select: none;
+                transition: background 0.15s;
+            }
+            .release-header:hover {
+                background: var(--bg-soft);
+            }
+
+            .release-version {
+                font-family: var(--mono);
+                font-weight: 600;
+                font-size: 1.05rem;
+            }
+            .release-type-badge {
+                display: inline-block;
+                padding: 0.1rem 0.5rem;
+                border-radius: 3px;
+                font-size: 0.65rem;
+                font-family: var(--mono);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                font-weight: 600;
+            }
+            .release-type-badge.major {
+                background: var(--major-bg);
+                color: var(--major);
+            }
+            .release-type-badge.minor {
+                background: var(--minor-bg);
+                color: var(--minor);
+            }
+            .release-type-badge.fix {
+                background: var(--fix-bg);
+                color: var(--fix);
+            }
+            .release-type-badge.unknown {
+                background: var(--unknown-bg);
+                color: var(--unknown);
+            }
+
+            .release-meta {
+                margin-left: auto;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                font-size: 0.8rem;
+                color: var(--text-muted);
+            }
+            .release-meta .date {
+                font-family: var(--mono);
+            }
+            .release-meta .commits {
+                font-family: var(--mono);
+                background: var(--bg-soft);
+                padding: 0.1rem 0.5rem;
+                border-radius: 3px;
+            }
+
+            .release-caret {
+                color: var(--text-muted);
+                font-size: 0.7rem;
+                transition: transform 0.2s;
+            }
+            .release.collapsed .release-caret {
+                transform: rotate(-90deg);
+            }
+
+            .release-body {
+                padding: 0 1rem 1rem;
+                border-top: 1px solid var(--border);
+                padding-top: 1rem;
+            }
+            .release.collapsed .release-body {
+                display: none;
+            }
+
+            .release-body .no-changelog {
+                color: var(--text-muted);
+                font-size: 0.85rem;
+                font-style: italic;
+            }
+
+            /* ---------------- Changelog sections ---------------- */
+            .change-section {
+                margin-bottom: 0.75rem;
+            }
+            .change-section:last-child {
+                margin-bottom: 0;
+            }
+
+            .change-section h4 {
+                display: inline-block;
+                margin: 0 0 0.5rem;
+                padding: 0.15rem 0.55rem;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                border-radius: 3px;
+                font-weight: 600;
+                color: white;
+            }
+            .change-section.added h4 {
+                background: var(--section-added);
+            }
+            .change-section.changed h4 {
+                background: var(--section-changed);
+            }
+            .change-section.fixed h4 {
+                background: var(--section-fixed);
+            }
+            .change-section.removed h4 {
+                background: var(--section-removed);
+            }
+            .change-section.deprecated h4 {
+                background: var(--section-deprecated);
+            }
+            .change-section.security h4 {
+                background: var(--section-security);
+            }
+
+            .change-section ul {
+                margin: 0;
+                padding-left: 1.3rem;
+            }
+            .change-section li {
+                font-size: 0.85rem;
+                margin: 0.35rem 0;
+                line-height: 1.5;
+                white-space: pre-wrap;
+            }
+            .change-section li code {
+                font-family: var(--mono);
+                background: var(--bg-soft);
+                padding: 0.05rem 0.35rem;
+                border-radius: 3px;
+                font-size: 0.8rem;
+            }
+
+            /* ---------------- Empty state ---------------- */
+            .empty-state {
+                padding: 3rem;
+                text-align: center;
+                color: var(--text-muted);
+                background: var(--bg-card);
+                border: 1px dashed var(--border);
+                border-radius: 6px;
+            }
+
+            /* ---------------- Footer ---------------- */
+            footer {
+                margin-top: 3rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid var(--border);
+                color: var(--text-muted);
+                font-size: 0.8rem;
+            }
+
+            details.raw {
+                margin-top: 2rem;
+            }
+            details.raw summary {
+                cursor: pointer;
+                color: var(--accent);
+                font-size: 0.85rem;
+            }
+            .raw-json {
+                background: var(--bg-soft);
+                padding: 1rem;
+                border-radius: 4px;
+                font-family: var(--mono);
+                font-size: 0.75rem;
+                overflow-x: auto;
+                max-height: 400px;
+                overflow-y: auto;
+                margin-top: 0.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>Release Timeline</h1>
+                <div class="subtitle" id="meta-subtitle"></div>
+            </header>
+
+            <section id="warnings-container"></section>
+
+            <div class="summary-grid" id="summary"></div>
+
+            <div class="filters">
+                <input type="search" id="search" placeholder="Filter by version or content…" />
+                <button class="filter-btn active" data-type="all">
+                    All <span class="filter-count" id="count-all"></span>
+                </button>
+                <button class="filter-btn" data-type="major">
+                    Major <span class="filter-count" id="count-major"></span>
+                </button>
+                <button class="filter-btn" data-type="minor">
+                    Minor <span class="filter-count" id="count-minor"></span>
+                </button>
+                <button class="filter-btn" data-type="fix">
+                    Fix <span class="filter-count" id="count-fix"></span>
+                </button>
+                <div class="expand-controls">
+                    <button id="expand-all">Expand all</button>
+                    <button id="collapse-all">Collapse all</button>
+                </div>
+            </div>
+
+            <div class="timeline" id="timeline"></div>
+            <div class="empty-state" id="empty-state" style="display: none">No releases match the current filters.</div>
+
+            <details class="raw">
+                <summary>Raw JSON payload</summary>
+                <pre class="raw-json" id="raw-json"></pre>
+            </details>
+
+            <footer>
+                Generated by <code>oops release show</code> &middot;
+                <span id="meta-timestamp"></span>
+            </footer>
+        </div>
+
+        <script id="report-data" type="application/json">
+            __REPORT_DATA__
+        </script>
+
+        <script>
+            const DATA = JSON.parse(document.getElementById("report-data").textContent);
+            const RELEASES = DATA.releases || [];
+            const STATS = DATA.stats || {};
+
+            // Helpers
+            const el = (tag, attrs = {}, children = []) => {
+                const node = document.createElement(tag);
+                for (const [k, v] of Object.entries(attrs)) {
+                    if (k === "class") node.className = v;
+                    else if (k === "html") node.innerHTML = v;
+                    else node.setAttribute(k, v);
+                }
+                for (const child of [].concat(children)) {
+                    if (child == null) continue;
+                    node.append(child instanceof Node ? child : String(child));
+                }
+                return node;
+            };
+
+            const formatDate = (iso) => {
+                if (!iso) return "—";
+                const [y, m, d] = iso.split("-");
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                return `${months[+m - 1]} ${+d}, ${y}`;
+            };
+
+            const yearOf = (iso) => (iso ? iso.slice(0, 4) : "—");
+
+            // Inline code formatting: turn `text` into <code>text</code>
+            const renderInlineCode = (s) =>
+                String(s).replace(/`([^`]+)`/g, (_, code) => `<code>${code.replace(/</g, "&lt;")}</code>`);
+
+            // ---------------- Warnings ----------------
+            if (DATA.warnings && DATA.warnings.length) {
+                const w = el("div", { class: "warnings" }, [
+                    el(
+                        "ul",
+                        {},
+                        DATA.warnings.map((msg) => el("li", {}, msg)),
+                    ),
+                ]);
+                document.getElementById("warnings-container").append(w);
+            }
+
+            // ---------------- Summary cards ----------------
+            const types = STATS.types || {};
+            const summary = [
+                { label: "Releases", value: STATS.total ?? RELEASES.length },
+                { label: "Commits", value: STATS.commits ?? "—" },
+                { label: "Major", value: types.major ?? 0, cls: "major" },
+                { label: "Minor", value: types.minor ?? 0, cls: "minor" },
+                { label: "Fix", value: types.fix ?? 0, cls: "fix" },
+                { label: "Span (days)", value: STATS.delta ?? "—" },
+            ];
+            const summaryContainer = document.getElementById("summary");
+            summary.forEach((s) => {
+                summaryContainer.append(
+                    el("div", { class: `summary-card ${s.cls || ""}` }, [
+                        el("div", { class: "value" }, s.value),
+                        el("div", { class: "label" }, s.label),
+                    ]),
+                );
+            });
+
+            // ---------------- Filter counts ----------------
+            document.getElementById("count-all").textContent = RELEASES.length;
+            ["major", "minor", "fix"].forEach((t) => {
+                const n = RELEASES.filter((r) => r.release_type === t).length;
+                document.getElementById(`count-${t}`).textContent = n;
+            });
+
+            // ---------------- State ----------------
+            const state = {
+                typeFilter: "all",
+                search: "",
+                collapsed: new Set(), // versions currently collapsed
+            };
+
+            // ---------------- Timeline rendering ----------------
+            function changelogToText(cl) {
+                if (!cl || !cl.entries) return "";
+                return Object.entries(cl.entries)
+                    .flatMap(([, items]) => items)
+                    .join(" ");
+            }
+
+            function renderTimeline() {
+                const tl = document.getElementById("timeline");
+                tl.innerHTML = "";
+
+                const query = state.search.toLowerCase();
+                const filtered = RELEASES.filter((r) => {
+                    if (state.typeFilter !== "all" && r.release_type !== state.typeFilter) return false;
+                    if (!query) return true;
+                    const haystack = `${r.name} ${r.author} ${changelogToText(r.changelog)}`.toLowerCase();
+                    return haystack.includes(query);
+                });
+
+                document.getElementById("empty-state").style.display = filtered.length === 0 ? "block" : "none";
+                tl.style.display = filtered.length === 0 ? "none" : "block";
+
+                let currentYear = null;
+                filtered.forEach((r) => {
+                    const y = yearOf(r.date);
+                    if (y !== currentYear) {
+                        tl.append(el("div", { class: "year-marker" }, y));
+                        currentYear = y;
+                    }
+                    tl.append(renderRelease(r));
+                });
+            }
+
+            function renderRelease(r) {
+                const type = r.release_type || "unknown";
+                const isCollapsed = state.collapsed.has(r.name);
+
+                const release = el("article", {
+                    class: `release ${type}${isCollapsed ? " collapsed" : ""}`,
+                });
+
+                // Header
+                const header = el("div", { class: "release-header" }, [
+                    el("span", { class: "release-version" }, r.name),
+                    el("span", { class: `release-type-badge ${type}` }, type),
+                    el("div", { class: "release-meta" }, [
+                        r.author ? el("span", {}, r.author) : null,
+                        el("span", { class: "date" }, formatDate(r.date)),
+                        el(
+                            "span",
+                            { class: "commits", title: "Commits in this release" },
+                            `${r.commits} ${r.commits === 1 ? "commit" : "commits"}`,
+                        ),
+                        el("span", { class: "release-caret" }, "▼"),
+                    ]),
+                ]);
+                header.addEventListener("click", () => {
+                    if (state.collapsed.has(r.name)) state.collapsed.delete(r.name);
+                    else state.collapsed.add(r.name);
+                    renderTimeline();
+                });
+                release.append(header);
+
+                // Body
+                const body = el("div", { class: "release-body" });
+                if (!r.changelog || !r.changelog.entries) {
+                    body.append(el("div", { class: "no-changelog" }, "No changelog provided for this release."));
+                } else {
+                    // Stable section order
+                    const ORDER = ["Added", "Changed", "Fixed", "Removed", "Deprecated", "Security"];
+                    const entries = r.changelog.entries;
+                    const orderedKeys = [
+                        ...ORDER.filter((k) => k in entries),
+                        ...Object.keys(entries).filter((k) => !ORDER.includes(k)),
+                    ];
+                    orderedKeys.forEach((section) => {
+                        const items = entries[section] || [];
+                        if (!items.length) return;
+                        const sec = el("div", { class: `change-section ${section.toLowerCase()}` }, [
+                            el("h4", {}, section),
+                            el(
+                                "ul",
+                                {},
+                                items.map((item) => {
+                                    const li = document.createElement("li");
+                                    li.innerHTML = renderInlineCode(item);
+                                    return li;
+                                }),
+                            ),
+                        ]);
+                        body.append(sec);
+                    });
+                }
+                release.append(body);
+
+                return release;
+            }
+
+            // ---------------- Event handlers ----------------
+            document.getElementById("search").addEventListener("input", (e) => {
+                state.search = e.target.value;
+                renderTimeline();
+            });
+
+            document.querySelectorAll(".filter-btn[data-type]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    document.querySelectorAll(".filter-btn[data-type]").forEach((b) => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    state.typeFilter = btn.dataset.type;
+                    renderTimeline();
+                });
+            });
+
+            document.getElementById("expand-all").addEventListener("click", () => {
+                state.collapsed.clear();
+                renderTimeline();
+            });
+            document.getElementById("collapse-all").addEventListener("click", () => {
+                RELEASES.forEach((r) => state.collapsed.add(r.name));
+                renderTimeline();
+            });
+
+            // ---------------- Initial render ----------------
+            document.getElementById("meta-subtitle").textContent =
+                `${RELEASES.length} releases from ${formatDate(STATS.first_release)} to ${formatDate(STATS.last_release)}`;
+            document.getElementById("meta-timestamp").textContent = new Date().toLocaleString();
+            document.getElementById("raw-json").textContent = JSON.stringify(DATA, null, 2);
+
+            renderTimeline();
+        </script>
+    </body>
+</html>

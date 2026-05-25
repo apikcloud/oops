@@ -94,19 +94,19 @@ FORMATTERS: FormatterRegistry = {
     help="Force a project KB rebuild before analysis.",
 )
 @click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    default=False,
+    help="Enable verbose KB logging.",
+)
+@click.option(
     "--format",
     "output_format",
     type=click.Choice(["text", "json", "html"]),
     default="text",
     show_default=True,
     help="Output format. 'json' is suited for downstream LLM agent consumption.",
-)
-@click.option(
-    "--verbose",
-    "-v",
-    is_flag=True,
-    default=False,
-    help="Enable verbose KB logging.",
 )
 @click.option(
     "--output-path",

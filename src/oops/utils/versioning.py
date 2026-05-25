@@ -6,8 +6,11 @@
 
 import re
 import subprocess
+from collections import Counter
 
-from oops.core.compat import Optional
+from oops.core.compat import Dict, List, Optional
+from oops.core.models import Release, ReleaseType, Result
+from oops.io.changelog import parse_section
 from oops.io.tools import run
 
 # Semantic versioning pattern: v1.2.3
@@ -85,3 +88,58 @@ def is_valid_semver(tag: str) -> bool:
         True if the tag matches the semver pattern, False otherwise.
     """
     return bool(SEMVER_PATTERN.match(tag))
+
+
+def _extract_file(tag, filename: str) -> Optional[str]:
+    try:
+        blob = tag.commit.tree[filename]
+        content = blob.data_stream.read().decode("utf-8")
+        return content
+    except KeyError:
+        return None
+
+
+def read_releases(repo, changelog: bool = False) -> Result[List[Release]]:
+    result: Result[List[Release]] = Result()
+    result.data = []
+
+    releases = sorted(
+        [t for t in repo.tags if SEMVER_PATTERN.match(t.name)],
+        key=lambda t: t.commit.committed_datetime,
+    )
+
+    if not releases:
+        return result
+
+    for i, tag in enumerate(reversed(releases)):
+        tag_date = tag.commit.committed_datetime.date()
+
+        if i < len(releases) - 1:
+            prev = releases[-(i + 2)]
+            commit_count = len(list(repo.iter_commits(f"{prev.name}..{tag.name}")))
+        else:
+            commit_count = len(list(repo.iter_commits(tag.name)))
+
+        author = tag.tag.tagger.name if tag.tag else tag.commit.author.name
+
+        release = Release(
+            name=tag.name,
+            date=tag_date,
+            author=author,
+            commits=commit_count,
+        )
+
+        if changelog:
+            content = _extract_file(tag, "CHANGELOG.md")
+            if content:
+                release.changelog = parse_section(content, tag.name)
+            else:
+                result.add_warning(f"No CHANGELOG found for release {tag.name}")
+
+        result.data.append(release)
+    return result
+
+
+def count_release_types(releases: List[Release]) -> Dict:
+    counter = Counter(item.release_type for item in releases)
+    return {release_type.value: counter[release_type] for release_type in ReleaseType}

@@ -154,6 +154,10 @@ class DependsReportFormatter(HtmlFormatter):
     template = "depends_v4.html"
 
 
+class ReleasesReportFormatter(HtmlFormatter):
+    template = "releases.html"
+
+
 class JsonFormatter(OutputFormatter):
     """Machine-readable JSON output."""
 

@@ -5,12 +5,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import re
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from oops.core.compat import Generic, Optional, T
+from oops.core.compat import Dict, Generic, List, Optional, T
 from oops.utils.helpers import date_from_string
 from oops.utils.render import format_datetime
 
@@ -18,6 +20,9 @@ if TYPE_CHECKING:
     from oops.services.loc import LocStats
 
 UTC = timezone.utc
+
+# Semantic versioning pattern: v1.2.3
+SEMVER_PATTERN = re.compile(r"^v(?P<x>0|[1-9]\d*)\.(?P<y>0|[1-9]\d*)\.(?P<z>0|[1-9]\d*)$")
 
 
 @dataclass
@@ -283,3 +288,43 @@ class Result(Generic[T]):
         self.warnings.extend(other.warnings)
         self.errors.extend(other.errors)
         return self
+
+
+@dataclass
+class ChangelogSection:
+    version: str
+    date: str
+    entries: Dict[str, List[str]] = field(default_factory=dict)
+
+
+class ReleaseType(str, Enum):
+    MAJOR = "major"
+    MINOR = "minor"
+    FIX = "fix"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class Release:
+    name: str
+    date: date
+    author: str
+    commits: int
+    changelog: "Optional[ChangelogSection]" = None
+
+    @property
+    def release_type(self) -> ReleaseType:
+        m = SEMVER_PATTERN.match(self.name)
+        if not m:
+            return ReleaseType.UNKNOWN
+        if m.group("z") != "0":
+            return ReleaseType.FIX
+        if m.group("y") != "0":
+            return ReleaseType.MINOR
+        return ReleaseType.MAJOR
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        d["date"] = self.date.isoformat()
+        d["release_type"] = self.release_type.value
+        return d
