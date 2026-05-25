@@ -13,13 +13,26 @@ blocks normal CLI operation.
 
 import datetime
 import getpass
+import hashlib
 import json
 import secrets
+from pathlib import Path
 
 import requests
 from oops.core.paths import stats_file, stats_flush_marker
 
 _FLUSH_INTERVAL_DAYS = 7
+
+
+def _collect_path(anonymize: bool = False) -> str:
+    path = Path.cwd()
+    if anonymize:
+
+        def _anonymize(s: str):
+            return hashlib.md5(s.encode()).hexdigest()[:8]
+
+        return f"{_anonymize(path.parent.name)}/{_anonymize(path.name)}"
+    return f"{path.parent.name}/{path.name}"
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +62,7 @@ def append_event(cmd: str, ms: float, error: "str | None") -> None:
             "cmd": cmd,
             "ms": ms,
             "user": _get_user(),
+            "cwd": _collect_path(anonymize=False),
             "error": error,
         }
         path = stats_file()
