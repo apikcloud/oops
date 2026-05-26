@@ -12,7 +12,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from oops.core.compat import Dict, Generic, List, Optional, T
+from oops.core.compat import Any, Dict, Generic, List, Literal, Optional, T
 from oops.utils.helpers import date_from_string
 from oops.utils.render import format_datetime
 
@@ -332,3 +332,49 @@ class Release:
         d["date"] = self.date.isoformat()
         d["release_type"] = self.release_type.value
         return d
+
+
+StatKind = Literal["count", "ratio", "duration_days", "date", "text", "boolean"]
+
+
+@dataclass
+class Stat:
+    name: str
+    label: str
+    value: Any
+    kind: StatKind = "count"
+    highlight: bool = False
+
+    def to_dict(self, summary: bool = False) -> dict:
+        """Serialize.
+
+        When `summary=True`, drop fields irrelevant to a compact payload
+        (kind, highlight) — useful for the machine summary view.
+        """
+        d = asdict(self)
+        if summary:
+            d.pop("kind", None)
+            d.pop("highlight", None)
+        return d
+
+
+@dataclass
+class StatGroup:
+    name: str
+    label: str
+    stats: list[Stat] = field(default_factory=list)
+
+    def to_dict(self, summary: bool = False) -> dict:
+        return {
+            "kind": "stats",
+            "label": self.label,
+            "values": [s.to_dict(summary=summary) for s in self.stats],
+        }
+
+    def get(self, name: str) -> Stat | None:
+        """Find a stat by name. Useful in templates."""
+        return next((s for s in self.stats if s.name == name), None)
+
+
+def groups_to_list(groups: list[StatGroup], summary: bool = False) -> list[dict]:
+    return [g.to_dict(summary=summary) for g in groups]

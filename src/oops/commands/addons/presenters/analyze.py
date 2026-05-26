@@ -19,13 +19,15 @@ from oops.core.models import (
     ClassSummary,
     ModuleSummary,
     Result,
+    Stat,
+    StatGroup,
     StructureSummary,
     ViewsSummary,
 )
-from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SectionBlock, SummaryLayout, TableBlock
+from oops.output.layout import ConclusionBlock, Output, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
+from oops.services.loc import LocStats
 from oops.utils.render import (
     colorize,
-    human_readable,
 )
 
 _METHOD_COLUMNS: list[tuple[str, str]] = [
@@ -55,7 +57,7 @@ _VIEW_TYPE_COLUMNS: tuple = (
 )
 
 
-def _make_views_table(vs: "ViewsSummary") -> Optional[TableBlock]:
+def _build_views_table(vs: "ViewsSummary") -> Optional[TableBlock]:
 
     primary_total = sum(vs.primary_by_type.values())
     ext_total = sum(vs.extensions_by_type.values())
@@ -81,7 +83,7 @@ def _make_views_table(vs: "ViewsSummary") -> Optional[TableBlock]:
     return TableBlock(title="Views", counter=primary_total + ext_total, columns=columns, rows=rows)
 
 
-def _make_structure_table(s: StructureSummary) -> Optional[TableBlock]:
+def _build_structure_table(s: StructureSummary) -> Optional[TableBlock]:
 
     rows = []
 
@@ -122,7 +124,7 @@ def _make_structure_table(s: StructureSummary) -> Optional[TableBlock]:
     return TableBlock(title="Structure", columns=columns, rows=rows)
 
 
-def _make_model_table(classes: list[ClassSummary]) -> TableBlock:
+def _build_model_table(classes: list[ClassSummary]) -> TableBlock:
 
     columns = [
         ("Model", "brand.primary", "left"),
@@ -145,7 +147,7 @@ def _make_model_table(classes: list[ClassSummary]) -> TableBlock:
     return TableBlock(title="Models", columns=columns, rows=rows, counter=len(rows))
 
 
-def _make_overrides_table(overrides: list[dict[str, str]]) -> TableBlock:
+def _build_overrides_table(overrides: list[dict[str, str]]) -> TableBlock:
 
     columns = [
         ("Model", "brand.primary", "left"),
@@ -157,7 +159,7 @@ def _make_overrides_table(overrides: list[dict[str, str]]) -> TableBlock:
     return TableBlock(title="Overrides", columns=columns, rows=rows, counter=len(rows))
 
 
-def _make_inherited_methods_table(items: list[dict[str, str]]) -> TableBlock:
+def _build_inherited_methods_table(items: list[dict[str, str]]) -> TableBlock:
 
     columns = [
         ("Model", "brand.primary", "left"),
@@ -169,33 +171,7 @@ def _make_inherited_methods_table(items: list[dict[str, str]]) -> TableBlock:
     return TableBlock(title="Inherited methods", columns=columns, rows=rows, counter=len(rows))
 
 
-def _make_section(result: "Result[ModuleSummary]") -> SectionBlock:
-    assert result.data is not None
-    summary = result.data
-
-    info = []
-    tables = []
-    panels = []
-
-    m = summary.manifest
-    name = m.get("name", "<unknown>")
-    version = m.get("version", "")
-    author = m.get("author", "")
-    license_ = m.get("license", "")
-    category = m.get("category", "")
-    summary_text = m.get("summary", "")
-    installable = m.get("installable", True)
-
-    manifest_values = [
-        ["Name", name],
-        ["Version", version],
-        ["Author", author],
-        ["License", license_],
-        ["Category", category],
-        ["Installable", "yes" if installable else "no"],
-    ]
-    if summary_text:
-        manifest_values.append(["Summary", human_readable(summary_text, width=40)])
+def _build_metrics(summary: "ModuleSummary") -> StatGroup:
 
     total_methods = sum(c.methods_total for c in summary.classes)
     total_overrides = sum(c.overrides for c in summary.classes)
@@ -205,73 +181,130 @@ def _make_section(result: "Result[ModuleSummary]") -> SectionBlock:
     fields_own_total = sum((c.fields_base if c.is_new_model else c.fields_new) for c in summary.classes)
     fields_inherited_total = sum(c.fields_inherited for c in summary.classes)
 
-    stats_values = [
-        ["Models", str(len(summary.classes))],
-        ["Fields (own)", str(fields_own_total)],
-        ["Fields (inherited)", str(fields_inherited_total)],
-        ["Methods", str(total_methods)],
-        ["Inherited methods", str(total_inherited_methods)],
-        ["Overrides", str(total_overrides)],
-        ["Missing docs", str(total_missing)],
-        ["Data files", str(data_count)],
-    ]
+    res = StatGroup(
+        name="metrics",
+        label="Metrics",
+        stats=[
+            Stat(name="models", label="Models", value=len(summary.classes)),
+            Stat(name="own_fields", label="Fields (own)", value=fields_own_total),
+            Stat(name="inherited_fields", label="Fields (inherited)", value=fields_inherited_total),
+            Stat(name="methods", label="Methods", value=total_methods),
+            Stat(name="inherited_methods", label="Inherited methods", value=total_inherited_methods),
+            Stat(name="overrided_methods", label="Overrides", value=total_overrides),
+            Stat(name="missing_docs", label="Missing docs", value=total_missing),
+            Stat(name="data", label="Data files", value=data_count),
+        ],
+    )
 
     vs = summary.views_summary
     if vs is not None:
         primary_total = sum(vs.primary_by_type.values())
         if primary_total or vs.extensions or vs.actions or vs.menus:
-            stats_values.append(["Views (primary)", str(primary_total)])
+            res.stats.append(Stat(name="primary_views", label="Views (primary)", value=primary_total))
             if vs.extensions:
                 ext_str = str(vs.extensions)
                 if vs.extensions_upstream:
                     ext_str += f" ({vs.extensions_upstream} upstream)"
-                stats_values.append(["Views (ext.)", ext_str])
+                res.stats.append(Stat(name="extensions_views", label="Views (ext.)", value=ext_str, kind="text"))
             if vs.actions:
-                stats_values.append(["Actions", str(vs.actions)])
+                res.stats.append(Stat(name="actions", label="Actions", value=vs.actions))
             if vs.menus:
-                stats_values.append(["Menus", str(vs.menus)])
+                res.stats.append(Stat(name="menus", label="Menus", value=vs.menus))
             if vs.unresolved:
-                stats_values.append(["Views unresolved", str(vs.unresolved)])
+                res.stats.append(Stat(name="unresolved_views", label="Views unresolved", value=vs.unresolved))
 
-    panels += [MetricsPanelBlock("Manifest", manifest_values), MetricsPanelBlock("Stats", stats_values)]
+    return res
+
+
+def _build_manifest(summary: "ModuleSummary") -> StatGroup:
+    m = summary.manifest
+
+    summary_text = m.get("summary", "")
+
+    res = StatGroup(
+        name="manifest",
+        label="Manifest",
+        stats=[
+            Stat(name="", label="Name", value=m.get("name", "<unknown>"), kind="text"),
+            Stat(name="", label="Version", value=m.get("version", ""), kind="text"),
+            Stat(name="", label="Author", value=m.get("author", ""), kind="text"),
+            Stat(name="", label="License", value=m.get("license", ""), kind="text"),
+            Stat(name="", label="Category", value=m.get("category", ""), kind="text"),
+            Stat(name="", label="Installable", value=m.get("installable", True), kind="boolean"),
+        ],
+    )
+    if summary_text:
+        res.stats.append(Stat(name="summary", label="Summary", value=summary_text, kind="text"))
+
+    return res
+
+
+def _build_loc(data: "Optional[LocStats]", pct: Optional[float] = 0.0) -> StatGroup:
+
+    # Back to default values, aka 0
+    if data is None:
+        data = LocStats()
+
+    return StatGroup(
+        name="loc",
+        label="Lines of code",
+        stats=[
+            Stat(name="python", label="Python", value=data.python),
+            Stat(name="xml", label="XML", value=data.xml),
+            Stat(name="javascript", label="JavaScript", value=data.javascript),
+            Stat(name="docs", label="Docs", value=data.docs),
+            Stat(name="total", label="Total", value=data.total),
+            Stat(name="pct", label="% of total", value=f"{pct}%", kind="text"),
+        ],
+    )
+
+
+def _build_section(result: "Result[ModuleSummary]") -> SectionBlock:
+    assert result.data is not None
+    summary = result.data
+
+    info = []
+    tables = []
+
+    m = summary.manifest
+
+    manifest_values = _build_manifest(result.data)
+    stats_values = _build_metrics(result.data)
+    panels = [manifest_values, stats_values]
 
     if summary.loc and summary.loc.total:
-        lc = summary.loc
-        loc_rows = [
-            ["Python", str(lc.python)],
-            ["XML", str(lc.xml)],
-            ["JavaScript", str(lc.javascript)],
-            ["Docs", str(lc.docs)],
-            ["Total", str(lc.total)],
-        ]
-        if summary.loc_pct:
-            loc_rows.append(["% of total", f"{summary.loc_pct}%"])
-        p_loc = MetricsPanelBlock("Lines of code", loc_rows)
+        p_loc = _build_loc(summary.loc, summary.loc_pct)
         panels.append(p_loc)
 
     depends = m.get("depends", [])
     info += [f"Depends ({len(depends)}): {', '.join(depends) or '—'}"]
 
     if summary.classes:
-        tables.append(_make_model_table(summary.classes))
+        tables.append(_build_model_table(summary.classes))
 
         all_overrides = [d for c in summary.classes for d in c.override_details]
         if all_overrides:
-            tables.append(_make_overrides_table(all_overrides))
+            tables.append(_build_overrides_table(all_overrides))
         all_inherited = [d for c in summary.classes for d in c.inherited_method_details]
         if all_inherited:
-            tables.append(_make_inherited_methods_table(all_inherited))
+            tables.append(_build_inherited_methods_table(all_inherited))
 
     if summary.views_summary is not None:
-        vt = _make_views_table(summary.views_summary)
+        vt = _build_views_table(summary.views_summary)
         if vt is not None:
             tables.append(vt)
 
-    st = _make_structure_table(summary.structure)
+    st = _build_structure_table(summary.structure)
     if st is not None:
         tables.append(st)
 
-    return SectionBlock(title=summary.module_name, panels=panels, tables=tables, info=info, warnings=result.warnings)
+    return SectionBlock(
+        title=summary.module_name,
+        panels=[statgroup_to_panel(panel) for panel in panels],
+        tables=tables,
+        info=info,
+        warnings=result.warnings,
+    )
 
 
 def _views_block(vs: "Optional[ViewsSummary]") -> dict:
@@ -320,32 +353,16 @@ def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") 
         if s.static_by_ext:
             not_analysed.append("static/")
 
-        loc = summary.loc
-        loc_block = (
-            {
-                "python": loc.python,
-                "xml": loc.xml,
-                "javascript": loc.javascript,
-                "docs": loc.docs,
-                "total": loc.total,
-                "pct": summary.loc_pct,
-            }
-            if loc is not None
-            else {"python": 0, "xml": 0, "javascript": 0, "docs": 0, "total": 0, "pct": 0.0}
-        )
+        # Common stats, shared with summary
+        metrics = _build_metrics(result.data)
+        loc = _build_loc(summary.loc, summary.loc_pct)
+        manifest = _build_manifest(result.data)
 
         return {
             "module": summary.module_name,
-            "manifest": {
-                "name": summary.manifest.get("name", "<unknown>"),
-                "version": summary.manifest.get("version", ""),
-                "author": summary.manifest.get("author", ""),
-                "license": summary.manifest.get("license", ""),
-                "category": summary.manifest.get("category", ""),
-                "installable": summary.manifest.get("installable", True),
-                "depends": summary.manifest.get("depends", []),
-                "summary": summary.manifest.get("summary", ""),
-            },
+            "metrics": metrics.to_dict(),
+            "manifest": manifest.to_dict(),
+            "depends": summary.manifest.get("depends", []),
             "models": [
                 {
                     "class_name": c.class_name,
@@ -382,7 +399,7 @@ def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") 
                 "report_py": s.report_py,
                 "static_by_ext": s.static_by_ext,
             },
-            "loc": loc_block,
+            "loc": loc.to_dict(),
             "views": _views_block(summary.views_summary),
             "not_analysed": not_analysed,
             "warnings": result.warnings,
@@ -400,7 +417,7 @@ def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]
     """Reduced payload for console output."""
 
     all_ok = outer.ok and all(r.ok for r in results)
-    sections = [_make_section(result) for result in results]
+    sections = [_build_section(result) for result in results]
 
     return Output(
         SummaryLayout(

@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Module Analysis Report</title>
+
+        <style>
+            :root {
+                --bg: #fafafa;
+                --bg-card: #ffffff;
+                --bg-soft: #f4f4f5;
+                --border: #e4e4e7;
+                --text: #18181b;
+                --text-muted: #71717a;
+                --accent: #2563eb;
+                --warning: #d97706;
+                --warning-bg: #fef3c7;
+
+                --origin-odoo: #0ea5e9;
+                --origin-enterprise: #be185d;
+                --origin-oca: #7c3aed;
+                --origin-local: #059669;
+                --origin-custom: #059669;
+                --origin-third-party: #ea580c;
+                --origin-unknown: #71717a;
+
+                --section-compute: #2563eb;
+                --section-select: #0891b2;
+                --section-default: #6366f1;
+                --section-onchange: #7c3aed;
+                --section-constrain: #be185d;
+                --section-crud: #ea580c;
+                --section-helper: #71717a;
+                --section-action: #059669;
+                --section-business: #dc2626;
+
+                --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                margin: 0;
+                padding: 2rem;
+                line-height: 1.5;
+            }
+
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+
+            /* ---------------- Header ---------------- */
+            header {
+                border-bottom: 2px solid var(--border);
+                padding-bottom: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            header h1 {
+                margin: 0 0 0.25rem;
+                font-size: 1.75rem;
+            }
+            header .subtitle {
+                color: var(--text-muted);
+                font-size: 0.9rem;
+            }
+
+            h2 {
+                font-size: 1.3rem;
+                margin: 2.5rem 0 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }
+            h3 {
+                font-size: 1.05rem;
+                margin: 1.5rem 0 0.5rem;
+            }
+            h4 {
+                font-size: 0.75rem;
+                margin: 1rem 0 0.5rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                font-weight: 600;
+            }
+
+            .subsection-meta {
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 0.5rem;
+            }
+
+            /* ---------------- Warnings ---------------- */
+            .warnings {
+                background: var(--warning-bg);
+                border-left: 3px solid var(--warning);
+                padding: 0.75rem 1rem;
+                margin: 1rem 0;
+                border-radius: 0 4px 4px 0;
+            }
+            .warnings ul {
+                margin: 0;
+                padding-left: 1.2rem;
+            }
+            .warnings li {
+                color: #78350f;
+                font-size: 0.9rem;
+                margin: 0.25rem 0;
+            }
+
+            /* ---------------- Module ---------------- */
+            .module {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            /* ---------------- Manifest ---------------- */
+            .manifest-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
+            .manifest-grid .item .label {
+                color: var(--text-muted);
+                display: block;
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .manifest-grid .item .value {
+                font-weight: 500;
+                font-size: 0.9rem;
+            }
+
+            .chip-list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+            }
+            .chip {
+                background: var(--bg-soft);
+                padding: 0.15rem 0.55rem;
+                border-radius: 3px;
+                color: var(--text-muted);
+                font-family: var(--mono);
+                font-size: 0.75rem;
+            }
+
+            /* ---------------- Metrics ---------------- */
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 0.65rem;
+                margin: 1rem 0;
+            }
+            .metric {
+                background: var(--bg-soft);
+                padding: 0.65rem 0.85rem;
+                border-radius: 5px;
+            }
+            .metric .value {
+                font-size: 1.3rem;
+                font-weight: 600;
+                font-family: var(--mono);
+            }
+            .metric .label {
+                font-size: 0.7rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            /* ---------------- Tables ---------------- */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.85rem;
+                margin: 0.5rem 0;
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 0.45rem 0.65rem;
+                border-bottom: 1px solid var(--border);
+            }
+            th {
+                background: var(--bg-soft);
+                font-weight: 600;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                font-size: 0.65rem;
+                letter-spacing: 0.05em;
+                white-space: nowrap;
+            }
+            td.num {
+                font-family: var(--mono);
+                text-align: right;
+            }
+            td.zero,
+            .zero {
+                color: var(--text-muted);
+                opacity: 0.45;
+            }
+            td.muted {
+                color: var(--text-muted);
+            }
+            td code,
+            td.mono,
+            .mono {
+                font-family: var(--mono);
+                font-size: 0.8rem;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-wrap {
+                overflow-x: auto;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                margin: 0.25rem 0 1rem;
+            }
+            .table-wrap table {
+                margin: 0;
+            }
+
+            tr.clickable {
+                cursor: pointer;
+                transition: background 0.12s;
+            }
+            tr.clickable:hover {
+                background: var(--bg-soft);
+            }
+
+            /* ---------------- Badges ---------------- */
+            .badge {
+                display: inline-block;
+                padding: 0.1rem 0.5rem;
+                border-radius: 3px;
+                font-size: 0.65rem;
+                font-family: var(--mono);
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                font-weight: 600;
+                color: white;
+            }
+            .badge.odoo {
+                background: var(--origin-odoo);
+            }
+            .badge.enterprise {
+                background: var(--origin-enterprise);
+            }
+            .badge.oca {
+                background: var(--origin-oca);
+            }
+            .badge.local {
+                background: var(--origin-local);
+            }
+            .badge.custom {
+                background: var(--origin-custom);
+            }
+            .badge.third-party {
+                background: var(--origin-third-party);
+            }
+            .badge.unknown {
+                background: var(--origin-unknown);
+            }
+            .badge.outline {
+                background: transparent;
+                color: var(--text-muted);
+                border: 1px solid var(--border);
+            }
+
+            /* ---------------- Drawer ---------------- */
+            .drawer-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.3);
+                z-index: 10;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s;
+            }
+            .drawer-backdrop.open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .drawer {
+                position: fixed;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: min(680px, 100vw);
+                background: var(--bg-card);
+                border-left: 1px solid var(--border);
+                z-index: 11;
+                padding: 1.5rem;
+                overflow-y: auto;
+                transform: translateX(100%);
+                transition: transform 0.2s;
+                box-shadow: -8px 0 24px rgba(0, 0, 0, 0.08);
+            }
+            .drawer.open {
+                transform: translateX(0);
+            }
+            .drawer .drawer-close {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                font-size: 1.25rem;
+                color: var(--text-muted);
+                padding: 0.25rem 0.5rem;
+            }
+            .drawer .drawer-close:hover {
+                color: var(--text);
+            }
+            .drawer h2 {
+                margin: 0 0 0.25rem;
+                font-size: 1.1rem;
+                font-family: var(--mono);
+                border: none;
+                padding: 0;
+                word-break: break-all;
+            }
+            .drawer .drawer-sub {
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 1rem;
+            }
+            .drawer h3 {
+                font-size: 0.95rem;
+                margin: 1.25rem 0 0.5rem;
+            }
+            .drawer .info-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.35rem 0;
+                border-bottom: 1px solid var(--border);
+                font-size: 0.85rem;
+            }
+            .drawer .info-row .label {
+                color: var(--text-muted);
+            }
+            .drawer .info-row .value {
+                font-family: var(--mono);
+                font-weight: 500;
+            }
+            .drawer .field-breakdown {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+                margin: 0.5rem 0;
+            }
+            .drawer .fb-card {
+                background: var(--bg-soft);
+                padding: 0.5rem;
+                border-radius: 4px;
+                text-align: center;
+            }
+            .drawer .fb-card.base {
+                border-left: 3px solid var(--text-muted);
+            }
+            .drawer .fb-card.new {
+                border-left: 3px solid var(--origin-local);
+            }
+            .drawer .fb-card.inherited {
+                border-left: 3px solid var(--accent);
+            }
+            .drawer .fb-card .value {
+                font-family: var(--mono);
+                font-size: 1.25rem;
+                font-weight: 600;
+            }
+            .drawer .fb-card .label {
+                font-size: 0.65rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .ft-chip {
+                background: var(--bg-soft);
+                padding: 0.15rem 0.55rem;
+                border-radius: 3px;
+                font-family: var(--mono);
+                font-size: 0.75rem;
+                display: inline-block;
+                margin: 0.15rem;
+            }
+            .ft-chip .count {
+                font-weight: 600;
+                margin-left: 0.25rem;
+            }
+            .ft-chip.compute {
+                background: rgba(37, 99, 235, 0.15);
+                color: var(--section-compute);
+            }
+            .ft-chip.select {
+                background: rgba(8, 145, 178, 0.15);
+                color: var(--section-select);
+            }
+            .ft-chip.default {
+                background: rgba(99, 102, 241, 0.15);
+                color: var(--section-default);
+            }
+            .ft-chip.onchange {
+                background: rgba(124, 58, 237, 0.15);
+                color: var(--section-onchange);
+            }
+            .ft-chip.constrain {
+                background: rgba(190, 24, 93, 0.15);
+                color: var(--section-constrain);
+            }
+            .ft-chip.crud {
+                background: rgba(234, 88, 12, 0.15);
+                color: var(--section-crud);
+            }
+            .ft-chip.helper {
+                background: rgba(113, 113, 122, 0.15);
+                color: var(--section-helper);
+            }
+            .ft-chip.action {
+                background: rgba(5, 150, 105, 0.15);
+                color: var(--section-action);
+            }
+            .ft-chip.business {
+                background: rgba(220, 38, 38, 0.15);
+                color: var(--section-business);
+            }
+
+            .empty-section {
+                color: var(--text-muted);
+                font-size: 0.85rem;
+                font-style: italic;
+                padding: 0.5rem 0;
+            }
+
+            /* ---------------- Footer ---------------- */
+            footer {
+                margin-top: 3rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid var(--border);
+                color: var(--text-muted);
+                font-size: 0.8rem;
+            }
+            details.raw {
+                margin-top: 2rem;
+            }
+            details.raw summary {
+                cursor: pointer;
+                color: var(--accent);
+                font-size: 0.85rem;
+            }
+            .raw-json {
+                background: var(--bg-soft);
+                padding: 1rem;
+                border-radius: 4px;
+                font-family: var(--mono);
+                font-size: 0.75rem;
+                overflow-x: auto;
+                max-height: 400px;
+                overflow-y: auto;
+                margin-top: 0.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>Module Analysis Report</h1>
+                <div class="subtitle" id="meta-subtitle"></div>
+            </header>
+
+            <section id="global-warnings"></section>
+            <section id="modules"></section>
+
+            <details class="raw">
+                <summary>Raw JSON payload</summary>
+                <pre class="raw-json" id="raw-json"></pre>
+            </details>
+
+            <footer>
+                Generated by <code>oops analyze</code> &middot;
+                <span id="meta-timestamp"></span>
+            </footer>
+        </div>
+
+        <!-- Drawer -->
+        <div class="drawer-backdrop" id="drawer-backdrop"></div>
+        <aside class="drawer" id="drawer">
+            <button class="drawer-close" id="drawer-close" aria-label="Close">✕</button>
+            <div id="drawer-content"></div>
+        </aside>
+
+        <script id="report-data" type="application/json">
+            __REPORT_DATA__
+        </script>
+
+        <script>
+            const DATA = JSON.parse(document.getElementById("report-data").textContent);
+
+            const METHOD_SECTIONS = [
+                { key: "COMPUTE METHODS", short: "Compute", cls: "compute" },
+                { key: "SELECT METHODS", short: "Select", cls: "select" },
+                { key: "DEFAULT METHODS", short: "Default", cls: "default" },
+                { key: "ONCHANGE METHODS", short: "Onchange", cls: "onchange" },
+                { key: "CONSTRAINT METHODS", short: "Constrain", cls: "constrain" },
+                { key: "CRUD METHODS", short: "CRUD", cls: "crud" },
+                { key: "HELPER METHODS", short: "Helper", cls: "helper" },
+                { key: "ACTION METHODS", short: "Action", cls: "action" },
+                { key: "BUSINESS METHODS", short: "Business", cls: "business" },
+            ];
+
+            // ----- DOM helpers -----
+            const el = (tag, attrs = {}, children = []) => {
+                const node = document.createElement(tag);
+                for (const [k, v] of Object.entries(attrs)) {
+                    if (k === "class") node.className = v;
+                    else if (k === "html") node.innerHTML = v;
+                    else if (v != null) node.setAttribute(k, v);
+                }
+                for (const child of [].concat(children)) {
+                    if (child == null) continue;
+                    node.append(child instanceof Node ? child : String(child));
+                }
+                return node;
+            };
+
+            const originBadge = (origin) => el("span", { class: `badge ${origin || "unknown"}` }, origin || "—");
+
+            const numCell = (n) => {
+                const cls = "num " + (n ? "" : "zero");
+                return el("td", { class: cls.trim() }, n != null ? n : 0);
+            };
+
+            // Resolve the technical model name (the reliable one):
+            // - new model → model_name
+            // - extension → first entry in inherit[]
+            const techName = (m) => (m.is_new_model ? m.model_name : (m.inherit && m.inherit[0]) || "—");
+
+            // ===================================================================
+            // Global warnings
+            // ===================================================================
+            if (DATA.warnings && DATA.warnings.length) {
+                const wb = el("div", { class: "warnings" }, [
+                    el(
+                        "ul",
+                        {},
+                        DATA.warnings.map((w) => el("li", {}, w)),
+                    ),
+                ]);
+                document.getElementById("global-warnings").append(wb);
+            }
+
+            // ===================================================================
+            // Render each module
+            // ===================================================================
+            const modulesContainer = document.getElementById("modules");
+            DATA.modules.forEach((mod) => modulesContainer.append(renderModule(mod)));
+
+            function renderModule(mod) {
+                const root = el("section", { class: "module" });
+
+                root.append(
+                    el("h2", {}, [
+                        mod.module,
+                        " ",
+                        el("span", { class: "badge outline" }, mod.manifest.version || "—"),
+                    ]),
+                );
+
+                // Manifest
+                const manifestGrid = el("div", { class: "manifest-grid" });
+                ["name", "author", "license", "category", "installable", "summary"].forEach((f) => {
+                    const v = mod.manifest[f];
+                    if (v == null || v === "") return;
+                    manifestGrid.append(
+                        el("div", { class: "item" }, [
+                            el("span", { class: "label" }, f),
+                            el("span", { class: "value" }, String(v)),
+                        ]),
+                    );
+                });
+                root.append(manifestGrid);
+
+                if (mod.manifest.depends && mod.manifest.depends.length) {
+                    root.append(el("h4", {}, `Depends (${mod.manifest.depends.length})`));
+                    root.append(
+                        el(
+                            "div",
+                            { class: "chip-list" },
+                            mod.manifest.depends.map((d) => el("span", { class: "chip" }, d)),
+                        ),
+                    );
+                }
+
+                if (mod.warnings && mod.warnings.length) {
+                    root.append(
+                        el("div", { class: "warnings" }, [
+                            el(
+                                "ul",
+                                {},
+                                mod.warnings.map((w) => el("li", {}, w)),
+                            ),
+                        ]),
+                    );
+                }
+
+                // Metrics
+                root.append(el("h4", {}, "Metrics"));
+                const totalPrimary = mod.views.primary
+                    ? Object.values(mod.views.primary).reduce((a, b) => a + b, 0)
+                    : 0;
+                root.append(
+                    el("div", { class: "metrics-grid" }, [
+                        metric("Total LoC", (mod.loc.total || 0).toLocaleString()),
+                        metric("Python", (mod.loc.python || 0).toLocaleString()),
+                        metric("XML", (mod.loc.xml || 0).toLocaleString()),
+                        metric("JS", (mod.loc.javascript || 0).toLocaleString()),
+                        metric("Share", `${mod.loc.pct || 0}%`),
+                        metric("Primary views", totalPrimary),
+                        metric("Extensions", mod.views.extensions || 0),
+                        metric("Actions", mod.views.actions || 0),
+                        metric("Menus", mod.views.menus || 0),
+                    ]),
+                );
+
+                // ----- Models -----
+                if (mod.models && mod.models.length) {
+                    root.append(el("h2", {}, `Models (${mod.models.length})`));
+                    const newModels = mod.models.filter((m) => m.is_new_model).sort(byTechName);
+                    const extModels = mod.models.filter((m) => !m.is_new_model).sort(byTechName);
+
+                    if (newModels.length) {
+                        root.append(el("h3", {}, `New models (${newModels.length})`));
+                        root.append(renderNewModelsTable(mod, newModels));
+                    }
+                    if (extModels.length) {
+                        root.append(el("h3", {}, `Extensions (${extModels.length})`));
+                        root.append(renderExtensionsTable(mod, extModels));
+                    }
+                }
+
+                // ----- Views -----
+                if (mod.views && mod.views.list) {
+                    root.append(renderViewsSections(mod));
+                }
+
+                // ----- Not analysed -----
+                if (mod.not_analysed && mod.not_analysed.length) {
+                    root.append(el("h4", {}, "Not analysed"));
+                    root.append(
+                        el(
+                            "div",
+                            { class: "chip-list" },
+                            mod.not_analysed.map((p) => el("span", { class: "chip" }, p)),
+                        ),
+                    );
+                }
+
+                return root;
+            }
+
+            function byTechName(a, b) {
+                return (techName(a) || "").localeCompare(techName(b) || "");
+            }
+
+            function metric(label, value) {
+                return el("div", { class: "metric" }, [
+                    el("div", { class: "value" }, value),
+                    el("div", { class: "label" }, label),
+                ]);
+            }
+
+            // ===================================================================
+            // Models tables
+            // ===================================================================
+            function renderNewModelsTable(mod, models) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "Model"),
+                            el("th", { class: "num" }, "Fields"),
+                            el("th", { class: "num" }, "Methods"),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                models.forEach((m) => {
+                    const tr = el("tr", { class: "clickable" });
+                    tr.append(el("td", { class: "mono" }, techName(m)));
+                    tr.append(numCell(m.fields.total));
+                    tr.append(numCell(m.methods.total));
+                    tr.addEventListener("click", () => openModelDrawer(mod, m));
+                    tbody.append(tr);
+                });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            function renderExtensionsTable(mod, models) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "Model"),
+                            el("th", {}, "Ancestor module"),
+                            el("th", {}, "Origin"),
+                            el("th", { class: "num", title: "New fields added by this module" }, "Own fields"),
+                            el(
+                                "th",
+                                { class: "num", title: "Inherited fields from depends (referenced/used)" },
+                                "Inh fields",
+                            ),
+                            el("th", { class: "num" }, "Methods"),
+                            el("th", { class: "num", title: "Methods overriding ancestor methods" }, "Overrides"),
+                            el(
+                                "th",
+                                { class: "num", title: "Methods inherited from depends and exposed" },
+                                "Inherited",
+                            ),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                models.forEach((m) => {
+                    const tr = el("tr", { class: "clickable" });
+                    tr.append(el("td", { class: "mono" }, techName(m)));
+                    tr.append(el("td", { class: "muted mono" }, m.ancestor_module || "—"));
+                    tr.append(el("td", {}, originBadge(m.ancestor_origin)));
+                    tr.append(numCell(m.fields.new + m.fields.base));
+                    tr.append(numCell(m.fields.inherited));
+                    tr.append(numCell(m.methods.total));
+                    tr.append(numCell(m.methods.overrides));
+                    tr.append(numCell(m.methods.inherited));
+                    tr.addEventListener("click", () => openModelDrawer(mod, m));
+                    tbody.append(tr);
+                });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            // ===================================================================
+            // Drawer with model details
+            // ===================================================================
+            const drawer = document.getElementById("drawer");
+            const drawerBackdrop = document.getElementById("drawer-backdrop");
+            const drawerContent = document.getElementById("drawer-content");
+
+            function closeDrawer() {
+                drawer.classList.remove("open");
+                drawerBackdrop.classList.remove("open");
+            }
+            document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+            drawerBackdrop.addEventListener("click", closeDrawer);
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") closeDrawer();
+            });
+
+            function openModelDrawer(mod, m) {
+                drawerContent.innerHTML = "";
+
+                drawerContent.append(el("h2", {}, techName(m)));
+                const sub = [];
+                sub.push(`class ${m.class_name}`);
+                sub.push(m.is_new_model ? "new model" : "extension");
+                drawerContent.append(el("div", { class: "drawer-sub" }, sub.join(" · ")));
+
+                const rows = m.is_new_model
+                    ? [["Module", mod.module]]
+                    : [
+                          ["Ancestor module", m.ancestor_module || "—"],
+                          ["Ancestor model", m.ancestor_model || "—"],
+                          ["Ancestor origin", m.ancestor_origin || "—"],
+                      ];
+                rows.forEach(([label, value]) => {
+                    drawerContent.append(
+                        el("div", { class: "info-row" }, [
+                            el("span", { class: "label" }, label),
+                            el("span", { class: "value" }, value),
+                        ]),
+                    );
+                });
+
+                // Fields
+                drawerContent.append(el("h3", {}, `Fields (${m.fields.total})`));
+                const fb = el("div", { class: "field-breakdown" });
+                fb.append(
+                    el("div", { class: "fb-card base" }, [
+                        el("div", { class: "value" }, m.fields.base),
+                        el("div", { class: "label" }, "Base"),
+                    ]),
+                );
+                fb.append(
+                    el("div", { class: "fb-card new" }, [
+                        el("div", { class: "value" }, m.fields.new),
+                        el("div", { class: "label" }, "New"),
+                    ]),
+                );
+                fb.append(
+                    el("div", { class: "fb-card inherited" }, [
+                        el("div", { class: "value" }, m.fields.inherited),
+                        el("div", { class: "label" }, "Inherited"),
+                    ]),
+                );
+                drawerContent.append(fb);
+
+                const byType = m.fields.by_type || {};
+                if (Object.keys(byType).length) {
+                    drawerContent.append(el("h4", {}, "By type"));
+                    const types = el("div", {});
+                    Object.entries(byType)
+                        .sort((a, b) => b[1] - a[1])
+                        .forEach(([t, n]) => {
+                            types.append(el("span", { class: "ft-chip" }, [t, el("span", { class: "count" }, n)]));
+                        });
+                    drawerContent.append(types);
+                }
+
+                // Methods
+                drawerContent.append(el("h3", {}, `Methods (${m.methods.total})`));
+                const bySection = m.methods.by_section || {};
+                if (Object.keys(bySection).length) {
+                    drawerContent.append(el("h4", {}, "By classification"));
+                    const sections = el("div", {});
+                    METHOD_SECTIONS.forEach((s) => {
+                        const n = bySection[s.key] || 0;
+                        if (!n) return;
+                        sections.append(
+                            el("span", { class: `ft-chip ${s.cls}` }, [s.short, el("span", { class: "count" }, n)]),
+                        );
+                    });
+                    drawerContent.append(sections);
+                }
+
+                drawerContent.append(el("h4", {}, `Overrides (${m.methods.overrides})`));
+                if (m.methods.override_details && m.methods.override_details.length) {
+                    drawerContent.append(renderMethodList(m.methods.override_details));
+                } else {
+                    drawerContent.append(el("div", { class: "empty-section" }, "None"));
+                }
+
+                drawerContent.append(el("h4", {}, `Inherited (${m.methods.inherited})`));
+                if (m.methods.inherited_details && m.methods.inherited_details.length) {
+                    drawerContent.append(renderMethodList(m.methods.inherited_details));
+                } else {
+                    drawerContent.append(el("div", { class: "empty-section" }, "None"));
+                }
+
+                drawerContent.append(
+                    el("div", { class: "info-row", style: "margin-top: 1rem" }, [
+                        el("span", { class: "label" }, "Missing docstrings"),
+                        el("span", { class: "value" }, m.methods.missing_docstrings),
+                    ]),
+                );
+
+                drawer.classList.add("open");
+                drawerBackdrop.classList.add("open");
+            }
+
+            function renderMethodList(items) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [el("th", {}, "Method"), el("th", {}, "Origin module"), el("th", {}, "Origin")]),
+                    ),
+                );
+                const tbody = el("tbody");
+                items.forEach((item) => {
+                    tbody.append(
+                        el("tr", {}, [
+                            el("td", { class: "mono" }, item.method),
+                            el("td", { class: "muted mono" }, item.origin_module),
+                            el("td", {}, originBadge(item.origin)),
+                        ]),
+                    );
+                });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            // ===================================================================
+            // Views — split into Primary / Extensions / Qweb
+            //         grouped by model, one row per model with columns per type
+            // ===================================================================
+            function renderViewsSections(mod) {
+                const section = el("section");
+                section.append(el("h2", {}, `Views (${mod.views.list.length})`));
+
+                const primary = mod.views.list.filter((v) => v.mode === "primary" && v.view_type !== "qweb");
+                const extensions = mod.views.list.filter((v) => v.mode === "extension" && v.view_type !== "qweb");
+                const qwebs = mod.views.list.filter((v) => v.view_type === "qweb");
+
+                if (primary.length) {
+                    section.append(el("h3", {}, `Primary (${primary.length})`));
+                    section.append(renderViewsByModelTable(mod, primary, /*isExtension=*/ false));
+                }
+                if (extensions.length) {
+                    section.append(el("h3", {}, `Extensions (${extensions.length})`));
+                    section.append(renderViewsByModelTable(mod, extensions, /*isExtension=*/ true));
+                }
+                if (qwebs.length) {
+                    section.append(el("h3", {}, `Qweb (${qwebs.length})`));
+                    section.append(renderQwebTable(mod, qwebs));
+                }
+                return section;
+            }
+
+            function renderViewsByModelTable(mod, views, isExtension) {
+                // Group by model
+                const byModel = new Map();
+                views.forEach((v) => {
+                    const key = v.model || "—";
+                    if (!byModel.has(key)) byModel.set(key, []);
+                    byModel.get(key).push(v);
+                });
+
+                // Collect all types seen in this subset
+                const typesSeen = new Set();
+                views.forEach((v) => typesSeen.add(v.view_type || "—"));
+                const typeOrder = [
+                    "form",
+                    "list",
+                    "search",
+                    "kanban",
+                    "calendar",
+                    "pivot",
+                    "graph",
+                    "gantt",
+                    "activity",
+                    "tree",
+                    "qweb",
+                ];
+                const types = [
+                    ...typeOrder.filter((t) => typesSeen.has(t)),
+                    ...Array.from(typesSeen)
+                        .filter((t) => !typeOrder.includes(t))
+                        .sort(),
+                ];
+
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                const headerCells = [el("th", {}, "Model")];
+                if (isExtension) {
+                    headerCells.push(el("th", {}, "Ancestor module"));
+                    headerCells.push(el("th", {}, "Origin"));
+                }
+                types.forEach((t) => headerCells.push(el("th", { class: "num" }, t)));
+                headerCells.push(el("th", { class: "num" }, "Total"));
+                table.append(el("thead", {}, el("tr", {}, headerCells)));
+
+                // Sort models alphabetically
+                const sortedModels = Array.from(byModel.keys()).sort();
+
+                const tbody = el("tbody");
+                sortedModels.forEach((modelName) => {
+                    const list = byModel.get(modelName);
+                    const tr = el("tr", { class: "clickable" });
+                    tr.append(el("td", { class: "mono" }, modelName));
+
+                    if (isExtension) {
+                        // For extensions, take ancestor_module / ancestor_origin from the
+                        // first view that has it (all should share the same ancestor model).
+                        const sample = list.find((v) => v.ancestor_module) || list[0];
+                        tr.append(el("td", { class: "muted mono" }, sample.ancestor_module || "—"));
+                        tr.append(el("td", {}, originBadge(sample.ancestor_origin)));
+                    }
+
+                    types.forEach((t) => {
+                        const count = list.filter((v) => (v.view_type || "—") === t).length;
+                        tr.append(numCell(count));
+                    });
+                    tr.append(numCell(list.length));
+
+                    tr.addEventListener("click", () => openViewsDrawer(modelName, list, isExtension));
+                    tbody.append(tr);
+                });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            function renderQwebTable(mod, views) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "XML ID"),
+                            el("th", {}, "Name"),
+                            el("th", {}, "Mode"),
+                            el("th", {}, "Inherits"),
+                            el("th", {}, "Origin"),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                views
+                    .slice()
+                    .sort((a, b) => (a.xml_id || "").localeCompare(b.xml_id || ""))
+                    .forEach((v) => {
+                        tbody.append(
+                            el("tr", {}, [
+                                el("td", { class: "mono", style: "font-size: .75rem" }, v.xml_id || "—"),
+                                el("td", {}, v.name || "—"),
+                                el("td", { class: "muted" }, v.mode || "—"),
+                                el("td", { class: "mono muted" }, v.inherit_id || "—"),
+                                el("td", {}, originBadge(v.origin)),
+                            ]),
+                        );
+                    });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            function openViewsDrawer(modelName, views, isExtension) {
+                drawerContent.innerHTML = "";
+                drawerContent.append(el("h2", {}, modelName));
+                drawerContent.append(
+                    el(
+                        "div",
+                        { class: "drawer-sub" },
+                        `${views.length} ${isExtension ? "extension" : "primary"} view(s)`,
+                    ),
+                );
+
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                const headers = [el("th", {}, "XML ID"), el("th", {}, "Name"), el("th", {}, "Type")];
+                if (isExtension) {
+                    headers.push(el("th", {}, "Inherits"));
+                }
+                headers.push(el("th", { class: "num" }, "Fields"));
+                headers.push(el("th", { class: "num" }, "Buttons"));
+                table.append(el("thead", {}, el("tr", {}, headers)));
+
+                const tbody = el("tbody");
+                views
+                    .slice()
+                    .sort((a, b) => (a.xml_id || "").localeCompare(b.xml_id || ""))
+                    .forEach((v) => {
+                        const cells = [
+                            el("td", { class: "mono", style: "font-size: .75rem" }, v.xml_id || "—"),
+                            el("td", {}, v.name || "—"),
+                            el("td", {}, el("span", { class: "badge outline" }, v.view_type || "—")),
+                        ];
+                        if (isExtension) {
+                            cells.push(
+                                el("td", { class: "mono muted", style: "font-size: .75rem" }, v.inherit_id || "—"),
+                            );
+                        }
+                        cells.push(numCell(v.fields_count));
+                        cells.push(numCell(v.buttons_count));
+                        tbody.append(el("tr", {}, cells));
+                    });
+                table.append(tbody);
+                wrap.append(table);
+                drawerContent.append(wrap);
+
+                drawer.classList.add("open");
+                drawerBackdrop.classList.add("open");
+            }
+
+            // ===================================================================
+            // Meta
+            // ===================================================================
+            document.getElementById("meta-subtitle").textContent = `${DATA.modules.length} module(s) analysed`;
+            document.getElementById("meta-timestamp").textContent = new Date().toLocaleString();
+            document.getElementById("raw-json").textContent = JSON.stringify(DATA, null, 2);
+        </script>
+    </body>
+</html>

@@ -11,6 +11,7 @@ from datetime import timezone
 from typing import TYPE_CHECKING
 
 from oops.core.compat import Generic, L, List, Literal, Optional
+from oops.core.models import StatGroup
 
 if TYPE_CHECKING:
     pass
@@ -30,6 +31,10 @@ class TableBlock:
 class MetricsPanelBlock:
     title: str
     values: List[List[str]]
+
+
+# @dataclass
+# class StatsBlock:
 
 
 @dataclass
@@ -88,3 +93,10 @@ Status = Literal["ok", "warning", "failed"]
 class Output(Generic[L]):
     layout: L
     status: Status = "ok"
+
+
+def statgroup_to_panel(stg: StatGroup) -> MetricsPanelBlock:
+    return MetricsPanelBlock(
+        title=stg.label,
+        values=[[s.label, str(s.value)] for s in stg.stats],
+    )

@@ -143,7 +143,7 @@ class HtmlFormatter(OutputFormatter):
 
 
 class AnalysisReportFormatter(HtmlFormatter):
-    template = "analyze.html"
+    template = "analyze_v3.html"
 
 
 class AddonsReportFormatter(HtmlFormatter):
