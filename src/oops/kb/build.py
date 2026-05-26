@@ -296,7 +296,7 @@ def build_project_kb(
 # ---------------------------------------------------------------------------
 
 
-def _parse_kb_timestamp(value: str | None) -> datetime | None:
+def parse_kb_timestamp(value: str | None) -> datetime | None:
     """Parse an ISO-format ``meta.generated_at`` value.
 
     Returns None when the value is missing or unparseable; callers treat
@@ -339,7 +339,7 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
             return True, (
                 f"project KB schema version {sv!r} differs from current {SCHEMA_VERSION!r} — rebuild required"
             )
-        project_ts = _parse_kb_timestamp(meta.get("generated_at"))
+        project_ts = parse_kb_timestamp(meta.get("generated_at"))
 
     if project_ts is None:
         return True, "project KB has no generated_at metadata"
@@ -353,7 +353,7 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
     global_kb = global_kb_path(version)
     if global_kb.exists():
         with KBReader(global_kb) as kb:
-            global_ts = _parse_kb_timestamp(kb.get_meta().get("generated_at"))
+            global_ts = parse_kb_timestamp(kb.get_meta().get("generated_at"))
         if global_ts and global_ts > project_ts:
             return True, "global KB is newer than project KB"
 

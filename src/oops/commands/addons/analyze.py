@@ -26,7 +26,7 @@ JSON output shape (--format json)::
           "manifest": { ... },
           "models": [ ... ],
           "structure": { ... },
-          "loc": {"python": 0, "xml": 0, "javascript": 0, "docs": 0, "total": 0, "pct": 0.0},
+          "loc": {"kind": "stats", "label": "Lines of code", "values": [{"name": "python", ...}, ...]},
           "not_analysed": [ ... ],
           "warnings": ["module-level warnings"]
         }

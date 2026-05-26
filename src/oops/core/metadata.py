@@ -8,7 +8,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
-from pathlib import Path
 
 from oops.core.compat import Any, Dict, Optional
 
@@ -52,22 +51,23 @@ class Metadata:
 
 def collect_metadata(
     command: str,
-    repo_path: Optional[Path] = None,
-    odoo_version: Optional[str] = None,
     parameters: "Optional[Dict[str, Any]]" = None,
 ) -> Metadata:
-    """Collect execution metadata. Fills git info from repo_path if provided."""
-    meta = Metadata(
+    """Collect execution metadata for a command invocation."""
+    return Metadata(
         command=command,
-        odoo_version=odoo_version,
         parameters=parameters or {},
         tool_version=_resolve_tool_version(),
     )
-    if repo_path is not None:
-        meta.project_path = str(repo_path)
-        meta.project_name = repo_path.name
 
-    return meta
+
+def update_metadata(**fields: Any) -> None:
+    """Apply fields to the live metadata object, if one exists in context."""
+    meta = get_metadata()
+    if meta is None:
+        return
+    for k, v in fields.items():
+        setattr(meta, k, v)
 
 
 def get_metadata() -> "Optional[Metadata]":

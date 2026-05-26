@@ -427,7 +427,13 @@ class TestAnalyzeJson:
         assert result.exit_code == 0
         data = json.loads(result.output)
         loc = data["modules"][0]["loc"]
-        assert loc == {"python": 120, "xml": 10, "javascript": 0, "docs": 5, "total": 135, "pct": 100.0}
+        assert loc["kind"] == "stats"
+        assert loc["label"] == "Lines of code"
+        vals = {s["name"]: s["value"] for s in loc["values"]}
+        assert vals == {
+            "python": 120, "xml": 10, "javascript": 0,
+            "docs": 5, "total": 135, "pct": "100.0%",
+        }
 
     def test_json_default_serialiser_handles_paths(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -441,6 +447,85 @@ class TestAnalyzeJson:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         json.loads(result.output)
+
+    def test_json_metrics_shape(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        metrics = data["modules"][0]["metrics"]
+        assert metrics["kind"] == "stats"
+        assert metrics["label"] == "Metrics"
+        assert isinstance(metrics["values"], list)
+        stat_names = {s["name"] for s in metrics["values"]}
+        assert {"models", "methods"}.issubset(stat_names)
+        for s in metrics["values"]:
+            assert {"name", "label", "value", "kind", "highlight"} == set(s.keys())
+
+    def test_json_manifest_shape(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        manifest = data["modules"][0]["manifest"]
+        assert manifest["kind"] == "stats"
+        assert manifest["label"] == "Manifest"
+        assert isinstance(manifest["values"], list)
+        stat_names = {s["name"] for s in manifest["values"]}
+        assert {"name", "version"}.issubset(stat_names)
+        for s in manifest["values"]:
+            assert {"name", "label", "value", "kind", "highlight"} == set(s.keys())
+
+    def test_json_depends_is_top_level_list(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["modules"][0]["depends"] == ["base"]
+
+    def test_json_metadata_shape(self, tmp_path: Path) -> None:
+        from datetime import datetime
+
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        meta = data["metadata"]
+        assert "command" in meta
+        assert "tool_version" in meta
+        assert "generated_at" in meta
+        assert "git_branch" in meta
+        datetime.fromisoformat(meta["generated_at"])
+        assert meta["git_branch"] is None or isinstance(meta["git_branch"], str)
 
 
 # ---------------------------------------------------------------------------

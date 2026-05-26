@@ -334,7 +334,7 @@ class Release:
         return d
 
 
-StatKind = Literal["count", "ratio", "duration_days", "date", "text", "boolean"]
+StatKind = Literal["count", "date", "text", "boolean"]
 
 
 @dataclass
@@ -375,6 +375,3 @@ class StatGroup:
         """Find a stat by name. Useful in templates."""
         return next((s for s in self.stats if s.name == name), None)
 
-
-def groups_to_list(groups: list[StatGroup], summary: bool = False) -> list[dict]:
-    return [g.to_dict(summary=summary) for g in groups]
