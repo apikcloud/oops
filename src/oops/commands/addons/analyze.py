@@ -36,6 +36,7 @@ JSON output shape (--format json)::
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import click
@@ -226,7 +227,15 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 for py_file in model_py_files:
                     class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
                     for ci in class_infos:
-                        all_classes.append(_summarize_class(ci))
+                        cs = _summarize_class(ci)
+                        if not cs.is_new_model and cs.inherit:
+                            creators = kb.get_model_creators(cs.inherit[0])
+                            if creators:
+                                best = creators[0]
+                                cs.ancestor_model = cs.inherit[0]
+                                cs.ancestor_module = best["module"]
+                                cs.ancestor_origin = best["origin"]
+                        all_classes.append(cs)
 
                 views_summary, xml_analysed = _build_views_summary(module_name, manifest, kb)
                 structure = _build_structure(module_path, manifest, xml_analysed)
@@ -279,6 +288,7 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
             "model": model_label,
             "method": m.name,
             "origin_module": m.kb_entry.get("module", "") if m.kb_entry else "",
+            "origin": m.kb_entry.get("origin", "") if m.kb_entry else "",
         }
         for m in methods
         if m.is_override
@@ -288,6 +298,7 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
             "model": model_label,
             "method": m.name,
             "origin_module": m.kb_entry.get("module", "") if m.kb_entry else "",
+            "origin": m.kb_entry.get("origin", "") if m.kb_entry else "",
         }
         for m in methods
         if m.kb_entry and not m.is_override and not ci.is_new_model
@@ -339,6 +350,7 @@ def _build_views_summary(
     extensions_by_type: dict[str, int] = {}
     extensions_upstream = 0
     unresolved = 0
+    view_list: list[dict] = []
 
     for v in views:
         if v["mode"] == "primary":
@@ -353,6 +365,24 @@ def _build_views_summary(
                 extensions_upstream += 1
         if v.get("view_type") == "unresolved":
             unresolved += 1
+
+        inherit_id = v.get("inherit_id")
+        parent = kb.get_view(inherit_id) if inherit_id else None
+        view_list.append(
+            {
+                "xml_id": v["xml_id"],
+                "mode": v["mode"],
+                "view_type": v.get("view_type"),
+                "name": v.get("name"),
+                "model": v.get("model"),
+                "origin": v["origin"],
+                "inherit_id": inherit_id,
+                "fields_count": len(json.loads(v.get("fields_json") or "[]")),
+                "buttons_count": len(json.loads(v.get("buttons_json") or "[]")),
+                "ancestor_module": parent["module"] if parent else None,
+                "ancestor_origin": parent["origin"] if parent else None,
+            }
+        )
 
     # source_file in KB is tier-root-relative (e.g. "my_module/views/form.xml");
     # manifest entry is module-relative (e.g. "views/form.xml"). Match via endswith.
@@ -377,6 +407,7 @@ def _build_views_summary(
             actions=actions,
             menus=menus,
             unresolved=unresolved,
+            view_list=view_list,
         ),
         frozenset(xml_analysed_list),
     )

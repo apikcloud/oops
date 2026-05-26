@@ -227,6 +227,9 @@ class ClassSummary:
     model_type: str = "model"
     inherited_methods: int = 0
     inherited_method_details: "list[dict[str, str]]" = field(default_factory=list)
+    ancestor_model: Optional[str] = None
+    ancestor_module: Optional[str] = None
+    ancestor_origin: Optional[str] = None
 
 
 @dataclass
@@ -238,6 +241,7 @@ class ViewsSummary:
     actions: int
     menus: int
     unresolved: int
+    view_list: "list[dict]" = field(default_factory=list)
 
 
 @dataclass

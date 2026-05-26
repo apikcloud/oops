@@ -32,6 +32,7 @@ def _make_kb(
     views: list[dict] | None = None,
     actions: list[dict] | None = None,
     menus: list[dict] | None = None,
+    model_origins: list[dict] | None = None,
 ) -> None:
     scan_results = [
         {
@@ -40,6 +41,7 @@ def _make_kb(
             "views": views or [],
             "actions": actions or [],
             "menus": menus or [],
+            "model_origins": model_origins or [],
         }
     ]
     write_project_kb(
@@ -50,6 +52,20 @@ def _make_kb(
         sources={"odoo": "/odoo"},
         scan_results=scan_results,
     )
+
+
+def _kb_model_origin(model: str, module: str, origin: str = "odoo", role: str = "create") -> dict:
+    return {
+        "model": model,
+        "module": module,
+        "origin": origin,
+        "role": role,
+        "model_type": "model",
+        "inherit_json": "[]",
+        "inherits_json": "{}",
+        "source_file": f"addons/{module}/models/{model.replace('.', '_')}.py",
+        "source_line": 1,
+    }
 
 
 def _kb_symbol(model: str, name: str, kind: str, module: str = "sale") -> dict:
@@ -769,7 +785,7 @@ class TestAnalyzeInheritedMethods:
         assert isinstance(methods["inherited_details"], list)
         assert methods["inherited"] >= 1
         for detail in methods["inherited_details"]:
-            assert set(detail.keys()) == {"model", "method", "origin_module"}
+            assert set(detail.keys()) == {"model", "method", "origin_module", "origin"}
 
     def test_stats_panel_field_totals_present(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -847,11 +863,14 @@ def _kb_view(
     view_type: str | None = "form",
     inherit_id: str | None = None,
     source_file: str | None = None,
+    origin: str = "project",
+    fields_json: str = "[]",
+    buttons_json: str = "[]",
 ) -> dict:
     return {
         "xml_id": xml_id,
         "module": module,
-        "origin": "project",
+        "origin": origin,
         "name": xml_id,
         "model": "my.model",
         "view_type": view_type,
@@ -859,6 +878,8 @@ def _kb_view(
         "mode": mode,
         "source_file": source_file or f"{module}/views/{xml_id.split('.', 1)[-1]}.xml",
         "source_line": 1,
+        "fields_json": fields_json,
+        "buttons_json": buttons_json,
     }
 
 
@@ -971,7 +992,7 @@ class TestAnalyzeViews:
         views = data["modules"][0]["views"]
         expected_keys = (
             "primary", "extensions", "extensions_by_type",
-            "extensions_upstream", "actions", "menus", "unresolved",
+            "extensions_upstream", "actions", "menus", "unresolved", "list",
         )
         for key in expected_keys:
             assert key in views, f"Missing views key: {key}"
@@ -998,6 +1019,7 @@ class TestAnalyzeViews:
             "actions": 0,
             "menus": 0,
             "unresolved": 0,
+            "list": [],
         }
 
 
@@ -1049,3 +1071,127 @@ class TestAnalyzeStructureAnalysed:
             result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "✗" in result.output
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeAncestorOrigin
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeAncestorOrigin:
+    def test_json_class_ancestor_fields_present_for_inherit(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[_kb_symbol("res.partner", "name", "field", "base")],
+            modules={"base": {"origin": "odoo", "depends": []}},
+            model_origins=[_kb_model_origin("res.partner", "base", origin="odoo", role="create")],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"res_partner_ext.py": INHERIT_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        cls = data["modules"][0]["models"][0]
+        assert cls["ancestor_model"] == "res.partner"
+        assert cls["ancestor_module"] == "base"
+        assert cls["ancestor_origin"] == "odoo"
+
+    def test_json_class_ancestor_fields_none_for_new_model(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        cls = data["modules"][0]["models"][0]
+        assert cls["ancestor_model"] is None
+        assert cls["ancestor_module"] is None
+        assert cls["ancestor_origin"] is None
+
+    def test_json_views_list_shape(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            views=[
+                _kb_view(
+                    "my_module.view_form_1",
+                    "my_module",
+                    mode="primary",
+                    view_type="form",
+                    fields_json='["name", "email"]',
+                    buttons_json='[{"button_type": "object", "name": "action_confirm"}]',
+                ),
+            ],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        view_list = data["modules"][0]["views"]["list"]
+        assert len(view_list) == 1
+        v = view_list[0]
+        for key in ("xml_id", "mode", "view_type", "name", "model", "origin",
+                    "inherit_id", "fields_count", "buttons_count",
+                    "ancestor_module", "ancestor_origin"):
+            assert key in v, f"Missing key: {key}"
+        assert v["xml_id"] == "my_module.view_form_1"
+        assert v["mode"] == "primary"
+        assert v["fields_count"] == 2
+        assert v["buttons_count"] == 1
+        assert v["ancestor_module"] is None
+        assert v["ancestor_origin"] is None
+
+    def test_json_views_list_ancestor_resolved(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            views=[
+                _kb_view(
+                    "sale.view_order_form",
+                    "sale",
+                    mode="primary",
+                    view_type="form",
+                    origin="odoo",
+                ),
+                _kb_view(
+                    "my_module.inherit_sale_order_form",
+                    "my_module",
+                    mode="extension",
+                    view_type=None,
+                    inherit_id="sale.view_order_form",
+                ),
+            ],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["sale"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        view_list = data["modules"][0]["views"]["list"]
+        ext_views = [v for v in view_list if v["mode"] == "extension"]
+        assert len(ext_views) == 1
+        v = ext_views[0]
+        assert v["inherit_id"] == "sale.view_order_form"
+        assert v["ancestor_module"] == "sale"
+        assert v["ancestor_origin"] == "odoo"

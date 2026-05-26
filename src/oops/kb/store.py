@@ -813,10 +813,12 @@ class KBReader:
             module: Module name to filter by.
 
         Returns:
-            List of dicts with keys: xml_id, mode, view_type, inherit_id, source_file.
+            List of dicts with all view columns.
         """
         rows = self._con.execute(
-            "SELECT xml_id, mode, view_type, inherit_id, source_file FROM views WHERE module = ?",
+            "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
+            "mode, source_file, source_line, fields_json, buttons_json "
+            "FROM views WHERE module = ?",
             (module,),
         ).fetchall()
         return [dict(r) for r in rows]

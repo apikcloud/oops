@@ -284,6 +284,7 @@ def _views_block(vs: "Optional[ViewsSummary]") -> dict:
             "actions": 0,
             "menus": 0,
             "unresolved": 0,
+            "list": [],
         }
     return {
         "primary": vs.primary_by_type,
@@ -293,15 +294,17 @@ def _views_block(vs: "Optional[ViewsSummary]") -> dict:
         "actions": vs.actions,
         "menus": vs.menus,
         "unresolved": vs.unresolved,
+        "list": vs.view_list,
     }
 
 
 def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> Output[dict]:
     """Full payload for JSON / scripts / downstream agents."""
 
-    def _make(result) -> dict:
+    def _make(result: "Result[ModuleSummary]") -> dict:
         assert result.data is not None
         summary = result.data
+
         not_analysed: list[str] = []
         s = summary.structure
         if s.data:
@@ -349,6 +352,9 @@ def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") 
                     "model_name": c.model_name,
                     "is_new_model": c.is_new_model,
                     "inherit": c.inherit,
+                    "ancestor_model": c.ancestor_model,
+                    "ancestor_module": c.ancestor_module,
+                    "ancestor_origin": c.ancestor_origin,
                     "fields": {
                         "total": c.fields_total,
                         "base": c.fields_base,
@@ -408,6 +414,7 @@ def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]
 
 def prepare(results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: str) -> Output:
     """Single entry point — dispatches based on the formatter target."""
+
     if target == "machine":
         return prepare_full(results, outer)
     return prepare_summary(results, outer)
