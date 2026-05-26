@@ -88,6 +88,15 @@ def require_repository() -> "tuple[Repo, Path]":
 
     if repo.working_tree_dir is None:
         raise OopsError("Not inside a git repository.")
+
+    ctx = click.get_current_context(silent=True)
+    if ctx is not None and isinstance(ctx.obj, dict) and "metadata" in ctx.obj:
+        meta = ctx.obj["metadata"]
+        meta.project_path = str(Path(repo.working_tree_dir))
+        meta.project_name = Path(repo.working_tree_dir).name
+        meta.git_commit = repo.head.commit.hexsha
+        meta.git_branch = repo.active_branch.name
+
     return repo, Path(repo.working_tree_dir)
 
 

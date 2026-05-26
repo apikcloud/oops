@@ -63,6 +63,7 @@ from oops.output.formatters import (
 )
 from oops.output.sinks import deliver
 from oops.services.git import require_repository
+from oops.services.kb import set_kb_metadata
 from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
@@ -116,7 +117,9 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
+@click.pass_context
 def main(  # noqa: C901, PLR0912, PLR0915
+    ctx,
     module_paths: tuple[Path, ...],
     refresh: bool,
     output_format: str,
@@ -124,6 +127,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     output_path: Path,
 ) -> None:
 
+    metadata = ctx.obj["metadata"]
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
     json_mode = output_format == "json"
@@ -255,8 +259,10 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
                 module_results.append(module_result)
 
+    set_kb_metadata(repo_path, version)
+
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = prepare(module_results, outer, target=formatter.target)
+    output = prepare(module_results, outer, target=formatter.target, metadata=metadata)
     deliver(formatter, output, output_format, output_path)
 
 

@@ -11,6 +11,7 @@ from datetime import timezone
 from typing import TYPE_CHECKING
 
 from oops.core.compat import Generic, L, List, Literal, Optional
+from oops.core.metadata import Metadata
 from oops.core.models import StatGroup
 
 if TYPE_CHECKING:
@@ -93,6 +94,7 @@ Status = Literal["ok", "warning", "failed"]
 class Output(Generic[L]):
     layout: L
     status: Status = "ok"
+    metadata: "Optional[Metadata]" = None
 
 
 def statgroup_to_panel(stg: StatGroup) -> MetricsPanelBlock:

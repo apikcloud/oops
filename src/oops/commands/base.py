@@ -9,6 +9,7 @@ from typing import Any
 import click
 from oops.core.config import config
 from oops.core.exceptions import AppAbort, ConfigurationError, EarlyExit, OopsError
+from oops.core.metadata import collect_metadata
 from oops.services.stats import append_event, maybe_flush
 
 
@@ -52,6 +53,15 @@ class OopsCommand(click.Command):
         cmd = _cmd_name(ctx)
         t0 = time.monotonic()
         error = None
+
+        # Collect metadata before the callback runs.
+        # `ctx.params` is the dict of already-parsed CLI options.
+        ctx.ensure_object(dict)
+        ctx.obj["metadata"] = collect_metadata(
+            command=cmd,
+            parameters=dict(ctx.params),
+        )
+
         try:
             return super().invoke(ctx)
         except EarlyExit:

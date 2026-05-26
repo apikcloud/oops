@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from oops.core.compat import Optional
+from oops.core.metadata import Metadata
 from oops.core.models import (
     ClassSummary,
     ModuleSummary,
@@ -225,12 +226,12 @@ def _build_manifest(summary: "ModuleSummary") -> StatGroup:
         name="manifest",
         label="Manifest",
         stats=[
-            Stat(name="", label="Name", value=m.get("name", "<unknown>"), kind="text"),
-            Stat(name="", label="Version", value=m.get("version", ""), kind="text"),
-            Stat(name="", label="Author", value=m.get("author", ""), kind="text"),
-            Stat(name="", label="License", value=m.get("license", ""), kind="text"),
-            Stat(name="", label="Category", value=m.get("category", ""), kind="text"),
-            Stat(name="", label="Installable", value=m.get("installable", True), kind="boolean"),
+            Stat(name="name", label="Name", value=m.get("name", "<unknown>"), kind="text"),
+            Stat(name="version", label="Version", value=m.get("version", ""), kind="text"),
+            Stat(name="author", label="Author", value=m.get("author", ""), kind="text"),
+            Stat(name="license", label="License", value=m.get("license", ""), kind="text"),
+            Stat(name="category", label="Category", value=m.get("category", ""), kind="text"),
+            Stat(name="installable", label="Installable", value=m.get("installable", True), kind="boolean"),
         ],
     )
     if summary_text:
@@ -239,7 +240,7 @@ def _build_manifest(summary: "ModuleSummary") -> StatGroup:
     return res
 
 
-def _build_loc(data: "Optional[LocStats]", pct: Optional[float] = 0.0) -> StatGroup:
+def _build_loc(data: "Optional[LocStats]", pct: float = 0.0) -> StatGroup:
 
     # Back to default values, aka 0
     if data is None:
@@ -331,7 +332,7 @@ def _views_block(vs: "Optional[ViewsSummary]") -> dict:
     }
 
 
-def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> Output[dict]:
+def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]", metadata: Metadata) -> Output[dict]:
     """Full payload for JSON / scripts / downstream agents."""
 
     def _make(result: "Result[ModuleSummary]") -> dict:
@@ -409,6 +410,7 @@ def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]") 
         {
             "warnings": outer.warnings,
             "modules": [_make(r) for r in results],
+            "metadata": metadata.to_dict(),
         }
     )
 
@@ -429,9 +431,9 @@ def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]
     )
 
 
-def prepare(results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: str) -> Output:
+def prepare(results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: str, metadata: Metadata) -> Output:
     """Single entry point — dispatches based on the formatter target."""
 
     if target == "machine":
-        return prepare_full(results, outer)
+        return prepare_full(results, outer, metadata)
     return prepare_summary(results, outer)

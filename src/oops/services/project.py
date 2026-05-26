@@ -20,6 +20,7 @@ from oops.core.exceptions import (
     MissingRecommendedFiles,
     OopsError,
 )
+from oops.core.metadata import get_metadata
 from oops.core.models import ImageInfo, Result
 from oops.io.file import parse_odoo_version
 from oops.utils.net import sparse_clone
@@ -73,7 +74,12 @@ def require_project(repo_path: Path) -> ImageInfo:
             f"This command requires an initialised project. Missing mandatory files: {', '.join(sorted(missing))}."
         )
     try:
-        return parse_odoo_version(repo_path)
+        image_info = parse_odoo_version(repo_path)
+        meta = get_metadata()
+        if meta:
+            meta.odoo_version = str(image_info.major_version)
+
+        return image_info
     except (FileNotFoundError, ValueError) as e:
         raise click.UsageError(
             f"Could not parse {config.project.file_odoo_version}. "
