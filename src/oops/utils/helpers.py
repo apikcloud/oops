@@ -129,9 +129,14 @@ def date_from_string(raw: str) -> date:
     return date(y, m, d)
 
 
-def normalize_version(ctx: click.Context, param: click.Parameter, value: str) -> str:
+def normalize_version(value: str) -> str:
     """Ensure version is in X.0 format (e.g. '19' → '19.0')."""
     return value if "." in value else f"{value}.0"
+
+
+def normalize_version_arg(ctx: click.Context, param: click.Parameter, value: str) -> str:
+    """Ensure version is in X.0 format (e.g. '19' → '19.0')."""
+    return normalize_version(value)
 
 
 def slugify(name: str) -> str:

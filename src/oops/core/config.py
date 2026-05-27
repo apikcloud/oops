@@ -133,6 +133,8 @@ class OdooConfig:
     community_url: str = "git@github.com:odoo/odoo.git"
     enterprise_url: str = "git@github.com:odoo/enterprise.git"
     themes_url: str = "git@github.com:odoo/design-themes.git"
+    min_version: int = 10
+    max_version: int = 19
 
 
 @dataclass

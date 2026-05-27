@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 import click
 from git import GitCommandError, InvalidGitRepositoryError, Repo, Submodule
 from git.config import GitConfigParser
-from oops.core.compat import Optional
+from oops.core.compat import List, Optional, Tuple
 from oops.core.exceptions import OopsError
 from oops.core.messages import commit_messages
 from oops.core.metadata import update_metadata
-from oops.core.models import CommitInfo
+from oops.core.models import CommitInfo, Result
 from oops.core.paths import PR_DIR
 from oops.io.format import format_file
 from oops.io.manifest import find_addons_extended
@@ -237,6 +237,86 @@ def commit(  # noqa: PLR0913
     print_success(f"Commit {commit.hexsha[:8]} — {message}")
 
 
+def commit_v2(  # noqa: PLR0913
+    local_repo: Repo,
+    repo_root: Path,
+    files: list,
+    message_name: str,
+    skip_hooks: bool = False,
+    remove: bool = False,
+    already_staged: bool = False,
+    remove_and_add: bool = False,
+    **kwargs: object,
+) -> Result[list]:
+    """
+    TODO: complete docstrings
+    Stage files and create a commit using a named commit message template.
+
+    Args:
+        local_repo: GitPython Repo to commit into.
+        repo_root: Repository root used to resolve absolute file paths.
+        files: Relative paths of files to stage.
+        message_name: Attribute name on commit_messages holding the message template.
+        skip_hooks: If True, bypass pre-commit hooks. Defaults to False.
+        remove: If True, remove files from the index instead of adding them. Defaults to False.
+        already_staged: If True, the index process is skipped and only the commit part is done.
+        remove_and_add:
+        **kwargs: Optional format arguments interpolated into the commit message template.
+
+    Returns:
+        Result:
+    """
+
+    result: Result[list] = Result()
+    changes = [str(repo_root / f) for f in files]
+
+    # Format and normalize files before staging (add paths only).
+    if not remove and not already_staged:
+        for path_str in changes:
+            p = Path(path_str)
+            if p.is_file():
+                format_file(p, repo_root)
+
+    if already_staged:
+        # Skip as files are already in the index (only for submodule updates).
+        pass
+    elif remove:
+        local_repo.index.remove(changes)
+    elif remove_and_add:
+        # Remove the old index entry (e.g. a symlink), then re-add using the git
+        # CLI so that directories are staged recursively — index.add() does not
+        # walk directory trees.
+        local_repo.index.remove(changes)
+        for path in changes:
+            local_repo.git.add(path)
+    else:
+        local_repo.index.add(changes)
+
+    # list all changes in current index
+    result.data = [a.a_path for a in local_repo.index.diff("HEAD")]
+
+    if not local_repo.index.diff("HEAD"):
+        result.add_warning("Nothing to commit (index identical to HEAD).")
+        return result
+
+    message = getattr(commit_messages, message_name, None)
+    if message is None:
+        result.add_error(f"Unknown commit message name: {message_name}")
+        return result
+
+    if kwargs:
+        try:
+            message = message.format(**kwargs)
+        except KeyError as exc:
+            result.add_error(f"Missing placeholder for commit message: {exc}")
+            return result
+
+    commit = local_repo.index.commit(message, skip_hooks=skip_hooks)
+    result.add_message(f"Commit {commit.hexsha[:8]} — {message}")
+
+    return result
+
+
 def get_submodule_sha(repo: Repo, ref: str, path: str) -> Optional[str]:
     """Resolve the recorded SHA of a submodule at a given commit-ish.
 
@@ -329,3 +409,8 @@ def _list_submodules_cached(working_dir: str) -> dict:
 
 def list_submodules(repo: Repo) -> dict:
     return _list_submodules_cached(repo.working_dir)
+
+
+def browse_submodules(submodules: List[Submodule], names: Tuple[str]) -> Generator[Tuple[int, Submodule]]:
+    selected = [s for s in submodules if s.name in names]
+    yield from enumerate(selected, 1)

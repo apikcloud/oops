@@ -4,8 +4,12 @@
 # File: show.py — src/oops/commands/project/presenters/show.py
 
 
+from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
 from oops.output.layout import ConclusionBlock, MetricsLayout, MetricsPanelBlock, Output
+
+if TYPE_CHECKING:
+    from oops.output.base import RenderTarget
 
 
 def prepare_full(result: Result[dict], outer: "Result[None]") -> "Output[dict]":
@@ -36,8 +40,8 @@ def prepare_summary(result: Result[dict], outer: "Result[None]") -> "Output[Metr
     )
 
 
-def prepare(results: "Result[dict]", outer: "Result[None]", target: str) -> Output:
+def prepare(results: "Result[dict]", outer: "Result[None]", target: RenderTarget) -> Output:
     """Single entry point — dispatches based on the formatter target."""
-    if target == "machine":
+    if target.audience == "machine":
         return prepare_full(results, outer)
     return prepare_summary(results, outer)

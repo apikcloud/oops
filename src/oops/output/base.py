@@ -6,12 +6,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Literal
 
 from oops.core.compat import Optional
 from oops.output.layout import Output
 
-Target = Literal["human", "machine"]
+
+@dataclass
+class RenderTarget:
+    audience: Literal["human", "machine"]
+    verbosity: Literal["full", "summary"] = "full"
 
 
 class OutputFormatter(ABC):
@@ -25,7 +30,7 @@ class OutputFormatter(ABC):
     has its own typed signature (e.g. AnalyzeFormatter.render(outer, modules)).
     """
 
-    target: Target = "human"
+    target = RenderTarget(audience="human", verbosity="summary")
 
     @abstractmethod
     def render(self, output: Output) -> Optional[str]:

@@ -19,19 +19,42 @@ pull the latest changes instead.
 """
 
 import subprocess
+from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.exceptions import OopsError
-from oops.io.file import get_odoo_sources_dirs
+from oops.core.logger import live_progress, log
+from oops.core.metadata import get_metadata
+from oops.core.models import Result
+from oops.io.file import get_odoo_sources_dirs, parse_odoo_version
+from oops.output.formatters import (
+    FormatterRegistry,
+    JsonFormatter,
+    OutputFormatter,
+    SimpleSummaryConsoleFormatter,
+)
+from oops.output.sinks import deliver
+from oops.services.git import require_repository
 from oops.utils.git import clone, update_latest
 from oops.utils.helpers import normalize_version
-from oops.utils.render import print_success, print_warning
+from oops.utils.render import prompt_select
+
+from .presenters.download import prepare
+
+FORMATTERS: FormatterRegistry = {
+    "text": SimpleSummaryConsoleFormatter,
+    "json": JsonFormatter,
+}
 
 
 @command(name="download", help=__doc__)
-@click.argument("version", callback=normalize_version, is_eager=True)
+@click.option(
+    "--version",
+    default=None,
+)
 @click.option("--update", "do_update", is_flag=True, help="Pull latest changes if repos already exist.")
 @click.option(
     "--community/--no-community",
@@ -54,13 +77,53 @@ from oops.utils.render import print_success, print_warning
     default=True,
     help="Include or exclude design-themes sources.",
 )
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+    help="Output format. 'json' is suited for downstream consumption.",
+)
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout.",
+)
+@click.option("--verbose", is_flag=True, default=False, help="Stream git output to the terminal.")
 def main(
-    version: str,
+    version: Optional[str],
     do_update: bool,
     with_community: bool,
     with_enterprise: bool,
     with_themes: bool,
+    output_format: str,
+    output_path: "Path | None",
+    verbose: bool,
 ) -> None:
+    formatter: OutputFormatter = FORMATTERS[output_format]()
+    metadata = get_metadata()
+    assert metadata is not None
+
+    outer: Result[None] = Result()
+    result: Result[dict] = Result({"cmd": f"Download Odoo {version} sources", "rows": []})
+    assert result.data is not None
+
+    if version is None:
+        try:
+            _, repo_path = require_repository()
+            image_info = parse_odoo_version(repo_path)
+            version = str(image_info.major_version)
+        except Exception:
+            version = prompt_select(
+                "Select a version:",
+                [f"{item}.0" for item in range(config.odoo.min_version, config.odoo.max_version + 1, 1)],
+            )
+
+    version = normalize_version(version)
+
     dirs = get_odoo_sources_dirs(version)
 
     repos = [
@@ -69,35 +132,37 @@ def main(
         ("Themes", config.odoo.themes_url, dirs.themes, with_themes),
     ]
 
-    errors: list[str] = []
+    with live_progress("Downloading Odoo sources…"):
+        for label, url, dest, enabled in repos:
+            if not enabled:
+                continue
 
-    for label, url, dest, enabled in repos:
-        if not enabled:
-            continue
-
-        if dest.exists():
-            if do_update:
-                click.echo(f"Updating Odoo {label} {version} in '{dest}'…")
-                try:
-                    update_latest(dest)
-                    print_success(f"{label} {version} updated.")
-                except subprocess.CalledProcessError as exc:
-                    msg = f"{label} update failed: {exc}"
-                    errors.append(msg)
-                    # TODO: replace by print_error, include err=True?
-                    click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
+            if dest.exists():
+                if do_update:
+                    log.info(f"Updating Odoo {label} {version}…")
+                    try:
+                        update_latest(dest, quiet=not verbose)
+                        result.data["rows"].append({"repo": label, "action": "updated", "status": "ok"})
+                    except subprocess.CalledProcessError as exc:
+                        msg = f"{label} update failed: {exc}"
+                        result.data["rows"].append({"repo": label, "action": "failed", "status": msg})
+                        outer.add_error(msg)
+                else:
+                    msg = f"'{dest}' already exists — skipping {label} clone (use --update to pull)"
+                    outer.add_warning(msg)
+                    result.data["rows"].append({"repo": label, "action": "skipped", "status": msg})
             else:
-                print_warning(f"'{dest}' already exists — skipping {label} clone (use --update to pull).")
-        else:
-            click.echo(f"Cloning Odoo {label} {version} into '{dest}'…")
-            try:
-                clone(url, dest, version)
-                print_success(f"{label} {version} cloned.")
-            except subprocess.CalledProcessError as exc:
-                msg = f"{label} clone failed: {exc}"
-                errors.append(msg)
-                # TODO: replace by print_error, include err=True?
-                click.echo(click.style(f"  ✘ {msg}", fg="red"), err=True)
+                log.info(f"Cloning Odoo {label} {version}…")
+                try:
+                    clone(url, dest, version, quiet=not verbose)
+                    result.data["rows"].append({"repo": label, "action": "cloned", "status": "ok"})
+                except subprocess.CalledProcessError as exc:
+                    msg = f"{label} clone failed: {exc}"
+                    result.data["rows"].append({"repo": label, "action": "failed", "status": msg})
+                    outer.add_error(msg)
 
-    if errors:
-        raise OopsError("; ".join(errors))
+    output = prepare(result, outer, target=formatter.target, metadata=metadata)
+    deliver(formatter, output, output_format, output_path)
+
+    if outer.errors:
+        raise OopsError("; ".join(outer.errors))

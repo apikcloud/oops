@@ -81,7 +81,7 @@ def main(no_commit: bool):
     if not available:
         raise NotFoundError("No addons found in any submodule.")
 
-    result = prompt_choices(set(available.keys()), existing)
+    result = prompt_choices("Select addon(s): ", set(available.keys()), existing)
     if result is None:
         raise AppAbort()
 

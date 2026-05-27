@@ -20,11 +20,16 @@ import git
 from oops.commands.base import command
 from oops.core.compat import Optional
 from oops.core.exceptions import APIError, EarlyExit
+from oops.core.logger import live_progress, log
+from oops.core.models import Result
 from oops.io.file import file_updater, find_addons, read_tagged_block
+from oops.output.formatters import OutputFormatter, SimpleSummaryConsoleFormatter
+from oops.output.sinks import deliver
 from oops.services.git import commit, require_repository
 from oops.utils.helpers import str_to_list
 from oops.utils.net import encode_url
-from oops.utils.render import print_warning
+
+from .presenters.download import prepare
 
 
 @command(name="download", help=__doc__)
@@ -33,54 +38,58 @@ from oops.utils.render import print_warning
 @click.option("--addons", "addons_list", help="Comma-separated addon names to copy (copies all if omitted).")
 @click.option("--exclude/--no-exclude", is_flag=True, default=True, help="Add downloaded addons to .gitignore.")
 def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None):
-    repo, repo_path = require_repository()
+    formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
+    outer: Result[None] = Result()
+    result: Result[dict] = Result({"cmd": f"Download addons from {url}", "rows": []})
+    assert result.data is not None
 
+    repo, repo_path = require_repository()
     ssh_url = encode_url(url, "ssh")
     addons = [] if addons_list is None else str_to_list(addons_list)
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmpdir = Path(tmpdirname)
 
-        click.echo(f"↓ Cloning {ssh_url} ({branch}) …")
-        try:
-            git.Repo.clone_from(ssh_url, str(tmpdir), depth=1, branch=branch)
-        except git.GitCommandError as exc:
-            raise APIError(f"Clone failed: {exc.stderr.strip()}") from exc
-
-        new_addons = []
-        skipped_addons = []
-        for addon in find_addons(tmpdir):
-            if addons and addon.technical_name not in addons:
-                continue
-
-            target_path = repo_path / addon.technical_name
-
-            # FIXME: check version before copying
+        with live_progress("Downloading addons…"):
+            log.info(f"Cloning {ssh_url} ({branch})…")
             try:
-                shutil.copytree(addon.path, target_path)
-            except FileExistsError:
-                skipped_addons.append(addon.technical_name)
-                continue
+                git.Repo.clone_from(ssh_url, str(tmpdir), depth=1, branch=branch)
+            except git.GitCommandError as exc:
+                raise APIError(f"Clone failed: {exc.stderr.strip()}") from exc
 
-            new_addons.append(addon.technical_name)
+            for addon in find_addons(tmpdir):
+                if addons and addon.technical_name not in addons:
+                    continue
 
-        if skipped_addons:
-            print_warning(f"Skipped (already exists): {', '.join(skipped_addons)}")
+                target_path = repo_path / addon.technical_name
 
-        if not new_addons:
-            click.echo("No addons downloaded.")
-            raise EarlyExit()
+                # FIXME: check version before copying
+                try:
+                    shutil.copytree(addon.path, target_path)
+                except FileExistsError:
+                    outer.add_warning(f"Skipped (already exists): {addon.technical_name}")
+                    result.data["rows"].append({"addon": addon.technical_name, "action": "skipped"})
+                    continue
 
-        click.echo(f"Downloaded ({len(new_addons)}): {', '.join(new_addons)}")
+                log.info(f"Downloaded {addon.technical_name}")
+                result.data["rows"].append({"addon": addon.technical_name, "action": "downloaded"})
 
-        if exclude:
-            gitignore = repo_path / ".gitignore"
-            start_tag = "# oops:addons:start"
-            end_tag = "# oops:addons:end"
+    new_addons = [r["addon"] for r in result.data["rows"] if r["action"] == "downloaded"]
 
-            block = read_tagged_block(gitignore, start_tag, end_tag)
-            existing = {ln.strip() for ln in block.splitlines() if ln.strip() and not ln.strip().startswith("#")}
+    output = prepare(result, outer, target=formatter.target)
+    deliver(formatter, output, "text", None)
 
-            merged = "\n".join(sorted(existing | {f"{a}/" for a in new_addons}))
-            if file_updater(str(gitignore), merged, start_tag=start_tag, end_tag=end_tag):
-                commit(repo, repo_path, [".gitignore"], "addons_ignored", skip_hooks=True)
+    if not new_addons:
+        raise EarlyExit()
+
+    if exclude:
+        gitignore = repo_path / ".gitignore"
+        start_tag = "# oops:addons:start"
+        end_tag = "# oops:addons:end"
+
+        block = read_tagged_block(gitignore, start_tag, end_tag)
+        existing = {ln.strip() for ln in block.splitlines() if ln.strip() and not ln.strip().startswith("#")}
+
+        merged = "\n".join(sorted(existing | {f"{a}/" for a in new_addons}))
+        if file_updater(str(gitignore), merged, start_tag=start_tag, end_tag=end_tag):
+            commit(repo, repo_path, [".gitignore"], "addons_ignored", skip_hooks=True)

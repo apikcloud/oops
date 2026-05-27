@@ -13,11 +13,7 @@ from oops.core.compat import Optional
 from oops.core.logger import live_progress, log
 from oops.core.models import Result
 from oops.io.file import enrich_addon, find_addons, parse_odoo_version
-from oops.output.formatters import (
-    DependsReportFormatter,
-    JsonFormatter,
-    OutputFormatter,
-)
+from oops.output.formatters import DependsReportFormatter, FormatterRegistry, JsonFormatter
 from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.kb import load_odoo_kb, require_kb
@@ -25,7 +21,7 @@ from oops.utils.render import ask
 
 from .presenters.show import prepare
 
-FORMATTERS: dict[str, type[OutputFormatter]] = {
+FORMATTERS: FormatterRegistry = {
     "json": JsonFormatter,
     "html": DependsReportFormatter,
 }
@@ -117,9 +113,9 @@ def main(output_format: str, output_path: Optional[Path]) -> None:
 
 
 def expand_to_transitive_closure(
-    addons: list[dict],
+    addons: "list[dict]",
     odoo_kb: dict,
-) -> list[str]:
+) -> "list[str]":
     """Expand `addons` in-place with all transitively required modules.
 
     Walks each addon's depends chain, pulling missing dependencies from
@@ -172,7 +168,7 @@ def expand_to_transitive_closure(
 # ---------------------------------------------------------------------------
 
 
-def compute_dependency_metrics(addons: list[dict]) -> dict:
+def compute_dependency_metrics(addons: "list[dict]") -> dict:
     """Augment each addon in-place with transitive metrics.
 
     Adds to each addon:
@@ -198,7 +194,7 @@ def compute_dependency_metrics(addons: list[dict]) -> dict:
     for addon in addons:
         addon["missing_deps"] = sorted(set(addon["depends"]) - all_names)
 
-    def transitive_count(start: str, graph: dict[str, set[str]]) -> int:
+    def transitive_count(start: str, graph: "dict[str, set[str]]") -> int:
         seen: set[str] = set()
         queue: deque[str] = deque([start])
         while queue:
@@ -212,7 +208,7 @@ def compute_dependency_metrics(addons: list[dict]) -> dict:
 
     depth_cache: dict[str, int] = {}
 
-    def compute_depth(name: str, visiting: set[str]) -> int:
+    def compute_depth(name: str, visiting: "set[str]") -> int:
         if name in depth_cache:
             return depth_cache[name]
         if name in visiting:
@@ -226,7 +222,7 @@ def compute_dependency_metrics(addons: list[dict]) -> dict:
 
     reverse_depth_cache: dict[str, int] = {}
 
-    def compute_reverse_depth(name: str, visiting: set[str]) -> int:
+    def compute_reverse_depth(name: str, visiting: "set[str]") -> int:
         """Longest path to a leaf (module with no in-set dependents).
 
         0 for a leaf, 1 + max(reverse_depth of dependents) otherwise.
@@ -260,7 +256,7 @@ def compute_dependency_metrics(addons: list[dict]) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _count_by_origin(addons: list[dict]) -> dict[str, int]:
+def _count_by_origin(addons: "list[dict]") -> "dict[str, int]":
     counts: dict[str, int] = defaultdict(int)
     for addon in addons:
         counts[addon["origin"]] += 1

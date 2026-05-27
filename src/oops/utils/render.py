@@ -74,6 +74,108 @@ def format_date(dt: date) -> str:
     return dt.strftime(config.date_format)
 
 
+def format_days(total_days: int) -> str:
+    """Format a total number of days into a human-readable duration string.
+
+    Breaks the duration down into years (365 days), months (30 days), and
+    remaining days, omitting any leading zero components.
+
+    Args:
+        total_days: Total number of days to format. Must be >= 0.
+
+    Returns:
+        A human-readable string such as "2 year(s), 3 month(s), 5 days",
+        "4 month(s), 2 days", or "18 days".
+
+    Raises:
+        ValueError: If total_days is negative.
+    """
+    if total_days < 0:
+        raise ValueError(f"total_days must be >= 0, got {total_days}")
+
+    DAYS_IN_YEAR = 365
+    DAYS_IN_MONTH = 30
+
+    years, remaining = divmod(total_days, DAYS_IN_YEAR)
+    months, days = divmod(remaining, DAYS_IN_MONTH)
+
+    parts = []
+    if years:
+        parts.append(f"{years} year{'s' if years > 1 else ''}")
+    if months:
+        parts.append(f"{months} month{'s' if months > 1 else ''}")
+    parts.append(f"{days} day{'s' if days != 1 else ''}")
+
+    return ", ".join(parts)
+
+
+def approximate_duration(total_days: int) -> str:
+    """Render an approximate duration as a human-readable string.
+
+    Args:
+        total_days: Total number of days. Must be >= 0.
+
+    Returns:
+        A natural-language string such as "< 1 month", "2 months", "1 and a half years".
+
+    Raises:
+        ValueError: If total_days is negative.
+    """
+    if total_days < 0:
+        raise ValueError(f"total_days must be >= 0, got {total_days}")
+
+    WEEK = 7
+    MONTH = 30
+    YEAR = 365
+
+    weeks = total_days / WEEK
+    months = total_days / MONTH
+    years = total_days / YEAR
+
+    # --- Days (0–6) ---
+    if total_days == 0:
+        return "0 days"
+    if total_days == 1:
+        return "1 day"
+    if total_days < WEEK:
+        return f"{total_days} days"
+
+    # --- Weeks / approaching one month (7–29 days) ---
+    # Round to nearest week; if we're close to a full month say "~1 month"
+    if total_days < MONTH:
+        return "~1 month" if round(weeks) >= 4 else "< 1 month"
+
+    # --- Months (30–364 days) ---
+    if total_days < YEAR:
+        m = round(months)
+        if m < 2:
+            return "~1 month"
+        # Close to a full year: avoid "11 months", prefer "< 1 year"
+        if m >= 11:
+            return "< 1 year"
+        return f"{m} months"
+
+    # --- Years (365+ days) ---
+    # 1.0–1.25 years → plain "1 year"
+    if years < 1.25:
+        return "1 year"
+    # 1.25–1.75 years → "1 and a half years"
+    if years < 1.75:
+        return "1 and a half years"
+
+    y = round(years)
+    remainder_months = round((years - round(years)) * 12)
+
+    # Close to the next full year (≥ 10 leftover months): prefer "< N years"
+    if remainder_months >= 10:
+        return f"< {y + 1} years"
+    # More than half a year left over: "N and a half years"
+    if remainder_months >= 6:
+        return f"{y} and a half years"
+    # Otherwise round to the nearest full year
+    return f"{y} years" if y > 1 else "1 year"
+
+
 def human_readable(raw: Any, sep: str = ", ", width: Optional[int] = None) -> str:
     """Convert a value to a human-readable string.
 
@@ -258,7 +360,17 @@ def warning_section(messages: list[str]) -> None:
     console.rule(f"[yellow]Warnings ({len(messages)})[/]", style="yellow dim")
     for m in messages:
         console.print(f" {m}", style="yellow")
-    console.rule(style="yellow dim")
+    # console.rule(style="yellow dim")
+
+
+def error_section(messages: list[str]) -> None:
+    """Print errors to stderr in red. No-op if empty."""
+    console = get_error_console()
+
+    console.rule(f"[red]Errors ({len(messages)})[/]", style="red dim")
+    for m in messages:
+        console.print(f" {m}", style="red")
+    # console.rule(style="red dim")
 
 
 def kv_panel(title: str, data: dict):
@@ -307,20 +419,30 @@ def colorize(raw: str, color: str):
 
 
 def conclude(ok: bool, message: str):
-    console = get_console()
+    console = get_console() if ok else get_error_console()
 
     icon = "✓" if ok else "✗"
-    style = "bold green" if ok else "bold white on dark_red"
-    console.print(Panel(f"{icon}  {message}", style=style, box=box.HORIZONTALS))
+    style = "bold green" if ok else "bold dark_red"
+
+    console.print(Panel(f"{icon}  {message}", style=style))
+
+
+def print_result(ok: bool, message: str):
+    console = get_console() if ok else get_error_console()
+
+    icon = "✓" if ok else "✗"
+    style = "bold green" if ok else "bold dark_red"
+
+    console.print(f"{icon}  {message}", style=style)
 
 
 def make_choices(items: set[str], preselected: set[str]) -> list[questionary.Choice]:
     return [questionary.Choice(item, checked=(item in preselected)) for item in sorted(items)]
 
 
-def prompt_choices(items: set[str], preselected: set[str]):
+def prompt_choices(message: str, items: set[str], preselected: set[str]):
     return questionary.checkbox(
-        "Modules :",
+        message,
         choices=make_choices(items, preselected),
     ).ask()
 
@@ -345,3 +467,56 @@ def render_result(result) -> None:
     warning_section(result.warnings)
     if result.errors:
         raise OopsError("\n".join(result.errors))
+
+
+def render_panel(title: str, content: str):
+    console = get_error_console()
+    console.print(Panel(content, title=title, border_style="dim"))
+
+
+def render_healder(ctx) -> None:
+
+    if ctx.parent is not None:
+        return
+
+    import time
+
+    from oops.io.file import decode_payload
+
+    console = get_error_console()
+    console.clear()
+
+    console.print(decode_payload(0))
+    time.sleep(3)
+    console.clear()
+
+
+def render_footer(ctx) -> None:
+
+    if ctx.parent is not None:
+        return
+
+    import time
+    from random import randrange
+
+    from oops.io.file import decode_payload
+
+    content = decode_payload(1)
+    console = get_error_console()
+
+    height = console.size.height
+
+    try:
+        time.sleep(3)
+        console.clear()
+        for line, _ in zip(content.splitlines(), range(0, height - 2)):
+            console.print(line, highlight=False, style="brand.primary")
+            time.sleep(randrange(2, 15) / 100)
+
+    except KeyboardInterrupt:
+        pass
+
+
+def clear_screen() -> None:
+    console = get_console()
+    console.clear()

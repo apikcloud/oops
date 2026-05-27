@@ -27,9 +27,9 @@ from typing import NamedTuple
 
 import click
 from git.repo import Repo
-from oops.core.compat import Optional, Union
+from oops.core.compat import List, Optional, Union
 from oops.core.config import config
-from oops.core.exceptions import ConfigError
+from oops.core.exceptions import ConfigError, OopsError
 from oops.core.logger import log
 from oops.core.models import AddonInfo, ImageInfo
 from oops.core.paths import PR_DIR, UNPORTED_DIR
@@ -439,7 +439,7 @@ def file_updater(
     """
     path = Path(filepath)
     if not path.exists():
-        click.echo(f"File {filepath} does not exist, creating it...")
+        log.info(f"File {filepath} does not exist, creating it...")
 
         if not dry_run:
             os.makedirs(path.parent, exist_ok=True)
@@ -477,9 +477,9 @@ def file_updater(
             return False
 
     if new_file_content != content:
-        click.echo(f"Updating {filepath}...")
+        log.info(f"Updating {filepath}...")
         if dry_run:
-            click.echo("[dry-run]: \n" + new_file_content)
+            # click.echo("[dry-run]: \n" + new_file_content)
             return True
 
         if is_to_append:
@@ -493,7 +493,7 @@ def file_updater(
             path.write_text(new_file_content + "\n")
         return True
 
-    click.echo(f"No changes detected in {filepath}, skipping update.")
+    log.info(f"No changes detected in {filepath}, skipping update.")
     return False
 
 
@@ -1018,6 +1018,67 @@ def volume_prefix(repo_path: Path) -> str:
 # ---------------------------------------------------------------------------
 
 
+def decode_payload(pos: int) -> str:
+    """¯\\_(ツ)_/¯"""
+    ...
+
+    _PAYLOAD = [
+        "eNpzSczNU0gpTUnVUajML1UvS1XITS0uTk1RKC1QKMlIVSguTcrNTynNSS1WSExPzMzT09MDANZmEgI=",
+        (
+            "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"
+            "ZKz2XQ=="
+        ),
+    ]
+
+    import base64
+    import zlib
+
+    try:
+        content = zlib.decompress(base64.b64decode(_PAYLOAD[pos])).decode("utf-8")
+        return content
+    except Exception:
+        return ""
+
+
 class OdooSourcesDirs(NamedTuple):
     community: Path
     enterprise: Path
@@ -1063,11 +1124,12 @@ class OdooSourcesStatus(NamedTuple):
     community: bool
     enterprise: bool
     themes: bool
+    path: Path
 
     @property
     def available(self) -> int:
         """Number of sources present on disk (0–3)."""
-        return sum([self.community, self.enterprise, self.themes])
+        return sum((self.community, self.enterprise, self.themes))
 
     @property
     def complete(self) -> bool:
@@ -1075,7 +1137,7 @@ class OdooSourcesStatus(NamedTuple):
         return self.available == 3
 
 
-def list_odoo_sources_versions(base_dir: Optional[Path] = None) -> list[OdooSourcesStatus]:
+def list_odoo_sources_versions(base_dir: Optional[Path] = None) -> "List[OdooSourcesStatus]":
     """List available Odoo source versions with per-source completion status.
 
     Scans ``sources_dir`` for version sub-directories and checks which of
@@ -1103,6 +1165,28 @@ def list_odoo_sources_versions(base_dir: Optional[Path] = None) -> list[OdooSour
             community=(d / "community").exists(),
             enterprise=(d / "enterprise").exists(),
             themes=(d / "themes").exists(),
+            path=d,
+        )
+        for d in sorted(resolved.iterdir())
+        if d.is_dir()
+    ]
+
+
+def require_odoo_sources(base_dir: Optional[Path] = None) -> "List[OdooSourcesStatus]":
+    resolved = base_dir or config.odoo.sources_dir
+    if resolved is None:
+        raise ConfigError("No base directory provided. Set odoo.sources_dir in ~/.oops.yaml.")
+
+    if not resolved.exists():
+        raise OopsError("No sources available, please use the download command first.")
+
+    return [
+        OdooSourcesStatus(
+            version=d.name,
+            community=(d / "community").exists(),
+            enterprise=(d / "enterprise").exists(),
+            themes=(d / "themes").exists(),
+            path=d,
         )
         for d in sorted(resolved.iterdir())
         if d.is_dir()

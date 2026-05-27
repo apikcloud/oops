@@ -5,6 +5,7 @@
 
 """Tests for oops/utils/git.py and the three odoo CLI commands."""
 
+import json
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -51,17 +52,19 @@ class TestGit:
     def test_git_calls_subprocess_with_check(self):
         with patch("oops.utils.git.subprocess.run") as mock_run:
             _git("status")
-            mock_run.assert_called_once_with(["git", "status"], check=True, cwd=None)
+            mock_run.assert_called_once_with(["git", "status"], check=True, cwd=None, stdout=None, stderr=None)
 
     def test_git_passes_cwd(self, tmp_path):
         with patch("oops.utils.git.subprocess.run") as mock_run:
             _git("status", cwd=tmp_path)
-            mock_run.assert_called_once_with(["git", "status"], check=True, cwd=tmp_path)
+            mock_run.assert_called_once_with(["git", "status"], check=True, cwd=tmp_path, stdout=None, stderr=None)
 
     def test_git_passes_multiple_args(self):
         with patch("oops.utils.git.subprocess.run") as mock_run:
             _git("fetch", "--depth", "1")
-            mock_run.assert_called_once_with(["git", "fetch", "--depth", "1"], check=True, cwd=None)
+            mock_run.assert_called_once_with(
+                ["git", "fetch", "--depth", "1"], check=True, cwd=None, stdout=None, stderr=None
+            )
 
     def test_git_output_returns_stripped_stdout(self):
         mock_result = MagicMock()
@@ -105,6 +108,7 @@ class TestClone:
                 "1",
                 "--single-branch",
                 str(dest),
+                quiet=False,
             )
 
 
@@ -113,8 +117,8 @@ class TestUpdateLatest:
         with patch("oops.utils.git._git") as mock_git:
             update_latest(tmp_path)
             assert mock_git.call_count == 2
-            mock_git.assert_any_call("fetch", "--depth", "1", cwd=tmp_path)
-            mock_git.assert_any_call("reset", "--hard", "FETCH_HEAD", cwd=tmp_path)
+            mock_git.assert_any_call("fetch", "--depth", "1", cwd=tmp_path, quiet=False)
+            mock_git.assert_any_call("reset", "--hard", "FETCH_HEAD", cwd=tmp_path, quiet=False)
 
     def test_update_latest_order(self, tmp_path):
         calls = []
@@ -156,8 +160,8 @@ class TestUpdateAtDate:
         commit_hash = "deadbeef1234"
         with patch("oops.utils.git._git") as mock_git, patch("oops.utils.git._git_output", return_value=commit_hash):
             update_at_date(tmp_path, "2024-01-15")
-            mock_git.assert_any_call("fetch", "--shallow-since", "2024-01-15", cwd=tmp_path)
-            mock_git.assert_any_call("checkout", commit_hash, cwd=tmp_path)
+            mock_git.assert_any_call("fetch", "--shallow-since", "2024-01-15", cwd=tmp_path, quiet=False)
+            mock_git.assert_any_call("checkout", commit_hash, cwd=tmp_path, quiet=False)
 
     def test_no_commit_raises_click_exception(self, tmp_path):
         with patch("oops.utils.git._git"), patch("oops.utils.git._git_output", return_value=""):
@@ -213,7 +217,7 @@ class TestDownloadCommand:
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
             result = self._runner().invoke(download_main, ["19", "--no-enterprise", "--no-themes"])
-        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "19.0")
+        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "19.0", quiet=True)
         assert result.exit_code == 0
 
     def test_version_with_dot_unchanged(self, tmp_path):
@@ -223,7 +227,7 @@ class TestDownloadCommand:
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
             self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
-        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "17.0")
+        mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "17.0", quiet=True)
 
     def test_missing_sources_dir_raises_usage_error(self):
         import click as _click
@@ -265,7 +269,7 @@ class TestDownloadCommand:
             "oops.commands.odoo.download.update_latest"
         ) as mock_update:
             result = self._runner().invoke(download_main, ["17.0", "--update", "--no-enterprise", "--no-themes"])
-        mock_update.assert_called_once_with(community_dir)
+        mock_update.assert_called_once_with(community_dir, quiet=True)
         assert result.exit_code == 0
 
     def test_enterprise_cloned_by_default(self, tmp_path):
@@ -276,7 +280,7 @@ class TestDownloadCommand:
         clone_calls = []
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
-                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
             result = self._runner().invoke(download_main, ["17.0"])
         assert len(clone_calls) == 3
         cloned_dests = [c[1] for c in clone_calls]
@@ -290,7 +294,7 @@ class TestDownloadCommand:
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         clone_calls = []
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
-            "oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)
+            "oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)
         ):
             self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
         assert len(clone_calls) == 1
@@ -338,7 +342,7 @@ class TestDownloadCommand:
         enterprise_dir = tmp_path / "17.0" / "enterprise"
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
 
-        def fake_clone(url, dest, branch):
+        def fake_clone(url, dest, branch, **kwargs):
             if "enterprise" in str(dest):
                 raise subprocess.CalledProcessError(1, "git")
 
@@ -357,7 +361,7 @@ class TestDownloadCommand:
         clone_calls = []
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
-                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
             result = self._runner().invoke(download_main, ["17.0"])
         cloned_dests = [c[1] for c in clone_calls]
         assert any(d.name == "themes" for d in cloned_dests)
@@ -370,7 +374,7 @@ class TestDownloadCommand:
         clone_calls = []
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir), \
-                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
             self._runner().invoke(download_main, ["17.0", "--no-themes"])
         cloned_dests = [c[1] for c in clone_calls]
         assert not any(d.name == "themes" for d in cloned_dests)
@@ -381,7 +385,7 @@ class TestDownloadCommand:
         cfg_mock = _make_config_mock(sources_dir=tmp_path)
         clone_calls = []
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
-            "oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)
+            "oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)
         ):
             self._runner().invoke(download_main, ["17.0", "--no-community"])
         cloned_dests = [c[1] for c in clone_calls]
@@ -394,13 +398,35 @@ class TestDownloadCommand:
         clone_calls = []
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir), \
-                patch("oops.commands.odoo.download.clone", side_effect=lambda *a: clone_calls.append(a)):
+                patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
             self._runner().invoke(download_main, ["17.0", "--no-community", "--no-enterprise"])
         assert len(clone_calls) == 1
         url, dest, branch = clone_calls[0]
         assert url == "git@github.com:my-fork/design-themes.git"
         assert dest.name == "themes"
         assert branch == "17.0"
+
+    def test_format_json_shape(self, tmp_path):
+        """--format json produces valid JSON with metadata, warnings, repos keys."""
+        community_dir = tmp_path / "17.0" / "community"
+        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        with patch("oops.commands.odoo.download.config", cfg_mock), \
+                self._patch_dirs(community_dir), \
+                patch("oops.commands.odoo.download.clone"):
+            result = self._runner().invoke(
+                download_main, ["17.0", "--no-enterprise", "--no-themes", "--format", "json"]
+            )
+        assert result.exit_code == 0
+        # Strip any spinner/progress text that may precede the JSON payload.
+        json_start = result.output.index("{")
+        data = json.loads(result.output[json_start:])
+        assert "metadata" in data
+        assert "warnings" in data
+        assert "repos" in data
+        assert data["metadata"]["command"] == "odoo download"
+        assert "parameters" in data["metadata"]
+        assert len(data["repos"]) == 1
+        assert data["repos"][0]["action"] == "cloned"
 
 
 # ---------------------------------------------------------------------------
@@ -434,7 +460,7 @@ class TestUpdateCommand:
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["19", "--no-enterprise", "--no-themes"])
-        mock_update.assert_called_once_with(community_dir)
+        mock_update.assert_called_once_with(community_dir, quiet=True)
         assert result.exit_code == 0
 
     def test_missing_sources_dir_raises_usage_error(self):
@@ -454,7 +480,7 @@ class TestUpdateCommand:
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
             result = self._runner().invoke(update_main, ["17.0", "--no-enterprise", "--no-themes"])
-        mock_update.assert_called_once_with(community_dir)
+        mock_update.assert_called_once_with(community_dir, quiet=True)
         assert result.exit_code == 0
 
     def test_update_at_date_called_with_date_flag(self, tmp_path):
@@ -466,7 +492,7 @@ class TestUpdateCommand:
             result = self._runner().invoke(
                 update_main, ["17.0", "--date", "2024-01-15", "--no-enterprise", "--no-themes"]
             )
-        mock_uad.assert_called_once_with(community_dir, "2024-01-15")
+        mock_uad.assert_called_once_with(community_dir, "2024-01-15", quiet=True)
         assert result.exit_code == 0
 
     def test_enterprise_updated_by_default(self, tmp_path):
@@ -577,8 +603,29 @@ class TestUpdateCommand:
                 update_main,
                 ["17.0", "--no-community", "--no-enterprise", "--date", "2024-06-30"],
             )
-        mock_uad.assert_called_once_with(themes_dir, "2024-06-30")
+        mock_uad.assert_called_once_with(themes_dir, "2024-06-30", quiet=True)
         assert result.exit_code == 0
+
+    def test_format_json_shape(self, tmp_path):
+        """--format json produces valid JSON with metadata, warnings, repos keys."""
+        community_dir = tmp_path / "17.0" / "community"
+        community_dir.mkdir(parents=True)
+        with self._patch_dirs(community_dir), \
+                patch("oops.commands.odoo.update.update_latest"):
+            result = self._runner().invoke(
+                update_main, ["17.0", "--no-enterprise", "--no-themes", "--format", "json"]
+            )
+        assert result.exit_code == 0
+        # Strip any spinner/progress text that may precede the JSON payload.
+        json_start = result.output.index("{")
+        data = json.loads(result.output[json_start:])
+        assert "metadata" in data
+        assert "warnings" in data
+        assert "repos" in data
+        assert data["metadata"]["command"] == "odoo update"
+        assert "parameters" in data["metadata"]
+        assert len(data["repos"]) == 1
+        assert data["repos"][0]["action"] == "updated"
 
 
 # ---------------------------------------------------------------------------

@@ -26,7 +26,11 @@ class ProgressHandler(logging.Handler):
 
 
 @contextmanager
-def live_progress(message: str, spinner: str = "dots"):
+def live_progress(message: str, spinner: str = "dots", enabled: bool = True):
+    if not enabled:
+        yield None
+        return
+
     with Live(Spinner(spinner, text=message), console=get_error_console(), refresh_per_second=10) as live:
 
         def update_status(_message: str):

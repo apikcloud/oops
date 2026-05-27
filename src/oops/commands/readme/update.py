@@ -17,22 +17,41 @@ If the tags are not found in the file, they are automatically added at the end o
 from __future__ import annotations
 
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
 from oops.core.config import config
+from oops.core.logger import live_progress, log
+from oops.core.models import Result
 from oops.io.file import file_updater, find_addons
-from oops.services.git import commit, require_repository
+from oops.output.formatters import OutputFormatter, PreCommitFormatter, SimpleSummaryConsoleFormatter
+from oops.services.git import commit_v2, require_repository
 from oops.services.github import get_github_user
 from oops.utils.render import render_table
+
+from .presenters.update import prepare
 
 
 @command(name="update", help=__doc__)
 @click.option("--dry-run", default=False, is_flag=True, help="Show what would happen, do nothing.")
 @click.option("--no-commit", default=False, is_flag=True, help="Do not commit changes.")
-def main(dry_run: bool = False, no_commit: bool = False):
+@click.option(
+    "--hook",
+    is_flag=True,
+    help="Minimal output for pre-commit hooks.",
+)
+@click.pass_context
+def main(ctx, dry_run: bool = False, no_commit: bool = False, hook: bool = False):
+
+    formatter: OutputFormatter = PreCommitFormatter() if hook else SimpleSummaryConsoleFormatter()
+
     repo, repo_path = require_repository()
+
+    outer: Result[None] = Result()
+    result: Result[dict] = Result({"cmd": "Update README", "rows": [], "dry_run": dry_run})
+
+    assert result.data is not None
+
     readme_file = config.project.readme_file
 
-    # Corresponding map for headers and manifest keys.
     headers = {
         "Addon": "technical_name",
         "Version": "version",
@@ -41,32 +60,50 @@ def main(dry_run: bool = False, no_commit: bool = False):
     }
 
     structure = []
-    for addon in find_addons(repo_path, shallow=True):
-        row = [f"[{addon.technical_name}](/{addon.technical_name})", addon.version]
 
-        addon_maintainers = [get_github_user(user) for user in addon.maintainers]
+    with live_progress("Updating README…", enabled=not hook):
+        # Addons section
+        for addon in find_addons(repo_path, shallow=True):
+            log.info(f"Reading {addon.technical_name}…")
+            addon_maintainers = [get_github_user(user) for user in addon.maintainers]
+            maintainers_str = " ".join(addon_maintainers)
 
-        row.append(" ".join(addon_maintainers))
-        row.append(" ".join(addon.summary.split()))
-        structure.append(row)
+            structure.append(
+                [
+                    f"[{addon.technical_name}](/{addon.technical_name})",
+                    addon.version,
+                    maintainers_str,
+                    " ".join(addon.summary.split()),
+                ]
+            )
 
-    structure.sort()
-    table = render_table(structure, list(headers.keys()), index=False)
-    new_content = f"Available addons\n----------------\n\n{table}\n"
+        structure.sort()
+        table = render_table(structure, list(headers.keys()), index=False)
+        new_content = f"Available addons\n----------------\n\n{table}\n"
 
-    has_update = False
+        try:
+            has_update = file_updater(
+                filepath=readme_file,
+                new_inner_content=new_content,
+                start_tag="[//]: # (addons)",
+                end_tag="[//]: # (end addons)",
+                padding="\n\n",
+                dry_run=dry_run,
+            )
+            status = "updated" if has_update else "no change"
+        except Exception as error:
+            has_update = False
+            outer.add_error(str(error))
+            status = "failed"
 
-    # We keep using OCA tags, in case we want to use their tools again.
-    # Start tag: # [//]: # (addons)
-    # End tag: # [//]: # (end addons)
-    has_update = file_updater(
-        filepath=readme_file,
-        new_inner_content=new_content,
-        start_tag="[//]: # (addons)",
-        end_tag="[//]: # (end addons)",
-        padding="\n\n",
-        dry_run=dry_run,
-    )
+        result.data["rows"].append(["addons", status])
 
     if not no_commit and not dry_run and has_update:
-        commit(repo, repo_path, [readme_file], "addons_update_table", skip_hooks=True)
+        commit_result: Result = commit_v2(repo, repo_path, [readme_file], "addons_update_table", skip_hooks=True)
+        outer.merge(commit_result)
+
+    outer.add_warning("test xxx")
+    outer.add_error("error xxx")
+
+    output = prepare(result, outer, target=formatter.target)
+    render_and_exit(ctx, outer, formatter, output, "text")

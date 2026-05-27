@@ -31,7 +31,7 @@ from oops.io.file import write_text_file
 from oops.services.docker import find_available_images
 from oops.services.git import commit, require_repository
 from oops.services.project import copy_project_files, fetch_project_files
-from oops.utils.helpers import normalize_version
+from oops.utils.helpers import normalize_version_arg
 from oops.utils.render import conclude, get_console, print_success, prompt_select, rule
 from rich.live import Live
 from rich.spinner import Spinner
@@ -42,7 +42,7 @@ from rich.spinner import Spinner
     "--version",
     "-v",
     required=True,
-    callback=normalize_version,
+    callback=normalize_version_arg,
     help="Target Odoo major version (e.g. '19' or '19.0').",
 )
 @click.option(
@@ -66,9 +66,7 @@ def main(version: str, release: str | None, enterprise: bool) -> None:
 
     remote_url = config.sync.remote_url
     branch = config.sync.branch
-    files: set[str] = (
-        set(config.sync.files) | config.project.recommended_files | config.project.mandatory_files
-    )
+    files: set[str] = set(config.sync.files) | config.project.recommended_files | config.project.mandatory_files
 
     if not remote_url:
         raise ConfigError("sync.remote_url is not configured. Set it in ~/.oops.yaml or .oops.yaml.")

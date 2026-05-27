@@ -7,10 +7,15 @@ import time
 from typing import Any
 
 import click
+from oops.core.compat import TYPE_CHECKING
 from oops.core.config import config
 from oops.core.exceptions import AppAbort, ConfigurationError, EarlyExit, OopsError
 from oops.core.metadata import collect_metadata
+from oops.output.sinks import deliver
 from oops.services.stats import append_event, maybe_flush
+
+if TYPE_CHECKING:
+    from oops.core.models import Result
 
 
 def _cmd_name(ctx: click.Context) -> str:
@@ -117,3 +122,17 @@ def command(*args: Any, **kwargs: Any):
     """Drop-in replacement for @click.command that uses OopsCommand by default."""
     kwargs.setdefault("cls", OopsCommand)
     return click.command(*args, **kwargs)
+
+
+def render_and_exit(
+    ctx: click.Context,
+    outer: Result,
+    formatter,
+    output,
+    output_format: str = "text",
+    output_path=None,
+):
+    """Render the output, then exit non-zero if `outer` has errors."""
+    deliver(formatter, output, output_format, output_path)
+    if not outer.ok:
+        ctx.exit(1)

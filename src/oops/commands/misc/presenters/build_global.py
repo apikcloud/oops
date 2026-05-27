@@ -6,8 +6,12 @@
 
 from __future__ import annotations
 
+from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
 from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SimpleSummaryLayout, TableBlock
+
+if TYPE_CHECKING:
+    from oops.output.base import RenderTarget
 
 
 def prepare_full(result: "Result[dict]", outer: "Result[None]") -> "Output[dict]":
@@ -67,7 +71,7 @@ def prepare_summary(result: "Result[dict]", outer: "Result[None]") -> "Output[Si
     )
 
 
-def prepare(result: "Result[dict]", outer: "Result[None]", target: str) -> Output:
-    if target == "machine":
+def prepare(result: "Result[dict]", outer: "Result[None]", target: RenderTarget) -> Output:
+    if target.audience == "machine":
         return prepare_full(result, outer)
     return prepare_summary(result, outer)

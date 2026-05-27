@@ -13,80 +13,98 @@ design-themes.
 The sources directory is configured via odoo.sources_dir in ~/.oops.yaml.
 """
 
+from pathlib import Path
+
 import click
 from oops.commands.base import command
-from oops.core.config import config
-from oops.core.exceptions import ConfigError, NotFoundError
+from oops.core.compat import Optional
+from oops.core.exceptions import OopsError
+from oops.core.metadata import get_metadata
+from oops.core.models import Result, Stat, StatGroup
+from oops.io.file import require_odoo_sources
+from oops.output.formatters import (
+    FormatterRegistry,
+    JsonFormatter,
+    OutputFormatter,
+    SimpleSummaryConsoleFormatter,
+)
+from oops.output.sinks import deliver
 from oops.utils.git import repo_info
-from oops.utils.render import get_console, make_table, metrics_panel
+
+from .presenters.show import prepare
+
+FORMATTERS: FormatterRegistry = {
+    "text": SimpleSummaryConsoleFormatter,
+    "json": JsonFormatter,
+}
 
 
 @command(name="show", help=__doc__)
-def main() -> None:
-    resolved = config.odoo.sources_dir
-    if resolved is None:
-        raise ConfigError("No base directory provided. Set odoo.sources_dir in ~/.oops.yaml.")
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+    help="Output format. 'json' is suited for downstream consumption.",
+)
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout.",
+)
+def main(output_format: str, output_path: "Optional[Path]") -> None:
+    formatter: OutputFormatter = FORMATTERS[output_format]()
+    metadata = get_metadata()
+    assert metadata is not None
 
-    if not resolved.exists():
-        raise NotFoundError(f"Sources directory '{resolved}' does not exist.")
+    availables = require_odoo_sources()
 
-    version_dirs = sorted(
-        (d for d in resolved.iterdir() if d.is_dir()),
-        key=lambda d: d.name,
-    )
+    outer: Result[None] = Result()
+    result: Result[list[dict]] = Result()
+    result.data = []
 
-    if not version_dirs:
-        click.echo(f"No version directories found in '{resolved}'.")
-        return
+    result.data = [
+        {
+            "version": version.version,
+            "community": repo_info(version.path / "community") or "—",
+            "enterprise": repo_info(version.path / "enterprise") or "—",
+            "themes": repo_info(version.path / "themes") or "—",
+        }
+        for version in availables
+    ]
 
-    rows: list[list[str]] = []
-    counts = {"community": 0, "enterprise": 0, "themes": 0}
-
-    for version_dir in version_dirs:
-        community = repo_info(version_dir / "community")
-        enterprise = repo_info(version_dir / "enterprise")
-        themes = repo_info(version_dir / "themes")
-        if community:
-            counts["community"] += 1
-        if enterprise:
-            counts["enterprise"] += 1
-        if themes:
-            counts["themes"] += 1
-        if community or enterprise or themes:
-            rows.append([
-                version_dir.name,
-                community or "—",
-                enterprise or "—",
-                themes or "—",
-            ])
-
-    if not rows:
-        click.echo(f"No Odoo checkouts found in '{resolved}'.")
-        return
-
-    console = get_console()
-
-    panel = metrics_panel(
-        "Summary",
-        [
-            ["Versions", str(len(rows))],
-            ["Community", str(counts["community"])],
-            ["Enterprise", str(counts["enterprise"])],
-            ["Themes", str(counts["themes"])],
+    counters = StatGroup(
+        name="counters",
+        label="counters",
+        values=[
+            Stat(
+                name="version",
+                label="Version",
+                value=len(result.data),
+            ),
+            Stat(
+                name="community",
+                label="community",
+                value=sum(item.community for item in availables),
+            ),
+            Stat(
+                name="enterprise",
+                label="enterprise",
+                value=sum(item.enterprise for item in availables),
+            ),
+            Stat(
+                name="themes",
+                label="themes",
+                value=sum(item.themes for item in availables),
+            ),
         ],
     )
 
-    columns = [
-        ("Version", "brand.primary", "left"),
-        ("Community", "dim", "left"),
-        ("Enterprise", "dim", "left"),
-        ("Themes", "dim", "left"),
-    ]
+    output = prepare(result, outer, target=formatter.target, metadata=metadata, stats=counters)
+    deliver(formatter, output, output_format, output_path)
 
-    table = make_table(title=None, columns=columns, rows=rows)
-
-    console.print()
-    console.print(panel)
-    console.print()
-    console.print(table)
-    console.print()
+    if outer.errors:
+        raise OopsError("; ".join(outer.errors))

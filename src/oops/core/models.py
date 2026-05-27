@@ -52,7 +52,7 @@ class ImageInfo:
         return None
 
     @classmethod
-    def from_raw_dict(cls, vals: dict):
+    def from_raw_dict(cls, vals: Dict):
         return cls(
             **{
                 "image": vals["image"],
@@ -102,6 +102,11 @@ class CommitInfo:
 
     def __str__(self) -> str:
         return f"{self.message} by {self.author} on {format_datetime(self.date)} ({self.sha})"
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        d["date"] = self.date.isoformat()
+        return d
 
 
 @dataclass
@@ -158,10 +163,10 @@ class AddonInfo:
     root: bool
     version: str
     author: str
-    maintainers: "list[str]"
-    depends: "list[str]"
+    maintainers: "List[str]"
+    depends: "List[str]"
     summary: str
-    external_dependencies: "dict[str, list[str]]"
+    external_dependencies: "Dict[str, List[str]]"
     installable: bool
     # Git-state fields — None until enrich_addon() is called
     submodule: Optional[str] = None  # submodule name (e.g. "OCA/server-tools"), "" if not in one
@@ -183,7 +188,7 @@ class AddonInfo:
             return "inactive"
 
     @classmethod
-    def from_path(cls, path: Path, root_path: Path, manifest: dict) -> "AddonInfo":
+    def from_path(cls, path: Path, root_path: Path, manifest: Dict) -> "AddonInfo":
         symlink = path.is_symlink()
         root = path.parent == root_path
 
@@ -295,6 +300,14 @@ class Result(Generic[T]):
 
 
 @dataclass
+class Rows:
+    title: str = "Results"
+    columns: list[tuple[str, str, str]] = field(default_factory=list)
+    rows: list[Any] = field(default_factory=list)
+    metrics: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
 class ChangelogSection:
     version: str
     date: str
@@ -362,16 +375,27 @@ class Stat:
 class StatGroup:
     name: str
     label: str
-    stats: list[Stat] = field(default_factory=list)
+    values: list[Stat] = field(default_factory=list)
 
     def to_dict(self, summary: bool = False) -> dict:
         return {
             "kind": "stats",
             "label": self.label,
-            "values": [s.to_dict(summary=summary) for s in self.stats],
+            "values": [s.to_dict(summary=summary) for s in self.values],
         }
 
     def get(self, name: str) -> Stat | None:
         """Find a stat by name. Useful in templates."""
-        return next((s for s in self.stats if s.name == name), None)
+        return next((s for s in self.values if s.name == name), None)
 
+
+@dataclass
+class SubmoduleInfo:
+    name: str
+    url: str
+    branch: Optional[str]
+    pull_request: bool
+    last_commit: Optional[CommitInfo]
+
+    def to_dict(self) -> dict:
+        return asdict(self)

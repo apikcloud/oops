@@ -5,20 +5,27 @@ import io
 import sys
 
 from oops.core.compat import Dict, Type
+from oops.core.exceptions import get_error_console
 from oops.core.paths import TEMPLATES
-from oops.output.base import OutputFormatter
-from oops.output.layout import MetricsLayout, Output, SimpleSummaryLayout, SummaryLayout
+from oops.output.base import OutputFormatter, RenderTarget
+from oops.output.layout import MetricsLayout, MinimalLayout, Output, SimpleSummaryLayout, SummaryLayout
 from oops.output.serializers import to_json_string
 from oops.utils.render import (
     conclude,
     counter_rule,
+    error_section,
     get_console,
     make_table,
     metrics_grid,
     metrics_panel,
+    print_error,
+    print_result,
+    print_warning,
     rule,
     warning_section,
 )
+
+MAX_COLUMNS = 6
 
 FormatterRegistry = Dict[str, Type[OutputFormatter]]
 
@@ -26,8 +33,44 @@ FormatterRegistry = Dict[str, Type[OutputFormatter]]
 class RichFormatter(OutputFormatter):
     """Base class for human-readable Rich console formatters."""
 
-    target = "human"
+    target = RenderTarget(audience="human", verbosity="full")
     console = get_console()
+
+    def error(self, message: str, code: int = 1) -> None:
+        pass
+
+    def success(self, message: str) -> None:
+        pass
+
+
+# Dans formatters.py
+
+
+class PreCommitFormatter(OutputFormatter):
+    """Minimal output for pre-commit hooks.
+
+    Colored, concise, no table layout. Errors/warnings in stderr.
+    """
+
+    target = RenderTarget(audience="human", verbosity="summary")
+    console = get_error_console()
+
+    def render(self, output: "Output[MinimalLayout]") -> None:
+        data = output.layout
+        assert data
+
+        # Warnings (stderr)
+        if data.warnings:
+            for message in data.warnings:
+                print_warning(message)
+
+        # Errors (stderr)
+        if data.errors:
+            for message in data.errors:
+                print_error(message)
+
+        self.console.rule("", style="dim")
+        print_result(data.status, data.message)
 
     def error(self, message: str, code: int = 1) -> None:
         pass
@@ -89,7 +132,11 @@ class SimpleSummaryConsoleFormatter(RichFormatter):
         table = make_table(title=None, columns=data.table.columns, rows=data.table.rows, expand=True)
         panel = metrics_panel(data.panel.title, data.panel.values)
 
-        self.console.print(metrics_grid(table, panel, ratios=[2, 1]))
+        # automatic ratio based on the number of columns
+        # TODO: check whether this is a good idea
+        ratios = [2, 1] if len(data.table.columns) <= MAX_COLUMNS else [3, 1]
+
+        self.console.print(metrics_grid(table, panel, ratios=ratios))
 
         # TODO: improve this
         if data.info:
@@ -98,8 +145,14 @@ class SimpleSummaryConsoleFormatter(RichFormatter):
                 self.console.print(info)
 
         if data.warnings:
+            self.console.print()
             warning_section(data.warnings)
 
+        if data.errors:
+            self.console.print()
+            error_section(data.errors)
+
+        self.console.print()
         conclude(data.conclusion.status, data.conclusion.message)
 
 
@@ -124,7 +177,7 @@ class MetricsConsoleFormatter(RichFormatter):
 
 
 class HtmlFormatter(OutputFormatter):
-    target = "machine"
+    target = RenderTarget(audience="machine", verbosity="full")
     template: str
 
     def render(self, output: "Output[dict]") -> str:
@@ -161,7 +214,7 @@ class ReleasesReportFormatter(HtmlFormatter):
 class JsonFormatter(OutputFormatter):
     """Machine-readable JSON output."""
 
-    target = "machine"
+    target = RenderTarget(audience="machine", verbosity="full")
 
     def render(self, output: Output[dict]) -> str:
         data = output.layout
@@ -179,7 +232,7 @@ class JsonFormatter(OutputFormatter):
 class CsvFormatter(OutputFormatter):
     """Machine-readable CSV output (unimplemented — emits empty body)."""
 
-    target = "machine"
+    target = RenderTarget(audience="machine", verbosity="full")
 
     def render(self, output: Output[dict]) -> str:
         rows = output.layout

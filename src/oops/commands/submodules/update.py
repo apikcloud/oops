@@ -12,62 +12,88 @@ by name; PR submodules can be skipped with --skip-pr.
 """
 
 import click
-from oops.commands.base import command
-from oops.services.git import commit, is_pull_request, require_repository, require_submodules
-from oops.utils.render import print_warning
+from oops.commands.base import command, render_and_exit
+from oops.core.exceptions import AppAbort, OopsError
+from oops.core.logger import live_progress, log
+from oops.core.models import Result
+from oops.output.formatters import OutputFormatter, SimpleSummaryConsoleFormatter
+from oops.services.git import browse_submodules, commit_v2, is_pull_request, require_repository, require_submodules
+from oops.utils.render import prompt_choices
+
+from .presenters.update import prepare
 
 
 @command("update", help=__doc__)
 @click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")
+@click.option("--only-pr", is_flag=True, help="Skip submodules that are not pull requests")
 @click.argument("names", nargs=-1, required=False)
-def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | None" = None):
+@click.pass_context
+def main(ctx, dry_run: bool, no_commit: bool, skip_pr: bool, only_pr: bool, names: "tuple[str] | None" = None):
+    formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
+    outer: Result[None] = Result()
+    result: Result[dict] = Result({"cmd": "Update submodules", "rows": [], "dry_run": dry_run})
+    assert result.data is not None
+
+    if skip_pr and only_pr:
+        raise click.UsageError("")
+
     repo, repo_path = require_repository()
-    require_submodules(repo)
+    submodules = require_submodules(repo)
     changes = []
     files = []
 
-    for submodule in repo.submodules:
-        if names and submodule.name not in names:
-            continue
-        if not submodule.path:
-            print_warning(f"Missing path for {submodule.name}, skipping.")
-            continue
+    # Ask user
+    if not names:
+        if skip_pr:
+            candidates = set(s.name for s in submodules if not is_pull_request(s))
+        elif only_pr:
+            candidates = set(s.name for s in submodules if is_pull_request(s))
+        else:
+            candidates = set(s.name for s in submodules)
 
-        if not submodule.branch:
-            print_warning(f"No branch defined for {submodule.name}, skipping.")
-            continue
+        if not candidates:
+            raise OopsError("...")
+        names = prompt_choices("Select submodule(s)", candidates, set())
+        if names is None:
+            raise AppAbort()
 
-        if skip_pr and is_pull_request(submodule):
-            print_warning(f"Submodule {submodule.name} is a pull request, skipping.")
-            continue
+    with live_progress("Updating submodules…"):
+        total = len(names)
+        for index, submodule in browse_submodules(submodules, names):
+            if not submodule.path:
+                outer.add_warning(f"Missing path for {submodule.name}, skipping.")
+                result.data["rows"].append({"submodule": submodule.name, "branch": "—", "action": "skipped"})
+                continue
 
-        click.echo(f"Updating {submodule.name} to latest of '{submodule.branch}'...")
+            if not submodule.branch:
+                outer.add_warning(f"No branch defined for {submodule.name}, skipping.")
+                result.data["rows"].append({"submodule": submodule.name, "branch": "—", "action": "skipped"})
+                continue
 
-        if dry_run:
-            continue
+            if dry_run:
+                result.data["rows"].append(
+                    {"submodule": submodule.name, "branch": submodule.branch_name, "action": "planned"}
+                )
+                continue
 
-        # TODO: try to replace by submodule_update()
-        sub_repo = submodule.module()
-        branch = submodule.branch_name
+            log.info(f"{index}/{total} Updating {submodule.name}…")
 
-        # Ensure repo is up to date
-        sub_repo.remotes.origin.fetch()
-        # Checkout the configured branch
-        sub_repo.git.checkout(branch)
+            sub_repo = submodule.module()
+            branch = submodule.branch_name
 
-        # Pull latest commits
-        sub_repo.remotes.origin.pull(branch)
+            sub_repo.remotes.origin.fetch()
+            sub_repo.git.checkout(branch)
+            sub_repo.remotes.origin.pull(branch)
 
-        # Stage with "git" to ensure it works properly for submodules.
-        repo.git.add(submodule.path)
-
-        files.append(submodule.path)
-        changes.append(f"{submodule.name} ({submodule.branch})")
+            repo.git.add(submodule.path)
+            files.append(submodule.path)
+            changes.append(f"{submodule.name} ({submodule.branch})")
+            result.data["rows"].append({"submodule": submodule.name, "branch": branch, "action": "updated"})
 
     if not no_commit and not dry_run:
-        commit(
+        tmp = commit_v2(
             repo,
             repo_path,
             files,
@@ -76,3 +102,7 @@ def main(dry_run: bool, no_commit: bool, skip_pr: bool, names: "tuple[str] | Non
             already_staged=True,
             description="\n".join(changes),
         )
+        outer.merge(tmp)
+
+    output = prepare(result, outer, target=formatter.target)
+    render_and_exit(ctx, outer, formatter, output, "text", None)

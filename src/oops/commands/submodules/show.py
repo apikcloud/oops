@@ -11,11 +11,27 @@ commit age, and SHA for each submodule. Filter to PR-only submodules
 with --pull-request.
 """
 
+from pathlib import Path
+
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
+from oops.core.logger import live_progress, log
+from oops.core.models import Result, SubmoduleInfo
+from oops.output.formatters import (
+    FormatterRegistry,
+    JsonFormatter,
+    OutputFormatter,
+    SimpleSummaryConsoleFormatter,
+)
 from oops.services.git import get_last_commit, is_pull_request, require_repository, require_submodules
 from oops.utils.net import get_public_repo_url
-from oops.utils.render import format_datetime, human_readable, render_boolean, render_table
+
+from .presenters.show import prepare
+
+FORMATTERS: FormatterRegistry = {
+    "text": SimpleSummaryConsoleFormatter,
+    "json": JsonFormatter,
+}
 
 
 @command("show", help=__doc__)
@@ -24,50 +40,64 @@ from oops.utils.render import format_datetime, human_readable, render_boolean, r
     is_flag=True,
     help="Show pull request submodules only",
 )
-def main(pull_request: bool):
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+    help="Output format",
+)
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout (json) or a temp file (html).",
+)
+@click.pass_context
+def main(ctx, pull_request: bool, output_format: str, output_path: Path):
 
     repo, repo_path = require_repository()
-    require_submodules(repo)
+    submodules = require_submodules(repo)
 
-    rows = []
-    for sub in repo.submodules:
-        if pull_request and not is_pull_request(sub):
-            continue
+    formatter: OutputFormatter = FORMATTERS[output_format]()
 
-        try:
-            canonical_url = get_public_repo_url(sub.url)
-        except (ValueError, AttributeError):
-            canonical_url = sub.url or ""
+    result: Result[list[SubmoduleInfo]] = Result()
+    result.data = []
+    outer: Result[None] = Result(None)
 
-        try:
-            branch = sub.branch_name
-        except Exception:
-            branch = ""
+    with live_progress("Analysis..."):
+        for sub in submodules:
+            if pull_request and not is_pull_request(sub):
+                continue
 
-        row = [
-            human_readable(sub.name, width=50),
-            canonical_url,
-            branch,
-            render_boolean(is_pull_request(sub)),
-        ]
+            log.info(f"{sub.name}")
 
-        last_commit = get_last_commit(str(repo_path / sub.path))
-        if last_commit:
-            row += [format_datetime(last_commit.date), last_commit.age, last_commit.sha]
+            try:
+                canonical_url = get_public_repo_url(sub.url)
+            except (ValueError, AttributeError):
+                canonical_url = sub.url or ""
+
+            try:
+                branch = sub.branch_name
+            except Exception:
+                branch = ""
+
+            result.data.append(
+                SubmoduleInfo(
+                    name=sub.name,
+                    url=canonical_url,
+                    branch=branch,
+                    pull_request=is_pull_request(sub),
+                    last_commit=get_last_commit(str(repo_path / sub.path)),
+                )
+            )
+
+        if not result.data:
+            outer.add_error("No matching submodules found.")
         else:
-            row += ["no commit found", "--", "--"]
+            result.data.sort(key=lambda x: x.name.lower())
 
-        rows.append(row)
-
-    if not rows:
-        raise click.UsageError("No matching submodules found.")
-
-    rows.sort(key=lambda x: x[0].lower())
-
-    click.echo(
-        render_table(
-            rows,
-            headers=["Name", "Url", "Upstream", "PR", "Last Commit", "Age", "SHA"],
-            index=False,
-        )
-    )
+    output = prepare(result, outer, target=formatter.target)
+    render_and_exit(ctx, outer, formatter, output, output_format, output_path)

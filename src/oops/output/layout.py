@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
 UTC = timezone.utc
 
+Status = Literal["ok", "warning", "failed"]
+
 
 @dataclass
 class TableBlock:
@@ -32,10 +34,6 @@ class TableBlock:
 class MetricsPanelBlock:
     title: str
     values: List[List[str]]
-
-
-# @dataclass
-# class StatsBlock:
 
 
 @dataclass
@@ -66,6 +64,7 @@ class SummaryLayout(BaseLayout):
     # Optional attributes
     info: Optional[List] = field(default_factory=list)
     warnings: Optional[List] = field(default_factory=list)
+    errors: Optional[List] = field(default_factory=list)
 
 
 @dataclass
@@ -76,6 +75,7 @@ class SimpleSummaryLayout(BaseLayout):
     # Optional attributes
     info: Optional[List] = field(default_factory=list)
     warnings: Optional[List] = field(default_factory=list)
+    errors: Optional[List] = field(default_factory=list)
 
 
 @dataclass
@@ -85,9 +85,7 @@ class MetricsLayout(BaseLayout):
     # Optional attributes
     info: Optional[List] = field(default_factory=list)
     warnings: Optional[List] = field(default_factory=list)
-
-
-Status = Literal["ok", "warning", "failed"]
+    errors: Optional[List] = field(default_factory=list)
 
 
 @dataclass
@@ -97,8 +95,22 @@ class Output(Generic[L]):
     metadata: "Optional[Metadata]" = None
 
 
+@dataclass
+class MinimalLayout:
+    status: bool
+    message: str
+
+    # Optional attributes
+    info: Optional[List] = field(default_factory=list)
+    warnings: Optional[List] = field(default_factory=list)
+    errors: Optional[List] = field(default_factory=list)
+
+
+# helpers
+
+
 def statgroup_to_panel(stg: StatGroup) -> MetricsPanelBlock:
     return MetricsPanelBlock(
         title=stg.label,
-        values=[[s.label, str(s.value)] for s in stg.stats],
+        values=[[s.label, str(s.value)] for s in stg.values],
     )

@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from oops.core.compat import Optional
+from oops.core.compat import TYPE_CHECKING, Optional
 from oops.core.metadata import Metadata
 from oops.core.models import (
     ClassSummary,
@@ -31,6 +31,8 @@ from oops.utils.render import (
     colorize,
 )
 
+if TYPE_CHECKING:
+    from oops.output.base import RenderTarget
 _METHOD_COLUMNS: list[tuple[str, str]] = [
     ("COMPUTE METHODS", "Compute"),
     ("SELECTION METHODS", "Select"),
@@ -185,7 +187,7 @@ def _build_metrics(summary: "ModuleSummary") -> StatGroup:
     res = StatGroup(
         name="metrics",
         label="Metrics",
-        stats=[
+        values=[
             Stat(name="models", label="Models", value=len(summary.classes)),
             Stat(name="own_fields", label="Fields (own)", value=fields_own_total),
             Stat(name="inherited_fields", label="Fields (inherited)", value=fields_inherited_total),
@@ -201,18 +203,18 @@ def _build_metrics(summary: "ModuleSummary") -> StatGroup:
     if vs is not None:
         primary_total = sum(vs.primary_by_type.values())
         if primary_total or vs.extensions or vs.actions or vs.menus:
-            res.stats.append(Stat(name="primary_views", label="Views (primary)", value=primary_total))
+            res.values.append(Stat(name="primary_views", label="Views (primary)", value=primary_total))
             if vs.extensions:
                 ext_str = str(vs.extensions)
                 if vs.extensions_upstream:
                     ext_str += f" ({vs.extensions_upstream} upstream)"
-                res.stats.append(Stat(name="extensions_views", label="Views (ext.)", value=ext_str, kind="text"))
+                res.values.append(Stat(name="extensions_views", label="Views (ext.)", value=ext_str, kind="text"))
             if vs.actions:
-                res.stats.append(Stat(name="actions", label="Actions", value=vs.actions))
+                res.values.append(Stat(name="actions", label="Actions", value=vs.actions))
             if vs.menus:
-                res.stats.append(Stat(name="menus", label="Menus", value=vs.menus))
+                res.values.append(Stat(name="menus", label="Menus", value=vs.menus))
             if vs.unresolved:
-                res.stats.append(Stat(name="unresolved_views", label="Views unresolved", value=vs.unresolved))
+                res.values.append(Stat(name="unresolved_views", label="Views unresolved", value=vs.unresolved))
 
     return res
 
@@ -225,7 +227,7 @@ def _build_manifest(summary: "ModuleSummary") -> StatGroup:
     res = StatGroup(
         name="manifest",
         label="Manifest",
-        stats=[
+        values=[
             Stat(name="name", label="Name", value=m.get("name", "<unknown>"), kind="text"),
             Stat(name="version", label="Version", value=m.get("version", ""), kind="text"),
             Stat(name="author", label="Author", value=m.get("author", ""), kind="text"),
@@ -235,7 +237,7 @@ def _build_manifest(summary: "ModuleSummary") -> StatGroup:
         ],
     )
     if summary_text:
-        res.stats.append(Stat(name="summary", label="Summary", value=summary_text, kind="text"))
+        res.values.append(Stat(name="summary", label="Summary", value=summary_text, kind="text"))
 
     return res
 
@@ -249,7 +251,7 @@ def _build_loc(data: "Optional[LocStats]", pct: float = 0.0) -> StatGroup:
     return StatGroup(
         name="loc",
         label="Lines of code",
-        stats=[
+        values=[
             Stat(name="python", label="Python", value=data.python),
             Stat(name="xml", label="XML", value=data.xml),
             Stat(name="javascript", label="JavaScript", value=data.javascript),
@@ -431,9 +433,11 @@ def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]
     )
 
 
-def prepare(results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: str, metadata: Metadata) -> Output:
+def prepare(
+    results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: RenderTarget, metadata: Metadata
+) -> Output:
     """Single entry point — dispatches based on the formatter target."""
 
-    if target == "machine":
+    if target.audience == "machine":
         return prepare_full(results, outer, metadata)
     return prepare_summary(results, outer)
