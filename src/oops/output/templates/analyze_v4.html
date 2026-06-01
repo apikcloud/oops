@@ -476,6 +476,66 @@
                 overflow-y: auto;
                 margin-top: 0.5rem;
             }
+            /* ---------------- Metadata bar ---------------- */
+            .metadata-bar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1.25rem;
+                padding: 0.75rem 1rem;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                margin-bottom: 2rem;
+                font-size: 0.8rem;
+            }
+            .metadata-bar .meta-item {
+                display: flex;
+                flex-direction: column;
+                gap: 0.1rem;
+            }
+            .metadata-bar .meta-item .label {
+                font-size: 0.6rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+            }
+            .metadata-bar .meta-item .value {
+                font-family: var(--mono);
+                font-weight: 500;
+            }
+            .metadata-bar .meta-item .value.commit {
+                color: var(--accent);
+            }
+
+            /* ---------------- Structure tree ---------------- */
+            .structure-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 0.75rem;
+                margin: 0.5rem 0 1rem;
+            }
+            .structure-card {
+                background: var(--bg-soft);
+                border-radius: 5px;
+                padding: 0.65rem 0.85rem;
+            }
+            .structure-card .sc-title {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+                margin-bottom: 0.35rem;
+            }
+            .structure-card .sc-line {
+                font-family: var(--mono);
+                font-size: 0.8rem;
+                display: flex;
+                justify-content: space-between;
+                padding: 0.1rem 0;
+            }
+            .structure-card .sc-line .v {
+                color: var(--text-muted);
+            }
         </style>
     </head>
     <body>
@@ -485,6 +545,7 @@
                 <div class="subtitle" id="meta-subtitle"></div>
             </header>
 
+            <section id="metadata-bar"></section>
             <section id="global-warnings"></section>
             <section id="modules"></section>
 
@@ -547,10 +608,59 @@
                 return el("td", { class: cls.trim() }, n != null ? n : 0);
             };
 
-            // Resolve the technical model name (the reliable one):
-            // - new model → model_name
-            // - extension → first entry in inherit[]
-            const techName = (m) => (m.is_new_model ? m.model_name : (m.inherit && m.inherit[0]) || "—");
+            const techName = (m) =>
+                m.is_new_model ? m.model_name : (m.inherit && m.inherit[0]) || m.ancestor_model || "—";
+
+            // ----- StatGroup helpers -----
+            // A StatGroup is { kind, label, values: [ {name, label, value, kind, highlight} ] }
+            const statValue = (group, name) => {
+                const s = (group.values || []).find((v) => v.name === name);
+                return s ? s.value : null;
+            };
+            const formatStat = (stat) => {
+                // value already pre-formatted for "text"/"ratio" kinds on the Python side
+                if (stat.kind === "boolean") return stat.value ? "yes" : "no";
+                if (typeof stat.value === "number") return stat.value.toLocaleString();
+                return stat.value;
+            };
+
+            // ===================================================================
+            // Metadata bar
+            // ===================================================================
+            function renderMetadata(meta) {
+                if (!meta) return;
+                const bar = document.getElementById("metadata-bar");
+                const item = (label, value, cls = "") => {
+                    if (value == null || value === "") return null;
+                    return el("div", { class: "meta-item" }, [
+                        el("span", { class: "label" }, label),
+                        el("span", { class: `value ${cls}`.trim() }, String(value)),
+                    ]);
+                };
+                const wrap = el(
+                    "div",
+                    { class: "metadata-bar" },
+                    [
+                        item("Project", meta.project_name),
+                        item("Odoo", meta.odoo_version),
+                        item("Branch", meta.git_branch),
+                        item("Commit", meta.git_commit ? meta.git_commit.slice(0, 10) : null, "commit"),
+                        item("Generated", formatTimestamp(meta.generated_at)),
+                        item("Tool", meta.tool_version),
+                    ].filter(Boolean),
+                );
+                bar.append(wrap);
+            }
+
+            function formatTimestamp(iso) {
+                if (!iso) return null;
+                try {
+                    const d = new Date(iso);
+                    return d.toLocaleString();
+                } catch {
+                    return iso;
+                }
+            }
 
             // ===================================================================
             // Global warnings
@@ -566,6 +676,8 @@
                 document.getElementById("global-warnings").append(wb);
             }
 
+            renderMetadata(DATA.metadata);
+
             // ===================================================================
             // Render each module
             // ===================================================================
@@ -575,35 +687,34 @@
             function renderModule(mod) {
                 const root = el("section", { class: "module" });
 
+                // Manifest is now a StatGroup
+                const version = statValue(mod.manifest, "version");
                 root.append(
-                    el("h2", {}, [
-                        mod.module,
-                        " ",
-                        el("span", { class: "badge outline" }, mod.manifest.version || "—"),
-                    ]),
+                    el("h2", {}, [mod.module, " ", version ? el("span", { class: "badge outline" }, version) : null]),
                 );
 
-                // Manifest
+                // ----- Manifest grid (from StatGroup) -----
                 const manifestGrid = el("div", { class: "manifest-grid" });
-                ["name", "author", "license", "category", "installable", "summary"].forEach((f) => {
-                    const v = mod.manifest[f];
-                    if (v == null || v === "") return;
+                (mod.manifest.values || []).forEach((stat) => {
+                    if (stat.name === "version") return; // already in title
+                    if (stat.value == null || stat.value === "") return;
                     manifestGrid.append(
                         el("div", { class: "item" }, [
-                            el("span", { class: "label" }, f),
-                            el("span", { class: "value" }, String(v)),
+                            el("span", { class: "label" }, stat.label),
+                            el("span", { class: "value" }, formatStat(stat)),
                         ]),
                     );
                 });
                 root.append(manifestGrid);
 
-                if (mod.manifest.depends && mod.manifest.depends.length) {
-                    root.append(el("h4", {}, `Depends (${mod.manifest.depends.length})`));
+                // ----- Depends (now module-level) -----
+                if (mod.depends && mod.depends.length) {
+                    root.append(el("h4", {}, `Depends (${mod.depends.length})`));
                     root.append(
                         el(
                             "div",
                             { class: "chip-list" },
-                            mod.manifest.depends.map((d) => el("span", { class: "chip" }, d)),
+                            mod.depends.map((d) => el("span", { class: "chip" }, d)),
                         ),
                     );
                 }
@@ -620,24 +731,20 @@
                     );
                 }
 
-                // Metrics
-                root.append(el("h4", {}, "Metrics"));
-                const totalPrimary = mod.views.primary
-                    ? Object.values(mod.views.primary).reduce((a, b) => a + b, 0)
-                    : 0;
-                root.append(
-                    el("div", { class: "metrics-grid" }, [
-                        metric("Total LoC", (mod.loc.total || 0).toLocaleString()),
-                        metric("Python", (mod.loc.python || 0).toLocaleString()),
-                        metric("XML", (mod.loc.xml || 0).toLocaleString()),
-                        metric("JS", (mod.loc.javascript || 0).toLocaleString()),
-                        metric("Share", `${mod.loc.pct || 0}%`),
-                        metric("Primary views", totalPrimary),
-                        metric("Extensions", mod.views.extensions || 0),
-                        metric("Actions", mod.views.actions || 0),
-                        metric("Menus", mod.views.menus || 0),
-                    ]),
-                );
+                // ----- Metrics (StatGroup) -----
+                root.append(el("h4", {}, mod.metrics.label || "Metrics"));
+                root.append(renderStatGroupMetrics(mod.metrics));
+
+                // ----- LoC (StatGroup) -----
+                if (mod.loc && mod.loc.values) {
+                    root.append(el("h4", {}, mod.loc.label || "Lines of code"));
+                    root.append(renderStatGroupMetrics(mod.loc));
+                }
+
+                // ----- Structure -----
+                if (mod.structure) {
+                    root.append(renderStructure(mod.structure));
+                }
 
                 // ----- Models -----
                 if (mod.models && mod.models.length) {
@@ -679,11 +786,86 @@
                 return (techName(a) || "").localeCompare(techName(b) || "");
             }
 
-            function metric(label, value) {
-                return el("div", { class: "metric" }, [
-                    el("div", { class: "value" }, value),
-                    el("div", { class: "label" }, label),
-                ]);
+            // Render a StatGroup as a metrics grid
+            function renderStatGroupMetrics(group) {
+                const grid = el("div", { class: "metrics-grid" });
+                (group.values || []).forEach((stat) => {
+                    grid.append(
+                        el("div", { class: "metric" }, [
+                            el("div", { class: "value" }, formatStat(stat)),
+                            el("div", { class: "label" }, stat.label),
+                        ]),
+                    );
+                });
+                return grid;
+            }
+
+            // ===================================================================
+            // Structure
+            // ===================================================================
+            function renderStructure(structure) {
+                const section = el("section");
+                section.append(el("h4", {}, "Structure"));
+                const grid = el("div", { class: "structure-grid" });
+
+                // data: nested { folder: { ext: count } }
+                if (structure.data && Object.keys(structure.data).length) {
+                    Object.entries(structure.data).forEach(([folder, exts]) => {
+                        const card = el("div", { class: "structure-card" }, [el("div", { class: "sc-title" }, folder)]);
+                        Object.entries(exts).forEach(([ext, count]) => {
+                            card.append(
+                                el("div", { class: "sc-line" }, [
+                                    el("span", {}, `.${ext}`),
+                                    el("span", { class: "v" }, count),
+                                ]),
+                            );
+                        });
+                        grid.append(card);
+                    });
+                }
+
+                // Flat python counters
+                const pyCounters = [
+                    ["controllers_py", "Controllers (py)"],
+                    ["wizard_py", "Wizards (py)"],
+                    ["report_py", "Reports (py)"],
+                ].filter(([k]) => structure[k]);
+
+                if (pyCounters.length) {
+                    const card = el("div", { class: "structure-card" }, [el("div", { class: "sc-title" }, "Python")]);
+                    pyCounters.forEach(([k, label]) => {
+                        card.append(
+                            el("div", { class: "sc-line" }, [
+                                el("span", {}, label),
+                                el("span", { class: "v" }, structure[k]),
+                            ]),
+                        );
+                    });
+                    grid.append(card);
+                }
+
+                // static_by_ext
+                if (structure.static_by_ext && Object.keys(structure.static_by_ext).length) {
+                    const card = el("div", { class: "structure-card" }, [
+                        el("div", { class: "sc-title" }, "Static assets"),
+                    ]);
+                    Object.entries(structure.static_by_ext).forEach(([ext, count]) => {
+                        card.append(
+                            el("div", { class: "sc-line" }, [
+                                el("span", {}, `.${ext}`),
+                                el("span", { class: "v" }, count),
+                            ]),
+                        );
+                    });
+                    grid.append(card);
+                }
+
+                if (!grid.children.length) {
+                    section.append(el("div", { class: "empty-section" }, "No structure data."));
+                } else {
+                    section.append(grid);
+                }
+                return section;
             }
 
             // ===================================================================
@@ -729,18 +911,10 @@
                             el("th", {}, "Ancestor module"),
                             el("th", {}, "Origin"),
                             el("th", { class: "num", title: "New fields added by this module" }, "Own fields"),
-                            el(
-                                "th",
-                                { class: "num", title: "Inherited fields from depends (referenced/used)" },
-                                "Inh fields",
-                            ),
+                            el("th", { class: "num", title: "Inherited fields referenced" }, "Inh fields"),
                             el("th", { class: "num" }, "Methods"),
                             el("th", { class: "num", title: "Methods overriding ancestor methods" }, "Overrides"),
-                            el(
-                                "th",
-                                { class: "num", title: "Methods inherited from depends and exposed" },
-                                "Inherited",
-                            ),
+                            el("th", { class: "num", title: "Methods inherited and exposed" }, "Inherited"),
                         ]),
                     ),
                 );
@@ -784,9 +958,7 @@
                 drawerContent.innerHTML = "";
 
                 drawerContent.append(el("h2", {}, techName(m)));
-                const sub = [];
-                sub.push(`class ${m.class_name}`);
-                sub.push(m.is_new_model ? "new model" : "extension");
+                const sub = [`class ${m.class_name}`, m.is_new_model ? "new model" : "extension"];
                 drawerContent.append(el("div", { class: "drawer-sub" }, sub.join(" · ")));
 
                 const rows = m.is_new_model
@@ -907,8 +1079,7 @@
             }
 
             // ===================================================================
-            // Views — split into Primary / Extensions / Qweb
-            //         grouped by model, one row per model with columns per type
+            // Views — Primary / Extensions / Qweb, grouped by model
             // ===================================================================
             function renderViewsSections(mod) {
                 const section = el("section");
@@ -920,11 +1091,11 @@
 
                 if (primary.length) {
                     section.append(el("h3", {}, `Primary (${primary.length})`));
-                    section.append(renderViewsByModelTable(mod, primary, /*isExtension=*/ false));
+                    section.append(renderViewsByModelTable(mod, primary, false));
                 }
                 if (extensions.length) {
                     section.append(el("h3", {}, `Extensions (${extensions.length})`));
-                    section.append(renderViewsByModelTable(mod, extensions, /*isExtension=*/ true));
+                    section.append(renderViewsByModelTable(mod, extensions, true));
                 }
                 if (qwebs.length) {
                     section.append(el("h3", {}, `Qweb (${qwebs.length})`));
@@ -934,7 +1105,6 @@
             }
 
             function renderViewsByModelTable(mod, views, isExtension) {
-                // Group by model
                 const byModel = new Map();
                 views.forEach((v) => {
                     const key = v.model || "—";
@@ -942,7 +1112,6 @@
                     byModel.get(key).push(v);
                 });
 
-                // Collect all types seen in this subset
                 const typesSeen = new Set();
                 views.forEach((v) => typesSeen.add(v.view_type || "—"));
                 const typeOrder = [
@@ -956,7 +1125,6 @@
                     "gantt",
                     "activity",
                     "tree",
-                    "qweb",
                 ];
                 const types = [
                     ...typeOrder.filter((t) => typesSeen.has(t)),
@@ -976,29 +1144,22 @@
                 headerCells.push(el("th", { class: "num" }, "Total"));
                 table.append(el("thead", {}, el("tr", {}, headerCells)));
 
-                // Sort models alphabetically
                 const sortedModels = Array.from(byModel.keys()).sort();
-
                 const tbody = el("tbody");
                 sortedModels.forEach((modelName) => {
                     const list = byModel.get(modelName);
                     const tr = el("tr", { class: "clickable" });
                     tr.append(el("td", { class: "mono" }, modelName));
-
                     if (isExtension) {
-                        // For extensions, take ancestor_module / ancestor_origin from the
-                        // first view that has it (all should share the same ancestor model).
                         const sample = list.find((v) => v.ancestor_module) || list[0];
                         tr.append(el("td", { class: "muted mono" }, sample.ancestor_module || "—"));
                         tr.append(el("td", {}, originBadge(sample.ancestor_origin)));
                     }
-
                     types.forEach((t) => {
                         const count = list.filter((v) => (v.view_type || "—") === t).length;
                         tr.append(numCell(count));
                     });
                     tr.append(numCell(list.length));
-
                     tr.addEventListener("click", () => openViewsDrawer(modelName, list, isExtension));
                     tbody.append(tr);
                 });
@@ -1016,7 +1177,6 @@
                         {},
                         el("tr", {}, [
                             el("th", {}, "XML ID"),
-                            el("th", {}, "Name"),
                             el("th", {}, "Mode"),
                             el("th", {}, "Inherits"),
                             el("th", {}, "Origin"),
@@ -1031,7 +1191,6 @@
                         tbody.append(
                             el("tr", {}, [
                                 el("td", { class: "mono", style: "font-size: .75rem" }, v.xml_id || "—"),
-                                el("td", {}, v.name || "—"),
                                 el("td", { class: "muted" }, v.mode || "—"),
                                 el("td", { class: "mono muted" }, v.inherit_id || "—"),
                                 el("td", {}, originBadge(v.origin)),
@@ -1057,9 +1216,7 @@
                 const wrap = el("div", { class: "table-wrap" });
                 const table = el("table");
                 const headers = [el("th", {}, "XML ID"), el("th", {}, "Name"), el("th", {}, "Type")];
-                if (isExtension) {
-                    headers.push(el("th", {}, "Inherits"));
-                }
+                if (isExtension) headers.push(el("th", {}, "Inherits"));
                 headers.push(el("th", { class: "num" }, "Fields"));
                 headers.push(el("th", { class: "num" }, "Buttons"));
                 table.append(el("thead", {}, el("tr", {}, headers)));
@@ -1092,10 +1249,15 @@
             }
 
             // ===================================================================
-            // Meta
+            // Meta footer
             // ===================================================================
-            document.getElementById("meta-subtitle").textContent = `${DATA.modules.length} module(s) analysed`;
-            document.getElementById("meta-timestamp").textContent = new Date().toLocaleString();
+            const modCount = DATA.modules.length;
+            document.getElementById("meta-subtitle").textContent =
+                `${modCount} module(s) analysed` +
+                (DATA.metadata && DATA.metadata.command ? ` · ${DATA.metadata.command}` : "");
+            document.getElementById("meta-timestamp").textContent = DATA.metadata
+                ? formatTimestamp(DATA.metadata.generated_at)
+                : new Date().toLocaleString();
             document.getElementById("raw-json").textContent = JSON.stringify(DATA, null, 2);
         </script>
     </body>
