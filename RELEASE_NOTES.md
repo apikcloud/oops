@@ -9,6 +9,34 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.19.0] - 2026-06-01
+
+Big update to `oops addons analyze`, a new submodules cleanup command, and a new dependency viewer.
+
+### ✨ What's new
+
+- **`oops submodules clean`**: interactively clean up stale or unused submodule entries — no more manual Git plumbing
+- **`oops depends show`**: new command that renders your module's dependency graph as an HTML report; open it in a browser for a visual overview
+- **`oops addons analyze`**: now surfaces views, actions, menus, inherited methods, and field totals — a much richer picture of what each module contains
+- **`oops addons analyze`**: JSON output enriched with origin tiers, ancestor info, and per-view lists for programmatic use
+- **KB XML scanner**: the knowledge base now indexes Odoo views, actions, and menus from module data files, powering the richer analysis
+
+### 🔄 Improvements
+
+- **`oops addons analyze`**: fully redesigned report layout with structured metrics
+- Terminal output for `addons list`, `project show`, `release show`, `misc usage`, and `misc build` is now built on a unified presenter/formatter system — consistent formatting across commands
+- Logging and progress indicators unified across all commands for a smoother experience
+
+### 🐛 Fixes
+
+- **`oops addons analyze`**: fixed an issue where the JSON output could have an incorrect shape
+
+### ⚠️ Note
+
+- The KB schema has been bumped to version 4. Your existing KB cache must be rebuilt: run `oops misc build-kb`. Project KBs rebuild automatically on next use.
+
+---
+
 ## [0.18.0] - 2026-05-19
 
 New project bootstrap command and improvements to module analysis.
