@@ -542,6 +542,8 @@
       
         
       
+        
+      
     
     
     
@@ -605,6 +607,34 @@
     
   
     Addons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../depends/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Depends
   
 
     
@@ -1335,6 +1365,12 @@
       
         
       
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1379,6 +1415,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/core/compat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compat
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1443,6 +1507,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../reference/core/logger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../reference/core/messages/" class="md-nav__link">
         
   
@@ -1451,6 +1543,34 @@
     
   
     Messages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/core/metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metadata
   
 
     
@@ -1551,6 +1671,8 @@
       
         
       
+        
+      
     
     
     
@@ -1595,6 +1717,34 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/io/changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1821,6 +1971,8 @@
       
         
       
+        
+      
     
     
     
@@ -1987,6 +2139,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/kb/xml_scanner/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XML Scanner
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2003,6 +2183,8 @@
   
     
     
+      
+        
       
         
       
@@ -2148,6 +2330,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../reference/services/kb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../reference/services/stats/" class="md-nav__link">
         
   
@@ -2185,8 +2395,6 @@
   
     
     
-      
-        
       
         
       
@@ -2242,34 +2450,6 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix="">
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../reference/utils/compat/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compat
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
             
               
                 
@@ -3095,6 +3275,18 @@ counts per command, sorted from most to least used.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>--format</code></td>
+<td>choice (<code>text</code> | <code>json</code>)</td>
+<td>Output format</td>
+<td><code>text</code></td>
+</tr>
+<tr>
+<td><code>--output-path</code></td>
+<td>file</td>
+<td>Write the output to this path instead of stdout.</td>
+<td>None</td>
+</tr>
+<tr>
 <td><code>--help</code></td>
 <td>boolean</td>
 <td>Show this message and exit.</td>
@@ -3167,16 +3359,16 @@ projects on the same version.</p>
 <td>None</td>
 </tr>
 <tr>
-<td><code>--cache-dir</code></td>
-<td>directory</td>
-<td>Directory where <version>.db is written. Defaults to ~/.cache/oops/kb/.</version></td>
-<td>None</td>
+<td><code>--format</code></td>
+<td>choice (<code>text</code> | <code>json</code>)</td>
+<td>Output format. 'json' is suited for downstream LLM agent consumption.</td>
+<td><code>text</code></td>
 </tr>
 <tr>
-<td><code>--verbose</code>, <code>-v</code></td>
-<td>boolean</td>
-<td>N/A</td>
-<td><code>False</code></td>
+<td><code>--output-path</code></td>
+<td>file</td>
+<td>Write the output to this path instead of stdout (json) or a temp file (html).</td>
+<td>None</td>
 </tr>
 <tr>
 <td><code>--help</code></td>
