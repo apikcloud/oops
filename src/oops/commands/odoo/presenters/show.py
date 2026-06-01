@@ -42,8 +42,27 @@ def prepare_summary(
     stats: StatGroup,
     metadata: Metadata,
 ) -> "Output[SimpleSummaryLayout]":
-    data = result.data
-    assert data
+    data = result.data or []
+
+    columns = [
+        ("Version", "brand.primary", "left"),
+        ("Community", "dim", "left"),
+        ("Enterprise", "dim", "left"),
+        ("Themes", "dim", "left"),
+    ]
+
+    if not data:
+        out = Output(
+            SimpleSummaryLayout(
+                title="Odoo Sources",
+                table=TableBlock(title="", columns=columns, rows=[]),
+                panel=statgroup_to_panel(stats),
+                conclusion=ConclusionBlock(True, "No version directories found"),
+                warnings=outer.warnings,
+            )
+        )
+        out.metadata = metadata
+        return out
 
     table = TableBlock(
         title="",

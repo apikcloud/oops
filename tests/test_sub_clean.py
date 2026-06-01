@@ -143,7 +143,7 @@ class TestMainGuards:
 
 
 class TestMainCancellation:
-    """Each cancel path must exit 1 and never call _run_actions."""
+    """Each cancel path must exit 1 and never reset the repo."""
 
     def _invoke(self, tmp_path, *, confirm_rv, select_rv: str | None = _HEAD_CHOICE):
         repo = _make_repo()
@@ -154,32 +154,36 @@ class TestMainCancellation:
         ), patch(
             "oops.commands.submodules.clean.require_submodules",
         ), patch(
-            "oops.commands.submodules.clean._print_step",
+            "oops.commands.submodules.clean.render_healder",
+        ), patch(
+            "oops.commands.submodules.clean.render_panel",
+        ), patch(
+            "oops.commands.submodules.clean.render_footer",
         ), patch(
             "oops.commands.submodules.clean.prompt_confirm",
             side_effect=confirm_rv if isinstance(confirm_rv, list) else [confirm_rv, confirm_rv],
         ), patch(
             "oops.commands.submodules.clean.prompt_select", return_value=select_rv
         ), patch(
-            "oops.commands.submodules.clean._run_actions"
-        ) as mock_run:
+            "oops.commands.submodules.clean._reinit_submodules"
+        ):
             result = runner.invoke(main, [])
-        return result, mock_run
+        return result, repo
 
     def test_cancel_at_intro(self, tmp_path):
-        result, mock_run = self._invoke(tmp_path, confirm_rv=[False])
+        result, repo = self._invoke(tmp_path, confirm_rv=[False])
         assert result.exit_code == 1
-        mock_run.assert_not_called()
+        repo.head.reset.assert_not_called()
 
     def test_cancel_at_picker(self, tmp_path):
-        result, mock_run = self._invoke(tmp_path, confirm_rv=[True], select_rv=None)
+        result, repo = self._invoke(tmp_path, confirm_rv=[True], select_rv=None)
         assert result.exit_code == 1
-        mock_run.assert_not_called()
+        repo.head.reset.assert_not_called()
 
     def test_cancel_at_final_confirm(self, tmp_path):
-        result, mock_run = self._invoke(tmp_path, confirm_rv=[True, False])
+        result, repo = self._invoke(tmp_path, confirm_rv=[True, False])
         assert result.exit_code == 1
-        mock_run.assert_not_called()
+        repo.head.reset.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -198,25 +202,28 @@ class TestMainHappyPath:
         ), patch(
             "oops.commands.submodules.clean.require_submodules",
         ), patch(
-            "oops.commands.submodules.clean._print_step",
+            "oops.commands.submodules.clean.render_healder",
+        ), patch(
+            "oops.commands.submodules.clean.render_panel",
+        ), patch(
+            "oops.commands.submodules.clean.render_footer",
         ), patch(
             "oops.commands.submodules.clean.prompt_confirm", return_value=True
         ), patch(
             "oops.commands.submodules.clean.prompt_select", return_value=picker_answer
         ), patch(
-            "oops.commands.submodules.clean._run_actions"
-        ) as mock_run, patch(
+            "oops.commands.submodules.clean._reinit_submodules"
+        ), patch(
             "oops.commands.submodules.clean.conclude"
         ):
             result = runner.invoke(main, [])
-        return result, mock_run
+        return result, repo
 
     def test_head_choice_passes_head_sha(self, tmp_path):
-        result, mock_run = self._invoke(tmp_path, picker_answer=_HEAD_CHOICE)
+        result, repo = self._invoke(tmp_path, picker_answer=_HEAD_CHOICE)
 
         assert result.exit_code == 0, result.output
-        _, target_sha, _ = mock_run.call_args.args
-        assert target_sha == "HEAD"
+        repo.head.reset.assert_called_once_with(commit="HEAD", index=True, working_tree=True)
 
     def test_commit_choice_passes_full_sha(self, tmp_path):
         commit = _make_commit(sha="deadbeefdeadbeef")
@@ -224,11 +231,10 @@ class TestMainHappyPath:
         choices, _ = _recent_commits(repo)
         display = choices[1]  # the commit entry built by _recent_commits
 
-        result, mock_run = self._invoke(tmp_path, picker_answer=display, repo=_make_repo([commit]))
+        result, repo = self._invoke(tmp_path, picker_answer=display, repo=_make_repo([commit]))
 
         assert result.exit_code == 0, result.output
-        _, target_sha, _ = mock_run.call_args.args
-        assert target_sha == "deadbeefdeadbeef"
+        repo.head.reset.assert_called_once_with(commit="deadbeefdeadbeef", index=True, working_tree=True)
 
     def test_base_paths_passed_to_run_actions(self, tmp_path, monkeypatch):
         cfg = MagicMock()
@@ -236,11 +242,16 @@ class TestMainHappyPath:
         cfg.submodules.current_path = Path("y")
         monkeypatch.setattr("oops.commands.submodules.clean.config", cfg)
 
-        result, mock_run = self._invoke(tmp_path, picker_answer=_HEAD_CHOICE)
+        # create dirs so shutil.rmtree is actually invoked
+        (tmp_path / "x").mkdir()
+        (tmp_path / "y").mkdir()
+
+        with patch("oops.commands.submodules.clean.shutil.rmtree") as mock_rmtree:
+            result, repo = self._invoke(tmp_path, picker_answer=_HEAD_CHOICE)
 
         assert result.exit_code == 0, result.output
-        _, _, base_paths = mock_run.call_args.args
-        assert base_paths == [tmp_path / "x", tmp_path / "y"]
+        removed = {c.args[0] for c in mock_rmtree.call_args_list}
+        assert removed == {tmp_path / "x", tmp_path / "y"}
 
     def test_reset_option_no_longer_accepted(self):
         runner = CliRunner()

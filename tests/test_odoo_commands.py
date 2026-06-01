@@ -216,7 +216,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            result = self._runner().invoke(download_main, ["19", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(download_main, ["--version", "19", "--no-enterprise", "--no-themes"])
         mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "19.0", quiet=True)
         assert result.exit_code == 0
 
@@ -226,7 +226,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
+            self._runner().invoke(download_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         mock_clone.assert_called_once_with(cfg_mock.odoo.community_url, community_dir, "17.0", quiet=True)
 
     def test_missing_sources_dir_raises_usage_error(self):
@@ -235,7 +235,7 @@ class TestDownloadCommand:
             "oops.commands.odoo.download.get_odoo_sources_dirs",
             side_effect=_click.UsageError("No base directory provided."),
         ):
-            result = self._runner().invoke(download_main, ["17.0"])
+            result = self._runner().invoke(download_main, ["--version", "17.0"])
         assert result.exit_code != 0
         assert "No base directory provided" in result.output
 
@@ -245,7 +245,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(download_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         mock_clone.assert_called_once()
         assert result.exit_code == 0
 
@@ -256,7 +256,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone"
         ) as mock_clone:
-            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(download_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         mock_clone.assert_not_called()
         assert "already exists" in result.output
         assert result.exit_code == 0
@@ -268,7 +268,9 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(download_main, ["17.0", "--update", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(
+                download_main, ["--version", "17.0", "--update", "--no-enterprise", "--no-themes"]
+            )
         mock_update.assert_called_once_with(community_dir, quiet=True)
         assert result.exit_code == 0
 
@@ -281,7 +283,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
-            result = self._runner().invoke(download_main, ["17.0"])
+            result = self._runner().invoke(download_main, ["--version", "17.0"])
         assert len(clone_calls) == 3
         cloned_dests = [c[1] for c in clone_calls]
         assert any("community" in str(d) for d in cloned_dests)
@@ -296,7 +298,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)
         ):
-            self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
+            self._runner().invoke(download_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         assert len(clone_calls) == 1
         assert clone_calls[0][1].name == "community"
 
@@ -309,7 +311,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=subprocess.CalledProcessError(1, "git")):
-            result = self._runner().invoke(download_main, ["17.0"])
+            result = self._runner().invoke(download_main, ["--version", "17.0"])
         assert result.exit_code == 1
 
     def test_community_only_failure_exits_with_code_1(self, tmp_path):
@@ -320,7 +322,7 @@ class TestDownloadCommand:
             "oops.commands.odoo.download.clone",
             side_effect=subprocess.CalledProcessError(1, "git"),
         ):
-            result = self._runner().invoke(download_main, ["17.0", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(download_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         assert result.exit_code == 1
 
     def test_get_odoo_sources_dirs_called_with_version(self, tmp_path):
@@ -334,7 +336,7 @@ class TestDownloadCommand:
             "oops.commands.odoo.download.get_odoo_sources_dirs",
             return_value=OdooSourcesDirs(community=community_dir, enterprise=enterprise_dir, themes=themes_dir),
         ) as mock_dirs, patch("oops.commands.odoo.download.clone"):
-            self._runner().invoke(download_main, ["17.0", "--no-enterprise"])
+            self._runner().invoke(download_main, ["--version", "17.0", "--no-enterprise"])
         mock_dirs.assert_called_once_with("17.0")
 
     def test_enterprise_clone_failure_accumulates_error(self, tmp_path):
@@ -349,7 +351,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir, enterprise_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=fake_clone):
-            result = self._runner().invoke(download_main, ["17.0", "--no-themes"])
+            result = self._runner().invoke(download_main, ["--version", "17.0", "--no-themes"])
         assert result.exit_code == 1
 
     def test_themes_cloned_by_default(self, tmp_path):
@@ -362,7 +364,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
-            result = self._runner().invoke(download_main, ["17.0"])
+            result = self._runner().invoke(download_main, ["--version", "17.0"])
         cloned_dests = [c[1] for c in clone_calls]
         assert any(d.name == "themes" for d in cloned_dests)
         assert len(clone_calls) == 3
@@ -375,7 +377,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
-            self._runner().invoke(download_main, ["17.0", "--no-themes"])
+            self._runner().invoke(download_main, ["--version", "17.0", "--no-themes"])
         cloned_dests = [c[1] for c in clone_calls]
         assert not any(d.name == "themes" for d in cloned_dests)
         assert len(clone_calls) == 2
@@ -387,7 +389,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)
         ):
-            self._runner().invoke(download_main, ["17.0", "--no-community"])
+            self._runner().invoke(download_main, ["--version", "17.0", "--no-community"])
         cloned_dests = [c[1] for c in clone_calls]
         assert not any(d.name == "community" for d in cloned_dests)
 
@@ -399,7 +401,7 @@ class TestDownloadCommand:
         with patch("oops.commands.odoo.download.config", cfg_mock), \
                 self._patch_dirs(community_dir), \
                 patch("oops.commands.odoo.download.clone", side_effect=lambda *a, **kw: clone_calls.append(a)):
-            self._runner().invoke(download_main, ["17.0", "--no-community", "--no-enterprise"])
+            self._runner().invoke(download_main, ["--version", "17.0", "--no-community", "--no-enterprise"])
         assert len(clone_calls) == 1
         url, dest, branch = clone_calls[0]
         assert url == "git@github.com:my-fork/design-themes.git"
@@ -414,7 +416,7 @@ class TestDownloadCommand:
                 self._patch_dirs(community_dir), \
                 patch("oops.commands.odoo.download.clone"):
             result = self._runner().invoke(
-                download_main, ["17.0", "--no-enterprise", "--no-themes", "--format", "json"]
+                download_main, ["--version", "17.0", "--no-enterprise", "--no-themes", "--format", "json"]
             )
         assert result.exit_code == 0
         # Strip any spinner/progress text that may precede the JSON payload.
@@ -439,19 +441,26 @@ class TestUpdateCommand:
         return CliRunner()
 
     def _patch_dirs(self, community_dir, enterprise_dir=None, themes_dir=None):
+        from contextlib import ExitStack
         if enterprise_dir is None:
             enterprise_dir = community_dir.parent / "enterprise"
         if themes_dir is None:
             themes_dir = community_dir.parent / "themes"
         from oops.io.file import OdooSourcesDirs
-        return patch(
+        stack = ExitStack()
+        stack.enter_context(patch(
             "oops.commands.odoo.update.get_odoo_sources_dirs",
             return_value=OdooSourcesDirs(
                 community=community_dir,
                 enterprise=enterprise_dir,
                 themes=themes_dir,
             ),
-        )
+        ))
+        stack.enter_context(patch(
+            "oops.commands.odoo.update.require_odoo_sources",
+            return_value=[],
+        ))
+        return stack
 
     def test_version_normalization(self, tmp_path):
         community_dir = tmp_path / "19.0" / "community"
@@ -459,17 +468,17 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["19", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(update_main, ["--version", "19", "--no-enterprise", "--no-themes"])
         mock_update.assert_called_once_with(community_dir, quiet=True)
         assert result.exit_code == 0
 
     def test_missing_sources_dir_raises_usage_error(self):
-        import click as _click
+        from oops.core.exceptions import ConfigError
         with patch(
-            "oops.commands.odoo.update.get_odoo_sources_dirs",
-            side_effect=_click.UsageError("No base directory provided."),
+            "oops.commands.odoo.update.require_odoo_sources",
+            side_effect=ConfigError("No base directory provided."),
         ):
-            result = self._runner().invoke(update_main, ["17.0"])
+            result = self._runner().invoke(update_main, ["--version", "17.0"])
         assert result.exit_code != 0
         assert "No base directory provided" in result.output
 
@@ -479,7 +488,7 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["17.0", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(update_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         mock_update.assert_called_once_with(community_dir, quiet=True)
         assert result.exit_code == 0
 
@@ -490,7 +499,7 @@ class TestUpdateCommand:
             "oops.commands.odoo.update.update_at_date"
         ) as mock_uad:
             result = self._runner().invoke(
-                update_main, ["17.0", "--date", "2024-01-15", "--no-enterprise", "--no-themes"]
+                update_main, ["--version", "17.0", "--date", "2024-01-15", "--no-enterprise", "--no-themes"]
             )
         mock_uad.assert_called_once_with(community_dir, "2024-01-15", quiet=True)
         assert result.exit_code == 0
@@ -505,7 +514,7 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir, enterprise_dir, themes_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["17.0"])
+            result = self._runner().invoke(update_main, ["--version", "17.0"])
         assert mock_update.call_count == 3
         updated_paths = {c.args[0] for c in mock_update.call_args_list}
         assert community_dir in updated_paths
@@ -520,7 +529,7 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["17.0", "--no-enterprise", "--no-themes"])
+            result = self._runner().invoke(update_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         assert mock_update.call_count == 1
         assert mock_update.call_args.args[0] == community_dir
         assert result.exit_code == 0
@@ -533,7 +542,7 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir, enterprise_dir), patch(
             "oops.commands.odoo.update.update_latest"
         ) as mock_update:
-            result = self._runner().invoke(update_main, ["17.0"])
+            result = self._runner().invoke(update_main, ["--version", "17.0"])
         mock_update.assert_not_called()
         assert "not found" in result.output
         assert result.exit_code == 0
@@ -548,8 +557,10 @@ class TestUpdateCommand:
         with patch(
             "oops.commands.odoo.update.get_odoo_sources_dirs",
             return_value=OdooSourcesDirs(community=community_dir, enterprise=enterprise_dir, themes=themes_dir),
-        ) as mock_dirs, patch("oops.commands.odoo.update.update_latest"):
-            self._runner().invoke(update_main, ["17.0", "--no-enterprise", "--no-themes"])
+        ) as mock_dirs, patch("oops.commands.odoo.update.update_latest"), patch(
+            "oops.commands.odoo.update.require_odoo_sources", return_value=[]
+        ):
+            self._runner().invoke(update_main, ["--version", "17.0", "--no-enterprise", "--no-themes"])
         mock_dirs.assert_called_once_with("17.0")
 
     def test_update_failure_exits_with_code_1(self, tmp_path):
@@ -560,7 +571,7 @@ class TestUpdateCommand:
             "oops.commands.odoo.update.update_latest",
             side_effect=subprocess.CalledProcessError(1, "git"),
         ):
-            result = self._runner().invoke(update_main, ["17.0", "--no-themes"])
+            result = self._runner().invoke(update_main, ["--version", "17.0", "--no-themes"])
         assert result.exit_code == 1
 
     def test_themes_updated_by_default(self, tmp_path):
@@ -571,7 +582,7 @@ class TestUpdateCommand:
             d.mkdir(parents=True)
         with self._patch_dirs(community_dir, enterprise_dir, themes_dir), \
                 patch("oops.commands.odoo.update.update_latest") as mock_update:
-            result = self._runner().invoke(update_main, ["17.0"])
+            result = self._runner().invoke(update_main, ["--version", "17.0"])
         assert mock_update.call_count == 3
         updated = {c.args[0] for c in mock_update.call_args_list}
         assert themes_dir in updated
@@ -586,7 +597,7 @@ class TestUpdateCommand:
             tmp_path / "17.0" / "enterprise",
             themes_dir,
         ), patch("oops.commands.odoo.update.update_latest") as mock_update:
-            result = self._runner().invoke(update_main, ["17.0", "--no-community", "--no-enterprise"])
+            result = self._runner().invoke(update_main, ["--version", "17.0", "--no-community", "--no-enterprise"])
         assert mock_update.call_count == 1
         assert mock_update.call_args.args[0] == themes_dir
         assert result.exit_code == 0
@@ -601,7 +612,7 @@ class TestUpdateCommand:
         ), patch("oops.commands.odoo.update.update_at_date") as mock_uad:
             result = self._runner().invoke(
                 update_main,
-                ["17.0", "--no-community", "--no-enterprise", "--date", "2024-06-30"],
+                ["--version", "17.0", "--no-community", "--no-enterprise", "--date", "2024-06-30"],
             )
         mock_uad.assert_called_once_with(themes_dir, "2024-06-30", quiet=True)
         assert result.exit_code == 0
@@ -613,7 +624,7 @@ class TestUpdateCommand:
         with self._patch_dirs(community_dir), \
                 patch("oops.commands.odoo.update.update_latest"):
             result = self._runner().invoke(
-                update_main, ["17.0", "--no-enterprise", "--no-themes", "--format", "json"]
+                update_main, ["--version", "17.0", "--no-enterprise", "--no-themes", "--format", "json"]
             )
         assert result.exit_code == 0
         # Strip any spinner/progress text that may precede the JSON payload.
@@ -638,41 +649,46 @@ class TestShowCommand:
         return CliRunner()
 
     def test_missing_sources_dir_raises_usage_error(self):
-        cfg_mock = _make_config_mock(sources_dir=None)
-        with patch("oops.commands.odoo.show.config", cfg_mock):
+        from oops.core.exceptions import ConfigError
+        with patch(
+            "oops.commands.odoo.show.require_odoo_sources",
+            side_effect=ConfigError("No base directory provided."),
+        ):
             result = self._runner().invoke(show_main, [])
         assert result.exit_code != 0
         assert "No base directory provided" in result.output
 
     def test_sources_dir_does_not_exist(self, tmp_path):
-        missing = tmp_path / "nonexistent"
-        cfg_mock = _make_config_mock(sources_dir=missing)
-        with patch("oops.commands.odoo.show.config", cfg_mock):
+        from oops.core.exceptions import OopsError
+        with patch(
+            "oops.commands.odoo.show.require_odoo_sources",
+            side_effect=OopsError("Sources directory does not exist."),
+        ):
             result = self._runner().invoke(show_main, [])
         assert result.exit_code != 0
         assert "does not exist" in result.output
 
     def test_empty_sources_dir_reports_no_version_dirs(self, tmp_path):
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-        with patch("oops.commands.odoo.show.config", cfg_mock):
+        with patch("oops.commands.odoo.show.require_odoo_sources", return_value=[]):
             result = self._runner().invoke(show_main, [])
         assert result.exit_code == 0
         assert "No version directories found" in result.output
 
     def test_show_with_community_only(self, tmp_path):
+        from oops.io.file import OdooSourcesStatus
         version_dir = tmp_path / "odoo-17"
         community_dir = version_dir / "community"
         community_dir.mkdir(parents=True)
 
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
         fake_info = "abc1234  2024-01-15 10:00:00 +0200"
+        fake_status = [OdooSourcesStatus("odoo-17", True, False, False, version_dir)]
 
         def fake_repo_info(path):
             if path == community_dir:
                 return fake_info
             return ""
 
-        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.show.require_odoo_sources", return_value=fake_status), patch(
             "oops.commands.odoo.show.repo_info", side_effect=fake_repo_info
         ):
             result = self._runner().invoke(show_main, [])
@@ -682,15 +698,16 @@ class TestShowCommand:
         assert "abc1234" in result.output
 
     def test_show_with_community_and_enterprise(self, tmp_path):
+        from oops.io.file import OdooSourcesStatus
         version_dir = tmp_path / "odoo-17"
         community_dir = version_dir / "community"
         enterprise_dir = version_dir / "enterprise"
         community_dir.mkdir(parents=True)
         enterprise_dir.mkdir(parents=True)
 
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
         community_info = "abc1234  2024-01-15 10:00:00 +0200"
         enterprise_info = "def5678  2024-01-15 10:00:00 +0200"
+        fake_status = [OdooSourcesStatus("odoo-17", True, True, False, version_dir)]
 
         def fake_repo_info(path):
             if path == community_dir:
@@ -699,7 +716,7 @@ class TestShowCommand:
                 return enterprise_info
             return ""
 
-        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.show.require_odoo_sources", return_value=fake_status), patch(
             "oops.commands.odoo.show.repo_info", side_effect=fake_repo_info
         ):
             result = self._runner().invoke(show_main, [])
@@ -709,32 +726,35 @@ class TestShowCommand:
         assert "def5678" in result.output
 
     def test_version_dirs_with_no_repos_shows_no_checkouts(self, tmp_path):
+        from oops.io.file import OdooSourcesStatus
         version_dir = tmp_path / "17.0"
         version_dir.mkdir()
+        fake_status = [OdooSourcesStatus("17.0", False, False, False, version_dir)]
 
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
-
-        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.show.require_odoo_sources", return_value=fake_status), patch(
             "oops.commands.odoo.show.repo_info", return_value=""
         ):
             result = self._runner().invoke(show_main, [])
 
         assert result.exit_code == 0
-        assert "No Odoo checkouts found" in result.output
+        assert "17.0" in result.output
 
     def test_multiple_version_dirs_shown(self, tmp_path):
+        from oops.io.file import OdooSourcesStatus
         for version in ("odoo-17", "odoo-18"):
             community_dir = tmp_path / version / "community"
             community_dir.mkdir(parents=True)
-
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        fake_status = [
+            OdooSourcesStatus("odoo-17", True, False, False, tmp_path / "odoo-17"),
+            OdooSourcesStatus("odoo-18", True, False, False, tmp_path / "odoo-18"),
+        ]
 
         def fake_repo_info(path):
             if path.name == "community":
                 return "hash  2024-01-01 +0000"
             return ""
 
-        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.show.require_odoo_sources", return_value=fake_status), patch(
             "oops.commands.odoo.show.repo_info", side_effect=fake_repo_info
         ):
             result = self._runner().invoke(show_main, [])
@@ -745,19 +765,20 @@ class TestShowCommand:
 
     def test_show_with_themes(self, tmp_path):
         """Themes are displayed alongside community and enterprise."""
+        from oops.io.file import OdooSourcesStatus
         version_dir = tmp_path / "odoo-17"
         themes_dir = version_dir / "themes"
         themes_dir.mkdir(parents=True)
 
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
         themes_info = "9876abc  2024-02-01 12:00:00 +0200"
+        fake_status = [OdooSourcesStatus("odoo-17", False, False, True, version_dir)]
 
         def fake_repo_info(path):
             if path == themes_dir:
                 return themes_info
             return ""
 
-        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.show.require_odoo_sources", return_value=fake_status), patch(
             "oops.commands.odoo.show.repo_info", side_effect=fake_repo_info
         ):
             result = self._runner().invoke(show_main, [])
@@ -767,25 +788,25 @@ class TestShowCommand:
         assert "Themes" in result.output
 
     def test_show_includes_summary_panel(self, tmp_path):
+        from oops.io.file import OdooSourcesStatus
         version_dir = tmp_path / "odoo-17"
         community_dir = version_dir / "community"
         community_dir.mkdir(parents=True)
-
-        cfg_mock = _make_config_mock(sources_dir=tmp_path)
+        fake_status = [OdooSourcesStatus("odoo-17", True, False, False, version_dir)]
 
         def fake_repo_info(path):
             if path == community_dir:
                 return "abc1234  2024-01-15 10:00:00 +0200"
             return ""
 
-        with patch("oops.commands.odoo.show.config", cfg_mock), patch(
+        with patch("oops.commands.odoo.show.require_odoo_sources", return_value=fake_status), patch(
             "oops.commands.odoo.show.repo_info", side_effect=fake_repo_info
         ):
             result = self._runner().invoke(show_main, [])
 
         assert result.exit_code == 0
         assert "Summary" in result.output
-        assert "Versions" in result.output
+        assert "Version" in result.output
 
 
 # ---------------------------------------------------------------------------

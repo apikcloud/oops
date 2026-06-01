@@ -102,8 +102,5 @@ def main(ctx, dry_run: bool = False, no_commit: bool = False, hook: bool = False
         commit_result: Result = commit_v2(repo, repo_path, [readme_file], "addons_update_table", skip_hooks=True)
         outer.merge(commit_result)
 
-    outer.add_warning("test xxx")
-    outer.add_error("error xxx")
-
     output = prepare(result, outer, target=formatter.target)
     render_and_exit(ctx, outer, formatter, output, "text")

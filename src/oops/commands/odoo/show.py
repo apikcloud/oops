@@ -78,11 +78,11 @@ def main(output_format: str, output_path: "Optional[Path]") -> None:
 
     counters = StatGroup(
         name="counters",
-        label="counters",
+        label="Summary",
         values=[
             Stat(
                 name="version",
-                label="Version",
+                label="Versions",
                 value=len(result.data),
             ),
             Stat(

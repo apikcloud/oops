@@ -16,7 +16,7 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.compat import Optional
-from oops.core.exceptions import AppAbort, EarlyExit
+from oops.core.exceptions import AppAbort, EarlyExit, OopsError
 from oops.core.logger import live_progress, log
 from oops.core.messages import commit_messages
 from oops.core.models import Result, Rows
@@ -122,4 +122,4 @@ def main(ctx, no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = No
     render(result, outer)
 
     if not outer.ok:
-        ctx.exit(1)
+        raise OopsError("; ".join(outer.errors))
