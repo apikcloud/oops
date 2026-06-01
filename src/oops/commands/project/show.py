@@ -32,7 +32,7 @@ from oops.utils.render import (
 )
 from oops.utils.versioning import get_last_release, get_next_releases
 
-from .presenters.show import prepare
+from .presenters.show import ShowPresenter
 
 FORMATTERS: FormatterRegistry = {
     "json": JsonFormatter,
@@ -137,5 +137,6 @@ def main(token: Optional[str], output_format: str, output_path: Path):  # noqa: 
                 outer.add_warning(f"GitHub Actions fetch failed: {e}")
 
     # 4. Prepare for the chosen audience and render.
-    output = prepare(result, outer, target=formatter.target)
+    result.merge(outer)
+    output = ShowPresenter().prepare(result, target=formatter.target)
     deliver(formatter, output, output_format, output_path)

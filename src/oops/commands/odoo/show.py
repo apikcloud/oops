@@ -16,11 +16,10 @@ The sources directory is configured via odoo.sources_dir in ~/.oops.yaml.
 from pathlib import Path
 
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
 from oops.core.compat import Optional
-from oops.core.exceptions import OopsError
 from oops.core.metadata import get_metadata
-from oops.core.models import Result, Stat, StatGroup
+from oops.core.models import Result
 from oops.io.file import require_odoo_sources
 from oops.output.formatters import (
     FormatterRegistry,
@@ -28,10 +27,9 @@ from oops.output.formatters import (
     OutputFormatter,
     SimpleSummaryConsoleFormatter,
 )
-from oops.output.sinks import deliver
 from oops.utils.git import repo_info
 
-from .presenters.show import prepare
+from .presenters.show import ShowPresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
@@ -57,54 +55,34 @@ FORMATTERS: FormatterRegistry = {
 )
 def main(output_format: str, output_path: "Optional[Path]") -> None:
     formatter: OutputFormatter = FORMATTERS[output_format]()
+
     metadata = get_metadata()
-    assert metadata is not None
 
     availables = require_odoo_sources()
 
-    outer: Result[None] = Result()
-    result: Result[list[dict]] = Result()
-    result.data = []
-
-    result.data = [
+    result: Result[dict] = Result(
         {
-            "version": version.version,
-            "community": repo_info(version.path / "community") or "—",
-            "enterprise": repo_info(version.path / "enterprise") or "—",
-            "themes": repo_info(version.path / "themes") or "—",
+            "rows": [
+                {
+                    "version": version.version,
+                    "community": repo_info(version.path / "community") or "—",
+                    "enterprise": repo_info(version.path / "enterprise") or "—",
+                    "themes": repo_info(version.path / "themes") or "—",
+                }
+                for version in availables
+            ],
+            "metrics": {},
         }
-        for version in availables
-    ]
-
-    counters = StatGroup(
-        name="counters",
-        label="Summary",
-        values=[
-            Stat(
-                name="version",
-                label="Versions",
-                value=len(result.data),
-            ),
-            Stat(
-                name="community",
-                label="community",
-                value=sum(item.community for item in availables),
-            ),
-            Stat(
-                name="enterprise",
-                label="enterprise",
-                value=sum(item.enterprise for item in availables),
-            ),
-            Stat(
-                name="themes",
-                label="themes",
-                value=sum(item.themes for item in availables),
-            ),
-        ],
     )
 
-    output = prepare(result, outer, target=formatter.target, metadata=metadata, stats=counters)
-    deliver(formatter, output, output_format, output_path)
+    assert result.data
 
-    if outer.errors:
-        raise OopsError("; ".join(outer.errors))
+    result.data["metrics"] = {
+        "versions": len(result.data["rows"]),
+        "community": sum(item.community for item in availables),
+        "enterprise": sum(item.enterprise for item in availables),
+        "themes": sum(item.themes for item in availables),
+    }
+
+    output = ShowPresenter().prepare(result, target=formatter.target, metadata=metadata)
+    render_and_exit(result, formatter, output, output_format, output_path)

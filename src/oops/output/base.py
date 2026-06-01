@@ -9,8 +9,13 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal
 
-from oops.core.compat import Optional
-from oops.output.layout import Output
+from oops.core.compat import Generic, Optional, TypeVar
+from oops.core.metadata import Metadata
+from oops.core.models import HasStatus, Result
+from oops.output.layout import Layout, Output
+
+D = TypeVar("D")  # data type for the simple case
+T = TypeVar("T", bound=HasStatus)  # anything with ok/warnings/errors
 
 
 @dataclass
@@ -47,3 +52,38 @@ class OutputFormatter(ABC):
     @abstractmethod
     def success(self, message: str) -> None:
         """Report a successful operation."""
+
+
+class Presenter(Generic[T]):
+    """Base presenter dispatching on a two-axis RenderTarget."""
+
+    def prepare(self, result: T, target: RenderTarget, metadata: Metadata | None = None) -> Output:
+        if target.audience == "machine":
+            layout = self.to_machine_summary(result) if target.verbosity == "summary" else self.to_machine(result)
+        else:
+            layout = self.to_human_summary(result) if target.verbosity == "summary" else self.to_human(result)
+
+        return Output(layout=layout, metadata=metadata)
+
+    def to_human(self, result: T) -> Layout:
+        raise NotImplementedError
+
+    def to_human_summary(self, result: T) -> Layout:
+        return self.to_human(result)
+
+    def to_machine(self, result: T) -> dict:
+        raise NotImplementedError
+
+    def to_machine_summary(self, result: T) -> dict:
+        return self.to_machine(result)
+
+
+class SimplePresenter(Presenter[Result[D]], Generic[D]):
+    """Presenter for commands producing a single Result[D].
+
+    Provides a default machine serialization. Multi-result commands
+    (using ResultCollection) extend Presenter directly and define to_machine.
+    """
+
+    def to_machine(self, result: Result[D]) -> dict:
+        return {"warnings": result.warnings, "data": result.data}

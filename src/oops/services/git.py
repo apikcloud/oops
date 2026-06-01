@@ -421,7 +421,7 @@ def list_submodules(repo: Repo) -> dict:
     return _list_submodules_cached(repo.working_dir)
 
 
-def browse_submodules(submodules: List[Submodule], names: Tuple[str]) -> Generator[Tuple[int, Submodule]]:
+def browse_submodules(submodules: List[Submodule], names: Tuple[str]) -> "Generator[Tuple[int, Submodule]]":
     """Yield (1-based index, submodule) for each submodule whose name is in *names*.
 
     Args:

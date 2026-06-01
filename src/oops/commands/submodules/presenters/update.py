@@ -5,53 +5,66 @@
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
-from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SimpleSummaryLayout, TableBlock
+from oops.output.base import SimplePresenter
+from oops.output.layout import ConclusionBlock, MetricsPanelBlock, SimpleSummaryLayout, TableBlock
+from oops.utils.render import colorize
 
-if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
+COLOR_STATUS = {
+    "failed": "red",
+    "updated": "green",
+    "planned": "green",
+    "no change": "dim",
+    "skipped": "dim gray50",
+}
 
 
-def prepare(result: "Result[dict]", outer: "Result[None]", target: RenderTarget) -> Output:
-    data = result.data
-    assert data
+class UpdatePresenter(SimplePresenter[dict]):
+    def to_human(self, result: "Result[dict]") -> SimpleSummaryLayout:
+        data = result.unwrap
 
-    rows = data.get("rows", [])
-    counts = {"updated": 0, "skipped": 0, "planned": 0}
-    for row in rows:
-        action = row.get("action", "")
-        if action in counts:
-            counts[action] += 1
+        def _prepare_row(row: dict) -> list:
+            return [
+                row["submodule"],
+                row["branch"],
+                colorize(row["action"], COLOR_STATUS.get(row["action"], "dim")),
+            ]
 
-    table = TableBlock(
-        title="",
-        columns=[
-            ("Submodule", "brand.primary", "left"),
-            ("Branch", "dim", "left"),
-            ("Status", "green", "left"),
-        ],
-        rows=[[row["submodule"], row["branch"], row["action"]] for row in rows],
-    )
+        rows = data.get("rows", [])
 
-    panel = MetricsPanelBlock(
-        "Summary",
-        [
-            ["Updated", str(counts["updated"])],
-            ["Skipped", str(counts["skipped"])],
-            ["Planned", str(counts["planned"])],
-        ],
-    )
+        from collections import Counter
 
-    dry_run = data.get("dry_run", False)
-    conclusion_msg = "Dry run — no changes committed" if dry_run else "Submodules up to date"
+        counts = Counter(row["action"] for row in rows)
 
-    return Output(
-        SimpleSummaryLayout(
+        table = TableBlock(
+            title="",
+            columns=[
+                ("Submodule", "brand.primary", "left"),
+                ("Branch", "dim", "left"),
+                ("Status", "green", "left"),
+            ],
+            rows=[_prepare_row(row) for row in rows],
+        )
+
+        panel = MetricsPanelBlock(
+            "Summary",
+            [
+                ["Total", str(len(rows))],
+                ["Updated", str(counts["updated"])],
+                ["Skipped", str(counts["skipped"])],
+                ["Planned", str(counts["planned"])],
+                ["Failed", str(counts["failed"])],
+            ],
+        )
+
+        dry_run = data.get("dry_run", False)
+        conclusion_msg = "Dry run — no changes committed" if dry_run else "Submodules up to date"
+
+        return SimpleSummaryLayout(
             title=data.get("cmd", "Update submodules"),
             table=table,
             panel=panel,
             conclusion=ConclusionBlock(True, conclusion_msg),
-            warnings=outer.warnings,
+            warnings=result.warnings,
+            errors=result.errors,
         )
-    )

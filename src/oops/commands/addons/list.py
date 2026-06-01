@@ -28,7 +28,7 @@ from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.loc import get_addon_loc
 
-from .presenters.list import prepare
+from .presenters.list import ListPresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SummaryConsoleFormatter,
@@ -77,15 +77,23 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
-def main(output_format: str, init: bool, submodules: tuple, symlinks_only: bool, show_all: bool, output_path: Path):
+@click.pass_context
+def main(
+    ctx,
+    output_format: str,
+    init: bool,
+    submodules: tuple,
+    symlinks_only: bool,
+    show_all: bool,
+    output_path: Path,
+):
 
     repo, repo_path = require_repository()
-
+    metadata = ctx.obj["metadata"]
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
     rows: Result[list] = Result()
     rows.data = []
-    outer: Result[None] = Result()
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
     with live_progress("Initialisation..."):
@@ -151,5 +159,5 @@ def main(output_format: str, init: bool, submodules: tuple, symlinks_only: bool,
                 r["loc_pct"] = round(100.0 * r["loc_total"] / total_loc, 1)
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = prepare(rows, outer, target=formatter.target)
+    output = ListPresenter().prepare(rows, target=formatter.target, metadata=metadata)
     deliver(formatter, output, output_format, output_path)

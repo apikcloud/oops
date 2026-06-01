@@ -5,44 +5,31 @@
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
-from oops.output.layout import ConclusionBlock, MetricsLayout, MetricsPanelBlock, Output
-
-if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
+from oops.output.base import SimplePresenter
+from oops.output.layout import ConclusionBlock, MetricsLayout, MetricsPanelBlock
 
 
-def prepare_full(result: Result[dict], outer: "Result[None]") -> "Output[dict]":
-    assert result.data
-    return Output(
-        {
-            "warnings": outer.warnings,
-            "project": result.data["project"],
-            "metrics": result.data["metrics"],
+class ShowPresenter(SimplePresenter[dict]):
+    def to_machine(self, result: Result[dict]) -> dict:
+        data = result.unwrap
+
+        return {
+            "warnings": result.warnings,
+            "project": data["project"],
+            "metrics": data["metrics"],
         }
-    )
 
+    def to_human(self, result: Result[dict]) -> MetricsLayout:
 
-def prepare_summary(result: Result[dict], outer: "Result[None]") -> "Output[MetricsLayout]":
+        data = result.unwrap
 
-    data = result.data
-    assert data
+        metrics = [MetricsPanelBlock(k.capitalize(), v) for k, v in data["metrics"].items()]
 
-    metrics = [MetricsPanelBlock(k.capitalize(), v) for k, v in data["metrics"].items()]
-
-    return Output(
-        MetricsLayout(
+        return MetricsLayout(
             title=f"Project status - {data['project']}",
             panels=metrics,
             conclusion=ConclusionBlock(True, "Status report"),
-            warnings=outer.warnings,
+            warnings=result.warnings,
+            errors=result.errors,
         )
-    )
-
-
-def prepare(results: "Result[dict]", outer: "Result[None]", target: RenderTarget) -> Output:
-    """Single entry point — dispatches based on the formatter target."""
-    if target.audience == "machine":
-        return prepare_full(results, outer)
-    return prepare_summary(results, outer)

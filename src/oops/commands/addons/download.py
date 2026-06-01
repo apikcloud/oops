@@ -17,19 +17,18 @@ from pathlib import Path
 
 import click
 import git
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
 from oops.core.compat import Optional
-from oops.core.exceptions import APIError, EarlyExit
+from oops.core.exceptions import APIError
 from oops.core.logger import live_progress, log
 from oops.core.models import Result
 from oops.io.file import file_updater, find_addons, read_tagged_block
 from oops.output.formatters import OutputFormatter, SimpleSummaryConsoleFormatter
-from oops.output.sinks import deliver
-from oops.services.git import commit, require_repository
+from oops.services.git import commit_v2, require_repository
 from oops.utils.helpers import str_to_list
 from oops.utils.net import encode_url
 
-from .presenters.download import prepare
+from .presenters.download import DownloadPresenter
 
 
 @command(name="download", help=__doc__)
@@ -37,9 +36,10 @@ from .presenters.download import prepare
 @click.argument("branch")
 @click.option("--addons", "addons_list", help="Comma-separated addon names to copy (copies all if omitted).")
 @click.option("--exclude/--no-exclude", is_flag=True, default=True, help="Add downloaded addons to .gitignore.")
-def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None):
+@click.pass_context
+def main(ctx, url: str, branch: str, exclude: bool, addons_list: Optional[str] = None):
     formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
-    outer: Result[None] = Result()
+
     result: Result[dict] = Result({"cmd": f"Download addons from {url}", "rows": []})
     assert result.data is not None
 
@@ -67,7 +67,7 @@ def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None
                 try:
                     shutil.copytree(addon.path, target_path)
                 except FileExistsError:
-                    outer.add_warning(f"Skipped (already exists): {addon.technical_name}")
+                    result.add_warning(f"Skipped (already exists): {addon.technical_name}")
                     result.data["rows"].append({"addon": addon.technical_name, "action": "skipped"})
                     continue
 
@@ -76,20 +76,22 @@ def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None
 
     new_addons = [r["addon"] for r in result.data["rows"] if r["action"] == "downloaded"]
 
-    output = prepare(result, outer, target=formatter.target)
-    deliver(formatter, output, "text", None)
+    # TODO: do something here...
+    # if not new_addons:
+    #     raise EarlyExit("No new addons here")
 
-    if not new_addons:
-        raise EarlyExit()
-
-    if exclude:
+    if new_addons and exclude:
         gitignore = repo_path / ".gitignore"
         start_tag = "# oops:addons:start"
         end_tag = "# oops:addons:end"
 
         block = read_tagged_block(gitignore, start_tag, end_tag)
         existing = {ln.strip() for ln in block.splitlines() if ln.strip() and not ln.strip().startswith("#")}
-
         merged = "\n".join(sorted(existing | {f"{a}/" for a in new_addons}))
+
         if file_updater(str(gitignore), merged, start_tag=start_tag, end_tag=end_tag):
-            commit(repo, repo_path, [".gitignore"], "addons_ignored", skip_hooks=True)
+            commit_result = commit_v2(repo, repo_path, [".gitignore"], "addons_ignored", skip_hooks=True)
+            result.merge(commit_result)
+
+    output = DownloadPresenter().prepare(result, target=formatter.target)
+    render_and_exit(result, formatter, output, "text")

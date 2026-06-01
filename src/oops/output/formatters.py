@@ -220,6 +220,9 @@ class JsonFormatter(OutputFormatter):
         data = output.layout
         assert data
 
+        if output.metadata is not None:
+            data = {**data, "metadata": output.metadata.to_dict()}
+
         return to_json_string(data)
 
     def error(self, message: str, code: int = 1) -> None:

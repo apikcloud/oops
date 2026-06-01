@@ -5,19 +5,16 @@
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING, List, Optional
+from oops.core.compat import List, Optional
 from oops.core.models import CommitInfo, Result, Stat, StatGroup, SubmoduleInfo
+from oops.output.base import SimplePresenter
 from oops.output.layout import (
     ConclusionBlock,
-    Output,
     SimpleSummaryLayout,
     TableBlock,
     statgroup_to_panel,
 )
 from oops.utils.render import approximate_duration, format_date, render_boolean
-
-if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
 
 
 def _render_commit(commit: Optional[CommitInfo]) -> List[str]:
@@ -65,55 +62,42 @@ def _build_metrics(rows: "Optional[List[SubmoduleInfo]]") -> StatGroup:
     )
 
 
-def prepare_full(result: Result[List[SubmoduleInfo]], outer: "Result[None]") -> "Output[dict]":
-    return Output(
-        {
-            "warnings": outer.warnings,
-            "submodules": [row.to_dict() for row in result.data] if result.data else [],
-            "metrics": _build_metrics(result.data).to_dict(),
+class ShowPresenter(SimplePresenter[List[SubmoduleInfo]]):
+    def to_machine(self, result: Result[List[SubmoduleInfo]]) -> dict:
+        rows = result.unwrap
+
+        return {
+            "warnings": result.warnings,
+            "submodules": [row.to_dict() for row in rows] or [],
+            "metrics": _build_metrics(rows).to_dict(),
         }
-    )
 
+    def to_human(self, result: Result[List[SubmoduleInfo]]) -> SimpleSummaryLayout:
+        rows = result.unwrap
 
-def prepare_summary(result: "Result[List[SubmoduleInfo]]", outer: "Result[None]") -> Output:
-    rows = result.data
-    if rows is None:
-        rows = []
+        metrics = _build_metrics(rows)
 
-    metrics = _build_metrics(rows)
+        table = TableBlock(
+            title="",
+            columns=[
+                ("Name", "brand.primary", "left"),
+                ("Url", "dim", "left"),
+                ("Branch", "brand.primary", "left"),
+                ("PR", "dim", "left"),
+                ("Last Commit", "dim", "left"),
+                ("Age", "green", "right"),
+                ("SHA", "dim", "left"),
+            ],
+            rows=[_render_row(row) for row in rows],
+        )
 
-    table = TableBlock(
-        title="",
-        columns=[
-            ("Name", "brand.primary", "left"),
-            ("Url", "dim", "left"),
-            ("Branch", "brand.primary", "left"),
-            ("PR", "dim", "left"),
-            ("Last Commit", "dim", "left"),
-            ("Age", "green", "right"),
-            ("SHA", "dim", "left"),
-        ],
-        rows=[_render_row(row) for row in rows],
-    )
+        panel = statgroup_to_panel(metrics)
 
-    panel = statgroup_to_panel(metrics)
-
-    all_ok = bool(rows)
-
-    return Output(
-        SimpleSummaryLayout(
+        return SimpleSummaryLayout(
             title="Submodules",
             table=table,
             panel=panel,
-            conclusion=ConclusionBlock(all_ok, "Report done" if all_ok else "Something wrongs"),
-            warnings=outer.warnings,
-            errors=outer.errors,
+            conclusion=ConclusionBlock(result.ok, "Report done" if result.ok else "Something wrongs"),
+            warnings=result.warnings,
+            errors=result.errors,
         )
-    )
-
-
-def prepare(results: "Result[List[SubmoduleInfo]]", outer: "Result[None]", target: RenderTarget) -> Output:
-    """Single entry point — dispatches based on the formatter target."""
-    if target.audience == "machine":
-        return prepare_full(results, outer)
-    return prepare_summary(results, outer)

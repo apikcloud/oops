@@ -70,7 +70,8 @@ def format_date(dt: date) -> str:
     Returns:
         Formatted date string.
     """
-
+    if dt is None:
+        return ""
     return dt.strftime(config.date_format)
 
 

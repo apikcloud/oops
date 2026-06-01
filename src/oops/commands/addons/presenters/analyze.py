@@ -15,24 +15,25 @@
 from __future__ import annotations
 
 from oops.core.compat import TYPE_CHECKING, Optional
-from oops.core.metadata import Metadata
 from oops.core.models import (
     ClassSummary,
     ModuleSummary,
     Result,
+    ResultCollection,
     Stat,
     StatGroup,
     StructureSummary,
     ViewsSummary,
 )
-from oops.output.layout import ConclusionBlock, Output, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
+from oops.output.base import Presenter
+from oops.output.layout import ConclusionBlock, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
 from oops.services.loc import LocStats
 from oops.utils.render import (
     colorize,
 )
 
 if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
+    pass
 _METHOD_COLUMNS: list[tuple[str, str]] = [
     ("COMPUTE METHODS", "Compute"),
     ("SELECTION METHODS", "Select"),
@@ -334,110 +335,94 @@ def _views_block(vs: "Optional[ViewsSummary]") -> dict:
     }
 
 
-def prepare_full(results: "list[Result[ModuleSummary]]", outer: "Result[None]", metadata: Metadata) -> Output[dict]:
-    """Full payload for JSON / scripts / downstream agents."""
+class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
+    def to_human(self, results: ResultCollection[ModuleSummary]) -> SummaryLayout:
+        """Reduced payload for console output."""
 
-    def _make(result: "Result[ModuleSummary]") -> dict:
-        assert result.data is not None
-        summary = result.data
+        sections = [_build_section(result) for result in results]
 
-        not_analysed: list[str] = []
-        s = summary.structure
-        if s.data:
-            not_analysed.append("data")
-        if s.demo:
-            not_analysed.append("demo")
-        if s.controllers_py:
-            not_analysed.append("controllers/")
-        if s.wizard_py:
-            not_analysed.append("wizard/")
-        if s.report_py:
-            not_analysed.append("report/")
-        if s.static_by_ext:
-            not_analysed.append("static/")
-
-        # Common stats, shared with summary
-        metrics = _build_metrics(result.data)
-        loc = _build_loc(summary.loc, summary.loc_pct)
-        manifest = _build_manifest(result.data)
-
-        return {
-            "module": summary.module_name,
-            "metrics": metrics.to_dict(),
-            "manifest": manifest.to_dict(),
-            "depends": summary.manifest.get("depends", []),
-            "models": [
-                {
-                    "class_name": c.class_name,
-                    "model_name": c.model_name,
-                    "is_new_model": c.is_new_model,
-                    "inherit": c.inherit,
-                    "ancestor_model": c.ancestor_model,
-                    "ancestor_module": c.ancestor_module,
-                    "ancestor_origin": c.ancestor_origin,
-                    "fields": {
-                        "total": c.fields_total,
-                        "base": c.fields_base,
-                        "new": c.fields_new,
-                        "inherited": c.fields_inherited,
-                        "by_type": c.fields_by_type,
-                    },
-                    "methods": {
-                        "total": c.methods_total,
-                        "by_section": c.methods_by_section,
-                        "overrides": c.overrides,
-                        "override_details": c.override_details,
-                        "inherited": c.inherited_methods,
-                        "inherited_details": c.inherited_method_details,
-                        "missing_docstrings": c.missing_docstrings,
-                    },
-                }
-                for c in summary.classes
-            ],
-            "structure": {
-                "data": s.data,
-                "demo": s.demo,
-                "controllers_py": s.controllers_py,
-                "wizard_py": s.wizard_py,
-                "report_py": s.report_py,
-                "static_by_ext": s.static_by_ext,
-            },
-            "loc": loc.to_dict(),
-            "views": _views_block(summary.views_summary),
-            "not_analysed": not_analysed,
-            "warnings": result.warnings,
-        }
-
-    return Output(
-        {
-            "warnings": outer.warnings,
-            "modules": [_make(r) for r in results],
-            "metadata": metadata.to_dict(),
-        }
-    )
-
-
-def prepare_summary(results: "list[Result[ModuleSummary]]", outer: "Result[None]") -> "Output[SummaryLayout]":
-    """Reduced payload for console output."""
-
-    all_ok = outer.ok and all(r.ok for r in results)
-    sections = [_build_section(result) for result in results]
-
-    return Output(
-        SummaryLayout(
+        return SummaryLayout(
             title="",
             sections=sections,
-            warnings=outer.warnings,
-            conclusion=ConclusionBlock(all_ok, f"Done — analysed {len(results)} module(s)"),
+            warnings=results.warnings,
+            conclusion=ConclusionBlock(results.ok, f"Done — analysed {len(results)} module(s)"),
         )
-    )
 
+    def to_machine(self, results: ResultCollection[ModuleSummary]) -> dict:
+        """Full payload for JSON / scripts / downstream agents."""
 
-def prepare(
-    results: "list[Result[ModuleSummary]]", outer: "Result[None]", target: RenderTarget, metadata: Metadata
-) -> Output:
-    """Single entry point — dispatches based on the formatter target."""
+        def _make(result: "Result[ModuleSummary]") -> dict:
+            assert result.data is not None
+            summary = result.data
 
-    if target.audience == "machine":
-        return prepare_full(results, outer, metadata)
-    return prepare_summary(results, outer)
+            not_analysed: list[str] = []
+            s = summary.structure
+            if s.data:
+                not_analysed.append("data")
+            if s.demo:
+                not_analysed.append("demo")
+            if s.controllers_py:
+                not_analysed.append("controllers/")
+            if s.wizard_py:
+                not_analysed.append("wizard/")
+            if s.report_py:
+                not_analysed.append("report/")
+            if s.static_by_ext:
+                not_analysed.append("static/")
+
+            # Common stats, shared with summary
+            metrics = _build_metrics(result.data)
+            loc = _build_loc(summary.loc, summary.loc_pct)
+            manifest = _build_manifest(result.data)
+
+            return {
+                "module": summary.module_name,
+                "metrics": metrics.to_dict(),
+                "manifest": manifest.to_dict(),
+                "depends": summary.manifest.get("depends", []),
+                "models": [
+                    {
+                        "class_name": c.class_name,
+                        "model_name": c.model_name,
+                        "is_new_model": c.is_new_model,
+                        "inherit": c.inherit,
+                        "ancestor_model": c.ancestor_model,
+                        "ancestor_module": c.ancestor_module,
+                        "ancestor_origin": c.ancestor_origin,
+                        "fields": {
+                            "total": c.fields_total,
+                            "base": c.fields_base,
+                            "new": c.fields_new,
+                            "inherited": c.fields_inherited,
+                            "by_type": c.fields_by_type,
+                        },
+                        "methods": {
+                            "total": c.methods_total,
+                            "by_section": c.methods_by_section,
+                            "overrides": c.overrides,
+                            "override_details": c.override_details,
+                            "inherited": c.inherited_methods,
+                            "inherited_details": c.inherited_method_details,
+                            "missing_docstrings": c.missing_docstrings,
+                        },
+                    }
+                    for c in summary.classes
+                ],
+                "structure": {
+                    "data": s.data,
+                    "demo": s.demo,
+                    "controllers_py": s.controllers_py,
+                    "wizard_py": s.wizard_py,
+                    "report_py": s.report_py,
+                    "static_by_ext": s.static_by_ext,
+                },
+                "loc": loc.to_dict(),
+                "views": _views_block(summary.views_summary),
+                "not_analysed": not_analysed,
+                "warnings": result.warnings,
+            }
+
+        return {
+            "warnings": results.warnings,
+            "modules": [_make(r) for r in results],
+        }

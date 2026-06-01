@@ -22,7 +22,7 @@ from oops.core.paths import stats_file
 from oops.output.formatters import FormatterRegistry, JsonFormatter, SimpleSummaryConsoleFormatter
 from oops.output.sinks import deliver
 
-from .presenters.usage import prepare
+from .presenters.usage import UsagePresenter
 
 FORMATTERS: FormatterRegistry = {
     "json": JsonFormatter,
@@ -54,6 +54,9 @@ def main(output_format: str, output_path: Path) -> None:
         click.echo("No usage data found.")
         raise EarlyExit()
 
+    result: Result[dict] = Result()
+    result.data = {"rows": [], "from": None}
+
     counts: Counter = Counter()
     oldest_ts = ""
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -68,8 +71,8 @@ def main(output_format: str, output_path: Path) -> None:
             ts = event.get("ts", "")
             if ts and (not oldest_ts or ts < oldest_ts):
                 oldest_ts = ts[:10]
-        except json.JSONDecodeError:
-            continue
+        except json.JSONDecodeError as error:
+            result.add_warning(str(error))
 
     rows = []
     for cmd, count in counts.most_common():
@@ -78,9 +81,8 @@ def main(output_format: str, output_path: Path) -> None:
         name = parts[1] if len(parts) == 2 else parts[0]
         rows.append({"scope": scope, "command": name, "count": count})
 
-    result: Result[dict] = Result()
-    result.data = {"rows": rows, "from": oldest_ts}
-    outer: Result[None] = Result()
+    result.data["rows"] = rows
+    result.data["from"] = oldest_ts
 
-    output = prepare(result, outer, target=formatter.target)
+    output = UsagePresenter().prepare(result, target=formatter.target)
     deliver(formatter, output, output_format, output_path)

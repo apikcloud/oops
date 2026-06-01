@@ -25,7 +25,7 @@ from oops.services.git import commit_v2, require_repository
 from oops.utils.helpers import str_to_list
 from oops.utils.render import human_readable
 
-from .presenters.materialize import prepare
+from .presenters.materialize import MaterializePresenter
 
 
 @command("materialize", help=__doc__)
@@ -49,7 +49,7 @@ def main(ctx, include: Optional[str], exclude: Optional[str], dry_run: bool, no_
         raise click.UsageError("--include and --exclude are mutually exclusive.")
 
     formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
-    outer: Result[None] = Result()
+
     result: Result[dict] = Result({"cmd": "Materialize addons", "rows": [], "dry_run": dry_run})
     assert result.data is not None
 
@@ -76,7 +76,7 @@ def main(ctx, include: Optional[str], exclude: Optional[str], dry_run: bool, no_
             try:
                 materialize_symlink(addon_path, dry_run=False)
             except Exception as error:
-                outer.add_error(f"Failed to materialize {addon_path.name}: {error}")
+                result.add_error(f"Failed to materialize {addon_path.name}: {error}")
                 result.data["rows"].append({"addon": addon_path.name, "action": "failed"})
                 continue
 
@@ -92,7 +92,7 @@ def main(ctx, include: Optional[str], exclude: Optional[str], dry_run: bool, no_
             names=human_readable([str(path.name) for path in changes], sep="\n"),
             remove_and_add=True,
         )
-        outer.merge(commit_result)
+        result.merge(commit_result)
 
-    output = prepare(result, outer, target=formatter.target)
-    render_and_exit(ctx, outer, formatter, output, "text", None)
+    output = MaterializePresenter().prepare(result, target=formatter.target)
+    render_and_exit(result, formatter, output, "text", None)

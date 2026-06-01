@@ -56,12 +56,11 @@ def main(ctx, no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = No
     candidates = []
     unused = []
 
-    result: Result[Rows] = Result(
-        Rows(
-            columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
-            rows=[],
-            metrics={"total": 0, "planned": 0, "success": 0, "failed": 0, "skipped": 0},
-        )
+    result: Result[Rows] = Result()
+    result.data = Rows(
+        columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
+        rows=[],
+        metrics={"total": 0, "planned": 0, "success": 0, "failed": 0, "skipped": 0},
     )
 
     outer: Result[None] = Result()

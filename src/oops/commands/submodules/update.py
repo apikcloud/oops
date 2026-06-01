@@ -15,12 +15,13 @@ import click
 from oops.commands.base import command, render_and_exit
 from oops.core.exceptions import AppAbort, OopsError
 from oops.core.logger import live_progress, log
+from oops.core.metadata import get_metadata
 from oops.core.models import Result
 from oops.output.formatters import OutputFormatter, SimpleSummaryConsoleFormatter
-from oops.services.git import browse_submodules, commit_v2, is_pull_request, require_repository, require_submodules
+from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
 from oops.utils.render import prompt_choices
 
-from .presenters.update import prepare
+from .presenters.update import UpdatePresenter
 
 
 @command("update", help=__doc__)
@@ -29,12 +30,13 @@ from .presenters.update import prepare
 @click.option("--skip-pr", is_flag=True, help="Skip submodules that are pull requests")
 @click.option("--only-pr", is_flag=True, help="Skip submodules that are not pull requests")
 @click.argument("names", nargs=-1, required=False)
-@click.pass_context
-def main(ctx, dry_run: bool, no_commit: bool, skip_pr: bool, only_pr: bool, names: "tuple[str] | None" = None):
+def main(dry_run: bool, no_commit: bool, skip_pr: bool, only_pr: bool, names: "tuple[str] | None" = None):
+    metadata = get_metadata()
+
     formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
-    outer: Result[None] = Result()
-    result: Result[dict] = Result({"cmd": "Update submodules", "rows": [], "dry_run": dry_run})
-    assert result.data is not None
+
+    result: Result[dict] = Result()
+    result.data = {"cmd": "Update submodules", "rows": [], "dry_run": dry_run}
 
     if skip_pr and only_pr:
         raise click.UsageError("")
@@ -61,14 +63,21 @@ def main(ctx, dry_run: bool, no_commit: bool, skip_pr: bool, only_pr: bool, name
 
     with live_progress("Updating submodules…"):
         total = len(names)
-        for index, submodule in browse_submodules(submodules, names):
+        for index, submodule in enumerate(submodules):
+            if submodule.name not in names:
+                result.data["rows"].append(
+                    {"submodule": submodule.name, "branch": submodule.branch_name or "—", "action": "skipped"}
+                )
+                continue
+
             if not submodule.path:
-                outer.add_warning(f"Missing path for {submodule.name}, skipping.")
+                result.add_warning(f"Missing path for {submodule.name}, skipping.")
                 result.data["rows"].append({"submodule": submodule.name, "branch": "—", "action": "skipped"})
                 continue
 
-            if not submodule.branch:
-                outer.add_warning(f"No branch defined for {submodule.name}, skipping.")
+            # FIXME: branch_name defaults to master ?
+            if not submodule.branch_name:
+                result.add_warning(f"No branch defined for {submodule.name}, skipping.")
                 result.data["rows"].append({"submodule": submodule.name, "branch": "—", "action": "skipped"})
                 continue
 
@@ -83,14 +92,22 @@ def main(ctx, dry_run: bool, no_commit: bool, skip_pr: bool, only_pr: bool, name
             sub_repo = submodule.module()
             branch = submodule.branch_name
 
-            sub_repo.remotes.origin.fetch()
-            sub_repo.git.checkout(branch)
-            sub_repo.remotes.origin.pull(branch)
+            try:
+                sub_repo.remotes.origin.fetch()
+                sub_repo.git.checkout(branch)
+                sub_repo.remotes.origin.pull(branch)
 
-            repo.git.add(submodule.path)
-            files.append(submodule.path)
-            changes.append(f"{submodule.name} ({submodule.branch})")
-            result.data["rows"].append({"submodule": submodule.name, "branch": branch, "action": "updated"})
+                repo.git.add(submodule.path)
+                files.append(submodule.path)
+                changes.append(f"{submodule.name} ({submodule.branch})")
+                status = "updated"
+            except Exception as error:
+                result.add_error(str(error))
+                status = "failed"
+
+            result.data["rows"].append({"submodule": submodule.name, "branch": branch, "action": status})
+
+        result.data["rows"].sort(key=lambda row: row["submodule"])
 
     if not no_commit and not dry_run:
         tmp = commit_v2(
@@ -102,7 +119,8 @@ def main(ctx, dry_run: bool, no_commit: bool, skip_pr: bool, only_pr: bool, name
             already_staged=True,
             description="\n".join(changes),
         )
-        outer.merge(tmp)
+        result.merge(tmp)
 
-    output = prepare(result, outer, target=formatter.target)
-    render_and_exit(ctx, outer, formatter, output, "text", None)
+    output = UpdatePresenter().prepare(result, target=formatter.target, metadata=metadata)
+
+    render_and_exit(result, formatter, output, "text", None)

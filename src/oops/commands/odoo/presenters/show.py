@@ -5,97 +5,59 @@
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING, Dict, List
-from oops.core.metadata import Metadata
-from oops.core.models import Result, StatGroup
+from oops.core.compat import Dict
+from oops.core.models import Result
+from oops.output.base import SimplePresenter
 from oops.output.layout import (
     ConclusionBlock,
-    Output,
+    MetricsPanelBlock,
     SimpleSummaryLayout,
     TableBlock,
-    statgroup_to_panel,
 )
 
-if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
 
+class ShowPresenter(SimplePresenter[Dict]):
+    def to_machine(self, result: "Result[Dict]") -> dict:
 
-def prepare_full(
-    result: "Result[List[Dict]]",
-    outer: "Result[None]",
-    stats: StatGroup,
-    metadata: Metadata,
-) -> "Output[dict]":
-    return Output(
-        {
-            "metadata": metadata.to_dict(),
-            "warnings": outer.warnings,
-            "sources": result.data if result.data else [],
-            "counters": stats.to_dict(),
+        data = result.unwrap
+
+        return {
+            "warnings": result.warnings,
+            "sources": data["rows"],
+            "metrics": data["metrics"],
         }
-    )
 
+    def to_human(self, result: "Result[Dict]") -> "SimpleSummaryLayout":
+        data = result.unwrap
 
-def prepare_summary(
-    result: "Result[List[Dict]]",
-    outer: "Result[None]",
-    stats: StatGroup,
-    metadata: Metadata,
-) -> "Output[SimpleSummaryLayout]":
-    data = result.data or []
+        rows = data.pop("rows")
+        metrics = data.pop("metrics")
 
-    columns = [
-        ("Version", "brand.primary", "left"),
-        ("Community", "dim", "left"),
-        ("Enterprise", "dim", "left"),
-        ("Themes", "dim", "left"),
-    ]
+        panel = MetricsPanelBlock("Summary", values=[[k.capitalize(), v] for k, v in metrics.items()])
 
-    if not data:
-        out = Output(
-            SimpleSummaryLayout(
-                title="Odoo Sources",
-                table=TableBlock(title="", columns=columns, rows=[]),
-                panel=statgroup_to_panel(stats),
-                conclusion=ConclusionBlock(True, "No version directories found"),
-                warnings=outer.warnings,
-            )
+        table = TableBlock(
+            title="",
+            columns=[
+                ("Version", "brand.primary", "left"),
+                ("Community", "dim", "left"),
+                ("Enterprise", "dim", "left"),
+                ("Themes", "dim", "left"),
+            ],
+            rows=[[row["version"], row["community"], row["enterprise"], row["themes"]] for row in rows],
         )
-        out.metadata = metadata
-        return out
 
-    table = TableBlock(
-        title="",
-        columns=[
-            ("Version", "brand.primary", "left"),
-            ("Community", "dim", "left"),
-            ("Enterprise", "dim", "left"),
-            ("Themes", "dim", "left"),
-        ],
-        rows=[[row["version"], row["community"], row["enterprise"], row["themes"]] for row in data],
-    )
+        if not rows:
+            message = "No version directories found"
+        elif result.ok:
+            message = "All done"
+        else:
+            message = "Command failed"
 
-    all_ok = not result.errors
-    out = Output(
-        SimpleSummaryLayout(
+        return SimpleSummaryLayout(
             title="Odoo Sources",
             table=table,
-            panel=statgroup_to_panel(stats),
-            conclusion=ConclusionBlock(all_ok, "All done" if all_ok else "Some repos failed"),
-            warnings=outer.warnings,
+            panel=panel,
+            conclusion=ConclusionBlock(result.ok, message),
+            warnings=result.warnings,
+            errors=result.errors,
         )
-    )
-    out.metadata = metadata
-    return out
-
-
-def prepare(
-    result: "Result[List[Dict]]",
-    outer: "Result[None]",
-    stats: StatGroup,
-    target: RenderTarget,
-    metadata: Metadata,
-) -> Output:
-    if target.audience == "machine":
-        return prepare_full(result, outer, stats, metadata)
-    return prepare_summary(result, outer, stats, metadata)

@@ -28,9 +28,8 @@ from datetime import date as Date
 from pathlib import Path
 
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
 from oops.core.compat import Optional
-from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
@@ -41,13 +40,12 @@ from oops.output.formatters import (
     OutputFormatter,
     SimpleSummaryConsoleFormatter,
 )
-from oops.output.sinks import deliver
 from oops.services.git import require_repository
 from oops.utils.git import update_at_date, update_latest
 from oops.utils.helpers import normalize_version
 from oops.utils.render import prompt_select
 
-from .presenters.update import prepare
+from .presenters.update import UpdatePresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
@@ -135,7 +133,6 @@ def main(
 
     version = normalize_version(version)
 
-    outer: Result[None] = Result()
     result: Result[dict] = Result({"cmd": f"Update Odoo {version} sources", "rows": []})
     assert result.data is not None
 
@@ -156,7 +153,7 @@ def main(
 
             if not dest.exists():
                 msg = f"'{dest}' not found — run oops-odoo-download first"
-                outer.add_warning(msg)
+                result.add_warning(msg)
                 result.data["rows"].append({"repo": label, "action": "skipped", "detail": "not found"})
                 continue
 
@@ -168,7 +165,7 @@ def main(
                 except (subprocess.CalledProcessError, click.ClickException) as exc:
                     msg = f"{label} update failed: {exc}"
                     result.data["rows"].append({"repo": label, "action": "failed", "detail": str(exc)})
-                    outer.add_error(msg)
+                    result.add_error(msg)
             else:
                 log.info(f"Updating {label} {version} to latest…")
                 try:
@@ -177,10 +174,7 @@ def main(
                 except subprocess.CalledProcessError as exc:
                     msg = f"{label} update failed: {exc}"
                     result.data["rows"].append({"repo": label, "action": "failed", "detail": str(exc)})
-                    outer.add_error(msg)
+                    result.add_error(msg)
 
-    output = prepare(result, outer, target=formatter.target, metadata=metadata)
-    deliver(formatter, output, output_format, output_path)
-
-    if outer.errors:
-        raise OopsError("; ".join(outer.errors))
+    output = UpdatePresenter().prepare(result, target=formatter.target, metadata=metadata)
+    render_and_exit(result, formatter, output, output_format, output_path)

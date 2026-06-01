@@ -127,14 +127,16 @@ def command(*args: Any, **kwargs: Any):
 
 
 def render_and_exit(
-    ctx: click.Context,
-    outer: Result,
+    result: Result,
     formatter,
     output,
     output_format: str = "text",
     output_path=None,
 ):
     """Render the output, then exit non-zero if `outer` has errors."""
+
+    ctx = click.get_current_context()
+
     deliver(formatter, output, output_format, output_path)
-    if not outer.ok:
+    if not result.ok:
         ctx.exit(1)

@@ -44,7 +44,7 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
-from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary, ViewsSummary
+from oops.core.models import ClassSummary, ModuleSummary, Result, ResultCollection, StructureSummary, ViewsSummary
 from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import find_addons
 from oops.io.installed_modules import read_installed_modules
@@ -68,7 +68,7 @@ from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
 
-from .presenters.analyze import prepare
+from .presenters.analyze import AnalyzePresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SummaryConsoleFormatter,
@@ -96,13 +96,6 @@ FORMATTERS: FormatterRegistry = {
     help="Force a project KB rebuild before analysis.",
 )
 @click.option(
-    "--verbose",
-    "-v",
-    is_flag=True,
-    default=False,
-    help="Enable verbose KB logging.",
-)
-@click.option(
     "--format",
     "output_format",
     type=click.Choice(["text", "json", "html"]),
@@ -123,7 +116,6 @@ def main(  # noqa: C901, PLR0912, PLR0915
     module_paths: tuple[Path, ...],
     refresh: bool,
     output_format: str,
-    verbose: bool,
     output_path: Path,
 ) -> None:
 
@@ -131,9 +123,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
     json_mode = output_format == "json"
-    outer: Result[None] = Result()
+    results: ResultCollection[ModuleSummary] = ResultCollection()
     if not json_mode:
-        outer.add_warning("This command is experimental and may change without notice between releases.")
+        results.add_warning("This command is experimental and may change without notice between releases.")
 
     resolved_paths = [mp.resolve() for mp in module_paths]
     _, repo_path = require_repository()
@@ -159,9 +151,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
             missing, extra = compute_root_drift(repo_path, _project_modules)
             if missing:
-                outer.add_warning(f"Modules in installed_modules.txt with no addon at the repo root: {missing}")
+                results.add_warning(f"Modules in installed_modules.txt with no addon at the repo root: {missing}")
             if extra:
-                outer.add_warning(
+                results.add_warning(
                     f"Addons at the repo root not in installed_modules.txt "
                     f"(will not be scanned by the project KB): {extra}"
                 )
@@ -179,12 +171,12 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     "Create the file (one module per line) and re-run oops analyze."
                 )
             why = "forced via --refresh" if refresh else f"stale: {reason}"
-            outer.add_warning(f"Rebuilding project KB: {why}")
+            results.add_warning(f"Rebuilding project KB: {why}")
             try:
                 kb_result = build_project_kb(repo_path, version, info.modules)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
-            outer.merge(kb_result)
+            results.merge(kb_result)
             kb_path = kb_result.data
         else:
             kb_path = project_kb_path(repo_path)
@@ -201,8 +193,6 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 total_loc = get_addon_loc(str(resolved_paths[0])).total
         else:
             total_loc = sum(get_addon_loc(str(mp)).total for mp in resolved_paths)
-
-        module_results: list[Result[ModuleSummary]] = []
 
         with KBReader(kb_path) as kb:
             modules_index = kb.get_modules()
@@ -257,12 +247,12 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     views_summary=views_summary,
                 )
 
-                module_results.append(module_result)
+                results.add(module_result)
 
     set_kb_metadata(repo_path, version)
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = prepare(module_results, outer, target=formatter.target, metadata=metadata)
+    output = AnalyzePresenter().prepare(results, target=formatter.target, metadata=metadata)
     deliver(formatter, output, output_format, output_path)
 
 

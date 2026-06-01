@@ -5,63 +5,52 @@
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
-from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SimpleSummaryLayout, TableBlock
-
-if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
+from oops.output.base import SimplePresenter
+from oops.output.layout import ConclusionBlock, MetricsPanelBlock, SimpleSummaryLayout, TableBlock
 
 
-def prepare_full(result: "Result[dict]", outer: "Result[None]") -> "Output[dict]":
-    assert result.data
-    return Output(
-        {
-            "warnings": outer.warnings,
-            "rows": result.data["rows"],
-            "from": result.data["from"],
+class UsagePresenter(SimplePresenter[dict]):
+    def to_machine(self, result: "Result[dict]") -> dict:
+
+        data = result.unwrap
+
+        return {
+            "warnings": result.warnings,
+            "rows": data["rows"],
+            "from": data["from"],
         }
-    )
 
+    def to_human(self, result: "Result[dict]") -> SimpleSummaryLayout:
+        data = result.unwrap
 
-def prepare_summary(result: "Result[dict]", outer: "Result[None]") -> "Output[SimpleSummaryLayout]":
-    data = result.data
-    assert data
+        rows = data["rows"]
+        total = sum(r["count"] for r in rows)
 
-    rows = data["rows"]
-    total = sum(r["count"] for r in rows)
+        table = TableBlock(
+            title="",
+            columns=[
+                ("Scope", "dim", "left"),
+                ("Command", "brand.primary", "left"),
+                ("Count", "green", "right"),
+            ],
+            rows=[[r["scope"], r["command"], str(r["count"])] for r in rows],
+        )
 
-    table = TableBlock(
-        title="",
-        columns=[
-            ("Scope", "dim", "left"),
-            ("Command", "brand.primary", "left"),
-            ("Count", "green", "right"),
-        ],
-        rows=[[r["scope"], r["command"], str(r["count"])] for r in rows],
-    )
+        panel = MetricsPanelBlock(
+            "Summary",
+            [
+                ["From", data["from"] or "—"],
+                ["Total", str(total)],
+                ["Commands", str(len(rows))],
+            ],
+        )
 
-    panel = MetricsPanelBlock(
-        "Summary",
-        [
-            ["From", data["from"] or "—"],
-            ["Total", str(total)],
-            ["Commands", str(len(rows))],
-        ],
-    )
-
-    return Output(
-        SimpleSummaryLayout(
+        return SimpleSummaryLayout(
             title="oops usage",
             table=table,
             panel=panel,
             conclusion=ConclusionBlock(True, "Usage report"),
-            warnings=outer.warnings,
+            warnings=result.warnings,
+            errors=result.errors,
         )
-    )
-
-
-def prepare(result: "Result[dict]", outer: "Result[None]", target: RenderTarget) -> Output:
-    if target.audience == "machine":
-        return prepare_full(result, outer)
-    return prepare_summary(result, outer)

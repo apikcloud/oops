@@ -10,9 +10,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-from oops.core.compat import Any, Dict, Generic, List, Literal, Optional, T
+from oops.core.compat import TYPE_CHECKING, Any, Dict, Generic, List, Literal, Optional, Protocol, T
 from oops.utils.helpers import date_from_string
 from oops.utils.render import format_datetime
 
@@ -272,6 +271,15 @@ class ModuleSummary:
     views_summary: "Optional[ViewsSummary]" = None
 
 
+class HasStatus(Protocol):
+    @property
+    def ok(self) -> bool: ...
+    @property
+    def warnings(self) -> list[str]: ...
+    @property
+    def errors(self) -> list[str]: ...
+
+
 @dataclass
 class Result(Generic[T]):
     data: "Optional[T]" = None
@@ -282,6 +290,12 @@ class Result(Generic[T]):
     @property
     def ok(self) -> bool:
         return not self.errors
+
+    @property
+    def unwrap(self) -> T:
+        if self.data is None:
+            raise ValueError("Result has no data")
+        return self.data
 
     def add_message(self, message: str) -> None:
         self.messages.append(message)
@@ -300,11 +314,54 @@ class Result(Generic[T]):
 
 
 @dataclass
+class ResultCollection(Generic[T]):
+    """Aggregates multiple Result[T] plus collection-level warnings/errors."""
+
+    items: list[Result[T]] = field(default_factory=list)
+    messages: "list[str]" = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.errors and all(item.ok for item in self.items)
+
+    def add(self, result: Result[T]) -> None:
+        self.items.append(result)
+
+    def add_warning(self, message: str) -> None:
+        self.warnings.append(message)
+
+    def add_error(self, message: str) -> None:
+        self.errors.append(message)
+
+    def merge(self, other: Result) -> "ResultCollection[T]":
+        """Merge a global Result (warnings/errors) into the collection."""
+        self.messages.extend(other.messages)
+        self.warnings.extend(other.warnings)
+        self.errors.extend(other.errors)
+
+        return self
+
+    def __len__(self) -> int:
+        return len(self.items)
+
+    def __iter__(self):
+        return iter(self.items)
+
+
+@dataclass
 class Rows:
+    rows: list[Any]
     title: str = "Results"
-    columns: list[tuple[str, str, str]] = field(default_factory=list)
-    rows: list[Any] = field(default_factory=list)
+    columns: list[Any] = field(default_factory=list)
     metrics: dict[str, int] = field(default_factory=dict)
+
+    def __len__(self) -> int:
+        return len(self.rows)
+
+    def __iter__(self):
+        return iter(self.rows)
 
 
 @dataclass

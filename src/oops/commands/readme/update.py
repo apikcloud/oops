@@ -27,7 +27,7 @@ from oops.services.git import commit_v2, require_repository
 from oops.services.github import get_github_user
 from oops.utils.render import render_table
 
-from .presenters.update import prepare
+from .presenters.update import UpdatePresenter
 
 
 @command(name="update", help=__doc__)
@@ -38,14 +38,12 @@ from .presenters.update import prepare
     is_flag=True,
     help="Minimal output for pre-commit hooks.",
 )
-@click.pass_context
-def main(ctx, dry_run: bool = False, no_commit: bool = False, hook: bool = False):
+def main(dry_run: bool = False, no_commit: bool = False, hook: bool = False):
 
     formatter: OutputFormatter = PreCommitFormatter() if hook else SimpleSummaryConsoleFormatter()
 
     repo, repo_path = require_repository()
 
-    outer: Result[None] = Result()
     result: Result[dict] = Result({"cmd": "Update README", "rows": [], "dry_run": dry_run})
 
     assert result.data is not None
@@ -93,14 +91,14 @@ def main(ctx, dry_run: bool = False, no_commit: bool = False, hook: bool = False
             status = "updated" if has_update else "no change"
         except Exception as error:
             has_update = False
-            outer.add_error(str(error))
+            result.add_error(str(error))
             status = "failed"
 
         result.data["rows"].append(["addons", status])
 
     if not no_commit and not dry_run and has_update:
         commit_result: Result = commit_v2(repo, repo_path, [readme_file], "addons_update_table", skip_hooks=True)
-        outer.merge(commit_result)
+        result.merge(commit_result)
 
-    output = prepare(result, outer, target=formatter.target)
-    render_and_exit(ctx, outer, formatter, output, "text")
+    output = UpdatePresenter().prepare(result, formatter.target)
+    render_and_exit(result, formatter, output, "text")

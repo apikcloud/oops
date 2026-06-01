@@ -22,10 +22,9 @@ import subprocess
 from pathlib import Path
 
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
 from oops.core.compat import Optional
 from oops.core.config import config
-from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
@@ -36,13 +35,12 @@ from oops.output.formatters import (
     OutputFormatter,
     SimpleSummaryConsoleFormatter,
 )
-from oops.output.sinks import deliver
 from oops.services.git import require_repository
 from oops.utils.git import clone, update_latest
 from oops.utils.helpers import normalize_version
 from oops.utils.render import prompt_select
 
-from .presenters.download import prepare
+from .presenters.download import DownloadPresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
@@ -92,8 +90,15 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout.",
 )
-@click.option("--verbose", is_flag=True, default=False, help="Stream git output to the terminal.")
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Stream git output to the terminal.",
+)
+@click.pass_context
 def main(
+    ctx,
     version: Optional[str],
     do_update: bool,
     with_community: bool,
@@ -107,7 +112,6 @@ def main(
     metadata = get_metadata()
     assert metadata is not None
 
-    outer: Result[None] = Result()
     result: Result[dict] = Result({"cmd": f"Download Odoo {version} sources", "rows": []})
     assert result.data is not None
 
@@ -123,7 +127,6 @@ def main(
             )
 
     version = normalize_version(version)
-
     dirs = get_odoo_sources_dirs(version)
 
     repos = [
@@ -146,10 +149,10 @@ def main(
                     except subprocess.CalledProcessError as exc:
                         msg = f"{label} update failed: {exc}"
                         result.data["rows"].append({"repo": label, "action": "failed", "status": msg})
-                        outer.add_error(msg)
+                        result.add_error(msg)
                 else:
                     msg = f"'{dest}' already exists — skipping {label} clone (use --update to pull)"
-                    outer.add_warning(msg)
+                    result.add_warning(msg)
                     result.data["rows"].append({"repo": label, "action": "skipped", "status": msg})
             else:
                 log.info(f"Cloning Odoo {label} {version}…")
@@ -159,10 +162,7 @@ def main(
                 except subprocess.CalledProcessError as exc:
                     msg = f"{label} clone failed: {exc}"
                     result.data["rows"].append({"repo": label, "action": "failed", "status": msg})
-                    outer.add_error(msg)
+                    result.add_error(msg)
 
-    output = prepare(result, outer, target=formatter.target, metadata=metadata)
-    deliver(formatter, output, output_format, output_path)
-
-    if outer.errors:
-        raise OopsError("; ".join(outer.errors))
+    output = DownloadPresenter().prepare(result, target=formatter.target, metadata=metadata)
+    render_and_exit(result, formatter, output, output_format, output_path)

@@ -49,7 +49,7 @@ from oops.utils.render import (
     prompt_select,
 )
 
-from .presenters.build_global import prepare
+from .presenters.build_global import BuildGlobalPresenter
 
 _ORIGIN_MAP = {"community": "odoo"}
 
@@ -89,7 +89,6 @@ def main(
 ) -> None:
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
-    outer: Result[None] = Result()
 
     experimental_warning()
 
@@ -137,7 +136,7 @@ def main(
             for root in odoo_addons_roots(path):
                 local_result: Result[dict] = scan_tier(root, name)
                 for w in local_result.warnings:
-                    outer.add_warning(f"[{name}] {w}")
+                    result.add_warning(f"[{name}] {w}")
 
                 xml_result = scan_tier_xml(root, name)
 
@@ -151,7 +150,7 @@ def main(
                 local_result.data["actions"] = xml_result.data["actions"]
                 local_result.data["menus"] = xml_result.data["menus"]
                 for w in xml_result.warnings:
-                    outer.add_warning(f"[{name}] {w}")
+                    result.add_warning(f"[{name}] {w}")
 
                 scan_results.append(local_result.data)
                 data = local_result.data
@@ -188,5 +187,5 @@ def main(
         result.data["kb"] = temp_result.data
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = prepare(result, outer, target=formatter.target)
+    output = BuildGlobalPresenter().prepare(result, target=formatter.target)
     deliver(formatter, output, output_format, output_path)

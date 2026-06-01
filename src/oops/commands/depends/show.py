@@ -19,7 +19,7 @@ from oops.services.git import list_submodules, require_repository
 from oops.services.kb import load_odoo_kb, require_kb
 from oops.utils.render import ask
 
-from .presenters.show import prepare
+from .presenters.show import ShowPresenter
 
 FORMATTERS: FormatterRegistry = {
     "json": JsonFormatter,
@@ -43,13 +43,15 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
-def main(output_format: str, output_path: Optional[Path]) -> None:
+@click.pass_context
+def main(ctx, output_format: str, output_path: Optional[Path]) -> None:
     repo, repo_path = require_repository()
+
+    metadata = ctx.obj["metadata"]
     formatter = FORMATTERS[output_format]()
 
-    outer: Result[None] = Result()
-    result: Result[list[dict]] = Result()
-    result.data = []
+    result: Result[dict] = Result()
+    result.data = {"addons": [], "metrics": {}}
 
     # 1. Resolve Odoo version (with prompt fallback).
     version: Optional[str] = None
@@ -57,7 +59,7 @@ def main(output_format: str, output_path: Optional[Path]) -> None:
         image_info = parse_odoo_version(repo_path)
         version = str(image_info.major_version)
     except (FileNotFoundError, ValueError) as exc:
-        outer.add_warning(str(exc) or "Could not parse Odoo version.")
+        result.add_warning(str(exc) or "Could not parse Odoo version.")
 
     if not version:
         version = ask("Odoo version")
@@ -74,7 +76,7 @@ def main(output_format: str, output_path: Optional[Path]) -> None:
             log.info(f"Enrichment of {addon.technical_name}")
             sub = subs.get(addon.rel_path, {})
             enrich_addon(addon, sub)
-            result.data.append(
+            result.data["addons"].append(
                 {
                     "name": addon.technical_name,
                     "depends": addon.depends,
@@ -84,26 +86,26 @@ def main(output_format: str, output_path: Optional[Path]) -> None:
             )
 
         # 2b. Walk the dependency chain to pull required Odoo modules.
-        truly_unresolved = expand_to_transitive_closure(result.data, odoo_kb)
+        truly_unresolved = expand_to_transitive_closure(result.data["addons"], odoo_kb)
         if truly_unresolved:
-            outer.add_warning(
+            result.add_warning(
                 f"{len(truly_unresolved)} modules referenced but not found: {', '.join(truly_unresolved)}"
             )
 
         # 2c. Compute transitive metrics on the closed graph.
-        graph_stats = compute_dependency_metrics(result.data)
+        graph_stats = compute_dependency_metrics(result.data["addons"])
 
     # 3. Build the payload.
-    stats = {
-        "total": len(result.data),
-        "by_origin": _count_by_origin(result.data),
+    result.data["metrics"] = {
+        "total": len(result.data["addons"]),
+        "by_origin": _count_by_origin(result.data["addons"]),
         "roots": graph_stats["roots"],
         "leaves_count": len(graph_stats["leaves"]),
         "unresolved": truly_unresolved,
     }
 
     # 4. Prepare for the chosen audience and render.
-    output = prepare(result, outer, target=formatter.target, stats=stats)
+    output = ShowPresenter().prepare(result, target=formatter.target, metadata=metadata)
     deliver(formatter, output, output_format, output_path)
 
 

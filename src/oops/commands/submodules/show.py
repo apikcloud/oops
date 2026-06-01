@@ -16,6 +16,7 @@ from pathlib import Path
 import click
 from oops.commands.base import command, render_and_exit
 from oops.core.logger import live_progress, log
+from oops.core.metadata import get_metadata
 from oops.core.models import Result, SubmoduleInfo
 from oops.output.formatters import (
     FormatterRegistry,
@@ -26,7 +27,7 @@ from oops.output.formatters import (
 from oops.services.git import get_last_commit, is_pull_request, require_repository, require_submodules
 from oops.utils.net import get_public_repo_url
 
-from .presenters.show import prepare
+from .presenters.show import ShowPresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
@@ -55,17 +56,17 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
-@click.pass_context
-def main(ctx, pull_request: bool, output_format: str, output_path: Path):
+def main(pull_request: bool, output_format: str, output_path: Path):
 
     repo, repo_path = require_repository()
     submodules = require_submodules(repo)
+
+    metadata = get_metadata()
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
     result: Result[list[SubmoduleInfo]] = Result()
     result.data = []
-    outer: Result[None] = Result(None)
 
     with live_progress("Analysis..."):
         for sub in submodules:
@@ -95,9 +96,9 @@ def main(ctx, pull_request: bool, output_format: str, output_path: Path):
             )
 
         if not result.data:
-            outer.add_error("No matching submodules found.")
+            result.add_error("No matching submodules found.")
         else:
             result.data.sort(key=lambda x: x.name.lower())
 
-    output = prepare(result, outer, target=formatter.target)
-    render_and_exit(ctx, outer, formatter, output, output_format, output_path)
+    output = ShowPresenter().prepare(result, target=formatter.target, metadata=metadata)
+    render_and_exit(result, formatter, output, output_format, output_path)

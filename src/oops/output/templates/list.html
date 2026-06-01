@@ -423,7 +423,7 @@
 
         <script>
             const DATA = JSON.parse(document.getElementById("report-data").textContent);
-            const ADDONS = DATA.addons || [];
+            const ADDONS = DATA.data || [];
 
             const CLASSIFICATION_COLORS = {
                 oca: getComputedStyle(document.documentElement).getPropertyValue("--oca").trim(),

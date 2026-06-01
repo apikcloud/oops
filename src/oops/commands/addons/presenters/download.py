@@ -5,51 +5,49 @@
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
-from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SimpleSummaryLayout, TableBlock
-
-if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
+from oops.output.base import SimplePresenter
+from oops.output.layout import ConclusionBlock, MetricsPanelBlock, SimpleSummaryLayout, TableBlock
 
 
-def prepare(result: "Result[dict]", outer: "Result[None]", target: RenderTarget) -> Output:
-    data = result.data
-    assert data
+class DownloadPresenter(SimplePresenter[dict]):
+    def to_human(self, result: Result[dict]) -> SimpleSummaryLayout:
+        data = result.unwrap
 
-    rows = data.get("rows", [])
-    counts = {"downloaded": 0, "skipped": 0}
-    for row in rows:
-        action = row.get("action", "")
-        if action in counts:
-            counts[action] += 1
+        rows = data.get("rows", [])
+        counts = {"downloaded": 0, "skipped": 0}
+        for row in rows:
+            action = row.get("action", "")
+            if action in counts:
+                counts[action] += 1
 
-    table = TableBlock(
-        title="",
-        columns=[
-            ("Addon", "brand.primary", "left"),
-            ("Status", "green", "left"),
-        ],
-        rows=[[row["addon"], row["action"]] for row in rows],
-    )
+        table = TableBlock(
+            title="",
+            columns=[
+                ("Addon", "brand.primary", "left"),
+                ("Status", "green", "left"),
+            ],
+            rows=[[row["addon"], row["action"]] for row in rows],
+        )
 
-    panel = MetricsPanelBlock(
-        "Summary",
-        [
-            ["Downloaded", str(counts["downloaded"])],
-            ["Skipped", str(counts["skipped"])],
-        ],
-    )
+        panel = MetricsPanelBlock(
+            "Summary",
+            [
+                ["Downloaded", str(counts["downloaded"])],
+                ["Skipped", str(counts["skipped"])],
+            ],
+        )
 
-    all_ok = counts["downloaded"] > 0 or counts["skipped"] > 0
-    conclusion_msg = f"Downloaded {counts['downloaded']} addon(s)" if counts["downloaded"] else "Nothing downloaded"
+        all_ok = counts["downloaded"] > 0 or counts["skipped"] > 0
+        conclusion_msg = f"Downloaded {counts['downloaded']} addon(s)" if counts["downloaded"] else "Nothing downloaded"
 
-    return Output(
-        SimpleSummaryLayout(
+        print("test")
+
+        return SimpleSummaryLayout(
             title=data.get("cmd", "Download addons"),
             table=table,
             panel=panel,
             conclusion=ConclusionBlock(all_ok, conclusion_msg),
-            warnings=outer.warnings,
+            warnings=result.warnings,
+            errors=result.errors,
         )
-    )

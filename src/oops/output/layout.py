@@ -52,7 +52,11 @@ class ConclusionBlock:
 
 
 @dataclass
-class BaseLayout(ABC):
+class Layout(ABC): ...
+
+
+@dataclass
+class BaseLayout(Layout, ABC):
     title: str
     conclusion: ConclusionBlock
 
@@ -96,7 +100,7 @@ class Output(Generic[L]):
 
 
 @dataclass
-class MinimalLayout:
+class MinimalLayout(Layout):
     status: bool
     message: str
 

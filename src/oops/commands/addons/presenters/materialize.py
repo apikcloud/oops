@@ -5,59 +5,55 @@
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
-from oops.output.layout import ConclusionBlock, MetricsPanelBlock, Output, SimpleSummaryLayout, TableBlock
-
-if TYPE_CHECKING:
-    from oops.output.base import RenderTarget
+from oops.output.base import SimplePresenter
+from oops.output.layout import ConclusionBlock, MetricsPanelBlock, SimpleSummaryLayout, TableBlock
 
 
-def prepare(result: "Result[dict]", outer: "Result[None]", target: RenderTarget) -> Output:
-    data = result.data
-    assert data
+class MaterializePresenter(SimplePresenter[dict]):
+    def to_human(self, result: Result[dict]) -> SimpleSummaryLayout:
 
-    rows = data.get("rows", [])
-    counts = {"materialized": 0, "failed": 0, "planned": 0}
-    for row in rows:
-        action = row.get("action", "")
-        if action in counts:
-            counts[action] += 1
+        data = result.unwrap
 
-    table = TableBlock(
-        title="",
-        columns=[
-            ("Addon", "brand.primary", "left"),
-            ("Status", "green", "left"),
-        ],
-        rows=[[row["addon"], row["action"]] for row in rows],
-    )
+        rows = data.get("rows", [])
+        counts = {"materialized": 0, "failed": 0, "planned": 0}
+        for row in rows:
+            action = row.get("action", "")
+            if action in counts:
+                counts[action] += 1
 
-    panel = MetricsPanelBlock(
-        "Summary",
-        [
-            ["Materialized", str(counts["materialized"])],
-            ["Planned", str(counts["planned"])],
-            ["Failed", str(counts["failed"])],
-        ],
-    )
+        table = TableBlock(
+            title="",
+            columns=[
+                ("Addon", "brand.primary", "left"),
+                ("Status", "green", "left"),
+            ],
+            rows=[[row["addon"], row["action"]] for row in rows],
+        )
 
-    dry_run = data.get("dry_run", False)
-    all_ok = counts["failed"] == 0 and not outer.errors
-    if dry_run:
-        conclusion_msg = "Dry run — no changes committed"
-    elif all_ok:
-        conclusion_msg = f"Materialized {counts['materialized']} addon(s)"
-    else:
-        conclusion_msg = f"{counts['failed']} addon(s) failed"
+        panel = MetricsPanelBlock(
+            "Summary",
+            [
+                ["Materialized", str(counts["materialized"])],
+                ["Planned", str(counts["planned"])],
+                ["Failed", str(counts["failed"])],
+            ],
+        )
 
-    return Output(
-        SimpleSummaryLayout(
+        dry_run = data.get("dry_run", False)
+        all_ok = result.ok and counts["failed"] == 0
+        if dry_run:
+            conclusion_msg = "Dry run — no changes committed"
+        elif all_ok:
+            conclusion_msg = f"Materialized {counts['materialized']} addon(s)"
+        else:
+            conclusion_msg = f"{counts['failed']} addon(s) failed"
+
+        return SimpleSummaryLayout(
             title=data.get("cmd", "Materialize addons"),
             table=table,
             panel=panel,
             conclusion=ConclusionBlock(all_ok, conclusion_msg),
-            warnings=outer.warnings + result.warnings,
-            errors=outer.errors + result.errors,
+            warnings=result.warnings,
+            errors=result.errors,
         )
-    )
