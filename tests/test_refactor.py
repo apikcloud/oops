@@ -806,7 +806,7 @@ class TestRefactorCLI:
         kb_path = tmp_path / "kb.db"
         _make_kb(kb_path)
         result = self._runner().invoke(
-            main, [str(module_path), "--kb", str(kb_path), "--no-branch"]
+            main, [str(module_path), "--kb", str(kb_path), "--no-branch", "--no-commit"]
         )
         assert result.exit_code == 0
 
@@ -816,7 +816,7 @@ class TestRefactorCLI:
         kb_path = tmp_path / "kb.db"
         _make_kb(kb_path)
         result = self._runner().invoke(
-            main, [str(module_path), "--kb", str(kb_path), "--no-branch"]
+            main, [str(module_path), "--kb", str(kb_path), "--no-branch", "--no-commit"]
         )
         assert result.exit_code == 0
 

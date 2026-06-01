@@ -3,6 +3,8 @@
 #
 # File: list.py — src/oops/commands/addons/presenters/list.py
 
+from __future__ import annotations
+
 from collections import Counter
 
 from oops.core.compat import TYPE_CHECKING

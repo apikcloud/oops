@@ -3,6 +3,7 @@
 #
 # File: show.py — src/oops/commands/project/presenters/show.py
 
+from __future__ import annotations
 
 from oops.core.compat import TYPE_CHECKING
 from oops.core.models import Result
