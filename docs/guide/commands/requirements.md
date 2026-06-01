@@ -63,16 +63,10 @@ requirements:
 
 **Examples:**
 
-Update the addons table and commit if changed:
+Check requirements without committing:
 
 ```bash
-oops requirements update
-```
-
-Update without committing:
-
-```bash
-oops requirements update --no-commit
+oops requirements check
 ```
 
 ---

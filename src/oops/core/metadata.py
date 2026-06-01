@@ -42,6 +42,7 @@ class Metadata:
     tool_version: Optional[str] = None
 
     def to_dict(self) -> dict:
+        """Serialize to a JSON-safe dict (datetimes as ISO 8601 strings)."""
         d = asdict(self)
         d["generated_at"] = self.generated_at.isoformat()
         d["kb_global_ts"] = self.kb_global_ts.isoformat() if self.kb_global_ts else None

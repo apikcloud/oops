@@ -309,12 +309,16 @@ class Rows:
 
 @dataclass
 class ChangelogSection:
+    """One version block parsed from a Keep-a-Changelog formatted file."""
+
     version: str
     date: str
     entries: Dict[str, List[str]] = field(default_factory=dict)
 
 
 class ReleaseType(str, Enum):
+    """Semantic classification of a release based on semver patch/minor/major fields."""
+
     MAJOR = "major"
     MINOR = "minor"
     FIX = "fix"
@@ -323,6 +327,8 @@ class ReleaseType(str, Enum):
 
 @dataclass
 class Release:
+    """A git-tagged release with commit statistics and optional changelog data."""
+
     name: str
     date: date
     author: str
@@ -352,6 +358,8 @@ StatKind = Literal["count", "date", "text", "boolean"]
 
 @dataclass
 class Stat:
+    """A single named metric value for display in a stats panel."""
+
     name: str
     label: str
     value: Any
@@ -373,6 +381,8 @@ class Stat:
 
 @dataclass
 class StatGroup:
+    """A labelled collection of :class:`Stat` values rendered together as a panel."""
+
     name: str
     label: str
     values: list[Stat] = field(default_factory=list)

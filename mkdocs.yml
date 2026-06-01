@@ -195,6 +195,7 @@ nav:
       - Quick start: guide/quickstart.md
       - Commands:
           - Addons: guide/commands/addons.md
+          - Depends: guide/commands/depends.md
           - Manifest: guide/commands/manifest.md
           - Misc: guide/commands/misc.md
           - Odoo: guide/commands/odoo.md
@@ -213,12 +214,16 @@ nav:
       - Commands:
           - Base: reference/commands/base.md
       - Core:
+          - Compat: reference/core/compat.md
           - Config: reference/core/config.md
           - Exceptions: reference/core/exceptions.md
+          - Logger: reference/core/logger.md
           - Messages: reference/core/messages.md
+          - Metadata: reference/core/metadata.md
           - Models: reference/core/models.md
           - Paths: reference/core/paths.md
       - IO:
+          - Changelog: reference/io/changelog.md
           - File: reference/io/file.md
           - Installed Modules: reference/io/installed_modules.md
           - Manifest: reference/io/manifest.md
@@ -232,13 +237,14 @@ nav:
           - Resolve: reference/kb/resolve.md
           - Scanner: reference/kb/scanner.md
           - Store: reference/kb/store.md
+          - XML Scanner: reference/kb/xml_scanner.md
       - Services:
           - Docker: reference/services/docker.md
           - Git: reference/services/git.md
           - GitHub: reference/services/github.md
+          - KB: reference/services/kb.md
           - Stats: reference/services/stats.md
       - Utils:
-          - Compat: reference/utils/compat.md
           - Git: reference/utils/git.md
           - Helpers: reference/utils/helpers.md
           - Net: reference/utils/net.md

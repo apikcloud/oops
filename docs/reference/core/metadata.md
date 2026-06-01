@@ -1,0 +1,3 @@
+# Metadata
+
+::: oops.core.metadata

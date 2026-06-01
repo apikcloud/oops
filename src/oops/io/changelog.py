@@ -22,7 +22,16 @@ def _extract_section(changelog: str, version: str) -> str:
 
 
 def parse_section(changelog: str, version: str) -> "Optional[ChangelogSection]":
+    """Parse a single version section from a Keep-a-Changelog formatted string.
 
+    Args:
+        changelog: Full CHANGELOG.md content.
+        version: Version string to extract (with or without leading ``v``).
+
+    Returns:
+        Parsed :class:`~oops.core.models.ChangelogSection`, or ``None`` if the
+        version heading is not found.
+    """
     section = _extract_section(changelog, version)
 
     if not section:

@@ -8,6 +8,16 @@ from oops.kb.store import KBReader
 
 
 def require_kb(version: str) -> Path:
+    """Raise OopsError if the global KB for the given Odoo version does not exist.
+
+    Also writes the KB path into the active command metadata.
+
+    Args:
+        version: Odoo major version string (e.g. ``"17"``).
+
+    Returns:
+        Path to the global KB directory.
+    """
     kb_path = global_kb_path(version)
     if not kb_path.exists():
         raise OopsError("This command requires an initialised global KB")
@@ -30,7 +40,15 @@ def load_odoo_kb(version: str) -> dict:
 
 
 def set_kb_metadata(repo_path: Path, version: str) -> None:
+    """Populate KB timestamp fields on the active command metadata.
 
+    Reads ``generated_at`` from both the project-local KB and the global KB
+    and forwards them to :func:`~oops.core.metadata.update_metadata`.
+
+    Args:
+        repo_path: Root path of the current Git repository.
+        version: Odoo major version string (e.g. ``"17"``).
+    """
     project_ts = None
     global_ts = None
 

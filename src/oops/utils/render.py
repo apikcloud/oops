@@ -327,6 +327,7 @@ def print_warning(message: str, symbol: str = "⚠") -> None:
 
 
 def experimental_warning() -> None:
+    """Print a standard experimental-feature warning to the terminal."""
     print_warning("This command is experimental and may change without notice between releases.")
 
 
@@ -345,15 +346,18 @@ def print_rule(text: str) -> None:
 
 
 def rule(title: str):
+    """Print a full-width horizontal rule with a centered, styled title."""
     console = get_console()
     console.rule(f"[brand.primary bold]{title}[/]", style="dim")
 
 
 def counter_rule(title: str, value: Any) -> None:
+    """Print a rule with a count appended to the title: ``"Title (N)"``."""
     return rule(f"{title} ({value})")
 
 
 def warning_section(messages: list[str]) -> None:
+    """Print a yellow-bordered warnings block. No-op when *messages* is empty."""
     if not messages:
         return
     console = get_console()
@@ -374,6 +378,7 @@ def error_section(messages: list[str]) -> None:
 
 
 def kv_panel(title: str, data: dict):
+    """Render a titled panel of key-value pairs, left-aligned in primary brand color."""
     console = get_console()
     content = "\n".join(f"[brand.primary]{k:<20}[/] {v}" for k, v in data.items())
     console.print(Panel(content, title=title, border_style="dim"))
@@ -391,12 +396,22 @@ def make_table(title: Optional[str], columns: list[tuple], rows: list, expand: b
 
 
 def metrics(data: dict[str, str]):
+    """Render a row of equally-sized metric panels from a label→value dict."""
     console = get_console()
     panels = [Panel(f"[dim]{k}[/]\n[bold]{v}[/]", expand=True) for k, v in data.items()]
     console.print(Columns(panels))
 
 
 def metrics_grid(*panels, ratios: Optional[list[int]] = None):
+    """Arrange Rich renderables side-by-side in a grid with optional column ratios.
+
+    Args:
+        *panels: Rich renderable objects to place in columns.
+        ratios: Optional column width ratios (defaults to equal widths).
+
+    Returns:
+        A Rich ``Table`` configured as a grid.
+    """
     grid = Table.grid(expand=True, padding=(0, 1))
     ratios = ratios or [1] * len(panels)
     for r in ratios:
@@ -406,6 +421,16 @@ def metrics_grid(*panels, ratios: Optional[list[int]] = None):
 
 
 def metrics_panel(title: str, values: list[list[str]], subtitle: Optional[str] = None):
+    """Build a Rich Panel containing a two-column label/value grid.
+
+    Args:
+        title: Panel title.
+        values: List of ``[label, value]`` pairs.
+        subtitle: Optional panel subtitle.
+
+    Returns:
+        A Rich ``Panel`` ready to print.
+    """
     grid = Table.grid(expand=True)
     grid.add_column(style="dim")
     grid.add_column()
@@ -415,10 +440,12 @@ def metrics_panel(title: str, values: list[list[str]], subtitle: Optional[str] =
 
 
 def colorize(raw: str, color: str):
+    """Wrap *raw* in a Rich markup color tag."""
     return f"[{color}]{raw}[/]"
 
 
 def conclude(ok: bool, message: str):
+    """Print a bordered success or failure conclusion panel."""
     console = get_console() if ok else get_error_console()
 
     icon = "✓" if ok else "✗"
@@ -428,6 +455,7 @@ def conclude(ok: bool, message: str):
 
 
 def print_result(ok: bool, message: str):
+    """Print a one-line success (✓) or failure (✗) result message."""
     console = get_console() if ok else get_error_console()
 
     icon = "✓" if ok else "✗"
@@ -437,10 +465,12 @@ def print_result(ok: bool, message: str):
 
 
 def make_choices(items: set[str], preselected: set[str]) -> list[questionary.Choice]:
+    """Build a sorted list of questionary Choices with pre-checked items."""
     return [questionary.Choice(item, checked=(item in preselected)) for item in sorted(items)]
 
 
 def prompt_choices(message: str, items: set[str], preselected: set[str]):
+    """Show an interactive checkbox prompt and return the selected values."""
     return questionary.checkbox(
         message,
         choices=make_choices(items, preselected),
@@ -448,14 +478,17 @@ def prompt_choices(message: str, items: set[str], preselected: set[str]):
 
 
 def prompt_select(message: str, choices: list[str]) -> str:
+    """Show an interactive single-select prompt and return the chosen value."""
     return questionary.select(message, choices=choices).ask()
 
 
 def prompt_confirm(message: str, default: bool = False) -> bool:
+    """Show a yes/no confirmation prompt and return the boolean result."""
     return bool(questionary.confirm(message, default=default).ask())
 
 
 def ask(message: str) -> str:
+    """Prompt the user for a free-text value via Rich's Prompt."""
     return Prompt.ask(message)
 
 
@@ -470,12 +503,13 @@ def render_result(result) -> None:
 
 
 def render_panel(title: str, content: str):
+    """Print a dim-bordered panel with a title to stderr."""
     console = get_error_console()
     console.print(Panel(content, title=title, border_style="dim"))
 
 
 def render_healder(ctx) -> None:
-
+    """Render the easter-egg header animation (root command invocation only)."""
     if ctx.parent is not None:
         return
 
@@ -492,7 +526,7 @@ def render_healder(ctx) -> None:
 
 
 def render_footer(ctx) -> None:
-
+    """Render the easter-egg footer animation (root command invocation only)."""
     if ctx.parent is not None:
         return
 
@@ -518,5 +552,6 @@ def render_footer(ctx) -> None:
 
 
 def clear_screen() -> None:
+    """Clear the terminal using the main console."""
     console = get_console()
     console.clear()

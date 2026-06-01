@@ -18,7 +18,10 @@ _progress_callback: ContextVar[Optional[ProgressCallback]] = ContextVar("progres
 
 
 class ProgressHandler(logging.Handler):
+    """Logging handler that routes records to the active Rich Live progress display."""
+
     def emit(self, record: logging.LogRecord) -> None:
+        """Forward a log record to the current progress callback, if one is active."""
         callback = _progress_callback.get()
         if callback is not None:
             callback(self.format(record))
@@ -27,6 +30,19 @@ class ProgressHandler(logging.Handler):
 
 @contextmanager
 def live_progress(message: str, spinner: str = "dots", enabled: bool = True):
+    """Context manager that shows a Rich spinner while a block runs.
+
+    Log messages emitted via ``log`` inside the block update the spinner text
+    instead of printing to the console.
+
+    Args:
+        message: Initial spinner label.
+        spinner: Rich spinner name (default ``"dots"``).
+        enabled: When False the context manager is a no-op (useful in CI/tests).
+
+    Yields:
+        The active ``rich.live.Live`` instance, or None when disabled.
+    """
     if not enabled:
         yield None
         return

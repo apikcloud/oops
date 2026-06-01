@@ -408,9 +408,26 @@ def _list_submodules_cached(working_dir: str) -> dict:
 
 
 def list_submodules(repo: Repo) -> dict:
+    """Return submodule metadata for all submodules in the repository.
+
+    Results are cached by working directory path; subsequent calls with the
+    same repo are free.
+
+    Returns:
+        Dict mapping relative path → metadata dict (url, org, branch, pr flag).
+    """
     return _list_submodules_cached(repo.working_dir)
 
 
 def browse_submodules(submodules: List[Submodule], names: Tuple[str]) -> Generator[Tuple[int, Submodule]]:
+    """Yield (1-based index, submodule) for each submodule whose name is in *names*.
+
+    Args:
+        submodules: Full list of submodules to filter.
+        names: Tuple of submodule names to include.
+
+    Yields:
+        Tuples of (index, Submodule) for matching entries.
+    """
     selected = [s for s in submodules if s.name in names]
     yield from enumerate(selected, 1)

@@ -100,6 +100,20 @@ def _extract_file(tag, filename: str) -> Optional[str]:
 
 
 def read_releases(repo, changelog: bool = False) -> Result[List[Release]]:
+    """Read all semver-tagged releases from a Git repository.
+
+    Releases are returned newest-first. When ``changelog=True``, each release
+    gets its :attr:`~oops.core.models.Release.changelog` field populated from
+    the ``CHANGELOG.md`` file at the tagged commit.
+
+    Args:
+        repo: GitPython ``Repo`` instance.
+        changelog: If True, parse the changelog section for each release.
+
+    Returns:
+        :class:`~oops.core.models.Result` wrapping a list of
+        :class:`~oops.core.models.Release` objects.
+    """
     result: Result[List[Release]] = Result()
     result.data = []
 
@@ -141,5 +155,14 @@ def read_releases(repo, changelog: bool = False) -> Result[List[Release]]:
 
 
 def count_release_types(releases: List[Release]) -> Dict:
+    """Count releases grouped by :class:`~oops.core.models.ReleaseType`.
+
+    Args:
+        releases: List of releases to count.
+
+    Returns:
+        Dict mapping release type value (``"major"``, ``"minor"``, ``"fix"``,
+        ``"unknown"``) to its count.
+    """
     counter = Counter(item.release_type for item in releases)
     return {release_type.value: counter[release_type] for release_type in ReleaseType}
