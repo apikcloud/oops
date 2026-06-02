@@ -445,6 +445,11 @@ def colorize(raw: str, color: str):
     return f"[{color}]{raw}[/]"
 
 
+def colorize_from(raw: str, colors: dict):
+    """Wrap *raw* in a Rich markup color tag."""
+    return f"[{colors.get(raw, 'gray50')}]{raw}[/]"
+
+
 def conclude(ok: bool, message: str):
     """Print a bordered success or failure conclusion panel."""
     console = get_console() if ok else get_error_console()

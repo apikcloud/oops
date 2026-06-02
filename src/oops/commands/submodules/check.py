@@ -12,141 +12,78 @@ and pull-request submodules not under the configured PR directory.
 Exits non-zero if any issue is found.
 """
 
-import configparser
-from pathlib import PurePosixPath
+from pathlib import Path
 
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
+from oops.core.checks import CheckOutcome
 from oops.core.config import config
-from oops.core.exceptions import EarlyExit, OopsError
-from oops.core.logger import log
-from oops.io.file import check_prefix, desired_path, list_symlinks
-from oops.services.git import is_pull_request, read_gitmodules, require_repository
-from oops.utils.net import _parse_url
-from oops.utils.render import print_error, print_success, print_warning
+from oops.core.metadata import get_metadata
+from oops.core.models import ResultCollection
+from oops.io.file import list_symlinks
+from oops.output.formatters import (
+    FormatterRegistry,
+    JsonFormatter,
+    OutputFormatter,
+    PreCommitFormatter,
+    SimpleSummaryConsoleFormatter,
+)
+from oops.services.git import read_gitmodules, require_repository, require_submodules
+
+from .common import CHECKS, SubmoduleCheckContext
+from .presenters.check import CheckPresenter
+
+FORMATTERS: FormatterRegistry = {
+    "text": SimpleSummaryConsoleFormatter,
+    "json": JsonFormatter,
+}
 
 
 @command(name="check", help=__doc__)
-def main():  # noqa: C901, PLR0912, PLR0915
+@click.option(
+    "--hook",
+    is_flag=True,
+    help="Minimal output for pre-commit hooks.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+    help="Output format",
+)
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout (json) or a temp file (html).",
+)
+def main(hook: bool, output_format: str, output_path: Path):
 
     repo, repo_path = require_repository()
+    submodules = require_submodules(repo)
 
-    if not repo.submodules:
-        print_success("No submodules found.")
-        raise EarlyExit()
+    metadata = get_metadata()
 
-    symlinks = list_symlinks(repo_path)
-    broken_symlinks = list_symlinks(repo_path, broken_only=True)
-    bad_paths = []
-    unused = []
-    missing_branches = []
-    malformed_urls = []
-    deprecated_repos = []
-    misplaced_prs = []
-    pr_submodules = []
+    formatter: OutputFormatter = FORMATTERS[output_format]()
+    if hook:
+        formatter = PreCommitFormatter()
 
-    res = True
+    ctx = SubmoduleCheckContext(
+        repo=repo,
+        repo_path=repo_path,
+        submodules=submodules,
+        symlinks=list_symlinks(repo_path),
+        broken_symlinks=list_symlinks(repo_path, broken_only=True),
+        gitmodules=read_gitmodules(repo),
+        enabled=config.submodules.checks,
+    )
 
-    gitmodules = read_gitmodules(repo)
+    results: ResultCollection[CheckOutcome] = ResultCollection()
+    for check_cls in CHECKS:
+        results.add(check_cls(ctx).run())
 
-    for submodule in repo.submodules:
-        # Check if submodule is under correct path
-        if not check_prefix(str(submodule.path), str(config.submodules.current_path)):
-            bad_paths.append((submodule.name, submodule.path))
-
-        # Check if any symlink target mentions this path
-        if not any(str(submodule.path) in t for t in symlinks):
-            unused.append((submodule.name, submodule.path))
-
-        # Check if branch is set in .gitmodules
-        # branch_name cen't be used because it returns master if not set
-        section = f'submodule "{submodule.name}"'
-        try:
-            branch = gitmodules.get_value(section, "branch")
-            log.debug(f"{submodule.name}: branch = {branch!r}")
-        except configparser.NoOptionError:
-            missing_branches.append((submodule.name, submodule.path))
-
-        scheme, _, owner, repository = _parse_url(submodule.url)
-        repository_name = f"{owner}/{repository}"
-
-        # Check URL scheme
-        if config.submodules.force_scheme and config.submodules.force_scheme != scheme:
-            malformed_urls.append((submodule.name, submodule.url))
-
-        # Check deprecated repositories
-        if repository_name in config.submodules.deprecated_repositories:
-            deprecated_repos.append((submodule.name, config.submodules.deprecated_repositories[repository_name]))
-
-        # Track PR submodules
-        if is_pull_request(submodule):
-            pr_submodules.append((submodule.name, submodule.path))
-
-            # Recalculate expected path via desired_path and compare, ignoring suffix
-            try:
-                expected = PurePosixPath(
-                    desired_path(
-                        submodule.url,
-                        pull_request=True,
-                        prefix=str(config.submodules.current_path),
-                    )
-                )
-                actual = PurePosixPath(submodule.path)
-                # actual must be a child of expected (suffix required — points to a specific addon)
-                if expected not in actual.parents:
-                    misplaced_prs.append((submodule.name, submodule.path))
-            except ValueError:
-                log.debug(f"Could not compute desired path for {submodule.name!r}, skipping check_pr")
-
-    if "check_path" in config.submodules.checks and bad_paths:
-        print_error(f"Submodules not under {config.submodules.current_path} ({len(bad_paths)}):")
-        for name, path in bad_paths:
-            click.echo(f"  - {name}: {path}")
-        res = False
-
-    if "check_symlink" in config.submodules.checks and unused:
-        print_error("Unused submodules (no symlink points to them):")
-        for name, path in unused:
-            click.echo(f"  - {name}: {path}")
-        res = False
-
-    if "check_branch" in config.submodules.checks and missing_branches:
-        print_error("Submodules without branch set in .gitmodules:")
-        for name, path in missing_branches:
-            click.echo(f"  - {name}: {path}")
-        res = False
-
-    if "check_url_scheme" in config.submodules.checks and malformed_urls:
-        print_error(f"Submodules with malformed URL (not {config.submodules.force_scheme}):")
-        for name, url in malformed_urls:
-            click.echo(f"  - {name}: {url}")
-        res = False
-
-    if "check_deprecated_repo" in config.submodules.checks and deprecated_repos:
-        print_error("Submodules using deprecated repositories:")
-        for name, repo in deprecated_repos:
-            click.echo(f"  - {name}: must be replaced with {repo}")
-        res = False
-
-    if "check_broken_symlink" in config.submodules.checks and broken_symlinks:
-        print_error("Broken symlinks found:")
-        for symlink in broken_symlinks:
-            click.echo(f"  - {symlink}")
-        res = False
-
-    if pr_submodules:
-        print_warning(f"{len(pr_submodules)} pull-request submodule(s) detected:")
-        for name, _ in pr_submodules:
-            click.echo(f"  - {name}")
-
-    if "check_pr" in config.submodules.checks and misplaced_prs:
-        print_error(f"PR submodules not under {config.pull_request_dir}:")
-        for name, path in misplaced_prs:
-            click.echo(f"  - {name}: {path}")
-        res = False
-
-    if res:
-        print_success(f"{len(config.submodules.checks)} check(s) completed without errors for submodules")
-        raise EarlyExit()
-    else:
-        raise OopsError("Submodule check failed. Please fix the above issues.")
+    output = CheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
+    render_and_exit(results, formatter, output, output_format, output_path)

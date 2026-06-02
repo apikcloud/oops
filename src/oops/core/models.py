@@ -326,6 +326,12 @@ class ResultCollection(Generic[T]):
     def ok(self) -> bool:
         return not self.errors and all(item.ok for item in self.items)
 
+    @property
+    def unwrap(self) -> "list[Result[T]]":
+        if self.items is None:
+            raise ValueError("ResultCollection has no results")
+        return self.items
+
     def add(self, result: Result[T]) -> None:
         self.items.append(result)
 
@@ -342,6 +348,12 @@ class ResultCollection(Generic[T]):
         self.errors.extend(other.errors)
 
         return self
+
+    def aggregate(self):
+        for item in self.items:
+            self.messages.extend(item.messages)
+            self.warnings.extend(item.warnings)
+            self.errors.extend(item.errors)
 
     def __len__(self) -> int:
         return len(self.items)

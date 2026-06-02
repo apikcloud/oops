@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections import Counter
 
 from oops.core.models import Result, Stat, StatGroup
-from oops.output.base import Presenter
+from oops.output.base import SimplePresenter
 from oops.output.layout import (
     ConclusionBlock,
     MinimalLayout,
@@ -47,7 +47,7 @@ def _get_status(result):
     return all_ok, conclusion_msg, status
 
 
-class UpdatePresenter(Presenter[Result[dict]]):
+class UpdatePresenter(SimplePresenter[Result[dict]]):
     def to_human(self, result, outer) -> Output[SimpleSummaryLayout]:
         data = result.data
         assert data
