@@ -5,10 +5,12 @@
 
 import re
 import warnings
+from dataclasses import dataclass
 from datetime import date
 
+from oops.core.checks import Check, CheckContext, CheckOutcome
 from oops.core.compat import Optional
-from oops.core.config import config
+from oops.core.config import ImagesConfig, config
 from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
 from oops.core.models import ImageInfo, Result
 from oops.utils.helpers import date_from_string
@@ -156,44 +158,82 @@ def fetch_odoo_images(collections: Optional[list] = None) -> list:
     return list(filter(filter_out, items))
 
 
-def check_image(image: ImageInfo, strict: bool = True) -> "Result[None]":
-    """Check an Odoo Docker image for registry and age issues.
+@dataclass
+class ImageCheckContext(CheckContext):
+    image: ImageInfo
+    config: ImagesConfig
 
-    In strict mode, issues are emitted as Python warnings; the returned Result
-    is empty. In non-strict mode, issues are collected into Result.warnings.
 
-    Args:
-        image: ImageInfo to validate.
-        strict: If True, emit Python warnings directly. Defaults to True.
+class CheckImage(Check[ImageCheckContext]):
+    name = "check_image"
+    label = "Docker image and registry"
 
-    Returns:
-        Result with warnings collected in non-strict mode.
-    """
-    result: Result = Result()
-    recommended = ", ".join(config.images.registries.recommended)
-    if image.registry not in config.images.registries.recommended:
-        if image.registry in config.images.registries.deprecated:
-            if strict:
-                warn_deprecated_registry(image.registry)
-            else:
-                result.add_warning(
-                    f"You should use one of these registries ({recommended}) as a replacement for '{image.registry}'."
+    def _run(self) -> Result[CheckOutcome]:
+
+        cfg = self.ctx.config
+
+        recommended = ", ".join(cfg.registries.recommended)
+        if self.ctx.image.registry not in cfg.registries.recommended:
+            if self.ctx.image.registry in cfg.registries.deprecated:
+                self.result.add_warning(
+                    f"You should use one of these registries ({recommended}) "
+                    f"as a replacement for '{self.ctx.image.registry}'."
                 )
 
-        if image.registry in config.images.registries.warn:
-            if strict:
-                warn_unusual_registry(image.registry)
-            else:
-                result.add_warning(
-                    f"You should use one of these registries ({recommended}) as a replacement for '{image.registry}'."
+            if self.ctx.image.registry in cfg.registries.warn:
+                self.result.add_warning(
+                    f"You should use one of these registries ({recommended}) "
+                    f"as a replacement for '{self.ctx.image.registry}'."
                 )
 
-    if image.age and image.age > config.images.release_warn_age_days:
-        result.add_warning(
-            f"The current Odoo image is {image.age} days old, consider updating it",
-        )
+        if self.ctx.image.age and self.ctx.image.age > cfg.release_warn_age_days:
+            self.result.add_warning(
+                f"The current Odoo image is {self.ctx.image.age} days old, consider updating it",
+            )
 
-    return result
+        self.add(status="passed")
+
+        return self.result
+
+
+# def check_image(image: ImageInfo, strict: bool = True) -> "Result[None]":
+#     """Check an Odoo Docker image for registry and age issues.
+
+#     In strict mode, issues are emitted as Python warnings; the returned Result
+#     is empty. In non-strict mode, issues are collected into Result.warnings.
+
+#     Args:
+#         image: ImageInfo to validate.
+#         strict: If True, emit Python warnings directly. Defaults to True.
+
+#     Returns:
+#         Result with warnings collected in non-strict mode.
+#     """
+#     result: Result = Result()
+#     recommended = ", ".join(config.images.registries.recommended)
+#     if image.registry not in config.images.registries.recommended:
+#         if image.registry in config.images.registries.deprecated:
+#             if strict:
+#                 warn_deprecated_registry(image.registry)
+#             else:
+#                 result.add_warning(
+#                     f"You should use one of these registries ({recommended}) as a replacement for '{image.registry}'."
+#                 )
+
+#         if image.registry in config.images.registries.warn:
+#             if strict:
+#                 warn_unusual_registry(image.registry)
+#             else:
+#                 result.add_warning(
+#                     f"You should use one of these registries ({recommended}) as a replacement for '{image.registry}'."
+#                 )
+
+#     if image.age and image.age > config.images.release_warn_age_days:
+#         result.add_warning(
+#             f"The current Odoo image is {image.age} days old, consider updating it",
+#         )
+
+#     return result
 
 
 def find_available_images(

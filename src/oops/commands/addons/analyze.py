@@ -123,7 +123,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
     json_mode = output_format == "json"
-    results: ResultCollection[ModuleSummary] = ResultCollection()
+    results: ResultCollection[ModuleSummary] = ResultCollection(title="Addons analyze")
     if not json_mode:
         results.add_warning("This command is experimental and may change without notice between releases.")
 

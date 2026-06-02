@@ -28,32 +28,81 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
+from oops.core.checks import CheckOutcome
 from oops.core.config import config
 from oops.core.exceptions import EarlyExit, OopsError
-from oops.io.file import get_requirements_diff
+from oops.core.metadata import get_metadata
+from oops.core.models import ResultCollection
+from oops.output.formatters import (
+    FormatterRegistry,
+    JsonFormatter,
+    OutputFormatter,
+    PreCommitFormatter,
+    SimpleSummaryConsoleFormatter,
+)
+from oops.output.presenters import DefaultCheckPresenter
 from oops.services.git import require_repository
-from oops.utils.render import print_error, print_success
+
+from .common import ImportsCheck, RequirementsCheck, RequirementsCheckContext
+
+FORMATTERS: FormatterRegistry = {
+    "text": SimpleSummaryConsoleFormatter,
+    "json": JsonFormatter,
+}
 
 
-@command("check", help=__doc__)
-@click.option("--no-fail", is_flag=True, default=False, help="Exit 0 even when changes are detected.")
-def main(no_fail):
+@command(name="check", help=__doc__)
+@click.option(
+    "--no-fail",
+    is_flag=True,
+    default=False,
+    help="Exit 0 even when changes are detected.",
+)
+@click.option(
+    "--hook",
+    is_flag=True,
+    help="Minimal output for pre-commit hooks.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    show_default=True,
+    help="Output format",
+)
+@click.option(
+    "--output-path",
+    "output_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the output to this path instead of stdout (json) or a temp file (html).",
+)
+def main(no_fail: bool, hook: bool, output_format: str, output_path: Path):
+
+    metadata = get_metadata()
+
     _, repo_path = require_repository()
-    requirement_file = Path(config.project.file_requirements)
 
-    has_changes, _, diff = get_requirements_diff(repo_path)
+    formatter: OutputFormatter = FORMATTERS[output_format]()
+    if hook:
+        formatter = PreCommitFormatter()
 
-    if not has_changes:
-        print_success("No changes detected in requirements.")
-        raise EarlyExit()
+    results: ResultCollection[CheckOutcome] = ResultCollection(title="Check Requirements")
 
-    click.echo(f"Changes for {requirement_file}:")
-    for line in diff:
-        if line.startswith("- "):
-            print_error(line, symbol="")
-        elif line.startswith("+ "):
-            print_success(line, symbol="")
+    ctx: RequirementsCheckContext = RequirementsCheckContext(
+        requirement_file=Path(config.project.file_requirements),
+        path=repo_path,
+        enabled=["external_dep"],
+    )
+
+    # TODO: add a test to identify dependencies that cannot be resolved by the algorithm
+    results.add(RequirementsCheck(ctx).run())
+    results.add(ImportsCheck(ctx).run())
+
+    output = DefaultCheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
+    render_and_exit(results, formatter, output, output_format, output_path)
 
     if no_fail:
         raise EarlyExit()

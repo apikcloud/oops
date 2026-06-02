@@ -2,10 +2,11 @@ from datetime import date
 from unittest.mock import patch
 
 import pytest
-from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
+from oops.core.config import config
 from oops.core.models import ImageInfo
 from oops.services.docker import (
-    check_image,
+    CheckImage,
+    ImageCheckContext,
     fetch_odoo_images,
     find_available_images,
     parse_image_tag,
@@ -175,9 +176,14 @@ def test_parse_image_without_release():
         parse_image_tag(tag)
 
 
+def _run_check_image(image: ImageInfo):
+    ctx = ImageCheckContext(enabled=["check_image"], image=image, config=config.images)
+    return CheckImage(ctx).run()
+
+
 def test_check_image():
     days_old = (date.today() - date(2023, 1, 3)).days
-    result = check_image(
+    result = _run_check_image(
         ImageInfo(
             **{
                 "image": "apik/odoo:15-20230103-enterprise-legacy",
@@ -188,8 +194,7 @@ def test_check_image():
                 "enterprise": True,
                 "legacy": True,
             }
-        ),
-        strict=False,
+        )
     )
     assert result.warnings == [
         f"The current Odoo image is {days_old} days old, consider updating it",
@@ -198,41 +203,41 @@ def test_check_image():
 
 
 def test_check_deprecated_image():
-    with pytest.warns(
-        DeprecatedRegistryWarning,
-    ):
-        check_image(
-            ImageInfo(
-                **{
-                    "image": "loginline/odoo:15-20230103-enterprise-legacy",
-                    "registry": "loginline",
-                    "repository": "odoo",
-                    "major_version": 15.0,
-                    "release": date(2023, 1, 3),
-                    "enterprise": True,
-                    "legacy": True,
-                }
-            )
+    result = _run_check_image(
+        ImageInfo(
+            **{
+                "image": "loginline/odoo:15-20230103-enterprise-legacy",
+                "registry": "loginline",
+                "repository": "odoo",
+                "major_version": 15.0,
+                "release": date(2023, 1, 3),
+                "enterprise": True,
+                "legacy": True,
+            }
         )
+    )
+    recommended = ", ".join(config.images.registries.recommended)
+    assert any("loginline" in w for w in result.warnings)
+    assert any(recommended in w for w in result.warnings)
 
 
 def test_check_unusual_image():
-    with pytest.warns(
-        UnusualRegistryWarning,
-    ):
-        check_image(
-            ImageInfo(
-                **{
-                    "image": "odoo:19",
-                    "registry": "odoo",
-                    "repository": "odoo",
-                    "major_version": 19.0,
-                    "release": None,
-                    "enterprise": False,
-                    "legacy": False,
-                }
-            )
+    result = _run_check_image(
+        ImageInfo(
+            **{
+                "image": "odoo:19",
+                "registry": "odoo",
+                "repository": "odoo",
+                "major_version": 19.0,
+                "release": None,
+                "enterprise": False,
+                "legacy": False,
+            }
         )
+    )
+    recommended = ", ".join(config.images.registries.recommended)
+    assert any("odoo" in w for w in result.warnings)
+    assert any(recommended in w for w in result.warnings)
 
 
 def test_fetch_odoo_images_filter_on_collections(mock_response):

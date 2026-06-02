@@ -28,10 +28,10 @@ from oops.output.formatters import (
     PreCommitFormatter,
     SimpleSummaryConsoleFormatter,
 )
+from oops.output.presenters import DefaultCheckPresenter
 from oops.services.git import read_gitmodules, require_repository, require_submodules
 
 from .common import CHECKS, SubmoduleCheckContext
-from .presenters.check import CheckPresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
@@ -81,9 +81,9 @@ def main(hook: bool, output_format: str, output_path: Path):
         enabled=config.submodules.checks,
     )
 
-    results: ResultCollection[CheckOutcome] = ResultCollection()
+    results: ResultCollection[CheckOutcome] = ResultCollection(title="Submodules check")
     for check_cls in CHECKS:
         results.add(check_cls(ctx).run())
 
-    output = CheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
+    output = DefaultCheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
     render_and_exit(results, formatter, output, output_format, output_path)

@@ -317,6 +317,7 @@ class Result(Generic[T]):
 class ResultCollection(Generic[T]):
     """Aggregates multiple Result[T] plus collection-level warnings/errors."""
 
+    title: str
     items: list[Result[T]] = field(default_factory=list)
     messages: "list[str]" = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)

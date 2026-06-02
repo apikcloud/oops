@@ -1,7 +1,8 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: update.py — src/oops/commands/submodules/presenters/update.py
+# File: presenters.py — src/oops/output/presenters.py
+
 
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ from oops.output.layout import (
     TableBlock,
     statgroup_to_panel,
 )
-from oops.utils.render import colorize_from, render_boolean
+from oops.utils.render import colorize_diff, colorize_from, render_boolean
 
 COLOR_STATUS = {
     "failed": "red",
@@ -30,7 +31,7 @@ def _build_row(result: Result[CheckOutcome]) -> list[str]:
     data = result.unwrap
 
     data.items.sort()
-    details = "\n".join(iter(data)) + "\n" if len(data) else "--"
+    details = "\n".join(colorize_diff(item) for item in data.items) + "\n" if len(data) else "--"
 
     return [
         data.label,
@@ -55,7 +56,11 @@ def _build_metrics(items):
     )
 
 
-class CheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
+def _conclusion(results: "ResultCollection[CheckOutcome]") -> str:
+    return "Check completed without errors" if results.ok else "Check failed"
+
+
+class DefaultCheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
     def to_machine(self, results: "ResultCollection[CheckOutcome]") -> dict:
 
         results.aggregate()
@@ -73,7 +78,7 @@ class CheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
 
         return MinimalLayout(
             status=results.ok,
-            message="All checks passed" if results.ok else "Checks failed",
+            message=_conclusion(results),
             warnings=results.warnings,
             errors=results.errors,
         )
@@ -89,7 +94,7 @@ class CheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
                 ("Name", "brand.primary", "left"),
                 ("Active", "dim", "left"),
                 ("Status", "brand.primary", "left"),
-                ("Submodule(s)", "dim", "left"),
+                ("Item(s)", "dim", "left"),
             ],
             rows=[_build_row(result) for result in items],
         )
@@ -99,10 +104,10 @@ class CheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
         results.aggregate()
 
         return SimpleSummaryLayout(
-            title="Submodules check",
+            title=results.title,
             table=table,
             panel=panel,
-            conclusion=ConclusionBlock(results.ok, "All checks passed" if results.ok else "Check(s) failed"),
+            conclusion=ConclusionBlock(results.ok, _conclusion(results)),
             warnings=results.warnings,
             # errors=results.errors,
         )

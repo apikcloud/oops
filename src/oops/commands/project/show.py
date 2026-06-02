@@ -22,10 +22,9 @@ from oops.core.models import Result
 from oops.io.file import parse_odoo_version
 from oops.output.formatters import FormatterRegistry, JsonFormatter, MetricsConsoleFormatter
 from oops.output.sinks import deliver
-from oops.services.docker import check_image, format_image_updates
+from oops.services.docker import format_image_updates
 from oops.services.git import get_last_commit, require_repository
 from oops.services.github import get_latest_workflow_run
-from oops.services.project import check_project
 from oops.utils.net import get_public_repo_url, parse_repository_url
 from oops.utils.render import (
     format_datetime,
@@ -71,14 +70,14 @@ def main(token: Optional[str], output_format: str, output_path: Path):  # noqa: 
 
     # 2. Long-running processing.
     with live_progress("Initialisation..."):
-        outer = check_project(repo_path, strict=False)
+        # outer = check_project(repo_path, strict=False)
         result.data = {"project": repo_path.name}
 
         try:
             image_info = parse_odoo_version(repo_path)
-            outer.merge(check_image(image_info, strict=False))
+            # outer.merge(check_image(image_info, strict=False))
         except (FileNotFoundError, ValueError) as e:
-            outer.add_error(str(e) or "Could not parse Odoo version.")
+            result.add_error(str(e) or "Could not parse Odoo version.")
             image_info = None
 
         # --- Odoo panel ---
@@ -132,11 +131,10 @@ def main(token: Optional[str], output_format: str, output_path: Path):  # noqa: 
                     ]
                     result.data["metrics"]["actions"] = gha_values
                 else:
-                    outer.add_warning("Could not fetch latest GitHub Actions workflow run.")
+                    result.add_warning("Could not fetch latest GitHub Actions workflow run.")
             except requests.RequestException as e:
-                outer.add_warning(f"GitHub Actions fetch failed: {e}")
+                result.add_warning(f"GitHub Actions fetch failed: {e}")
 
     # 4. Prepare for the chosen audience and render.
-    result.merge(outer)
     output = ShowPresenter().prepare(result, target=formatter.target)
     deliver(formatter, output, output_format, output_path)

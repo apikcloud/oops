@@ -450,6 +450,22 @@ def colorize_from(raw: str, colors: dict):
     return f"[{colors.get(raw, 'gray50')}]{raw}[/]"
 
 
+def colorize_diff(raw: str, ignore: bool = True):
+    """Wrap *raw* in a Rich markup color tag."""
+
+    if ignore and not raw.startswith(("- ", "+ ")):
+        return raw
+
+    if raw.startswith("- "):
+        color = "bold red"
+    elif raw.startswith("+ "):
+        color = "bold green"
+    else:
+        color = "gray50"
+
+    return f"[{color}]{raw}[/]"
+
+
 def conclude(ok: bool, message: str):
     """Print a bordered success or failure conclusion panel."""
     console = get_console() if ok else get_error_console()

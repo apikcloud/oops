@@ -9,14 +9,15 @@ from __future__ import annotations
 
 import os
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
 import git
-from oops.core.config import config
+from oops.core.checks import Check, CheckContext, CheckOutcome
+from oops.core.config import ProjectConfig, config
 from oops.core.exceptions import (
     APIError,
-    MissingMandatoryFiles,
     MissingRecommendedFiles,
     OopsError,
 )
@@ -26,26 +27,42 @@ from oops.io.file import parse_odoo_version
 from oops.utils.net import sparse_clone
 
 
-def check_project(path: Path, strict: bool = True) -> Result[None]:
-    files = set(os.listdir(path))
-    missing_files = config.project.mandatory_files.difference(files)
+@dataclass
+class ProjectCheckContext(CheckContext):
+    path: Path
+    config: ProjectConfig
+    strict: bool
 
-    result: "Result[None]" = Result()
 
-    if missing_files:
-        if strict:
-            raise MissingMandatoryFiles(missing_files)
-        else:
-            result.add_warning(MissingMandatoryFiles.message.format(files=missing_files))
+class CheckMandatoryFiles(Check[ProjectCheckContext]):
+    name = "check_mandatory_files"
+    label = "Project mandatory files"
 
-    missing_recommended_files = config.project.recommended_files.difference(files)
-    if missing_recommended_files:
-        if strict:
-            raise MissingRecommendedFiles(missing_recommended_files)
-        else:
-            result.add_warning(MissingRecommendedFiles.message.format(files=missing_recommended_files))
+    def _run(self) -> Result[CheckOutcome]:
 
-    return result
+        cfg = self.ctx.config
+        files = set(os.listdir(self.ctx.path))
+        missing_files = cfg.mandatory_files.difference(files)
+
+        return self._resolve(list(missing_files), "Mandatory file is missing: {item}")
+        # self.result.add_warning(MissingMandatoryFiles.message.format(files=missing_files))
+
+
+class CheckRecommendedFiles(Check[ProjectCheckContext]):
+    name = "check_recommended_files"
+    label = "Project recommended files"
+
+    def _run(self) -> Result[CheckOutcome]:
+
+        cfg = self.ctx.config
+        files = set(os.listdir(self.ctx.path))
+        missing_recommended_files = cfg.recommended_files.difference(files)
+
+        if missing_recommended_files:
+            self.result.add_warning(MissingRecommendedFiles.message.format(files=missing_recommended_files))
+
+        self.add(status="passed")
+        return self.result
 
 
 def require_project(repo_path: Path) -> ImageInfo:

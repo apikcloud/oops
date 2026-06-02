@@ -17,7 +17,7 @@ from oops.output.sinks import deliver
 from oops.services.stats import append_event, maybe_flush
 
 if TYPE_CHECKING:
-    from oops.core.models import Result
+    from oops.core.models import Result, ResultCollection
 
 
 def _cmd_name(ctx: click.Context) -> str:
@@ -127,7 +127,7 @@ def command(*args: Any, **kwargs: Any):
 
 
 def render_and_exit(
-    result: Result,
+    result: Result | ResultCollection,
     formatter,
     output,
     output_format: str = "text",
