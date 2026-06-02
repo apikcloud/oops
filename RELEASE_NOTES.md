@@ -9,6 +9,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.19.1] - 2026-06-03
+
+Maintenance release — internal refactoring only, no visible changes for end users.
+
+### 🔄 Improvements
+
+- Validation logic, check command internals, and output handling refined for consistency and extensibility
+
+---
+
 ## [0.19.0] - 2026-06-01
 
 Big update to `oops addons analyze`, a new submodules cleanup command, and a new dependency viewer.
