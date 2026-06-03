@@ -44,9 +44,8 @@ def main(dry_run: bool = False, no_commit: bool = False, hook: bool = False):
 
     repo, repo_path = require_repository()
 
-    result: Result[dict] = Result({"cmd": "Update README", "rows": [], "dry_run": dry_run})
-
-    assert result.data is not None
+    result: Result[dict] = Result()
+    result.data = {"cmd": "Update README", "rows": [], "dry_run": dry_run}
 
     readme_file = config.project.readme_file
 

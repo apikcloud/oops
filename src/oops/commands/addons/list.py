@@ -14,6 +14,7 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.logger import live_progress, log
+from oops.core.metadata import get_metadata
 from oops.core.models import AddonInfo, Result
 from oops.io.file import enrich_addon, find_addons
 from oops.output.formatters import (
@@ -77,9 +78,7 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
-@click.pass_context
 def main(
-    ctx,
     output_format: str,
     init: bool,
     submodules: tuple,
@@ -88,10 +87,11 @@ def main(
     output_path: Path,
 ):
 
-    repo, repo_path = require_repository()
-    metadata = ctx.obj["metadata"]
-    formatter: OutputFormatter = FORMATTERS[output_format]()
+    metadata = get_metadata()
 
+    repo, repo_path = require_repository()
+
+    formatter: OutputFormatter = FORMATTERS[output_format]()
     rows: Result[list] = Result()
     rows.data = []
 

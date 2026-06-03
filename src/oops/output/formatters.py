@@ -56,8 +56,7 @@ class PreCommitFormatter(OutputFormatter):
     console = get_error_console()
 
     def render(self, output: "Output[MinimalLayout]") -> None:
-        data = output.layout
-        assert data
+        data = output.unwrap
 
         # Warnings (stderr)
         if data.warnings:
@@ -84,8 +83,7 @@ class SummaryConsoleFormatter(RichFormatter):
 
     def render(self, output: "Output[SummaryLayout]") -> None:
 
-        data = output.layout
-        assert data
+        data = output.unwrap
 
         self.console.print(data.title)
 
@@ -123,8 +121,7 @@ class SummaryConsoleFormatter(RichFormatter):
 class SimpleSummaryConsoleFormatter(RichFormatter):
     def render(self, output: "Output[SimpleSummaryLayout]") -> None:
 
-        data = output.layout
-        assert data
+        data = output.unwrap
 
         rule(data.title)
         self.console.print()
@@ -161,8 +158,7 @@ class MetricsConsoleFormatter(RichFormatter):
 
     def render(self, output: "Output[MetricsLayout]") -> None:
 
-        data = output.layout
-        assert data
+        data = output.unwrap
 
         rule(data.title)
 
@@ -217,11 +213,10 @@ class JsonFormatter(OutputFormatter):
     target = RenderTarget(audience="machine", verbosity="full")
 
     def render(self, output: Output[dict]) -> str:
-        data = output.layout
-        assert data
+        data = output.unwrap
 
-        if output.metadata is not None:
-            data = {**data, "metadata": output.metadata.to_dict()}
+        assert output.metadata is not None
+        data = {**data, "metadata": output.metadata.to_dict()}
 
         return to_json_string(data)
 

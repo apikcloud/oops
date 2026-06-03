@@ -35,8 +35,8 @@ def prepare(
     Returns:
         An Output ready for rendering.
     """
-    data = result.data
-    assert data is not None
+    data = result.unwrap
+
     assert data.columns is not None
     assert data.metrics is not None
 

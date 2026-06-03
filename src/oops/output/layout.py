@@ -98,6 +98,12 @@ class Output(Generic[L]):
     status: Status = "ok"
     metadata: "Optional[Metadata]" = None
 
+    @property
+    def unwrap(self) -> L:
+        if self.layout is None:
+            raise ValueError("Output has no layout")
+        return self.layout
+
 
 @dataclass
 class MinimalLayout(Layout):

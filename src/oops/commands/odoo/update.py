@@ -133,8 +133,8 @@ def main(
 
     version = normalize_version(version)
 
-    result: Result[dict] = Result({"cmd": f"Update Odoo {version} sources", "rows": []})
-    assert result.data is not None
+    result: Result[dict] = Result()
+    result.data = {"cmd": f"Update Odoo {version} sources", "rows": []}
 
     dirs = get_odoo_sources_dirs(version)
 

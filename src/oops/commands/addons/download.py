@@ -36,12 +36,11 @@ from .presenters.download import DownloadPresenter
 @click.argument("branch")
 @click.option("--addons", "addons_list", help="Comma-separated addon names to copy (copies all if omitted).")
 @click.option("--exclude/--no-exclude", is_flag=True, default=True, help="Add downloaded addons to .gitignore.")
-@click.pass_context
-def main(ctx, url: str, branch: str, exclude: bool, addons_list: Optional[str] = None):
+def main(url: str, branch: str, exclude: bool, addons_list: Optional[str] = None):
     formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
 
-    result: Result[dict] = Result({"cmd": f"Download addons from {url}", "rows": []})
-    assert result.data is not None
+    result: Result[dict] = Result()
+    result.data = {"cmd": f"Download addons from {url}", "rows": []}
 
     repo, repo_path = require_repository()
     ssh_url = encode_url(url, "ssh")

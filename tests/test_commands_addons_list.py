@@ -45,17 +45,18 @@ def _invoke_list_json(tmp_path: Path, addons: list[AddonInfo], loc_map: dict[str
     def _fake_loc(path: str) -> LocStats:
         return loc_map.get(path, LocStats())
 
-    with patch("oops.commands.addons.list.require_repository") as mock_repo, \
-            patch("oops.commands.addons.list.list_submodules", return_value={}), \
-            patch("oops.commands.addons.list.find_addons", return_value=iter(addons)), \
-            patch("oops.commands.addons.list.enrich_addon"), \
-            patch("oops.commands.addons.list.get_addon_loc", side_effect=_fake_loc), \
-            patch("oops.core.logger.Live", MagicMock()):
+    with patch("oops.commands.addons.list.require_repository") as mock_repo, patch(
+        "oops.commands.addons.list.list_submodules", return_value={}
+    ), patch("oops.commands.addons.list.find_addons", return_value=iter(addons)), patch(
+        "oops.commands.addons.list.enrich_addon"
+    ), patch("oops.commands.addons.list.get_addon_loc", side_effect=_fake_loc), patch(
+        "oops.core.logger.Live", MagicMock()
+    ):
         mock_repo.return_value = (MagicMock(), tmp_path)
         result = CliRunner().invoke(main, ["--format", "json"])
 
     assert result.exit_code == 0, result.output
-    return json.loads(result.output)["addons"]
+    return json.loads(result.output)["data"]
 
 
 class TestListLocKeys:

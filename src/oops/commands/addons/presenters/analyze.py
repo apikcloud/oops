@@ -264,16 +264,15 @@ def _build_loc(data: "Optional[LocStats]", pct: float = 0.0) -> StatGroup:
 
 
 def _build_section(result: "Result[ModuleSummary]") -> SectionBlock:
-    assert result.data is not None
-    summary = result.data
+    summary = result.unwrap
 
     info = []
     tables = []
 
     m = summary.manifest
 
-    manifest_values = _build_manifest(result.data)
-    stats_values = _build_metrics(result.data)
+    manifest_values = _build_manifest(summary)
+    stats_values = _build_metrics(summary)
     panels = [manifest_values, stats_values]
 
     if summary.loc and summary.loc.total:
@@ -352,8 +351,7 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
         """Full payload for JSON / scripts / downstream agents."""
 
         def _make(result: "Result[ModuleSummary]") -> dict:
-            assert result.data is not None
-            summary = result.data
+            summary = result.unwrap
 
             not_analysed: list[str] = []
             s = summary.structure
@@ -371,9 +369,9 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
                 not_analysed.append("static/")
 
             # Common stats, shared with summary
-            metrics = _build_metrics(result.data)
+            metrics = _build_metrics(summary)
             loc = _build_loc(summary.loc, summary.loc_pct)
-            manifest = _build_manifest(result.data)
+            manifest = _build_manifest(summary)
 
             return {
                 "module": summary.module_name,

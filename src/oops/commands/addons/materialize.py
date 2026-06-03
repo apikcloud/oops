@@ -50,8 +50,8 @@ def main(ctx, include: Optional[str], exclude: Optional[str], dry_run: bool, no_
 
     formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
 
-    result: Result[dict] = Result({"cmd": "Materialize addons", "rows": [], "dry_run": dry_run})
-    assert result.data is not None
+    result: Result[dict] = Result()
+    result.data = {"cmd": "Materialize addons", "rows": [], "dry_run": dry_run}
 
     repo, repo_path = require_repository()
 

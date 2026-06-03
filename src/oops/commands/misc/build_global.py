@@ -112,15 +112,12 @@ def main(
 
     scan_results = []
     sources: dict[str, str] = {}
-    result: Result[dict] = Result(
-        {
-            "cmd": f"Build global KB for Odoo {version}",
-            "kb": {},
-            "stats": [],
-        }
-    )
-
-    assert result.data is not None
+    result: Result[dict] = Result()
+    result.data = {
+        "cmd": f"Build global KB for Odoo {version}",
+        "kb": {},
+        "stats": [],
+    }
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
 

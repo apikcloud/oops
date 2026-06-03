@@ -96,9 +96,7 @@ FORMATTERS: FormatterRegistry = {
     default=False,
     help="Stream git output to the terminal.",
 )
-@click.pass_context
 def main(
-    ctx,
     version: Optional[str],
     do_update: bool,
     with_community: bool,
@@ -112,8 +110,8 @@ def main(
     metadata = get_metadata()
     assert metadata is not None
 
-    result: Result[dict] = Result({"cmd": f"Download Odoo {version} sources", "rows": []})
-    assert result.data is not None
+    result: Result[dict] = Result()
+    result.data = {"cmd": f"Download Odoo {version} sources", "rows": []}
 
     if version is None:
         try:

@@ -12,7 +12,6 @@ from oops.output.base import SimplePresenter
 from oops.output.layout import (
     ConclusionBlock,
     MinimalLayout,
-    Output,
     SimpleSummaryLayout,
     TableBlock,
     statgroup_to_panel,
@@ -26,10 +25,12 @@ COLOR_STATUS = {
 }
 
 
-def _get_status(result):
+def _get_status(result: Result[dict]) -> tuple[bool, str, Counter]:
 
-    rows = result.data.get("rows", [])
-    dry_run = result.data.get("dry_run", False)
+    data = result.unwrap
+
+    rows = data.get("rows", [])
+    dry_run = data.get("dry_run", False)
     status = Counter(row[1] for row in rows)
     has_update = bool(status["updated"])
 
@@ -47,14 +48,13 @@ def _get_status(result):
     return all_ok, conclusion_msg, status
 
 
-class UpdatePresenter(SimplePresenter[Result[dict]]):
-    def to_human(self, result, outer) -> Output[SimpleSummaryLayout]:
-        data = result.data
-        assert data
+class UpdatePresenter(SimplePresenter[dict]):
+    def to_human(self, result: Result[dict]) -> SimpleSummaryLayout:
+        data = result.unwrap
 
         rows = data.get("rows", [])
 
-        all_ok, conclusion_msg, status = _get_status(result, outer)
+        all_ok, conclusion_msg, status = _get_status(result)
 
         def _colorize(status: str) -> str:
             return colorize(status, COLOR_STATUS.get(status, "dim"))
@@ -90,25 +90,21 @@ class UpdatePresenter(SimplePresenter[Result[dict]]):
             ],
         )
 
-        return Output(
-            SimpleSummaryLayout(
-                title=data.get("cmd", "Update README"),
-                table=table,
-                panel=statgroup_to_panel(metrics),
-                conclusion=ConclusionBlock(all_ok, conclusion_msg),
-                warnings=outer.warnings,
-                errors=outer.errors,
-            )
+        return SimpleSummaryLayout(
+            title=data.get("cmd", "Update README"),
+            table=table,
+            panel=statgroup_to_panel(metrics),
+            conclusion=ConclusionBlock(all_ok, conclusion_msg),
+            warnings=result.warnings,
+            errors=result.errors,
         )
 
-    def to_human_summary(self, result) -> Output[MinimalLayout]:
+    def to_human_summary(self, result: Result[dict]) -> MinimalLayout:
         all_ok, message, _ = _get_status(result)
 
-        return Output(
-            MinimalLayout(
-                status=all_ok,
-                message=message,
-                warnings=result.warnings,
-                errors=result.errors,
-            ),
+        return MinimalLayout(
+            status=all_ok,
+            message=message,
+            warnings=result.warnings,
+            errors=result.errors,
         )
