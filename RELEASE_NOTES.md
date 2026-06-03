@@ -9,6 +9,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.19.2] - 2026-06-03
+
+Patch fix for machine-readable output.
+
+### 🐛 Fixes
+
+- **`oops addons`**: fixed incorrect key name in machine output — the field is now `data` (was `addons`)
+
+---
+
 ## [0.19.1] - 2026-06-03
 
 Maintenance release — internal refactoring only, no visible changes for end users.
