@@ -106,4 +106,4 @@ class ListPresenter(SimplePresenter[list]):
         )
 
     def to_machine(self, result: "Result[list]") -> dict:
-        return {"addons": result.data, "warnings": result.warnings}
+        return {"data": result.data, "warnings": result.warnings}
