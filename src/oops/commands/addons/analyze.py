@@ -24,9 +24,35 @@ JSON output shape (--format json)::
         {
           "module": "...",
           "manifest": { ... },
-          "models": [ ... ],
+          "models": [
+            { "...": "...",
+              "methods": {
+                "...": "...",
+                # override_details / inherited_details entries each carry the
+                # upstream location pulled from the KB:
+                "override_details": [
+                  {"model": "...", "method": "...", "origin_module": "...",
+                   "origin": "...", "line_start": 120, "line_end": 145,
+                   "source_file": "sale/models/sale_order.py"}
+                ],
+                "inherited_details": [ { ...same extra keys... } ]
+              }
+            }
+          ],
+          # Flat list of every method in the analyzed module (methods only —
+          # no fields). Line ranges + KB-native "module/<path>.py" source path.
+          "symbols": [
+            {"model": "...", "kind": "method", "name": "...", "section": "...",
+             "line_start": 42, "line_end": 58,
+             "source_file": "my_module/models/my_model.py",
+             "is_override": false, "has_docstring": false}
+          ],
           "structure": { ... },
           "loc": {"kind": "stats", "label": "Lines of code", "values": [{"name": "python", ...}, ...]},
+          # views.list[] entries carry the view's own source_file + line range:
+          "views": {"...": "...",
+                    "list": [{"...": "...", "source_file": "my_module/views/x.xml",
+                              "line_start": 3, "line_end": 61}]},
           "not_analysed": [ ... ],
           "warnings": ["module-level warnings"]
         }
@@ -50,7 +76,7 @@ from oops.io.file import find_addons
 from oops.io.installed_modules import read_installed_modules
 from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
-from oops.io.refactor import ClassInfo, analyse_file
+from oops.io.refactor import ClassInfo, SymbolInfo, analyse_file
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
@@ -218,7 +244,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 module_local_refs = build_module_field_refs(model_py_files)
 
                 all_classes: list[ClassSummary] = []
+                method_symbols: list[dict] = []
                 for py_file in model_py_files:
+                    rel_file = f"{module_name}/{py_file.relative_to(module_path).as_posix()}"
                     class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
                     for ci in class_infos:
                         cs = _summarize_class(ci)
@@ -230,6 +258,22 @@ def main(  # noqa: C901, PLR0912, PLR0915
                                 cs.ancestor_module = best["module"]
                                 cs.ancestor_origin = best["origin"]
                         all_classes.append(cs)
+                        model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
+                        method_symbols.extend(
+                            {
+                                "model": model_label,
+                                "kind": "method",
+                                "name": s.name,
+                                "section": s.section,
+                                "line_start": s.lineno,
+                                "line_end": s.end_lineno,
+                                "source_file": rel_file,
+                                "is_override": s.is_override,
+                                "has_docstring": s.has_docstring,
+                            }
+                            for s in ci.symbols
+                            if s.kind == "method"
+                        )
 
                 views_summary, xml_analysed = _build_views_summary(module_name, manifest, kb)
                 structure = _build_structure(module_path, manifest, xml_analysed)
@@ -245,6 +289,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     loc=loc,
                     loc_pct=loc_pct,
                     views_summary=views_summary,
+                    method_symbols=method_symbols,
                 )
 
                 results.add(module_result)
@@ -279,25 +324,22 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
         methods_by_section[m.section] = methods_by_section.get(m.section, 0) + 1
 
     model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
-    override_details = [
-        {
+
+    def _detail(m: "SymbolInfo") -> dict:
+        e = m.kb_entry or {}
+        return {
             "model": model_label,
             "method": m.name,
-            "origin_module": m.kb_entry.get("module", "") if m.kb_entry else "",
-            "origin": m.kb_entry.get("origin", "") if m.kb_entry else "",
+            "origin_module": e.get("module", ""),
+            "origin": e.get("origin", ""),
+            "line_start": e.get("source_line"),
+            "line_end": e.get("source_end_line"),
+            "source_file": e.get("source_file", ""),
         }
-        for m in methods
-        if m.is_override
-    ]
+
+    override_details = [_detail(m) for m in methods if m.is_override]
     inherited_method_details = [
-        {
-            "model": model_label,
-            "method": m.name,
-            "origin_module": m.kb_entry.get("module", "") if m.kb_entry else "",
-            "origin": m.kb_entry.get("origin", "") if m.kb_entry else "",
-        }
-        for m in methods
-        if m.kb_entry and not m.is_override and not ci.is_new_model
+        _detail(m) for m in methods if m.kb_entry and not m.is_override and not ci.is_new_model
     ]
 
     return ClassSummary(
@@ -377,6 +419,9 @@ def _build_views_summary(
                 "buttons_count": len(json.loads(v.get("buttons_json") or "[]")),
                 "ancestor_module": parent["module"] if parent else None,
                 "ancestor_origin": parent["origin"] if parent else None,
+                "source_file": v.get("source_file"),
+                "line_start": v.get("source_line"),
+                "line_end": v.get("source_end_line"),
             }
         )
 

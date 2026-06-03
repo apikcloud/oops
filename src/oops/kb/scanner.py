@@ -392,6 +392,7 @@ def build_module_field_refs(
 #           "module":      str,
 #           "source_file": str,   # relative to tier_root
 #           "source_line": int,
+#           "source_end_line": int,  # last source line of the definition (degrades to source_line on py3.7)
 #           "field_type":  str | None,  # set when kind == 'field'; e.g. 'Boolean'
 #           "section":     str | None,  # set when kind == 'method'; canonical section name
 #       },
@@ -467,7 +468,7 @@ def scan_module(  # noqa: C901
     # Keyed by (model, target_method) → list of kwargs
     refs_by_target: Dict[Tuple[str, str], List[str]] = {}
     field_symbols: List[Dict[str, Any]] = []
-    pending_methods: List[Tuple[str, str, ast.FunctionDef, str, int]] = []
+    pending_methods: List[Tuple[str, str, ast.FunctionDef, str, int, int]] = []
 
     for _, rel_path, tree in parsed_files:
         for node in ast.walk(tree):
@@ -518,6 +519,7 @@ def scan_module(  # noqa: C901
                     fld = is_field_assignment(stmt)
                     if fld:
                         fname, lineno, ftype = fld
+                        end_lineno = getattr(stmt, "end_lineno", None) or lineno
                         field_symbols.append(
                             {
                                 "model": model_name,
@@ -527,6 +529,7 @@ def scan_module(  # noqa: C901
                                 "module": module_name,
                                 "source_file": rel_path,
                                 "source_line": lineno,
+                                "source_end_line": end_lineno,
                                 "field_type": ftype,
                                 "section": None,
                             }
@@ -544,11 +547,20 @@ def scan_module(  # noqa: C901
                             )
                         continue
                     if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        pending_methods.append((model_name, rel_path, stmt, stmt.name, stmt.lineno))
+                        pending_methods.append(
+                            (
+                                model_name,
+                                rel_path,
+                                stmt,
+                                stmt.name,
+                                stmt.lineno,
+                                getattr(stmt, "end_lineno", None) or stmt.lineno,
+                            )
+                        )
 
     # ---- Pass 2: classify methods using the collected field refs. ----
     method_symbols: List[Dict[str, Any]] = []
-    for model_name, rel_path, fn_node, mname, lineno in pending_methods:
+    for model_name, rel_path, fn_node, mname, lineno, end_lineno in pending_methods:
         ref_kwargs = refs_by_target.get((model_name, mname), [])
         decs = _get_decorator_names(fn_node)
         section = classify_method(mname, decs, ref_kwargs)
@@ -561,6 +573,7 @@ def scan_module(  # noqa: C901
                 "module": module_name,
                 "source_file": rel_path,
                 "source_line": lineno,
+                "source_end_line": end_lineno,
                 "field_type": None,
                 "section": section,
             }

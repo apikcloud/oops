@@ -326,6 +326,14 @@ class TestScanModule:
         # All paths should be relative: they start with module name, not /
         assert all(sf.startswith("partner") for sf in source_files)
 
+    def test_source_end_line_captured(self, tmp_path):
+        module_dir = _make_module(tmp_path, "partner", models={"partner.py": SIMPLE_MODEL})
+        result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
+        assert result["symbols"]
+        for s in result["symbols"]:
+            assert "source_end_line" in s
+            assert s["source_end_line"] >= s["source_line"]
+
     def test_syntax_error_in_model_file_skipped(self, tmp_path):
         module_dir = _make_module(
             tmp_path,

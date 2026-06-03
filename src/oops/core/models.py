@@ -225,12 +225,12 @@ class ClassSummary:
     methods_total: int
     methods_by_section: "dict[str, int]"
     overrides: int
-    override_details: "list[dict[str, str]]"
+    override_details: "list[dict]"
     missing_docstrings: int
     model_name: Optional[str] = None
     model_type: str = "model"
     inherited_methods: int = 0
-    inherited_method_details: "list[dict[str, str]]" = field(default_factory=list)
+    inherited_method_details: "list[dict]" = field(default_factory=list)
     ancestor_model: Optional[str] = None
     ancestor_module: Optional[str] = None
     ancestor_origin: Optional[str] = None
@@ -269,6 +269,7 @@ class ModuleSummary:
     loc: "Optional[LocStats]" = None
     loc_pct: float = 0.0
     views_summary: "Optional[ViewsSummary]" = None
+    method_symbols: "list[dict]" = field(default_factory=list)
 
 
 class HasStatus(Protocol):

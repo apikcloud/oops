@@ -414,6 +414,7 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
                     "report_py": s.report_py,
                     "static_by_ext": s.static_by_ext,
                 },
+                "symbols": summary.method_symbols,
                 "loc": loc.to_dict(),
                 "views": _views_block(summary.views_summary),
                 "not_analysed": not_analysed,

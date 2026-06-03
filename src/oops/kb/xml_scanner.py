@@ -78,6 +78,8 @@ def _parse_xml(path: Path) -> Optional[ET.Element]:
             stack.append(elem)
 
         def _end(name: str) -> None:
+            if stack:
+                stack[-1].set("__end_line__", str(p.CurrentLineNumber))
             if len(stack) > 1:
                 stack.pop()
 
@@ -106,6 +108,11 @@ def _parse_xml(path: Path) -> Optional[ET.Element]:
 def _line_of(elem: ET.Element) -> int:
     val = elem.get("__line__")
     return int(val) if val else 0
+
+
+def _end_line_of(elem: ET.Element) -> int:
+    val = elem.get("__end_line__")
+    return int(val) if val else _line_of(elem)
 
 
 # ---------------------------------------------------------------------------
@@ -327,6 +334,7 @@ def _parse_view_record(
         "module": module,
         "source_file": rel_path,
         "source_line": _line_of(record),
+        "source_end_line": _end_line_of(record),
         "fields_json": json.dumps(fields),
         "buttons_json": json.dumps(buttons),
     }
@@ -356,6 +364,7 @@ def _parse_template(
         "module": module,
         "source_file": rel_path,
         "source_line": _line_of(elem),
+        "source_end_line": _end_line_of(elem),
         "fields_json": json.dumps([]),
         "buttons_json": json.dumps([]),
     }

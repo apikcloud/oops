@@ -52,7 +52,17 @@ oops addons analyze plant_nursery
 Emit JSON for downstream tooling:
 
 ```bash
-oops addons analyze plant_nursery --format json | jq '.models[0]'
+oops addons analyze plant_nursery --format json | jq '.modules[0].models[0]'
+```
+
+The JSON payload also carries a flat per-module `symbols` list (every method,
+with `line_start`/`line_end` and a KB-native `module/<path>.py` source path),
+and line ranges + source paths on each view in `views.list[]` and on every
+`override_details`/`inherited_details` entry:
+
+```bash
+oops addons analyze plant_nursery --format json \
+  | jq '.modules[0] | {symbols, views: .views.list}'
 ```
 
 Analyse several modules in one invocation:

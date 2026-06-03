@@ -279,6 +279,25 @@ class TestRecordExtraction:
         assert v["inherit_id"] is None
         assert json.loads(v["fields_json"]) == ["name"]
 
+    def test_view_record_source_end_line(self, tmp_path):
+        _write_manifest(tmp_path, "{'data': ['views/form.xml']}")
+        _write_xml(
+            tmp_path / "views" / "form.xml",
+            _odoo_xml(
+                """<record id="view_order_form" model="ir.ui.view">
+                    <field name="model">sale.order</field>
+                    <field name="arch" type="xml">
+                        <form><field name="name"/></form>
+                    </field>
+                </record>"""
+            ),
+        )
+        result = scan_module_xml(tmp_path, "odoo", tmp_path.parent)
+        v = result["views"][0]
+        assert "source_end_line" in v
+        # Record spans several lines, so the close must be after the open.
+        assert v["source_end_line"] > v["source_line"]
+
     def test_view_record_extension(self, tmp_path):
         _write_manifest(tmp_path, "{'data': ['views/ext.xml']}")
         _write_xml(

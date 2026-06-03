@@ -55,6 +55,7 @@ def _sym(model: str, name: str, kind: str, **kw: object) -> dict:
         "module": kw.get("module", "sale"),
         "source_file": "addons/sale/models/sale.py",
         "source_line": 10,
+        "source_end_line": kw.get("source_end_line", 12),
         "field_type": kw.get("field_type"),
         "section": kw.get("section"),
     }
@@ -73,6 +74,15 @@ class TestDDL:
         cols = {row[1] for row in con.execute("PRAGMA table_info(symbols)").fetchall()}
         assert "field_type" in cols
         assert "section" in cols
+        assert "source_end_line" in cols
+        con.close()
+
+    def test_views_has_source_end_line_column(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(db_path)
+        con = sqlite3.connect(str(db_path))
+        cols = {row[1] for row in con.execute("PRAGMA table_info(views)").fetchall()}
+        assert "source_end_line" in cols
         con.close()
 
     def test_field_refs_table_exists(self, tmp_path):
@@ -91,7 +101,7 @@ class TestDDL:
         _write(db_path)
         with KBReader(db_path) as kb:
             meta = kb.get_meta()
-        assert meta.get("schema_version") == "4"
+        assert meta.get("schema_version") == "5"
 
     def test_write_twice_applies_schema_cleanly(self, tmp_path):
         db_path = tmp_path / "kb.db"
@@ -177,6 +187,17 @@ class TestRoundTrip:
         with KBReader(db_path) as kb:
             entries = kb.get_symbol("sale.order", "name", "field")
         assert entries[0]["section"] is None
+
+    def test_symbol_source_end_line_round_trips(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            symbols=[_sym("sale.order", "action_confirm", "method", section="ACTION METHODS", source_end_line=42)],
+        )
+        with KBReader(db_path) as kb:
+            entries = kb.get_symbol("sale.order", "action_confirm", "method")
+        assert entries[0]["source_end_line"] == 42
+        assert entries[0]["source_end_line"] >= entries[0]["source_line"]
 
 
 # ---------------------------------------------------------------------------
@@ -317,6 +338,7 @@ def _view(xml_id: str, module: str = "sale", **kw: object) -> dict:
         "mode": kw.get("mode", "primary"),
         "source_file": kw.get("source_file", "sale/views/form.xml"),
         "source_line": kw.get("source_line", 1),
+        "source_end_line": kw.get("source_end_line", 5),
         "fields_json": kw.get("fields_json", "[]"),
         "buttons_json": kw.get("buttons_json", "[]"),
     }
@@ -376,6 +398,21 @@ class TestXmlTables:
         assert views[0]["view_type"] == "form"
         assert single is not None
         assert single["xml_id"] == "sale.view_order_form"
+
+    def test_view_source_end_line_round_trips(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        v = _view("sale.view_order_form", source_line=3, source_end_line=61)
+        write_project_kb(
+            db_path=db_path, odoo_version="17.0", project="test", scope=[],
+            sources={}, scan_results=[{"views": [v], "actions": [], "menus": []}],
+        )
+        with KBReader(db_path) as kb:
+            single = kb.get_view("sale.view_order_form")
+            module_views = kb.get_module_views("sale")
+        assert single is not None
+        assert single["source_end_line"] == 61
+        assert single["source_end_line"] >= single["source_line"]
+        assert module_views[0]["source_end_line"] == 61
 
     def test_action_ingestion_round_trip(self, tmp_path):
         db_path = tmp_path / "kb.db"

@@ -78,6 +78,7 @@ class SymbolInfo:
         kind: ``'field'`` or ``'method'``.
         section: Canonical section header (e.g. ``'COMPUTE METHODS'``).
         lineno: Source line number of the definition.
+        end_lineno: Last source line of the definition (0 → unknown).
         has_docstring: True if the method already has a docstring.
         has_super: True if the method calls ``super()``.
         super_methods: Names of methods called via ``super().<name>()``.
@@ -90,6 +91,7 @@ class SymbolInfo:
     kind: str
     section: str
     lineno: int
+    end_lineno: int = 0
     has_docstring: bool = False
     has_super: bool = False
     super_methods: List[str] = field(default_factory=lambda: [])
@@ -285,6 +287,7 @@ def analyse_file(
                         kind="field",
                         section=section,
                         lineno=lineno,
+                        end_lineno=getattr(stmt, "end_lineno", None) or lineno,
                         kb_entry=kb_entry,
                         field_type=ftype,
                     )
@@ -315,6 +318,7 @@ def analyse_file(
                     kind="method",
                     section=section,
                     lineno=stmt.lineno,
+                    end_lineno=getattr(stmt, "end_lineno", None) or stmt.lineno,
                     has_docstring=has_doc,
                     has_super=has_super,
                     super_methods=super_methods,

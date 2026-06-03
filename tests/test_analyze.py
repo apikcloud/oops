@@ -77,6 +77,7 @@ def _kb_symbol(model: str, name: str, kind: str, module: str = "sale") -> dict:
         "module": module,
         "source_file": f"addons/{module}/models/{model.replace('.', '_')}.py",
         "source_line": 10,
+        "source_end_line": 15,
     }
 
 
@@ -870,7 +871,63 @@ class TestAnalyzeInheritedMethods:
         assert isinstance(methods["inherited_details"], list)
         assert methods["inherited"] >= 1
         for detail in methods["inherited_details"]:
-            assert set(detail.keys()) == {"model", "method", "origin_module", "origin"}
+            assert set(detail.keys()) == {
+                "model",
+                "method",
+                "origin_module",
+                "origin",
+                "line_start",
+                "line_end",
+                "source_file",
+            }
+
+    def test_json_top_level_symbols_methods_only(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        symbols = data["modules"][0]["symbols"]
+        assert symbols, "expected a top-level symbols list"
+        names = {s["name"] for s in symbols}
+        assert {"action_open", "_compute_state"} <= names
+        for s in symbols:
+            assert s["kind"] == "method"  # methods only — no fields
+            assert {"line_start", "line_end", "source_file"} <= set(s.keys())
+            assert s["line_end"] >= s["line_start"] > 0
+            assert s["source_file"].startswith("my_module/")
+            assert s["source_file"].endswith(".py")
+
+    def test_json_override_details_line_keys(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[_kb_symbol("res.partner", "name_get", "method", "base")],
+            modules={"res.partner": {"origin": "odoo", "depends": []}},
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"res_partner_ext.py": MIXED_OVERRIDE_SUPER_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        methods = data["modules"][0]["models"][0]["methods"]
+        assert methods["overrides"] >= 1
+        for detail in methods["override_details"]:
+            assert {"line_start", "line_end", "source_file"} <= set(detail.keys())
+            assert detail["origin_module"] == "base"
+            assert detail["source_file"].endswith(".py")
 
     def test_stats_panel_field_totals_present(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -963,6 +1020,7 @@ def _kb_view(
         "mode": mode,
         "source_file": source_file or f"{module}/views/{xml_id.split('.', 1)[-1]}.xml",
         "source_line": 1,
+        "source_end_line": 20,
         "fields_json": fields_json,
         "buttons_json": buttons_json,
     }
@@ -1082,6 +1140,10 @@ class TestAnalyzeViews:
         for key in expected_keys:
             assert key in views, f"Missing views key: {key}"
         assert views["actions"] == 1
+        assert views["list"], "expected at least one view in the list"
+        for v in views["list"]:
+            assert {"source_file", "line_start", "line_end"} <= set(v.keys())
+            assert v["line_end"] >= v["line_start"]
 
     def test_json_views_all_zero_still_present(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"

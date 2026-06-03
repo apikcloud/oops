@@ -676,6 +676,16 @@ class TestAnalyseFile:
         assert confirm.is_override is False
         assert confirm.kb_entry is not None
 
+    def test_method_end_lineno_populated(self, tmp_path):
+        py_file = tmp_path / "my_model.py"
+        py_file.write_text(NEW_MODEL_SOURCE)
+        with KBReader(self._empty_kb(tmp_path)) as kb:
+            [ci] = analyse_file(py_file, kb, {}, "mymodule")
+        methods = [s for s in ci.symbols if s.kind == "method"]
+        assert methods
+        for s in methods:
+            assert s.end_lineno >= s.lineno > 0
+
     def test_syntax_error_file_returns_empty(self, tmp_path):
         py_file = tmp_path / "broken.py"
         py_file.write_text("def broken(:\n    pass")

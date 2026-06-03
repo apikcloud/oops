@@ -9,22 +9,26 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema (v4)
+Schema (v5)
 -----------
 meta          (key, value)
 sources       (origin, path)
 modules       (name, origin, depends)         -- depends is a JSON array string
 symbols       (model, name, kind, origin, module, source_file, source_line,
-               field_type, section)
+               source_end_line, field_type, section)
+              source_end_line: last source line of the definition (nullable —
+              fields may omit it)
 field_refs    (model, field_name, module, kwarg, target_method)
 model_origins (model, module, origin, role, model_type,
                inherit_json, inherits_json, source_file, source_line)
               role: 'create' | 'extend' | 'prototype'
               model_type: 'model' | 'transient' | 'abstract'
 views         (xml_id, module, origin, name, model, view_type, inherit_id,
-               mode, source_file, source_line, fields_json, buttons_json)
+               mode, source_file, source_line, source_end_line,
+               fields_json, buttons_json)
               mode: 'primary' | 'extension'
               view_type: NULL during pass 1, 'unresolved' if pass 2 fails
+              source_end_line: closing-element line (nullable)
 actions       (xml_id, module, origin, name, model, view_id, domain,
                source_file, source_line)
 menus         (xml_id, module, origin, name, action, parent_id,
@@ -62,7 +66,7 @@ from oops.core.models import Result
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 4  # added views/actions/menus tables
+SCHEMA_VERSION = 5  # added source_end_line to symbols and views
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -98,6 +102,7 @@ CREATE TABLE IF NOT EXISTS symbols (
     module      TEXT    NOT NULL,
     source_file TEXT    NOT NULL,
     source_line INTEGER NOT NULL,
+    source_end_line INTEGER,                 -- last source line / NULL for fields without one
     field_type  TEXT,                       -- e.g. 'Boolean' / NULL for methods
     section     TEXT,                       -- canonical section name / NULL for fields
     PRIMARY KEY (model, name, kind, module)
@@ -141,6 +146,7 @@ CREATE TABLE IF NOT EXISTS views (
     mode         TEXT NOT NULL,
     source_file  TEXT NOT NULL,
     source_line  INTEGER NOT NULL,
+    source_end_line INTEGER,
     fields_json  TEXT NOT NULL DEFAULT '[]',
     buttons_json TEXT NOT NULL DEFAULT '[]'
 );
@@ -322,8 +328,8 @@ def _write_kb(
                         """
                         INSERT OR REPLACE INTO symbols
                             (model, name, kind, origin, module, source_file, source_line,
-                             field_type, section)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             source_end_line, field_type, section)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             sym["model"],
@@ -333,6 +339,7 @@ def _write_kb(
                             sym["module"],
                             sym["source_file"],
                             sym["source_line"],
+                            sym.get("source_end_line"),
                             sym.get("field_type"),
                             sym.get("section"),
                         ),
@@ -380,8 +387,9 @@ def _write_kb(
                         """
                         INSERT OR REPLACE INTO views
                             (xml_id, module, origin, name, model, view_type, inherit_id,
-                             mode, source_file, source_line, fields_json, buttons_json)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             mode, source_file, source_line, source_end_line,
+                             fields_json, buttons_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             view["xml_id"],
@@ -394,6 +402,7 @@ def _write_kb(
                             view["mode"],
                             view["source_file"],
                             view["source_line"],
+                            view.get("source_end_line"),
                             view.get("fields_json", "[]"),
                             view.get("buttons_json", "[]"),
                         ),
@@ -584,11 +593,12 @@ class KBReader:
 
         Returns:
             List of dicts with keys: origin, module, source_file, source_line,
-            field_type, section. Empty list if symbol is not found.
+            source_end_line, field_type, section. Empty list if symbol is not found.
         """
         rows = self._con.execute(
             """
-            SELECT origin, module, source_file, source_line, field_type, section
+            SELECT origin, module, source_file, source_line, source_end_line,
+                   field_type, section
             FROM   symbols
             WHERE  model = ? AND name = ? AND kind = ?
             ORDER  BY origin  -- stable ordering; resolve.py re-sorts by depends
@@ -700,7 +710,7 @@ class KBReader:
             rows = self._con.execute(
                 """
                 SELECT name, kind, origin, module, source_file, source_line,
-                       field_type, section
+                       source_end_line, field_type, section
                 FROM   symbols
                 WHERE  model = ? AND kind = ?
                 ORDER  BY name
@@ -711,7 +721,7 @@ class KBReader:
             rows = self._con.execute(
                 """
                 SELECT name, kind, origin, module, source_file, source_line,
-                       field_type, section
+                       source_end_line, field_type, section
                 FROM   symbols
                 WHERE  model = ?
                 ORDER  BY kind, name
@@ -763,7 +773,7 @@ class KBReader:
         """
         rows = self._con.execute(
             "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
-            "mode, source_file, source_line, fields_json, buttons_json FROM views"
+            "mode, source_file, source_line, source_end_line, fields_json, buttons_json FROM views"
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -778,7 +788,7 @@ class KBReader:
         """
         row = self._con.execute(
             "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
-            "mode, source_file, source_line, fields_json, buttons_json FROM views "
+            "mode, source_file, source_line, source_end_line, fields_json, buttons_json FROM views "
             "WHERE xml_id = ?",
             (xml_id,),
         ).fetchone()
@@ -817,7 +827,7 @@ class KBReader:
         """
         rows = self._con.execute(
             "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
-            "mode, source_file, source_line, fields_json, buttons_json "
+            "mode, source_file, source_line, source_end_line, fields_json, buttons_json "
             "FROM views WHERE module = ?",
             (module,),
         ).fetchall()
