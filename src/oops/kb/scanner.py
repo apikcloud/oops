@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 from typing import Set
 
-from oops.core.compat import Any, Dict, Iterable, List, Optional, Tuple
+from oops.core.compat import Any, Dict, Iterable, List, Optional, Tuple, Union
 from oops.core.config import config
 from oops.core.logger import log
 from oops.core.models import Result
@@ -253,6 +253,204 @@ def extract_field_refs(stmt: ast.Assign) -> Dict[str, str]:
             if isinstance(kw.value.value, str):
                 refs[kw.arg] = kw.value.value
     return refs
+
+
+# ---------------------------------------------------------------------------
+# IR v2 content extraction (additive — the rewriter does not use these)
+# ---------------------------------------------------------------------------
+
+# Relational field types take their comodel as positional arg 0.
+_RELATIONAL_TYPES = {"Many2one", "One2many", "Many2many", "Many2oneReference", "Reference"}
+
+# Kwargs whose non-literal value flags the field as ``dynamic`` (spec §8.4).
+_DYNAMIC_SENSITIVE = {"string", "help", "default", "selection"}
+
+
+def _unparse(node: ast.AST) -> Optional[str]:
+    """Return ``ast.unparse(node)`` when available (py3.9+), else ``None``."""
+    fn = getattr(ast, "unparse", None)
+    if fn is None:
+        return None
+    try:
+        return fn(node)
+    except Exception:
+        return None
+
+
+def _translation_wrapped(node: ast.expr) -> Optional[ast.expr]:
+    """If ``node`` is a ``_("literal")`` translation call, return its first arg."""
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_"
+        and len(node.args) >= 1
+    ):
+        return node.args[0]
+    return None
+
+
+def _literal_or_none(node: ast.expr) -> Tuple[Any, bool]:
+    """Return ``(value, is_dynamic)`` for a kwarg value node.
+
+    ``value`` is the Python literal when ``node`` is a constant (optionally
+    wrapped in ``_()``), else ``None``. ``is_dynamic`` is ``True`` when the node
+    is present but non-literal (variable, f-string, call other than ``_()``,
+    comprehension, …). Never evaluates.
+    """
+    inner = _translation_wrapped(node)
+    if inner is not None:
+        node = inner
+    if isinstance(node, ast.Constant):
+        return node.value, False
+    return None, True
+
+
+def _literal_selection(node: ast.expr) -> Tuple[Optional[List[list]], bool]:
+    """Return ``(pairs, is_dynamic)`` for a ``selection=`` list-of-pairs literal.
+
+    Returns ``(None, True)`` for any non-literal element so it is flagged
+    ``dynamic`` rather than guessed.
+    """
+    if not isinstance(node, (ast.List, ast.Tuple)):
+        return None, True
+    pairs: List[list] = []
+    for elt in node.elts:
+        if isinstance(elt, (ast.Tuple, ast.List)) and len(elt.elts) == 2:
+            kv, kd = _literal_or_none(elt.elts[0])
+            vv, vd = _literal_or_none(elt.elts[1])
+            if kd or vd:
+                return None, True
+            pairs.append([kv, vv])
+        else:
+            return None, True
+    return pairs, False
+
+
+def _field_type_of(value: ast.Call) -> Optional[str]:
+    """Return the ``fields.XXX`` type name for a call node, or ``None``."""
+    func = value.func
+    if isinstance(func, ast.Attribute) and func.attr in FIELD_TYPES:
+        return func.attr
+    if isinstance(func, ast.Name) and func.id in FIELD_TYPES:
+        return func.id
+    return None
+
+
+def _apply_positional(details: Dict[str, Any], first: ast.expr, ftype: str) -> None:
+    """Fill comodel / selection / label from positional arg 0 by field type."""
+    if ftype in _RELATIONAL_TYPES:
+        details["comodel"], _ = _literal_or_none(first)
+    elif ftype == "Selection":
+        details["selection"], dyn = _literal_selection(first)
+        details["dynamic"] = details["dynamic"] or dyn
+    else:
+        details["label"], dyn = _literal_or_none(first)
+        details["dynamic"] = details["dynamic"] or dyn
+
+
+def _apply_keywords(details: Dict[str, Any], kw: Dict[str, ast.expr]) -> None:
+    """Fill content fields from the field call's keyword arguments."""
+    if "string" in kw:  # explicit string= overrides positional label
+        details["label"], dyn = _literal_or_none(kw["string"])
+        details["dynamic"] = details["dynamic"] or dyn
+
+    if "comodel_name" in kw:
+        details["comodel"], _ = _literal_or_none(kw["comodel_name"])
+
+    for key in ("help", "inverse_name", "relation", "compute", "related"):
+        if key in kw:
+            details[key], dyn = _literal_or_none(kw[key])
+            details["dynamic"] = details["dynamic"] or (dyn and key in _DYNAMIC_SENSITIVE)
+
+    for key in ("required", "readonly", "store"):
+        if key in kw:
+            val, _ = _literal_or_none(kw[key])
+            details[key] = val if isinstance(val, bool) else None
+
+    if "default" in kw:
+        node = kw["default"]
+        inner = _translation_wrapped(node)
+        target = inner if inner is not None else node
+        if isinstance(target, ast.Constant):
+            details["default"] = _unparse(target) or repr(target.value)
+        else:
+            details["dynamic"] = True  # non-literal default (lambda, callable, …)
+
+    if "selection" in kw:
+        details["selection"], dyn = _literal_selection(kw["selection"])
+        details["dynamic"] = details["dynamic"] or dyn
+
+
+def extract_field_details(stmt: ast.stmt) -> Optional[Dict[str, Any]]:
+    """Return the full content picture for a ``fields.XXX(...)`` assignment.
+
+    Args:
+        stmt: An AST statement node to inspect.
+
+    Returns:
+        A dict with ``type``, ``label``, ``help``, ``required``, ``readonly``,
+        ``store``, ``comodel``, ``inverse_name``, ``relation``, ``compute``,
+        ``related``, ``default``, ``selection`` and ``dynamic`` — or ``None``
+        when the statement is not a field assignment. Non-literal values stay
+        ``None`` and set ``dynamic=True`` (spec §8.4). Never evaluates.
+    """
+    if not isinstance(stmt, ast.Assign):
+        return None
+    if len(stmt.targets) != 1 or not isinstance(stmt.targets[0], ast.Name):
+        return None
+    value = stmt.value
+    if not isinstance(value, ast.Call):
+        return None
+    ftype = _field_type_of(value)
+    if ftype is None:
+        return None
+
+    details: Dict[str, Any] = {
+        "type": ftype,
+        "label": None,
+        "help": None,
+        "required": None,
+        "readonly": None,
+        "store": None,
+        "comodel": None,
+        "inverse_name": None,
+        "relation": None,
+        "compute": None,
+        "related": None,
+        "default": None,
+        "selection": None,
+        "dynamic": False,
+    }
+
+    if value.args:
+        _apply_positional(details, value.args[0], ftype)
+    _apply_keywords(details, {k.arg: k.value for k in value.keywords if k.arg is not None})
+
+    return details
+
+
+def reconstruct_signature(fn: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> Optional[str]:
+    """Return the parenthesized param list, e.g. ``'(self, a, b=2, *args, **kwargs)'``.
+
+    Reconstructed from the AST via ``ast.unparse`` (defaults rendered as their
+    source repr). Returns ``None`` when ``ast.unparse`` is unavailable (py<3.9).
+    """
+    rendered = _unparse(fn.args)
+    return f"({rendered})" if rendered is not None else None
+
+
+def decorator_call_texts(fn: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> List[str]:
+    """Return the full decorator source texts, e.g. ``["api.depends('a.b', 'c')"]``.
+
+    Uses ``ast.unparse``; decorators that fail to unparse (or py<3.9) are
+    skipped, yielding an empty list rather than raising.
+    """
+    out: List[str] = []
+    for dec in fn.decorator_list:
+        text = _unparse(dec)
+        if text is not None:
+            out.append(text)
+    return out
 
 
 def _get_decorator_names(func_node: ast.FunctionDef) -> List[str]:

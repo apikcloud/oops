@@ -52,7 +52,7 @@ class ConclusionBlock:
 
 
 @dataclass
-class Layout(ABC): ...
+class Layout: ...  # marker base for all layouts (no abstract API of its own)
 
 
 @dataclass

@@ -270,6 +270,10 @@ class ModuleSummary:
     loc_pct: float = 0.0
     views_summary: "Optional[ViewsSummary]" = None
     method_symbols: "list[dict]" = field(default_factory=list)
+    class_infos: "list[Any]" = field(default_factory=list)
+    """Raw ClassInfo list (with enriched symbols) for the IR v2 machine path."""
+    readme: "Optional[dict]" = None
+    """README capture: {present, format, path, content} — see io.file.detect_readme."""
 
 
 class HasStatus(Protocol):

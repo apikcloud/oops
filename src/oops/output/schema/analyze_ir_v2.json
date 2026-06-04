@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apik.cloud/oops/schema/analyze_ir_v2.json",
+  "title": "oops analyze IR v2 metric descriptors",
+  "description": "Descriptor registry (spec §0a, §10). Per-module JSON carries raw values only; this schema describes every manifest/metrics/loc key once, at the type level. title is the single-language display label; x-kind drives formatter rendering; x-unit is the optional unit.",
+  "x-schema-version": 2,
+  "definitions": {
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "models": { "type": "integer", "title": "Models", "x-kind": "count", "x-unit": null },
+        "own_fields": { "type": "integer", "title": "Fields (own)", "x-kind": "count", "x-unit": null },
+        "inherited_fields": { "type": "integer", "title": "Fields (inherited)", "x-kind": "count", "x-unit": null },
+        "methods": { "type": "integer", "title": "Methods", "x-kind": "count", "x-unit": null },
+        "inherited_methods": { "type": "integer", "title": "Inherited methods", "x-kind": "count", "x-unit": null },
+        "overridden_methods": { "type": "integer", "title": "Overrides", "x-kind": "count", "x-unit": null },
+        "missing_docs": { "type": "integer", "title": "Missing docs", "x-kind": "count", "x-unit": null },
+        "data": { "type": "integer", "title": "Data files", "x-kind": "count", "x-unit": null },
+        "primary_views": { "type": "integer", "title": "Views (primary)", "x-kind": "count", "x-unit": null },
+        "extension_views": { "type": "integer", "title": "Views (ext.)", "x-kind": "count", "x-unit": null },
+        "extension_views_upstream": {
+          "type": "integer",
+          "title": "Views (ext. upstream)",
+          "x-kind": "count",
+          "x-unit": null
+        },
+        "actions": { "type": "integer", "title": "Actions", "x-kind": "count", "x-unit": null },
+        "menus": { "type": "integer", "title": "Menus", "x-kind": "count", "x-unit": null },
+        "unresolved_views": { "type": "integer", "title": "Views unresolved", "x-kind": "count", "x-unit": null }
+      }
+    },
+    "loc": {
+      "type": "object",
+      "properties": {
+        "python": { "type": "integer", "title": "Python", "x-kind": "count", "x-unit": "lines" },
+        "xml": { "type": "integer", "title": "XML", "x-kind": "count", "x-unit": "lines" },
+        "javascript": { "type": "integer", "title": "JavaScript", "x-kind": "count", "x-unit": "lines" },
+        "docs": { "type": "integer", "title": "Docs", "x-kind": "count", "x-unit": "lines" },
+        "total": { "type": "integer", "title": "Total", "x-kind": "count", "x-unit": "lines" },
+        "pct": { "type": "number", "title": "% of total", "x-kind": "percent", "x-unit": "%" }
+      }
+    },
+    "manifest": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "title": "Name", "x-kind": "text", "x-unit": null },
+        "version": { "type": "string", "title": "Version", "x-kind": "text", "x-unit": null },
+        "author": { "type": "string", "title": "Author", "x-kind": "text", "x-unit": null },
+        "license": { "type": "string", "title": "License", "x-kind": "text", "x-unit": null },
+        "category": { "type": "string", "title": "Category", "x-kind": "text", "x-unit": null },
+        "summary": { "type": "string", "title": "Summary", "x-kind": "text", "x-unit": null },
+        "application": { "type": "boolean", "title": "Application", "x-kind": "boolean", "x-unit": null },
+        "installable": { "type": "boolean", "title": "Installable", "x-kind": "boolean", "x-unit": null },
+        "website": { "type": "string", "title": "Website", "x-kind": "text", "x-unit": null }
+      }
+    }
+  }
+}

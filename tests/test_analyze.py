@@ -146,6 +146,25 @@ INHERIT_MODEL_SOURCE = textwrap.dedent("""\
         name = fields.Char(string='Name')
 """)
 
+RICH_MODEL_SOURCE = textwrap.dedent('''\
+    from odoo import api, fields, models
+
+
+    class MyRich(models.Model):
+        """Rich model docstring."""
+        _name = 'my.rich'
+        _description = 'My Rich Model'
+
+        name = fields.Char(string='The Name', help='Helpful text')
+        note = fields.Char(help=SOME_VAR)
+        total = fields.Float(compute='_compute_total')
+
+        @api.depends('name')
+        def _compute_total(self):
+            """Compute the total."""
+            self.total = 0
+''')
+
 
 # ---------------------------------------------------------------------------
 # Helper: mock the infrastructure required by the refactored analyze command
@@ -374,8 +393,13 @@ class TestAnalyzeJson:
         assert "modules" in data
         assert isinstance(data["modules"], list)
         module = data["modules"][0]
-        for key in ("module", "manifest", "models", "structure", "loc", "views", "not_analysed", "warnings"):
+        for key in ("module", "manifest", "readme", "models", "fields", "methods",
+                    "views", "structure", "loc", "not_analysed", "warnings"):
             assert key in module, f"Missing key: {key}"
+        # IR v2: four flat sibling lists; no legacy 'symbols' key.
+        assert "symbols" not in module
+        for key in ("models", "fields", "methods", "views"):
+            assert isinstance(module[key], list)
 
     def test_json_multi_module_is_list(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -428,12 +452,10 @@ class TestAnalyzeJson:
         assert result.exit_code == 0
         data = json.loads(result.output)
         loc = data["modules"][0]["loc"]
-        assert loc["kind"] == "stats"
-        assert loc["label"] == "Lines of code"
-        vals = {s["name"]: s["value"] for s in loc["values"]}
-        assert vals == {
+        # IR v2: raw values only (no kind/label/highlight wrappers); pct numeric.
+        assert loc == {
             "python": 120, "xml": 10, "javascript": 0,
-            "docs": 5, "total": 135, "pct": "100.0%",
+            "docs": 5, "total": 135, "pct": 100.0,
         }
 
     def test_json_default_serialiser_handles_paths(self, tmp_path: Path) -> None:
@@ -463,13 +485,11 @@ class TestAnalyzeJson:
         assert result.exit_code == 0
         data = json.loads(result.output)
         metrics = data["modules"][0]["metrics"]
-        assert metrics["kind"] == "stats"
-        assert metrics["label"] == "Metrics"
-        assert isinstance(metrics["values"], list)
-        stat_names = {s["name"] for s in metrics["values"]}
-        assert {"models", "methods"}.issubset(stat_names)
-        for s in metrics["values"]:
-            assert {"name", "label", "value", "kind", "highlight"} == set(s.keys())
+        # IR v2: raw {key: value} only — derived from the flat lists.
+        assert isinstance(metrics, dict)
+        assert {"models", "methods", "own_fields", "overridden_methods"} <= set(metrics)
+        assert all(isinstance(v, int) for v in metrics.values())
+        assert "kind" not in metrics and "label" not in metrics
 
     def test_json_manifest_shape(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -484,13 +504,11 @@ class TestAnalyzeJson:
         assert result.exit_code == 0
         data = json.loads(result.output)
         manifest = data["modules"][0]["manifest"]
-        assert manifest["kind"] == "stats"
-        assert manifest["label"] == "Manifest"
-        assert isinstance(manifest["values"], list)
-        stat_names = {s["name"] for s in manifest["values"]}
-        assert {"name", "version"}.issubset(stat_names)
-        for s in manifest["values"]:
-            assert {"name", "label", "value", "kind", "highlight"} == set(s.keys())
+        # IR v2: raw dict of present manifest keys only.
+        assert isinstance(manifest, dict)
+        assert manifest["name"] == "My Module"
+        assert manifest["version"] == "17.0.1.0.0"
+        assert "kind" not in manifest and "label" not in manifest
 
     def test_json_depends_is_top_level_list(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -527,6 +545,66 @@ class TestAnalyzeJson:
         assert "git_branch" in meta
         datetime.fromisoformat(meta["generated_at"])
         assert meta["git_branch"] is None or isinstance(meta["git_branch"], str)
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeSchemaV2 — descriptor registry, schema_version, HTML deferral
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeSchemaV2:
+    def test_schema_version_and_limitations(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        meta = json.loads(result.output)["metadata"]
+        assert meta["schema_version"] == 2
+        assert isinstance(meta["limitations"], list) and meta["limitations"]
+        assert any("oca" in lim.lower() for lim in meta["limitations"])
+
+    def test_every_metric_key_has_descriptor(self, tmp_path: Path) -> None:
+        from oops.output.descriptors import descriptor
+
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            views=[_kb_view("my_module.v1", "my_module", mode="primary", view_type="form")],
+            actions=[_kb_action("my_module.act1", "my_module")],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        module = json.loads(result.output)["modules"][0]
+        for group in ("metrics", "loc", "manifest"):
+            for key in module[group]:
+                assert descriptor(group, key) is not None, f"no descriptor for {group}.{key}"
+
+    def test_html_gated(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "html", str(module_path)])
+        assert result.exit_code != 0
+        assert "temporarily" in result.output.lower() or "unavailable" in result.output.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -864,22 +942,15 @@ class TestAnalyzeInheritedMethods:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        methods = data["modules"][0]["models"][0]["methods"]
-        assert "inherited" in methods
-        assert "inherited_details" in methods
-        assert isinstance(methods["inherited"], int)
-        assert isinstance(methods["inherited_details"], list)
-        assert methods["inherited"] >= 1
-        for detail in methods["inherited_details"]:
-            assert set(detail.keys()) == {
-                "model",
-                "method",
-                "origin_module",
-                "origin",
-                "line_start",
-                "line_end",
-                "source_file",
-            }
+        # IR v2: methods is a flat module-level list; inherited methods carry
+        # is_inherited + an inherited_from reference (no nested model block).
+        methods = data["modules"][0]["methods"]
+        write = next(m for m in methods if m["name"] == "write")
+        assert write["is_inherited"] is True
+        assert set(write["inherited_from"].keys()) == {"origin_module", "origin", "source_file"}
+        assert write["inherited_from"]["origin_module"] == "base"
+        assert write["inherited_from"]["origin"] == "core"  # normalized from "odoo"
+        assert data["modules"][0]["metrics"]["inherited_methods"] >= 1
 
     def test_json_top_level_symbols_methods_only(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -894,16 +965,18 @@ class TestAnalyzeInheritedMethods:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        symbols = data["modules"][0]["symbols"]
-        assert symbols, "expected a top-level symbols list"
-        names = {s["name"] for s in symbols}
+        # IR v2: flat module-level methods list (fields are a separate list).
+        methods = data["modules"][0]["methods"]
+        assert methods, "expected a top-level methods list"
+        names = {m["name"] for m in methods}
         assert {"action_open", "_compute_state"} <= names
-        for s in symbols:
-            assert s["kind"] == "method"  # methods only — no fields
-            assert {"line_start", "line_end", "source_file"} <= set(s.keys())
-            assert s["line_end"] >= s["line_start"] > 0
-            assert s["source_file"].startswith("my_module/")
-            assert s["source_file"].endswith(".py")
+        for m in methods:
+            assert {"line_start", "line_end", "source_file", "signature", "section",
+                    "decorators", "docstring", "is_override", "model"} <= set(m.keys())
+            assert m["line_end"] >= m["line_start"] > 0
+            assert m["source_file"].startswith("my_module/")
+            assert m["source_file"].endswith(".py")
+            assert m["model"].startswith("my_module:")
 
     def test_json_override_details_line_keys(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -922,12 +995,16 @@ class TestAnalyzeInheritedMethods:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        methods = data["modules"][0]["models"][0]["methods"]
-        assert methods["overrides"] >= 1
-        for detail in methods["override_details"]:
-            assert {"line_start", "line_end", "source_file"} <= set(detail.keys())
-            assert detail["origin_module"] == "base"
-            assert detail["source_file"].endswith(".py")
+        # IR v2: overrides live on each flat method node, not a nested block.
+        methods = data["modules"][0]["methods"]
+        overrides = [m for m in methods if m["is_override"]]
+        assert overrides
+        for m in overrides:
+            ov = m["overrides"]
+            assert {"line_start", "line_end", "source_file", "origin_module",
+                    "origin", "ancestor_model"} <= set(ov.keys())
+            assert ov["origin_module"] == "base"
+            assert ov["source_file"].endswith(".py")
 
     def test_stats_panel_field_totals_present(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -964,11 +1041,12 @@ class TestAnalyzeInheritedMethods:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        methods = data["modules"][0]["models"][0]["methods"]
-        assert methods["overrides"] == 1
-        assert methods["inherited"] == 1
-        override_names = {d["method"] for d in methods["override_details"]}
-        inherited_names = {d["method"] for d in methods["inherited_details"]}
+        methods = data["modules"][0]["methods"]
+        metrics = data["modules"][0]["metrics"]
+        assert metrics["overridden_methods"] == 1
+        assert metrics["inherited_methods"] == 1
+        override_names = {m["name"] for m in methods if m["is_override"]}
+        inherited_names = {m["name"] for m in methods if m["is_inherited"]}
         assert override_names.isdisjoint(inherited_names)
 
     def test_inherited_method_counter_excludes_new_model_class(self, tmp_path: Path) -> None:
@@ -988,9 +1066,10 @@ class TestAnalyzeInheritedMethods:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        methods = data["modules"][0]["models"][0]["methods"]
-        assert methods["inherited"] == 0
-        assert methods["inherited_details"] == []
+        methods = data["modules"][0]["methods"]
+        metrics = data["modules"][0]["metrics"]
+        assert metrics["inherited_methods"] == 0
+        assert all(not m["is_inherited"] for m in methods)
 
 
 # ---------------------------------------------------------------------------
@@ -1132,18 +1211,16 @@ class TestAnalyzeViews:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
+        # IR v2: views is a flat list; aggregate counts move to metrics.
         views = data["modules"][0]["views"]
-        expected_keys = (
-            "primary", "extensions", "extensions_by_type",
-            "extensions_upstream", "actions", "menus", "unresolved", "list",
-        )
-        for key in expected_keys:
-            assert key in views, f"Missing views key: {key}"
-        assert views["actions"] == 1
-        assert views["list"], "expected at least one view in the list"
-        for v in views["list"]:
-            assert {"source_file", "line_start", "line_end"} <= set(v.keys())
-            assert v["line_end"] >= v["line_start"]
+        assert isinstance(views, list)
+        assert len(views) == 1
+        v = views[0]
+        assert {"id", "xml_id", "model", "mode", "view_type", "origin", "inherit_origin",
+                "inherit_id", "name", "fields_count", "buttons_count", "ancestor_module",
+                "source_file", "line_start", "line_end"} <= set(v.keys())
+        assert v["line_end"] >= v["line_start"]
+        assert data["modules"][0]["metrics"]["actions"] == 1
 
     def test_json_views_all_zero_still_present(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -1157,17 +1234,8 @@ class TestAnalyzeViews:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        views = data["modules"][0]["views"]
-        assert views == {
-            "primary": {},
-            "extensions": 0,
-            "extensions_by_type": {},
-            "extensions_upstream": 0,
-            "actions": 0,
-            "menus": 0,
-            "unresolved": 0,
-            "list": [],
-        }
+        # IR v2: empty module → empty flat views list.
+        assert data["modules"][0]["views"] == []
 
 
 # ---------------------------------------------------------------------------
@@ -1247,7 +1315,9 @@ class TestAnalyzeAncestorOrigin:
         cls = data["modules"][0]["models"][0]
         assert cls["ancestor_model"] == "res.partner"
         assert cls["ancestor_module"] == "base"
-        assert cls["ancestor_origin"] == "odoo"
+        assert cls["inherit_origin"] == "core"  # normalized from "odoo"
+        assert cls["status"] == "extension"
+        assert cls["model"] == "res.partner"
 
     def test_json_class_ancestor_fields_none_for_new_model(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -1265,7 +1335,8 @@ class TestAnalyzeAncestorOrigin:
         cls = data["modules"][0]["models"][0]
         assert cls["ancestor_model"] is None
         assert cls["ancestor_module"] is None
-        assert cls["ancestor_origin"] is None
+        assert cls["inherit_origin"] is None
+        assert cls["status"] == "new"
 
     def test_json_views_list_shape(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -1291,19 +1362,20 @@ class TestAnalyzeAncestorOrigin:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        view_list = data["modules"][0]["views"]["list"]
+        view_list = data["modules"][0]["views"]
         assert len(view_list) == 1
         v = view_list[0]
-        for key in ("xml_id", "mode", "view_type", "name", "model", "origin",
-                    "inherit_id", "fields_count", "buttons_count",
-                    "ancestor_module", "ancestor_origin"):
+        for key in ("id", "xml_id", "mode", "view_type", "name", "model", "origin",
+                    "inherit_origin", "inherit_id", "fields_count", "buttons_count",
+                    "ancestor_module"):
             assert key in v, f"Missing key: {key}"
+        assert v["id"] == "my_module.view_form_1"
         assert v["xml_id"] == "my_module.view_form_1"
         assert v["mode"] == "primary"
         assert v["fields_count"] == 2
         assert v["buttons_count"] == 1
         assert v["ancestor_module"] is None
-        assert v["ancestor_origin"] is None
+        assert v["inherit_origin"] is None
 
     def test_json_views_list_ancestor_resolved(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
@@ -1335,10 +1407,163 @@ class TestAnalyzeAncestorOrigin:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         data = json.loads(result.output)
-        view_list = data["modules"][0]["views"]["list"]
+        view_list = data["modules"][0]["views"]
         ext_views = [v for v in view_list if v["mode"] == "extension"]
         assert len(ext_views) == 1
         v = ext_views[0]
         assert v["inherit_id"] == "sale.view_order_form"
         assert v["ancestor_module"] == "sale"
-        assert v["ancestor_origin"] == "odoo"
+        assert v["inherit_origin"] == "core"  # normalized from "odoo"
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeAcceptanceV2 — §9 acceptance criteria
+# ---------------------------------------------------------------------------
+
+_ORIGIN_ENUM = {"core", "enterprise", "oca", "third_party", "custom"}
+
+
+def _all_origin_values(module: dict) -> list:
+    """Collect every origin / inherit_origin value across all node lists."""
+    vals: list = []
+    for m in module["models"]:
+        vals.append(m["inherit_origin"])
+    for v in module["views"]:
+        vals.append(v["origin"])
+        vals.append(v["inherit_origin"])
+    for m in module["methods"]:
+        if m["overrides"]:
+            vals.append(m["overrides"]["origin"])
+        if m["inherited_from"]:
+            vals.append(m["inherited_from"]["origin"])
+    for f in module["fields"]:
+        if f["overrides"]:
+            vals.append(f["overrides"]["origin"])
+    return vals
+
+
+class TestAnalyzeAcceptanceV2:
+    def _run(self, tmp_path: Path, source: str, name: str = "my_module",
+             kb_kwargs: dict | None = None, depends=None) -> dict:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path, **(kb_kwargs or {}))
+        module_path = _make_module_full(
+            tmp_path,
+            name,
+            manifest={"name": "My Module", "version": "17.0.1.0.0", "depends": depends or ["base"]},
+            models={"m.py": source},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0, result.output
+        return json.loads(result.output)
+
+    def test_flat_sibling_lists_no_symbols_no_nesting(self, tmp_path: Path) -> None:
+        module = self._run(tmp_path, RICH_MODEL_SOURCE)["modules"][0]
+        for key in ("models", "fields", "methods", "views"):
+            assert isinstance(module[key], list)
+        assert "symbols" not in module
+        for m in module["models"]:
+            assert "fields" not in m and "methods" not in m
+
+    def test_every_node_has_module_qualified_id_and_refs_resolve(self, tmp_path: Path) -> None:
+        module = self._run(tmp_path, RICH_MODEL_SOURCE)["modules"][0]
+        model_ids = {m["id"] for m in module["models"]}
+        assert all(mid.startswith("my_module:") for mid in model_ids)
+        for f in module["fields"]:
+            assert f["id"].startswith("my_module:")
+            assert f["model"] in model_ids  # model ref resolves in-repo
+        for m in module["methods"]:
+            assert m["id"].startswith("my_module:")
+            assert m["model"] in model_ids
+
+    def test_real_content_docstring_label_help_and_dynamic(self, tmp_path: Path) -> None:
+        module = self._run(tmp_path, RICH_MODEL_SOURCE)["modules"][0]
+
+        comp = next(m for m in module["methods"] if m["name"] == "_compute_total")
+        assert comp["docstring"] == "Compute the total."
+        assert comp["section"] == "COMPUTE"
+        assert comp["decorators"] == ["api.depends('name')"]
+        assert comp["signature"] == "(self)"
+
+        name = next(f for f in module["fields"] if f["name"] == "name")
+        assert name["label"] == "The Name"
+        assert name["label_inferred"] is False
+        assert name["help"] == "Helpful text"
+        assert name["dynamic"] is False
+        assert name["origin_status"] == "base"
+
+        note = next(f for f in module["fields"] if f["name"] == "note")
+        assert note["help"] is None
+        assert note["dynamic"] is True
+        assert note["label_inferred"] is True
+
+        # compute ref resolves to the in-repo method id within the same model.
+        total = next(f for f in module["fields"] if f["name"] == "total")
+        assert total["compute"] == "my_module:my.rich#method:_compute_total"
+
+        # model-level content captured.
+        model = module["models"][0]
+        assert model["description"] == "My Rich Model"
+        assert model["docstring"] == "Rich model docstring."
+
+    def test_cross_module_override_described_not_dropped(self, tmp_path: Path) -> None:
+        module = self._run(
+            tmp_path,
+            MIXED_OVERRIDE_SUPER_SOURCE,
+            kb_kwargs={
+                "symbols": [_kb_symbol("res.partner", "name_get", "method", "base")],
+                "modules": {"res.partner": {"origin": "odoo", "depends": []}},
+            },
+        )["modules"][0]
+        overrides = [m for m in module["methods"] if m["is_override"]]
+        assert overrides
+        ov = overrides[0]["overrides"]
+        assert ov["origin_module"] == "base"
+        assert ov["origin"] == "core"  # normalized, not legacy "odoo"
+        assert ov["source_file"].startswith("base/")  # rooted at origin module
+
+    def test_origin_enum_membership_no_legacy_strings(self, tmp_path: Path) -> None:
+        module = self._run(
+            tmp_path,
+            MIXED_OVERRIDE_SUPER_SOURCE,
+            kb_kwargs={
+                "symbols": [_kb_symbol("res.partner", "name_get", "method", "base")],
+                "modules": {"res.partner": {"origin": "odoo", "depends": []}},
+            },
+        )["modules"][0]
+        for val in _all_origin_values(module):
+            assert val is None or val in _ORIGIN_ENUM, val
+            assert val not in {"odoo", "third-party", "community"}
+
+    def test_single_source_file_root_convention(self, tmp_path: Path) -> None:
+        module = self._run(tmp_path, RICH_MODEL_SOURCE)["modules"][0]
+        for node in module["fields"] + module["methods"]:
+            assert node["source_file"].startswith("my_module/")
+            assert "/my_module/" not in node["source_file"]  # no deeper repo prefix
+
+    def test_schema_version_is_two(self, tmp_path: Path) -> None:
+        data = self._run(tmp_path, RICH_MODEL_SOURCE)
+        assert data["metadata"]["schema_version"] == 2
+
+    def test_derived_rollups_internally_consistent(self, tmp_path: Path) -> None:
+        module = self._run(
+            tmp_path,
+            MIXED_OVERRIDE_SUPER_SOURCE,
+            kb_kwargs={
+                "symbols": [
+                    _kb_symbol("res.partner", "name_get", "method", "base"),
+                    _kb_symbol("res.partner", "write", "method", "base"),
+                ],
+                "modules": {"res.partner": {"origin": "odoo", "depends": []}},
+            },
+        )["modules"][0]
+        metrics = module["metrics"]
+        methods = module["methods"]
+        fields = module["fields"]
+        assert metrics["models"] == len(module["models"])
+        assert metrics["methods"] == len(methods)
+        assert metrics["overridden_methods"] == sum(1 for m in methods if m["is_override"])
+        assert metrics["inherited_methods"] == sum(1 for m in methods if m["is_inherited"])
+        assert metrics["own_fields"] == sum(1 for f in fields if f["origin_status"] in ("base", "new"))
+        assert metrics["inherited_fields"] == sum(1 for f in fields if f["origin_status"] == "extended")

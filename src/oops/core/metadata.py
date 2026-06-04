@@ -40,6 +40,8 @@ class Metadata:
     git_commit: Optional[str] = None
     parameters: dict[str, Any] = field(default_factory=dict)
     tool_version: Optional[str] = None
+    schema_version: Optional[int] = None
+    limitations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         """Serialize to a JSON-safe dict (datetimes as ISO 8601 strings)."""

@@ -32,13 +32,17 @@ from oops.kb.scanner import (
     METHOD_SECTION_HELPER,
     METHOD_SECTION_ONCHANGE,
     METHOD_SECTION_SELECTION,
+    _extract_string_value,
     _get_decorator_names,
     classify_method,
+    decorator_call_texts,
+    extract_field_details,
     extract_field_refs,
     get_model_names,
     get_model_type,
     is_field_assignment,
     is_odoo_model_class,
+    reconstruct_signature,
 )
 from oops.kb.store import KBReader
 
@@ -98,6 +102,15 @@ class SymbolInfo:
     kb_entry: Optional[Dict[str, Any]] = None
     is_override: bool = False
     field_type: Optional[str] = None
+    # IR v2 content (additive; defaults preserve rewriter behaviour) ----------
+    docstring: Optional[str] = None
+    """Method docstring text (``ast.get_docstring``); ``None`` when absent."""
+    signature: Optional[str] = None
+    """Reconstructed method param list, e.g. ``'(self, vals)'``; method-only."""
+    decorators: List[str] = field(default_factory=lambda: [])
+    """Decorator source texts, e.g. ``["api.depends('a.b')"]``; method-only."""
+    field_details: Optional[Dict[str, Any]] = None
+    """Output of ``extract_field_details`` (labels/help/kwargs); field-only."""
 
 
 @dataclass
@@ -122,6 +135,12 @@ class ClassInfo:
     model_type: str = "model"
     """One of 'model', 'transient', 'abstract'."""
     symbols: List[SymbolInfo] = field(default_factory=lambda: [])
+    description: Optional[str] = None
+    """Odoo model ``_description`` literal; ``None`` when absent (IR v2)."""
+    docstring: Optional[str] = None
+    """Python class docstring (``ast.get_docstring``); ``None`` when absent (IR v2)."""
+    source_file: Optional[str] = None
+    """Module-relative source path of the file holding this class (IR v2)."""
 
     @property
     def is_inherit(self) -> bool:
@@ -140,6 +159,16 @@ def _has_docstring(func_node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> b
         if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
             return isinstance(first.value.value, str)
     return False
+
+
+def _extract_description(class_node: ast.ClassDef) -> Optional[str]:
+    """Return the ``_description = "..."`` string literal, or ``None`` (IR v2)."""
+    for stmt in class_node.body:
+        if isinstance(stmt, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "_description" for t in stmt.targets
+        ):
+            return _extract_string_value(stmt.value)
+    return None
 
 
 def _has_class_docstring(class_node: ast.ClassDef) -> bool:
@@ -263,6 +292,8 @@ def analyse_file(
             is_new_model=is_new_model,
             model_type=get_model_type(node),
             lineno=node.lineno,
+            description=_extract_description(node),  # IR v2 model-level content
+            docstring=ast.get_docstring(node, clean=True),
         )
         ci._needs_class_docstring = is_new_model and not has_class_doc  # type: ignore[attr-defined]
 
@@ -290,6 +321,7 @@ def analyse_file(
                         end_lineno=getattr(stmt, "end_lineno", None) or lineno,
                         kb_entry=kb_entry,
                         field_type=ftype,
+                        field_details=extract_field_details(stmt),
                     )
                 )
                 continue
@@ -324,6 +356,9 @@ def analyse_file(
                     super_methods=super_methods,
                     kb_entry=kb_entry,
                     is_override=(not is_new_model) and bool(kb_entry) and not has_super,
+                    docstring=ast.get_docstring(stmt, clean=True),
+                    signature=reconstruct_signature(stmt),
+                    decorators=decorator_call_texts(stmt),
                 )
             )
 

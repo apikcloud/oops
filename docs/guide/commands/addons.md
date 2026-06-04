@@ -55,15 +55,54 @@ Emit JSON for downstream tooling:
 oops addons analyze plant_nursery --format json | jq '.modules[0].models[0]'
 ```
 
-The JSON payload also carries a flat per-module `symbols` list (every method,
-with `line_start`/`line_end` and a KB-native `module/<path>.py` source path),
-and line ranges + source paths on each view in `views.list[]` and on every
-`override_details`/`inherited_details` entry:
+### JSON output — IR v2
+
+The `--format json` payload is a clean **intermediate representation** stamped
+with `metadata.schema_version: 2`. Per module it carries **four flat sibling
+lists** of id-addressable nodes — `models`, `fields`, `methods`, `views` — wired
+together by id references rather than nesting:
+
+- Every node has a module-qualified `id`
+  (`plant_nursery:plant.order`, `…#field:dev_hours`, `…#method:_compute_total`;
+  views use their globally-unique `xml_id`).
+- A field's `model`/`compute`/`comodel`, a method's `model`, and a view's
+  `model`/`inherit_id` are **id references**. Cross-module override targets are
+  kept as descriptive references (`overrides`/`inherited_from` with
+  `origin_module` + `origin` + `source_file`) — never dropped, even when the
+  ancestor lives outside the scanned repo.
+- Content is captured: method `docstring`/`signature`/`decorators`, field
+  `label`/`help`/`selection`/`default`, model `description`/`docstring`. A
+  non-literal kwarg (variable, f-string, call) sets `dynamic: true` with `null`
+  values — never guessed.
 
 ```bash
+# group the flat lists back into a per-model view (a renderer projection)
 oops addons analyze plant_nursery --format json \
-  | jq '.modules[0] | {symbols, views: .views.list}'
+  | jq '.modules[0] | {methods, fields, views}'
 ```
+
+The `manifest`, `metrics` and `loc` blocks carry **raw values only**. Their
+labels, kinds and units live once in the descriptor registry
+(`src/oops/output/schema/analyze_ir_v2.json`), keyed by metric name — each
+formatter joins values to descriptors at render time. Aggregate `metrics` are
+**derived** from the flat lists (e.g. `metrics.overridden_methods` equals the
+count of `methods` with `is_override == true`).
+
+One provenance vocabulary is used everywhere:
+`origin ∈ {core, enterprise, oca, third_party, custom}` (the field is `origin`,
+or `inherit_origin` for what an entity inherits/overrides).
+
+**Recorded limitations** (also in `metadata.limitations`):
+
+- `oca` is a valid enum member but **unpopulated** — all submodule code is
+  currently folded into `third_party`.
+- `controllers/`, `wizard/`, `report/` and `data` are **not analysed**; each
+  module lists its uncovered areas under `not_analysed`.
+
+!!! note "`--format html` temporarily unavailable"
+    The HTML report is being migrated to the IR v2 + descriptor registry and is
+    gated off for now. `oops addons analyze --format html` exits with a clear
+    message; use `--format json` or `--format text`.
 
 Analyse several modules in one invocation:
 

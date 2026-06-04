@@ -16,48 +16,63 @@ This command is read-only. It rebuilds the project KB if stale (same
 semantics as `oops addons refactor`) but performs no source rewriting,
 no git operations, and no manifest edits.
 
-JSON output shape (--format json)::
+JSON output — IR v2 (--format json)::
+
+    metadata.schema_version == 2. The payload is a clean intermediate
+    representation: per module, four FLAT sibling lists of id-addressable
+    nodes (models / fields / methods / views) wired by id references, plus
+    raw metric payloads (manifest / metrics / loc) whose labels/kinds live
+    in the descriptor registry (src/oops/output/schema/analyze_ir_v2.json),
+    not in the data.
 
     {
-      "warnings": ["pre-loop drift or rebuild messages"],
+      "metadata": {"schema_version": 2, "tool_version": "vX.Y.Z",
+                   "limitations": ["oca origin folded into third_party", "..."]},
+      "warnings": ["..."],
       "modules": [
         {
-          "module": "...",
-          "manifest": { ... },
-          "models": [
-            { "...": "...",
-              "methods": {
-                "...": "...",
-                # override_details / inherited_details entries each carry the
-                # upstream location pulled from the KB:
-                "override_details": [
-                  {"model": "...", "method": "...", "origin_module": "...",
-                   "origin": "...", "line_start": 120, "line_end": 145,
-                   "source_file": "sale/models/sale_order.py"}
-                ],
-                "inherited_details": [ { ...same extra keys... } ]
-              }
-            }
-          ],
-          # Flat list of every method in the analyzed module (methods only —
-          # no fields). Line ranges + KB-native "module/<path>.py" source path.
-          "symbols": [
-            {"model": "...", "kind": "method", "name": "...", "section": "...",
-             "line_start": 42, "line_end": 58,
-             "source_file": "my_module/models/my_model.py",
-             "is_override": false, "has_docstring": false}
-          ],
-          "structure": { ... },
-          "loc": {"kind": "stats", "label": "Lines of code", "values": [{"name": "python", ...}, ...]},
-          # views.list[] entries carry the view's own source_file + line range:
-          "views": {"...": "...",
-                    "list": [{"...": "...", "source_file": "my_module/views/x.xml",
-                              "line_start": 3, "line_end": 61}]},
-          "not_analysed": [ ... ],
-          "warnings": ["module-level warnings"]
+          "module": "project_management",
+          "manifest": {"name": "...", "version": "...", "...": "..."},   # raw values
+          "readme": {"present": true, "format": "rst", "path": "...", "content": "..."},
+          "depends": ["..."],
+          "models":  [{"id": "project_management:project.project", "model": "project.project",
+                       "class_name": "ProjectProject", "status": "extension",
+                       "inherit": ["project.project"], "inherit_origin": "core",
+                       "ancestor_model": "...", "ancestor_module": "...",
+                       "description": null, "docstring": null}],
+          "fields":  [{"id": "project_management:project.project#field:dev_hours",
+                       "name": "dev_hours", "model": "project_management:project.project",
+                       "type": "Float", "label": "Dev Hours", "label_inferred": false,
+                       "help": "...", "compute": "...#method:_compute_dev_hours",
+                       "origin_status": "new", "dynamic": false, "source_file": "...",
+                       "line_start": 12, "line_end": 12}],
+          "methods": [{"id": "project_management:project.project#method:_compute_dev_hours",
+                       "name": "_compute_dev_hours", "model": "project_management:project.project",
+                       "signature": "(self)", "section": "COMPUTE",
+                       "decorators": ["api.depends('timesheet_ids.unit_amount')"],
+                       "docstring": "...", "is_override": false, "overrides": null,
+                       "is_inherited": false, "inherited_from": null,
+                       "source_file": "...", "line_start": 14, "line_end": 18}],
+          "views":   [{"id": "project_management.portal_tasks_list", "xml_id": "...",
+                       "model": "...", "mode": "primary", "view_type": "list",
+                       "origin": "custom", "inherit_origin": null, "inherit_id": null,
+                       "name": "...", "fields_count": 4, "buttons_count": 0,
+                       "ancestor_module": null, "source_file": "...",
+                       "line_start": 3, "line_end": 61}],
+          "structure": {"...": "..."},
+          "metrics":  {"models": 1, "own_fields": 1, "overridden_methods": 0, "...": "..."},
+          "loc":      {"python": 120, "xml": 60, "total": 200, "pct": 3.4, "...": "..."},
+          "not_analysed": ["data", "controllers/"],
+          "warnings": ["..."]
         }
       ]
     }
+
+Origins use one enum everywhere: {core, enterprise, oca, third_party, custom}
+(oca is currently folded into third_party — see metadata.limitations).
+
+--format html is temporarily unavailable while the HTML report is migrated to
+this IR; use --format json or --format text.
 """
 
 from __future__ import annotations
@@ -72,7 +87,7 @@ from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.models import ClassSummary, ModuleSummary, Result, ResultCollection, StructureSummary, ViewsSummary
 from oops.core.paths import global_kb_path, project_kb_path
-from oops.io.file import find_addons
+from oops.io.file import detect_readme, find_addons
 from oops.io.installed_modules import read_installed_modules
 from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
@@ -146,6 +161,13 @@ def main(  # noqa: C901, PLR0912, PLR0915
 ) -> None:
 
     metadata = ctx.obj["metadata"]
+
+    if output_format == "html":
+        raise OopsError(
+            "HTML output is being migrated to IR schema_version 2 and is temporarily "
+            "unavailable. Use --format json or --format text."
+        )
+
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
     json_mode = output_format == "json"
@@ -244,11 +266,14 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 module_local_refs = build_module_field_refs(model_py_files)
 
                 all_classes: list[ClassSummary] = []
+                all_class_infos: list[ClassInfo] = []
                 method_symbols: list[dict] = []
                 for py_file in model_py_files:
                     rel_file = f"{module_name}/{py_file.relative_to(module_path).as_posix()}"
                     class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
                     for ci in class_infos:
+                        ci.source_file = rel_file  # IR v2: own-module source path
+                        all_class_infos.append(ci)
                         cs = _summarize_class(ci)
                         if not cs.is_new_model and cs.inherit:
                             creators = kb.get_model_creators(cs.inherit[0])
@@ -290,11 +315,20 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     loc_pct=loc_pct,
                     views_summary=views_summary,
                     method_symbols=method_symbols,
+                    class_infos=all_class_infos,
+                    readme=detect_readme(module_path),
                 )
 
                 results.add(module_result)
 
     set_kb_metadata(repo_path, version)
+
+    # IR v2 contract: stamp the schema version and the recorded limitations.
+    metadata.schema_version = 2
+    metadata.limitations = [
+        "oca origin folded into third_party (all submodule code labelled third_party)",
+        "controllers/wizard/report/data not analysed (see each module's not_analysed)",
+    ]
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
     output = AnalyzePresenter().prepare(results, target=formatter.target, metadata=metadata)

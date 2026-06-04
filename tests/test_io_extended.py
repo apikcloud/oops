@@ -281,3 +281,66 @@ class TestWriteTextFile:
         f = tmp_path / "out.txt"
         write_text_file(f, ["x", "y"], new_line="|")
         assert f.read_text() == "x|y|"
+
+
+# ---------------------------------------------------------------------------
+# detect_readme (IR v2 — capture, don't convert)
+# ---------------------------------------------------------------------------
+
+
+class TestDetectReadme:
+    def _mod(self, tmp_path, name="m"):
+        from pathlib import Path
+
+        p: Path = tmp_path / name
+        p.mkdir()
+        return p
+
+    def test_readme_rst_wins(self, tmp_path) -> None:
+        from oops.io.file import detect_readme
+
+        mod = self._mod(tmp_path)
+        (mod / "README.rst").write_text("RST body", encoding="utf-8")
+        (mod / "README.md").write_text("MD body", encoding="utf-8")
+        r = detect_readme(mod)
+        assert r == {"present": True, "format": "rst", "path": "m/README.rst", "content": "RST body"}
+
+    def test_readme_md(self, tmp_path) -> None:
+        from oops.io.file import detect_readme
+
+        mod = self._mod(tmp_path)
+        (mod / "README.md").write_text("MD body", encoding="utf-8")
+        r = detect_readme(mod)
+        assert r["format"] == "md"
+        assert r["content"] == "MD body"
+
+    def test_oca_fragments_concatenated_in_order(self, tmp_path) -> None:
+        from oops.io.file import detect_readme
+
+        mod = self._mod(tmp_path)
+        rd = mod / "readme"
+        rd.mkdir()
+        (rd / "USAGE.rst").write_text("usage", encoding="utf-8")
+        (rd / "DESCRIPTION.rst").write_text("desc", encoding="utf-8")
+        r = detect_readme(mod)
+        assert r["format"] == "rst"
+        assert r["path"] == "m/readme/"
+        # DESCRIPTION precedes USAGE in the standard OCA order.
+        assert r["content"] == "desc\n\nusage"
+
+    def test_static_description_html_fallback(self, tmp_path) -> None:
+        from oops.io.file import detect_readme
+
+        mod = self._mod(tmp_path)
+        sd = mod / "static" / "description"
+        sd.mkdir(parents=True)
+        (sd / "index.html").write_text("<h1>x</h1>", encoding="utf-8")
+        r = detect_readme(mod)
+        assert r["format"] == "html"
+        assert r["path"] == "m/static/description/index.html"
+
+    def test_absent_readme(self, tmp_path) -> None:
+        from oops.io.file import detect_readme
+
+        r = detect_readme(self._mod(tmp_path))
+        assert r == {"present": False, "format": None, "path": None, "content": None}

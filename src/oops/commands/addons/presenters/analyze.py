@@ -25,7 +25,10 @@ from oops.core.models import (
     StructureSummary,
     ViewsSummary,
 )
+from oops.kb.identity import field_id, method_id, model_id, normalize_source_file
+from oops.kb.provenance import normalize_origin
 from oops.output.base import Presenter
+from oops.output.descriptors import label_of
 from oops.output.layout import ConclusionBlock, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
 from oops.services.loc import LocStats
 from oops.utils.render import (
@@ -185,18 +188,23 @@ def _build_metrics(summary: "ModuleSummary") -> StatGroup:
     fields_own_total = sum((c.fields_base if c.is_new_model else c.fields_new) for c in summary.classes)
     fields_inherited_total = sum(c.fields_inherited for c in summary.classes)
 
+    def _m(key: str, value, kind: str = "count") -> Stat:
+        # Labels are resolved from the descriptor registry (spec §0a); the
+        # literal fallback equals the registry title so text stays identical.
+        return Stat(name=key, label=label_of("metrics", key, key), value=value, kind=kind)
+
     res = StatGroup(
         name="metrics",
         label="Metrics",
         values=[
-            Stat(name="models", label="Models", value=len(summary.classes)),
-            Stat(name="own_fields", label="Fields (own)", value=fields_own_total),
-            Stat(name="inherited_fields", label="Fields (inherited)", value=fields_inherited_total),
-            Stat(name="methods", label="Methods", value=total_methods),
-            Stat(name="inherited_methods", label="Inherited methods", value=total_inherited_methods),
-            Stat(name="overrided_methods", label="Overrides", value=total_overrides),
-            Stat(name="missing_docs", label="Missing docs", value=total_missing),
-            Stat(name="data", label="Data files", value=data_count),
+            _m("models", len(summary.classes)),
+            _m("own_fields", fields_own_total),
+            _m("inherited_fields", fields_inherited_total),
+            _m("methods", total_methods),
+            _m("inherited_methods", total_inherited_methods),
+            _m("overridden_methods", total_overrides),
+            _m("missing_docs", total_missing),
+            _m("data", data_count),
         ],
     )
 
@@ -204,18 +212,18 @@ def _build_metrics(summary: "ModuleSummary") -> StatGroup:
     if vs is not None:
         primary_total = sum(vs.primary_by_type.values())
         if primary_total or vs.extensions or vs.actions or vs.menus:
-            res.values.append(Stat(name="primary_views", label="Views (primary)", value=primary_total))
+            res.values.append(_m("primary_views", primary_total))
             if vs.extensions:
                 ext_str = str(vs.extensions)
                 if vs.extensions_upstream:
                     ext_str += f" ({vs.extensions_upstream} upstream)"
-                res.values.append(Stat(name="extensions_views", label="Views (ext.)", value=ext_str, kind="text"))
+                res.values.append(_m("extension_views", ext_str, kind="text"))
             if vs.actions:
-                res.values.append(Stat(name="actions", label="Actions", value=vs.actions))
+                res.values.append(_m("actions", vs.actions))
             if vs.menus:
-                res.values.append(Stat(name="menus", label="Menus", value=vs.menus))
+                res.values.append(_m("menus", vs.menus))
             if vs.unresolved:
-                res.values.append(Stat(name="unresolved_views", label="Views unresolved", value=vs.unresolved))
+                res.values.append(_m("unresolved_views", vs.unresolved))
 
     return res
 
@@ -225,20 +233,23 @@ def _build_manifest(summary: "ModuleSummary") -> StatGroup:
 
     summary_text = m.get("summary", "")
 
+    def _mf(key: str, value, kind: str = "text") -> Stat:
+        return Stat(name=key, label=label_of("manifest", key, key), value=value, kind=kind)
+
     res = StatGroup(
         name="manifest",
         label="Manifest",
         values=[
-            Stat(name="name", label="Name", value=m.get("name", "<unknown>"), kind="text"),
-            Stat(name="version", label="Version", value=m.get("version", ""), kind="text"),
-            Stat(name="author", label="Author", value=m.get("author", ""), kind="text"),
-            Stat(name="license", label="License", value=m.get("license", ""), kind="text"),
-            Stat(name="category", label="Category", value=m.get("category", ""), kind="text"),
-            Stat(name="installable", label="Installable", value=m.get("installable", True), kind="boolean"),
+            _mf("name", m.get("name", "<unknown>")),
+            _mf("version", m.get("version", "")),
+            _mf("author", m.get("author", "")),
+            _mf("license", m.get("license", "")),
+            _mf("category", m.get("category", "")),
+            _mf("installable", m.get("installable", True), kind="boolean"),
         ],
     )
     if summary_text:
-        res.values.append(Stat(name="summary", label="Summary", value=summary_text, kind="text"))
+        res.values.append(_mf("summary", summary_text))
 
     return res
 
@@ -249,16 +260,19 @@ def _build_loc(data: "Optional[LocStats]", pct: float = 0.0) -> StatGroup:
     if data is None:
         data = LocStats()
 
+    def _l(key: str, value, kind: str = "count") -> Stat:
+        return Stat(name=key, label=label_of("loc", key, key), value=value, kind=kind)
+
     return StatGroup(
         name="loc",
         label="Lines of code",
         values=[
-            Stat(name="python", label="Python", value=data.python),
-            Stat(name="xml", label="XML", value=data.xml),
-            Stat(name="javascript", label="JavaScript", value=data.javascript),
-            Stat(name="docs", label="Docs", value=data.docs),
-            Stat(name="total", label="Total", value=data.total),
-            Stat(name="pct", label="% of total", value=f"{pct}%", kind="text"),
+            _l("python", data.python),
+            _l("xml", data.xml),
+            _l("javascript", data.javascript),
+            _l("docs", data.docs),
+            _l("total", data.total),
+            _l("pct", f"{pct}%", kind="text"),
         ],
     )
 
@@ -310,27 +324,243 @@ def _build_section(result: "Result[ModuleSummary]") -> SectionBlock:
     )
 
 
-def _views_block(vs: "Optional[ViewsSummary]") -> dict:
-    if vs is None:
-        return {
-            "primary": {},
-            "extensions": 0,
-            "extensions_by_type": {},
-            "extensions_upstream": 0,
-            "actions": 0,
-            "menus": 0,
-            "unresolved": 0,
-            "list": [],
-        }
+# ---------------------------------------------------------------------------
+# IR v2 machine payload — flat node builders (spec §0b, §2–§5)
+# ---------------------------------------------------------------------------
+
+# Internal METHOD_SECTION_* → bare IR section (strip " METHODS"); OTHER fallback.
+_SECTION_MAP = {
+    "COMPUTE METHODS": "COMPUTE",
+    "ONCHANGE METHODS": "ONCHANGE",
+    "CONSTRAINT METHODS": "CONSTRAINT",
+    "CRUD METHODS": "CRUD",
+    "ACTION METHODS": "ACTION",
+    "HELPER METHODS": "HELPER",
+    "SELECTION METHODS": "SELECTION",
+    "DEFAULT METHODS": "DEFAULT",
+    "BUSINESS METHODS": "BUSINESS",
+}
+
+# Internal field section → IR origin_status.
+_FIELD_ORIGIN_STATUS = {
+    "BASE FIELDS": "base",
+    "NEW FIELDS": "new",
+    "INHERITED FIELDS": "extended",
+}
+
+_MANIFEST_KEYS = (
+    "name",
+    "version",
+    "author",
+    "license",
+    "category",
+    "summary",
+    "application",
+    "installable",
+    "website",
+)
+
+
+def _canonical_model(ci) -> str:
+    """Canonical model name, always populated: ``_name`` else ``_inherit[0]``."""
+    return ci.model_name or (ci.inherit[0] if ci.inherit else ci.class_name)
+
+
+def _override_ref(sym, model: str) -> "Optional[dict]":
+    """Descriptive cross-module override reference from the symbol's KB entry."""
+    e = sym.kb_entry or {}
     return {
-        "primary": vs.primary_by_type,
-        "extensions": vs.extensions,
-        "extensions_by_type": vs.extensions_by_type,
-        "extensions_upstream": vs.extensions_upstream,
-        "actions": vs.actions,
-        "menus": vs.menus,
-        "unresolved": vs.unresolved,
-        "list": vs.view_list,
+        "origin_module": e.get("module") or None,
+        "origin": normalize_origin(e.get("origin")),
+        "ancestor_model": model,
+        "source_file": normalize_source_file(e.get("source_file"), e.get("module") or ""),
+        "line_start": e.get("source_line"),
+        "line_end": e.get("source_end_line"),
+    }
+
+
+def _inherited_ref(sym) -> dict:
+    """Descriptive inherited-from reference from the symbol's KB entry."""
+    e = sym.kb_entry or {}
+    return {
+        "origin_module": e.get("module") or None,
+        "origin": normalize_origin(e.get("origin")),
+        "source_file": normalize_source_file(e.get("source_file"), e.get("module") or ""),
+    }
+
+
+def _model_nodes(module: str, pairs: list) -> list:
+    out = []
+    for cs, ci in pairs:
+        model = _canonical_model(ci)
+        out.append(
+            {
+                "id": model_id(module, model),
+                "model": model,
+                "class_name": ci.class_name,
+                "status": "new" if cs.is_new_model else "extension",
+                "inherit": ci.inherit,
+                "inherit_origin": normalize_origin(cs.ancestor_origin),
+                "ancestor_model": cs.ancestor_model,
+                "ancestor_module": cs.ancestor_module,
+                "description": ci.description,
+                "docstring": ci.docstring,
+            }
+        )
+    return out
+
+
+def _field_nodes(module: str, pairs: list, in_repo_models: set, in_repo_methods: set) -> list:
+    out = []
+    for cs, ci in pairs:  # noqa: B007 — cs unused here, kept for pair symmetry
+        model = _canonical_model(ci)
+        mid = model_id(module, model)
+        for sym in ci.symbols:
+            if sym.kind != "field":
+                continue
+            fd = sym.field_details or {}
+            origin_status = _FIELD_ORIGIN_STATUS.get(sym.section, "new")
+
+            compute = fd.get("compute")
+            if compute and (model, compute) in in_repo_methods:
+                compute = method_id(module, model, compute)
+
+            comodel = fd.get("comodel")
+            if comodel and comodel in in_repo_models:
+                comodel = model_id(module, comodel)
+
+            label = fd.get("label")
+            out.append(
+                {
+                    "id": field_id(module, model, sym.name),
+                    "name": sym.name,
+                    "model": mid,
+                    "type": fd.get("type") or sym.field_type,
+                    "label": label,
+                    "label_inferred": label is None,
+                    "help": fd.get("help"),
+                    "required": fd.get("required"),
+                    "readonly": fd.get("readonly"),
+                    "store": fd.get("store"),
+                    "comodel": comodel,
+                    "inverse_name": fd.get("inverse_name"),
+                    "relation": fd.get("relation"),
+                    "compute": compute,
+                    "related": fd.get("related"),
+                    "default": fd.get("default"),
+                    "selection": fd.get("selection"),
+                    "origin_status": origin_status,
+                    "overrides": _override_ref(sym, model) if origin_status == "extended" else None,
+                    "dynamic": fd.get("dynamic", False),
+                    "source_file": normalize_source_file(ci.source_file, module),
+                    "line_start": sym.lineno,
+                    "line_end": sym.end_lineno,
+                }
+            )
+    return out
+
+
+def _method_nodes(module: str, pairs: list) -> list:
+    out = []
+    for cs, ci in pairs:
+        model = _canonical_model(ci)
+        mid = model_id(module, model)
+        for sym in ci.symbols:
+            if sym.kind != "method":
+                continue
+            is_inherited = bool(sym.kb_entry) and not sym.is_override and not cs.is_new_model
+            out.append(
+                {
+                    "id": method_id(module, model, sym.name),
+                    "name": sym.name,
+                    "model": mid,
+                    "signature": sym.signature,
+                    "section": _SECTION_MAP.get(sym.section, "OTHER"),
+                    "decorators": sym.decorators,
+                    "docstring": sym.docstring,
+                    "is_override": sym.is_override,
+                    "overrides": _override_ref(sym, model) if sym.is_override else None,
+                    "is_inherited": is_inherited,
+                    "inherited_from": _inherited_ref(sym) if is_inherited else None,
+                    "source_file": normalize_source_file(ci.source_file, module),
+                    "line_start": sym.lineno,
+                    "line_end": sym.end_lineno,
+                }
+            )
+    return out
+
+
+def _view_nodes(module: str, vs: "Optional[ViewsSummary]", in_repo_models: set) -> list:
+    if vs is None:
+        return []
+    out = []
+    for v in vs.view_list:
+        vmodel = v.get("model")
+        model_ref = model_id(module, vmodel) if vmodel and vmodel in in_repo_models else vmodel
+        out.append(
+            {
+                "id": v["xml_id"],
+                "xml_id": v["xml_id"],
+                "model": model_ref,
+                "mode": v.get("mode"),
+                "view_type": v.get("view_type"),
+                "origin": normalize_origin(v.get("origin")),
+                "inherit_origin": normalize_origin(v.get("ancestor_origin")),
+                "inherit_id": v.get("inherit_id"),
+                "name": v.get("name") or v["xml_id"],
+                "fields_count": v.get("fields_count", 0),
+                "buttons_count": v.get("buttons_count", 0),
+                "ancestor_module": v.get("ancestor_module"),
+                "source_file": normalize_source_file(v.get("source_file"), module),
+                "line_start": v.get("line_start"),
+                "line_end": v.get("line_end"),
+            }
+        )
+    return out
+
+
+def _derived_metrics(summary: "ModuleSummary", models: list, fields: list, methods: list) -> dict:
+    s = summary.structure
+    data_count = sum(n for ext in s.data.values() for n in ext.values())
+    metrics = {
+        "models": len(models),
+        "own_fields": sum(1 for f in fields if f["origin_status"] in ("base", "new")),
+        "inherited_fields": sum(1 for f in fields if f["origin_status"] == "extended"),
+        "methods": len(methods),
+        "inherited_methods": sum(1 for m in methods if m["is_inherited"]),
+        "overridden_methods": sum(1 for m in methods if m["is_override"]),
+        "missing_docs": sum(1 for m in methods if m["docstring"] is None),
+        "data": data_count,
+    }
+    vs = summary.views_summary
+    if vs is not None:
+        metrics.update(
+            {
+                "primary_views": sum(vs.primary_by_type.values()),
+                "extension_views": vs.extensions,
+                "extension_views_upstream": vs.extensions_upstream,
+                "actions": vs.actions,
+                "menus": vs.menus,
+                "unresolved_views": vs.unresolved,
+            }
+        )
+    return metrics
+
+
+def _manifest_raw(summary: "ModuleSummary") -> dict:
+    m = summary.manifest
+    return {k: m[k] for k in _MANIFEST_KEYS if k in m}
+
+
+def _loc_raw(summary: "ModuleSummary") -> dict:
+    loc = summary.loc or LocStats()
+    return {
+        "python": loc.python,
+        "xml": loc.xml,
+        "javascript": loc.javascript,
+        "docs": loc.docs,
+        "total": loc.total,
+        "pct": summary.loc_pct,
     }
 
 
@@ -348,13 +578,30 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
         )
 
     def to_machine(self, results: ResultCollection[ModuleSummary]) -> dict:
-        """Full payload for JSON / scripts / downstream agents."""
+        """Full IR v2 payload: four flat sibling lists of id-addressable nodes."""
 
         def _make(result: "Result[ModuleSummary]") -> dict:
             summary = result.unwrap
+            module = summary.module_name
 
-            not_analysed: list[str] = []
+            # ClassSummary (ancestor enrichment) paired with raw ClassInfo
+            # (enriched symbols/content) — aligned 1:1 by the analyze loop.
+            pairs = list(zip(summary.classes, summary.class_infos))
+            in_repo_models = {_canonical_model(ci) for _, ci in pairs}
+            in_repo_methods = {
+                (_canonical_model(ci), sym.name)
+                for _, ci in pairs
+                for sym in ci.symbols
+                if sym.kind == "method"
+            }
+
+            models = _model_nodes(module, pairs)
+            fields = _field_nodes(module, pairs, in_repo_models, in_repo_methods)
+            methods = _method_nodes(module, pairs)
+            views = _view_nodes(module, summary.views_summary, in_repo_models)
+
             s = summary.structure
+            not_analysed: list[str] = []
             if s.data:
                 not_analysed.append("data")
             if s.demo:
@@ -368,44 +615,16 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
             if s.static_by_ext:
                 not_analysed.append("static/")
 
-            # Common stats, shared with summary
-            metrics = _build_metrics(summary)
-            loc = _build_loc(summary.loc, summary.loc_pct)
-            manifest = _build_manifest(summary)
-
             return {
-                "module": summary.module_name,
-                "metrics": metrics.to_dict(),
-                "manifest": manifest.to_dict(),
+                "module": module,
+                "manifest": _manifest_raw(summary),
+                "readme": summary.readme
+                or {"present": False, "format": None, "path": None, "content": None},
                 "depends": summary.manifest.get("depends", []),
-                "models": [
-                    {
-                        "class_name": c.class_name,
-                        "model_name": c.model_name,
-                        "is_new_model": c.is_new_model,
-                        "inherit": c.inherit,
-                        "ancestor_model": c.ancestor_model,
-                        "ancestor_module": c.ancestor_module,
-                        "ancestor_origin": c.ancestor_origin,
-                        "fields": {
-                            "total": c.fields_total,
-                            "base": c.fields_base,
-                            "new": c.fields_new,
-                            "inherited": c.fields_inherited,
-                            "by_type": c.fields_by_type,
-                        },
-                        "methods": {
-                            "total": c.methods_total,
-                            "by_section": c.methods_by_section,
-                            "overrides": c.overrides,
-                            "override_details": c.override_details,
-                            "inherited": c.inherited_methods,
-                            "inherited_details": c.inherited_method_details,
-                            "missing_docstrings": c.missing_docstrings,
-                        },
-                    }
-                    for c in summary.classes
-                ],
+                "models": models,
+                "fields": fields,
+                "methods": methods,
+                "views": views,
                 "structure": {
                     "data": s.data,
                     "demo": s.demo,
@@ -414,9 +633,8 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
                     "report_py": s.report_py,
                     "static_by_ext": s.static_by_ext,
                 },
-                "symbols": summary.method_symbols,
-                "loc": loc.to_dict(),
-                "views": _views_block(summary.views_summary),
+                "metrics": _derived_metrics(summary, models, fields, methods),
+                "loc": _loc_raw(summary),
                 "not_analysed": not_analysed,
                 "warnings": result.warnings,
             }
