@@ -74,7 +74,7 @@ def main(strict: bool, hook: bool, output_format: str, output_path: Path):
     if hook:
         formatter = PreCommitFormatter()
 
-    results: ResultCollection[CheckOutcome] = ResultCollection(title="Project check")
+    results: ResultCollection[CheckOutcome] = ResultCollection(title="Check project")
 
     project_ctx: ProjectCheckContext = ProjectCheckContext(
         path=repo_path,
@@ -98,6 +98,8 @@ def main(strict: bool, hook: bool, output_format: str, output_path: Path):
 
     except (FileNotFoundError, ValueError) as e:
         results.add_error(str(e) or "Could not parse Odoo version.")
+
+    results.aggregate()
 
     output = DefaultCheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
     render_and_exit(results, formatter, output, output_format, output_path)

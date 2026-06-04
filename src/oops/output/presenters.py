@@ -63,7 +63,6 @@ def _conclusion(results: "ResultCollection[CheckOutcome]") -> str:
 class DefaultCheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
     def to_machine(self, results: "ResultCollection[CheckOutcome]") -> dict:
 
-        results.aggregate()
         return {
             "data": [result.unwrap.to_dict() for result in results],
             "warnings": results.warnings,
@@ -71,10 +70,6 @@ class DefaultCheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
         }
 
     def to_human_summary(self, results: "ResultCollection[CheckOutcome]") -> MinimalLayout:
-
-        results.aggregate()
-        results.warnings.sort()
-        results.errors.sort()
 
         return MinimalLayout(
             status=results.ok,
@@ -100,8 +95,6 @@ class DefaultCheckPresenter(Presenter[ResultCollection[CheckOutcome]]):
         )
 
         panel = statgroup_to_panel(metrics)
-
-        results.aggregate()
 
         return SimpleSummaryLayout(
             title=results.title,

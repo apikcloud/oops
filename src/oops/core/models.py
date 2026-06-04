@@ -356,6 +356,10 @@ class ResultCollection(Generic[T]):
             self.warnings.extend(item.warnings)
             self.errors.extend(item.errors)
 
+        self.messages.sort()
+        self.warnings.sort()
+        self.errors.sort()
+
     def __len__(self) -> int:
         return len(self.items)
 

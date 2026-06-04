@@ -81,9 +81,11 @@ def main(hook: bool, output_format: str, output_path: Path):
         enabled=config.submodules.checks,
     )
 
-    results: ResultCollection[CheckOutcome] = ResultCollection(title="Submodules check")
+    results: ResultCollection[CheckOutcome] = ResultCollection(title="Check submodules")
     for check_cls in CHECKS:
         results.add(check_cls(ctx).run())
+
+    results.aggregate()
 
     output = DefaultCheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
     render_and_exit(results, formatter, output, output_format, output_path)

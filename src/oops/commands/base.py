@@ -132,11 +132,15 @@ def render_and_exit(
     output,
     output_format: str = "text",
     output_path=None,
+    bypass: bool = False,
 ):
     """Render the output, then exit non-zero if `outer` has errors."""
 
     ctx = click.get_current_context()
 
     deliver(formatter, output, output_format, output_path)
-    if not result.ok:
+
+    if not result.ok and not bypass:
         ctx.exit(1)
+
+    ctx.exit(0)

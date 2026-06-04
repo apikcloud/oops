@@ -31,7 +31,6 @@ import click
 from oops.commands.base import command, render_and_exit
 from oops.core.checks import CheckOutcome
 from oops.core.config import config
-from oops.core.exceptions import EarlyExit, OopsError
 from oops.core.metadata import get_metadata
 from oops.core.models import ResultCollection
 from oops.output.formatters import (
@@ -101,9 +100,7 @@ def main(no_fail: bool, hook: bool, output_format: str, output_path: Path):
     results.add(RequirementsCheck(ctx).run())
     results.add(ImportsCheck(ctx).run())
 
-    output = DefaultCheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
-    render_and_exit(results, formatter, output, output_format, output_path)
+    results.aggregate()
 
-    if no_fail:
-        raise EarlyExit()
-    raise OopsError("Requirements differ. See output above.")
+    output = DefaultCheckPresenter().prepare(results, target=formatter.target, metadata=metadata)
+    render_and_exit(results, formatter, output, output_format, output_path, bypass=no_fail)
