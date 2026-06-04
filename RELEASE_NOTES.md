@@ -9,6 +9,17 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.19.3] - 2026-06-04
+
+A small update that fixes an over-strict check. Thanks for your trust! 🎉
+
+### 🐛 Fixes
+
+- **`oops requirements check`**: the command always reported an error, even when everything was in order. This is now fixed.
+- The `--no-fail` option is now properly respected by the check commands (`requirements check`, `project check`, `submodules check`).
+
+---
+
 ## [0.19.2] - 2026-06-03
 
 Patch fix for machine-readable output.
