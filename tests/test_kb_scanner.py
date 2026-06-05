@@ -13,6 +13,7 @@ import textwrap
 from pathlib import Path
 
 from oops.kb.scanner import (
+    _dedup_model_origins,
     _extract_string_value,
     _parse_file,
     build_module_field_refs,
@@ -375,10 +376,96 @@ class TestScanModule:
         origin = next(o for o in result["model_origins"] if o["model"] == "res.partner")
         assert origin["description"] is None
 
+    def test_create_and_extend_same_model_collapse_to_create(self, tmp_path):
+        """A module that defines and reopens the same model yields one create row.
+
+        Mirrors Odoo core ``account`` where ``account.move`` is created in one
+        file and reopened via ``_inherit`` in others (account_payment.py,
+        account_bank_statement_line.py). The create role and its _description
+        must survive the per-module deduplication.
+        """
+        create_src = """\
+            from odoo import fields, models
+
+            class AccountMove(models.Model):
+                _name = 'account.move'
+                _description = 'Journal Entry'
+                name = fields.Char()
+        """
+        extend_src = """\
+            from odoo import fields, models
+
+            class AccountMovePayment(models.Model):
+                _inherit = ['account.move']
+                x_extra = fields.Char()
+        """
+        module_dir = _make_module(
+            tmp_path, "account", models={"account_move.py": create_src, "account_payment.py": extend_src}
+        )
+        result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
+        rows = [o for o in result["model_origins"] if o["model"] == "account.move"]
+        assert len(rows) == 1
+        assert rows[0]["role"] == "create"
+        assert rows[0]["description"] == "Journal Entry"
+
 
 # ---------------------------------------------------------------------------
 # TestGetDescription
 # ---------------------------------------------------------------------------
+
+
+class TestDedupModelOrigins:
+    def _entry(self, model, role, description=None, source_line=1):
+        return {
+            "model": model,
+            "module": "account",
+            "origin": "odoo",
+            "role": role,
+            "model_type": "model",
+            "inherit_json": "[]",
+            "inherits_json": "{}",
+            "source_file": "account/models/x.py",
+            "source_line": source_line,
+            "description": description,
+        }
+
+    def test_create_wins_when_extend_scanned_first(self):
+        entries = [
+            self._entry("account.move", "extend", description=None, source_line=852),
+            self._entry("account.move", "create", description="Journal Entry", source_line=89),
+        ]
+        out = _dedup_model_origins(entries)
+        assert len(out) == 1
+        assert out[0]["role"] == "create"
+        assert out[0]["description"] == "Journal Entry"
+        assert out[0]["source_line"] == 89
+
+    def test_create_wins_when_extend_scanned_last(self):
+        entries = [
+            self._entry("account.move", "create", description="Journal Entry"),
+            self._entry("account.move", "extend", description=None),
+        ]
+        out = _dedup_model_origins(entries)
+        assert len(out) == 1
+        assert out[0]["role"] == "create"
+        assert out[0]["description"] == "Journal Entry"
+
+    def test_description_filled_from_extend_when_create_lacks_one(self):
+        entries = [
+            self._entry("account.move", "create", description=None),
+            self._entry("account.move", "extend", description="From extend"),
+        ]
+        out = _dedup_model_origins(entries)
+        assert out[0]["role"] == "create"
+        assert out[0]["description"] == "From extend"
+
+    def test_distinct_models_preserved(self):
+        entries = [
+            self._entry("account.move", "create"),
+            self._entry("account.payment", "create"),
+        ]
+        out = _dedup_model_origins(entries)
+        assert {o["model"] for o in out} == {"account.move", "account.payment"}
 
 
 class TestGetDescription:

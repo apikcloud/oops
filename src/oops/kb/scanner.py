@@ -220,6 +220,42 @@ def get_description(class_node: ast.ClassDef) -> Optional[str]:
     return None
 
 
+_ROLE_RANK = {"prototype": 2, "create": 2, "extend": 1}
+
+
+def _dedup_model_origins(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Collapse multiple ``model_origins`` rows for the same model in one module.
+
+    A module may both define a model (``_name``, role ``create``) and reopen it
+    elsewhere (``_inherit``, role ``extend``). They share the ``(model, module)``
+    primary key, so only one row may survive. Keep the highest-ranked role
+    (``create``/``prototype`` over ``extend``) and carry the ``_description``
+    from whichever contributing row declared one.
+
+    Args:
+        entries: model_origins dicts for a single module.
+
+    Returns:
+        Deduplicated list, one entry per model name, order-preserving.
+    """
+    chosen: Dict[str, Dict[str, Any]] = {}
+    for entry in entries:
+        model = entry["model"]
+        current = chosen.get(model)
+        if current is None:
+            chosen[model] = dict(entry)
+            continue
+        # Fill a missing description from any contributing row.
+        if not current.get("description") and entry.get("description"):
+            current["description"] = entry["description"]
+        # Higher-ranked role (create/prototype) wins the structural fields.
+        if _ROLE_RANK.get(entry["role"], 0) > _ROLE_RANK.get(current["role"], 0):
+            description = current.get("description") or entry.get("description")
+            chosen[model] = dict(entry)
+            chosen[model]["description"] = description
+    return list(chosen.values())
+
+
 def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int, str]]:
     """If stmt assigns a fields.XXX, return (field_name, lineno, field_type). Else None.
 
@@ -791,6 +827,7 @@ def scan_module(  # noqa: C901
         )
 
     result["symbols"] = field_symbols + method_symbols
+    result["model_origins"] = _dedup_model_origins(result["model_origins"])
     return result
 
 
