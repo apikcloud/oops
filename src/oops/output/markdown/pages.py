@@ -107,19 +107,46 @@ def build_index(dm: Dict[str, Any]) -> str:
 
     # Module index.
     lines += ["## Modules", ""]
+    module_rows = []
     for mod in sorted(modules, key=lambda m: m["module"]):
         name = mod["module"]
-        manifest_name = (mod.get("manifest") or {}).get("name", name)
-        lines.append(f"- [{name}](modules/{name}.md) — {manifest_name}")
-    lines.append("")
+        manifest = mod.get("manifest", {})
+
+        module_rows += [
+            [
+                f"[{name}](modules/{name}.md)",
+                manifest.get("name", name),
+                manifest.get("version", "--"),
+                manifest.get("summary", ""),
+            ]
+        ]
+
+    lines += [render_markdown_table(["Technical name", "Name", "Version", "Summary"], module_rows), ""]
 
     # Model index.
-    bare_models = sorted(dm.get("models_by_bare", {}))
-    if bare_models:
+    models_by_bare = dm.get("models_by_bare", {})
+    if models_by_bare:
         lines += ["## Models", ""]
-        for bare in bare_models:
-            lines.append(f"- [{bare}]({model_page_path(bare)})")
-        lines.append("")
+        bare_model_rows = []
+
+        for bare in sorted(models_by_bare):
+            vals = models_by_bare[bare]
+            contributions = vals.get("contributions", [])
+
+            bare_model_rows += [
+                [
+                    f"[{bare}]({model_page_path(bare)})",
+                    "",
+                    str(len(contributions)),
+                    str(sum(len(c.get("fields", [])) for c in contributions)),
+                    str(sum(len(c.get("methods", [])) for c in contributions)),
+                ]
+            ]
+
+        lines += [
+            render_markdown_table(["Name", "Description", "Contributions", "Fields", "Methods"], bare_model_rows),
+            "",
+        ]
 
     # Audit pages.
     lines += [
