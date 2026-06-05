@@ -460,6 +460,7 @@ class Stat:
         """
         d = asdict(self)
         if summary:
+            d.pop("label", None)
             d.pop("kind", None)
             d.pop("highlight", None)
         return d

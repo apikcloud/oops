@@ -33,10 +33,10 @@ def _build_metrics(result: Result[List[AddonInfo]]) -> Tuple[StatGroup, StatGrou
         name="summary",
         label="Summary",
         values=[
-            Stat(name="total", label="Total", value=total),
             Stat(name="local", label="Local", value=locations["local"]),
             Stat(name="active", label="Active", value=locations["active"]),
             Stat(name="inactive", label="Inactive", value=locations["inactive"]),
+            Stat(name="total", label="Total", value=total),
         ],
     )
 
@@ -125,6 +125,6 @@ class ListPresenter(SimplePresenter[List[AddonInfo]]):
 
         return {
             "data": [asdict(addon) for addon in result.unwrap],
-            "metrics": [s.to_dict() for s in metrics],
+            "metrics": [s.to_dict(summary=True) for s in metrics],
             "warnings": result.warnings,
         }

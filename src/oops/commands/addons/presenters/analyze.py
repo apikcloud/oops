@@ -595,10 +595,7 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
             pairs = list(zip(summary.classes, summary.class_infos))
             in_repo_models = {_canonical_model(ci) for _, ci in pairs}
             in_repo_methods = {
-                (_canonical_model(ci), sym.name)
-                for _, ci in pairs
-                for sym in ci.symbols
-                if sym.kind == "method"
+                (_canonical_model(ci), sym.name) for _, ci in pairs for sym in ci.symbols if sym.kind == "method"
             }
 
             models = _model_nodes(module, pairs)
@@ -624,8 +621,7 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
             return {
                 "module": module,
                 "manifest": _manifest_raw(summary),
-                "readme": summary.readme
-                or {"present": False, "format": None, "path": None, "content": None},
+                "readme": summary.readme or {"present": False, "format": None, "path": None, "content": None},
                 "depends": summary.manifest.get("depends", []),
                 "models": models,
                 "fields": fields,

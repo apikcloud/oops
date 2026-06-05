@@ -178,7 +178,14 @@ class HtmlFormatter(OutputFormatter):
 
     def render(self, output: "Output[dict]") -> str:
         template = (TEMPLATES / self.template).read_text()
-        payload = to_json_string(output.layout)
+        data = output.unwrap
+
+        assert output.metadata is not None
+
+        data = {**data, "metadata": output.metadata.to_dict()}
+
+        payload = to_json_string(data)
+
         return template.replace("__REPORT_DATA__", payload)
 
     def error(self, message: str, code: int = 1) -> None:
@@ -192,11 +199,11 @@ class HtmlFormatter(OutputFormatter):
 
 
 class AnalysisReportFormatter(HtmlFormatter):
-    template = "analyze_v4.html"
+    template = "analyze_v5.html"
 
 
 class AddonsReportFormatter(HtmlFormatter):
-    template = "list.html"
+    template = "list_v4.html"
 
 
 class DependsReportFormatter(HtmlFormatter):

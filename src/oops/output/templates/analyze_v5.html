@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>oops · Module Analysis</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+
+        <style>
+            :root {
+                /* ── Apik brand ──────────────────────────────────────────── */
+                --apik-primary: #2e3548; /* slate  */
+                --apik-accent: #505ba6; /* indigo */
+                --apik-accent-light: #8b93cf;
+                --apik-accent-dark: #3d4680;
+                --apik-accent-bg: #ebedf6;
+                /* ─────────────────────────────────────────────────────────── */
+
+                --bg: #f7f8fb;
+                --bg-card: #ffffff;
+                --bg-soft: #eef0f6;
+                --border: #e2e5ee;
+                --text: #1c2230;
+                --text-muted: #6b7180;
+                --accent: var(--apik-accent);
+                --warning: #b5832b;
+                --warning-bg: #f6ecd6;
+
+                /* Origin palette — muted, cohesive */
+                --origin-core: #505ba6; /* indigo */
+                --origin-enterprise: #9c6f8e; /* mauve  */
+                --origin-oca: #4f828f; /* teal   */
+                --origin-third_party: #b07449; /* clay   */
+                --origin-custom: #5f8a6a; /* sage   */
+                --origin-unknown: #9aa1b4; /* gray   */
+
+                /* Method-section text colors (same family) */
+                --section-compute: #505ba6;
+                --section-onchange: #9c6f8e;
+                --section-constrain: #b07449;
+                --section-crud: #4f828f;
+                --section-action: #5f8a6a;
+                --section-helper: #6b7180;
+                --section-business: #b2902f;
+                --section-other: #6b7180;
+
+                --font: "DM Sans", system-ui, sans-serif;
+                --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: var(--font);
+                background: var(--bg);
+                color: var(--text);
+                margin: 0;
+                line-height: 1.5;
+            }
+
+            /* ── Site header ──────────────────────────────────────────────── */
+            .site-header {
+                background: var(--apik-primary);
+                color: #fff;
+                padding: 1.25rem 2rem;
+            }
+            .site-header-inner {
+                max-width: 1400px;
+                margin: 0 auto;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 2rem;
+            }
+            .brand {
+                display: flex;
+                align-items: baseline;
+                gap: 0.6rem;
+                line-height: 1;
+            }
+            .brand-name {
+                font-family: var(--mono);
+                font-size: 1.5rem;
+                font-weight: 500;
+                color: var(--apik-accent-light);
+                letter-spacing: -0.02em;
+            }
+            .brand-cmd {
+                font-family: var(--mono);
+                font-size: 0.8rem;
+                color: rgba(255, 255, 255, 0.45);
+            }
+            .header-sub {
+                font-size: 0.82rem;
+                color: rgba(255, 255, 255, 0.6);
+                text-align: right;
+            }
+
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 2rem;
+            }
+
+            h2 {
+                font-size: 1.2rem;
+                margin: 2.5rem 0 1rem;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid var(--border);
+            }
+            h3 {
+                font-size: 1.02rem;
+                margin: 1.5rem 0 0.5rem;
+            }
+            h4 {
+                font-size: 0.72rem;
+                margin: 1.25rem 0 0.5rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                font-weight: 600;
+            }
+
+            /* ── Warnings ─────────────────────────────────────────────────── */
+            .warnings {
+                background: var(--warning-bg);
+                border-left: 3px solid var(--warning);
+                padding: 0.75rem 1rem;
+                margin: 1rem 0;
+                border-radius: 0 4px 4px 0;
+            }
+            .warnings ul {
+                margin: 0;
+                padding-left: 1.2rem;
+            }
+            .warnings li {
+                color: #715018;
+                font-size: 0.88rem;
+                margin: 0.25rem 0;
+            }
+
+            /* ── Module ───────────────────────────────────────────────────── */
+            .module {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            .module > h2:first-child {
+                margin-top: 0;
+            }
+
+            /* ── Manifest ─────────────────────────────────────────────────── */
+            .manifest-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
+            .manifest-grid .item .label {
+                color: var(--text-muted);
+                display: block;
+                font-size: 0.68rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            .manifest-grid .item .value {
+                font-weight: 500;
+                font-size: 0.9rem;
+            }
+
+            .chip-list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+            }
+            .chip {
+                background: var(--bg-soft);
+                padding: 0.15rem 0.55rem;
+                border-radius: 3px;
+                color: var(--text-muted);
+                font-family: var(--mono);
+                font-size: 0.75rem;
+            }
+
+            /* ── Metrics ──────────────────────────────────────────────────── */
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+                gap: 0.65rem;
+                margin: 0.5rem 0 1rem;
+            }
+            .metric {
+                background: var(--bg-soft);
+                padding: 0.6rem 0.8rem;
+                border-radius: 5px;
+            }
+            .metric .value {
+                font-size: 1.25rem;
+                font-weight: 600;
+                font-family: var(--mono);
+                color: var(--apik-primary);
+            }
+            .metric.zero .value {
+                color: var(--text-muted);
+                opacity: 0.5;
+            }
+            .metric .label {
+                font-size: 0.66rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+            }
+
+            /* ── Tables ───────────────────────────────────────────────────── */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.84rem;
+                margin: 0;
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 0.45rem 0.65rem;
+                border-bottom: 1px solid var(--border);
+            }
+            th {
+                background: var(--bg-soft);
+                font-weight: 600;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                font-size: 0.64rem;
+                letter-spacing: 0.05em;
+                white-space: nowrap;
+            }
+            td.num {
+                font-family: var(--mono);
+                text-align: right;
+            }
+            td.zero,
+            .zero {
+                color: var(--text-muted);
+                opacity: 0.45;
+            }
+            td.muted {
+                color: var(--text-muted);
+            }
+            td code,
+            td.mono,
+            .mono {
+                font-family: var(--mono);
+                font-size: 0.8rem;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+            .table-wrap {
+                overflow-x: auto;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                margin: 0.25rem 0 1rem;
+            }
+            tr.clickable {
+                cursor: pointer;
+                transition: background 0.12s;
+            }
+            tr.clickable:hover {
+                background: var(--bg-soft);
+            }
+
+            /* ── Badges ───────────────────────────────────────────────────── */
+            .badge {
+                display: inline-block;
+                padding: 0.1rem 0.5rem;
+                border-radius: 3px;
+                font-size: 0.64rem;
+                font-family: var(--mono);
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                font-weight: 600;
+                color: white;
+            }
+            .badge.core {
+                background: var(--origin-core);
+            }
+            .badge.enterprise {
+                background: var(--origin-enterprise);
+            }
+            .badge.oca {
+                background: var(--origin-oca);
+            }
+            .badge.third_party {
+                background: var(--origin-third_party);
+            }
+            .badge.custom {
+                background: var(--origin-custom);
+            }
+            .badge.unknown {
+                background: var(--origin-unknown);
+            }
+            .badge.outline {
+                background: transparent;
+                color: var(--text-muted);
+                border: 1px solid var(--border);
+            }
+            .status-pill {
+                display: inline-block;
+                font-size: 0.62rem;
+                font-family: var(--mono);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                padding: 0.08rem 0.4rem;
+                border-radius: 3px;
+                background: var(--bg-soft);
+                color: var(--text-muted);
+            }
+            .status-pill.extended {
+                background: var(--apik-accent-bg);
+                color: var(--apik-accent-dark);
+            }
+
+            /* ── Drawer ───────────────────────────────────────────────────── */
+            .drawer-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(28, 34, 48, 0.35);
+                z-index: 10;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s;
+            }
+            .drawer-backdrop.open {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .drawer {
+                position: fixed;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: min(760px, 100vw);
+                background: var(--bg-card);
+                border-left: 1px solid var(--border);
+                z-index: 11;
+                padding: 1.5rem;
+                overflow-y: auto;
+                transform: translateX(100%);
+                transition: transform 0.2s;
+                box-shadow: -8px 0 24px rgba(28, 34, 48, 0.1);
+            }
+            .drawer.open {
+                transform: translateX(0);
+            }
+            .drawer-close {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                font-size: 1.25rem;
+                color: var(--text-muted);
+                padding: 0.25rem 0.5rem;
+            }
+            .drawer-close:hover {
+                color: var(--text);
+            }
+            .drawer h2 {
+                margin: 0 0 0.25rem;
+                font-size: 1.1rem;
+                font-family: var(--mono);
+                border: none;
+                padding: 0;
+                word-break: break-all;
+                color: var(--apik-primary);
+            }
+            .drawer .drawer-sub {
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 1rem;
+            }
+            .drawer h3 {
+                font-size: 0.92rem;
+                margin: 1.25rem 0 0.5rem;
+            }
+            .drawer .info-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 0.35rem 0;
+                border-bottom: 1px solid var(--border);
+                font-size: 0.85rem;
+            }
+            .drawer .info-row .label {
+                color: var(--text-muted);
+            }
+            .drawer .info-row .value {
+                font-family: var(--mono);
+                font-weight: 500;
+            }
+
+            .field-breakdown {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+                margin: 0.5rem 0;
+            }
+            .fb-card {
+                background: var(--bg-soft);
+                padding: 0.5rem;
+                border-radius: 4px;
+                text-align: center;
+            }
+            .fb-card.own {
+                border-left: 3px solid var(--origin-custom);
+            }
+            .fb-card.extended {
+                border-left: 3px solid var(--apik-accent);
+            }
+            .fb-card .value {
+                font-family: var(--mono);
+                font-size: 1.25rem;
+                font-weight: 600;
+            }
+            .fb-card .label {
+                font-size: 0.64rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .ft-chip {
+                background: var(--bg-soft);
+                padding: 0.15rem 0.55rem;
+                border-radius: 3px;
+                font-family: var(--mono);
+                font-size: 0.74rem;
+                display: inline-block;
+                margin: 0.15rem;
+                color: var(--text-muted);
+            }
+            .ft-chip .count {
+                font-weight: 600;
+                margin-left: 0.25rem;
+            }
+            .ft-chip.compute {
+                color: var(--section-compute);
+            }
+            .ft-chip.onchange {
+                color: var(--section-onchange);
+            }
+            .ft-chip.constrain {
+                color: var(--section-constrain);
+            }
+            .ft-chip.crud {
+                color: var(--section-crud);
+            }
+            .ft-chip.action {
+                color: var(--section-action);
+            }
+            .ft-chip.helper {
+                color: var(--section-helper);
+            }
+            .ft-chip.business {
+                color: var(--section-business);
+            }
+            .ft-chip.other {
+                color: var(--section-other);
+            }
+
+            .cell-help {
+                color: var(--text-muted);
+                font-size: 0.78rem;
+                max-width: 280px;
+            }
+            .cell-flags {
+                font-family: var(--mono);
+                font-size: 0.72rem;
+                color: var(--text-muted);
+            }
+            .doc-yes {
+                color: var(--origin-custom);
+                font-weight: 600;
+            }
+            .doc-no {
+                color: var(--text-muted);
+                opacity: 0.5;
+            }
+            .ovr {
+                font-family: var(--mono);
+                font-size: 0.74rem;
+                color: var(--text-muted);
+            }
+
+            .empty-section {
+                color: var(--text-muted);
+                font-size: 0.85rem;
+                font-style: italic;
+                padding: 0.5rem 0;
+            }
+
+            /* ── Metadata bar (kept as-is) ────────────────────────────────── */
+            .metadata-bar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1.25rem;
+                padding: 0.75rem 1rem;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                margin-bottom: 2rem;
+                font-size: 0.8rem;
+            }
+            .metadata-bar .meta-item {
+                display: flex;
+                flex-direction: column;
+                gap: 0.1rem;
+            }
+            .metadata-bar .meta-item .label {
+                font-size: 0.6rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+            }
+            .metadata-bar .meta-item .value {
+                font-family: var(--mono);
+                font-weight: 500;
+            }
+            .metadata-bar .meta-item .value.commit {
+                color: var(--accent);
+            }
+
+            /* ── Structure ────────────────────────────────────────────────── */
+            .structure-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 0.75rem;
+                margin: 0.5rem 0 1rem;
+            }
+            .structure-card {
+                background: var(--bg-soft);
+                border-radius: 5px;
+                padding: 0.6rem 0.8rem;
+            }
+            .structure-card .sc-title {
+                font-size: 0.68rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+                margin-bottom: 0.35rem;
+            }
+            .structure-card .sc-line {
+                font-family: var(--mono);
+                font-size: 0.8rem;
+                display: flex;
+                justify-content: space-between;
+                padding: 0.1rem 0;
+            }
+            .structure-card .sc-line .v {
+                color: var(--text-muted);
+            }
+
+            /* ── Raw / footer ─────────────────────────────────────────────── */
+            details.raw {
+                margin-top: 2rem;
+            }
+            details.raw summary {
+                cursor: pointer;
+                color: var(--accent);
+                font-size: 0.85rem;
+            }
+            .raw-json {
+                background: var(--bg-soft);
+                padding: 1rem;
+                border-radius: 4px;
+                font-family: var(--mono);
+                font-size: 0.74rem;
+                overflow-x: auto;
+                max-height: 400px;
+                overflow-y: auto;
+                margin-top: 0.5rem;
+            }
+            footer {
+                margin-top: 3rem;
+                padding: 1.25rem 0;
+                border-top: 1px solid var(--border);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            footer code {
+                font-family: var(--mono);
+                font-size: 0.72rem;
+            }
+            .footer-brand {
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+            }
+            .footer-brand .heart {
+                color: var(--apik-accent);
+                font-size: 0.9rem;
+            }
+            .footer-brand strong {
+                color: var(--text);
+            }
+        </style>
+    </head>
+    <body>
+        <header class="site-header">
+            <div class="site-header-inner">
+                <div class="brand">
+                    <span class="brand-name">oops</span>
+                    <span class="brand-cmd">analyze</span>
+                </div>
+                <div class="header-sub" id="meta-subtitle"></div>
+            </div>
+        </header>
+
+        <div class="container">
+            <section id="metadata-bar"></section>
+            <section id="global-warnings"></section>
+            <section id="modules"></section>
+
+            <details class="raw">
+                <summary>Raw JSON payload</summary>
+                <pre class="raw-json" id="raw-json"></pre>
+            </details>
+
+            <details class="raw">
+                <summary>Metadata (debug)</summary>
+                <pre class="raw-json" id="raw-metadata"></pre>
+            </details>
+
+            <footer>
+                <span>Generated by <code>oops analyze</code> · <span id="meta-timestamp"></span></span>
+                <span class="footer-brand">Built with <span class="heart">♥</span> by <strong>Apik</strong></span>
+            </footer>
+        </div>
+
+        <div class="drawer-backdrop" id="drawer-backdrop"></div>
+        <aside class="drawer" id="drawer">
+            <button class="drawer-close" id="drawer-close" aria-label="Close">✕</button>
+            <div id="drawer-content"></div>
+        </aside>
+
+        <script id="report-data" type="application/json">
+            __REPORT_DATA__
+        </script>
+
+        <script>
+            const DATA = JSON.parse(document.getElementById("report-data").textContent);
+
+            // ── DOM helpers ─────────────────────────────────────────────────
+            const el = (tag, attrs = {}, children = []) => {
+                const node = document.createElement(tag);
+                for (const [k, v] of Object.entries(attrs)) {
+                    if (k === "class") node.className = v;
+                    else if (k === "html") node.innerHTML = v;
+                    else if (v != null) node.setAttribute(k, v);
+                }
+                for (const child of [].concat(children)) {
+                    if (child == null) continue;
+                    node.append(child instanceof Node ? child : String(child));
+                }
+                return node;
+            };
+            const fmt = (n) => (typeof n === "number" ? n.toLocaleString() : n);
+            const bareModel = (s) => {
+                if (!s) return "—";
+                const i = s.indexOf(":");
+                return i === -1 ? s : s.slice(i + 1);
+            };
+            const humanize = (k) => k.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+            const groupBy = (arr, keyFn) => {
+                const m = new Map();
+                (arr || []).forEach((x) => {
+                    const k = keyFn(x);
+                    if (!m.has(k)) m.set(k, []);
+                    m.get(k).push(x);
+                });
+                return m;
+            };
+            const originBadge = (origin) =>
+                el("span", { class: `badge ${origin || "unknown"}` }, (origin || "—").replace(/_/g, " "));
+            const numCell = (n) => el("td", { class: ("num " + (n ? "" : "zero")).trim() }, n != null ? fmt(n) : 0);
+
+            // Label maps
+            const MANIFEST_LABELS = {
+                name: "Name",
+                version: "Version",
+                author: "Author",
+                license: "License",
+                category: "Category",
+                summary: "Summary",
+                application: "Application",
+                installable: "Installable",
+                website: "Website",
+            };
+            const METRIC_LABELS = {
+                models: "Models",
+                own_fields: "Own fields",
+                inherited_fields: "Inherited fields",
+                methods: "Methods",
+                inherited_methods: "Inherited methods",
+                overridden_methods: "Overrides",
+                missing_docs: "Missing docs",
+                models_missing_description: "Models w/o desc",
+                data: "Data files",
+                primary_views: "Primary views",
+                extension_views: "Extension views",
+                extension_views_upstream: "Ext. upstream",
+                actions: "Actions",
+                menus: "Menus",
+                unresolved_views: "Unresolved views",
+            };
+            const LOC_LABELS = {
+                python: "Python",
+                xml: "XML",
+                javascript: "JavaScript",
+                docs: "Docs",
+                total: "Total",
+                pct: "% of project",
+            };
+            const SECTION_CLASS = {
+                COMPUTE: "compute",
+                ONCHANGE: "onchange",
+                CONSTRAINT: "constrain",
+                CRUD: "crud",
+                ACTION: "action",
+                HELPER: "helper",
+                BUSINESS: "business",
+                OTHER: "other",
+            };
+
+            // ── Metadata bar (kept) ─────────────────────────────────────────
+            function formatTimestamp(iso) {
+                if (!iso) return null;
+                try {
+                    return new Date(iso).toLocaleString();
+                } catch {
+                    return iso;
+                }
+            }
+            function renderMetadata(meta) {
+                if (!meta) return;
+                const item = (label, value, cls = "") => {
+                    if (value == null || value === "") return null;
+                    return el("div", { class: "meta-item" }, [
+                        el("span", { class: "label" }, label),
+                        el("span", { class: `value ${cls}`.trim() }, String(value)),
+                    ]);
+                };
+                document
+                    .getElementById("metadata-bar")
+                    .append(
+                        el(
+                            "div",
+                            { class: "metadata-bar" },
+                            [
+                                item("Project", meta.project_name),
+                                item("Odoo", meta.odoo_version),
+                                item("Branch", meta.git_branch),
+                                item("Commit", meta.git_commit ? meta.git_commit.slice(0, 10) : null, "commit"),
+                                item("Generated", formatTimestamp(meta.generated_at)),
+                                item("Tool", meta.tool_version),
+                            ].filter(Boolean),
+                        ),
+                    );
+            }
+
+            // ── Global warnings ─────────────────────────────────────────────
+            if (DATA.warnings && DATA.warnings.length) {
+                document.getElementById("global-warnings").append(
+                    el("div", { class: "warnings" }, [
+                        el(
+                            "ul",
+                            {},
+                            DATA.warnings.map((w) => el("li", {}, w)),
+                        ),
+                    ]),
+                );
+            }
+            renderMetadata(DATA.metadata);
+
+            // ── Render each module ──────────────────────────────────────────
+            const modulesContainer = document.getElementById("modules");
+            (DATA.modules || []).forEach((mod) => modulesContainer.append(renderModule(mod)));
+
+            function metricsGrid(dict, labels) {
+                const grid = el("div", { class: "metrics-grid" });
+                Object.entries(dict || {}).forEach(([key, value]) => {
+                    const isPct = key === "pct";
+                    const display = isPct ? `${value}%` : fmt(value);
+                    const zero = !value;
+                    grid.append(
+                        el("div", { class: "metric" + (zero ? " zero" : "") }, [
+                            el("div", { class: "value" }, display),
+                            el("div", { class: "label" }, labels[key] || humanize(key)),
+                        ]),
+                    );
+                });
+                return grid;
+            }
+
+            function renderModule(mod) {
+                const root = el("section", { class: "module" });
+                const man = mod.manifest || {};
+
+                root.append(
+                    el("h2", {}, [
+                        mod.module,
+                        " ",
+                        man.version ? el("span", { class: "badge outline" }, man.version) : null,
+                    ]),
+                );
+
+                // Manifest grid (raw dict)
+                const manifestGrid = el("div", { class: "manifest-grid" });
+                Object.entries(man).forEach(([key, value]) => {
+                    if (key === "version") return;
+                    if (value == null || value === "") return;
+                    const display = typeof value === "boolean" ? (value ? "yes" : "no") : value;
+                    manifestGrid.append(
+                        el("div", { class: "item" }, [
+                            el("span", { class: "label" }, MANIFEST_LABELS[key] || humanize(key)),
+                            el("span", { class: "value" }, display),
+                        ]),
+                    );
+                });
+                root.append(manifestGrid);
+
+                // README
+                if (mod.readme && mod.readme.present) {
+                    root.append(el("h4", {}, `Readme (${mod.readme.format || "?"})`));
+                    root.append(
+                        el("div", { class: "chip-list" }, el("span", { class: "chip" }, mod.readme.path || "present")),
+                    );
+                }
+
+                // Depends
+                if (mod.depends && mod.depends.length) {
+                    root.append(el("h4", {}, `Depends (${mod.depends.length})`));
+                    root.append(
+                        el(
+                            "div",
+                            { class: "chip-list" },
+                            mod.depends.map((d) => el("span", { class: "chip" }, d)),
+                        ),
+                    );
+                }
+
+                // Module-level warnings
+                if (mod.warnings && mod.warnings.length) {
+                    root.append(
+                        el("div", { class: "warnings" }, [
+                            el(
+                                "ul",
+                                {},
+                                mod.warnings.map((w) => el("li", {}, w)),
+                            ),
+                        ]),
+                    );
+                }
+
+                // Metrics + LoC
+                root.append(el("h4", {}, "Metrics"));
+                root.append(metricsGrid(mod.metrics, METRIC_LABELS));
+                if (mod.loc) {
+                    root.append(el("h4", {}, "Lines of code"));
+                    root.append(metricsGrid(mod.loc, LOC_LABELS));
+                }
+
+                // Structure
+                if (mod.structure) root.append(renderStructure(mod.structure));
+
+                // Models — group flat fields/methods by model id
+                const fieldsByModel = groupBy(mod.fields, (f) => f.model);
+                const methodsByModel = groupBy(mod.methods, (m) => m.model);
+                const fieldsOf = (m) => fieldsByModel.get(m.id) || [];
+                const methodsOf = (m) => methodsByModel.get(m.id) || [];
+
+                if (mod.models && mod.models.length) {
+                    root.append(el("h2", {}, `Models (${mod.models.length})`));
+                    const sortByModel = (a, b) => (a.model || "").localeCompare(b.model || "");
+                    const newModels = mod.models.filter((m) => m.status === "new").sort(sortByModel);
+                    const extModels = mod.models.filter((m) => m.status !== "new").sort(sortByModel);
+
+                    if (newModels.length) {
+                        root.append(el("h3", {}, `New models (${newModels.length})`));
+                        root.append(renderNewModelsTable(newModels, fieldsOf, methodsOf));
+                    }
+                    if (extModels.length) {
+                        root.append(el("h3", {}, `Extensions (${extModels.length})`));
+                        root.append(renderExtensionsTable(extModels, fieldsOf, methodsOf));
+                    }
+                }
+
+                // Views
+                if (mod.views && mod.views.length) root.append(renderViewsSections(mod));
+
+                // Not analysed
+                if (mod.not_analysed && mod.not_analysed.length) {
+                    root.append(el("h4", {}, "Not analysed"));
+                    root.append(
+                        el(
+                            "div",
+                            { class: "chip-list" },
+                            mod.not_analysed.map((p) => el("span", { class: "chip" }, p)),
+                        ),
+                    );
+                }
+
+                return root;
+            }
+
+            // ── Structure ───────────────────────────────────────────────────
+            function renderStructure(structure) {
+                const section = el("section");
+                section.append(el("h4", {}, "Structure"));
+                const grid = el("div", { class: "structure-grid" });
+
+                if (structure.data && Object.keys(structure.data).length) {
+                    Object.entries(structure.data).forEach(([folder, exts]) => {
+                        const card = el("div", { class: "structure-card" }, [el("div", { class: "sc-title" }, folder)]);
+                        Object.entries(exts).forEach(([ext, count]) => {
+                            card.append(
+                                el("div", { class: "sc-line" }, [
+                                    el("span", {}, `.${ext}`),
+                                    el("span", { class: "v" }, count),
+                                ]),
+                            );
+                        });
+                        grid.append(card);
+                    });
+                }
+                const pyCounters = [
+                    ["controllers_py", "Controllers (py)"],
+                    ["wizard_py", "Wizards (py)"],
+                    ["report_py", "Reports (py)"],
+                ].filter(([k]) => structure[k]);
+                if (pyCounters.length) {
+                    const card = el("div", { class: "structure-card" }, [el("div", { class: "sc-title" }, "Python")]);
+                    pyCounters.forEach(([k, label]) =>
+                        card.append(
+                            el("div", { class: "sc-line" }, [
+                                el("span", {}, label),
+                                el("span", { class: "v" }, structure[k]),
+                            ]),
+                        ),
+                    );
+                    grid.append(card);
+                }
+                if (structure.static_by_ext && Object.keys(structure.static_by_ext).length) {
+                    const card = el("div", { class: "structure-card" }, [
+                        el("div", { class: "sc-title" }, "Static assets"),
+                    ]);
+                    Object.entries(structure.static_by_ext).forEach(([ext, count]) =>
+                        card.append(
+                            el("div", { class: "sc-line" }, [
+                                el("span", {}, `.${ext}`),
+                                el("span", { class: "v" }, count),
+                            ]),
+                        ),
+                    );
+                    grid.append(card);
+                }
+                if (!grid.children.length) section.append(el("div", { class: "empty-section" }, "No structure data."));
+                else section.append(grid);
+                return section;
+            }
+
+            // ── Field / method counters per model ───────────────────────────
+            function ownFields(fields) {
+                return fields.filter((f) => f.origin_status === "new" || f.origin_status === "base").length;
+            }
+            function extFields(fields) {
+                return fields.filter((f) => f.origin_status === "extended").length;
+            }
+            function overrideMethods(methods) {
+                return methods.filter((m) => m.is_override).length;
+            }
+
+            // ── Models tables ───────────────────────────────────────────────
+            function renderNewModelsTable(models, fieldsOf, methodsOf) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "Model"),
+                            el("th", {}, "Description"),
+                            el("th", { class: "num" }, "Fields"),
+                            el("th", { class: "num" }, "Methods"),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                models.forEach((m) => {
+                    const fields = fieldsOf(m),
+                        methods = methodsOf(m);
+                    const tr = el("tr", { class: "clickable" });
+                    tr.append(el("td", { class: "mono" }, m.model));
+                    tr.append(el("td", { class: "muted" }, m.description || "—"));
+                    tr.append(numCell(fields.length));
+                    tr.append(numCell(methods.length));
+                    tr.addEventListener("click", () => openModelDrawer(m, fields, methods));
+                    tbody.append(tr);
+                });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            function renderExtensionsTable(models, fieldsOf, methodsOf) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "Model"),
+                            el("th", {}, "Ancestor module"),
+                            el("th", {}, "Origin"),
+                            el("th", { class: "num", title: "New fields added by this module" }, "Own fields"),
+                            el("th", { class: "num", title: "Ancestor fields redeclared / extended" }, "Ext. fields"),
+                            el("th", { class: "num" }, "Methods"),
+                            el("th", { class: "num", title: "Methods overriding ancestor methods" }, "Overrides"),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                models.forEach((m) => {
+                    const fields = fieldsOf(m),
+                        methods = methodsOf(m);
+                    const tr = el("tr", { class: "clickable" });
+                    tr.append(el("td", { class: "mono" }, m.model));
+                    tr.append(el("td", { class: "muted mono" }, m.ancestor_module || "—"));
+                    tr.append(el("td", {}, originBadge(m.inherit_origin)));
+                    tr.append(numCell(ownFields(fields)));
+                    tr.append(numCell(extFields(fields)));
+                    tr.append(numCell(methods.length));
+                    tr.append(numCell(overrideMethods(methods)));
+                    tr.addEventListener("click", () => openModelDrawer(m, fields, methods));
+                    tbody.append(tr);
+                });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            // ── Drawer ──────────────────────────────────────────────────────
+            const drawer = document.getElementById("drawer");
+            const drawerBackdrop = document.getElementById("drawer-backdrop");
+            const drawerContent = document.getElementById("drawer-content");
+            function closeDrawer() {
+                drawer.classList.remove("open");
+                drawerBackdrop.classList.remove("open");
+            }
+            document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+            drawerBackdrop.addEventListener("click", closeDrawer);
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") closeDrawer();
+            });
+
+            function infoRow(label, value) {
+                return el("div", { class: "info-row" }, [
+                    el("span", { class: "label" }, label),
+                    el("span", { class: "value" }, value),
+                ]);
+            }
+
+            function openModelDrawer(m, fields, methods) {
+                drawerContent.innerHTML = "";
+                drawerContent.append(el("h2", {}, m.model));
+                drawerContent.append(el("div", { class: "drawer-sub" }, `class ${m.class_name} · ${m.status}`));
+
+                if (m.status === "new") {
+                    if (m.description) drawerContent.append(infoRow("Description", m.description));
+                } else {
+                    drawerContent.append(infoRow("Ancestor module", m.ancestor_module || "—"));
+                    drawerContent.append(infoRow("Ancestor model", m.ancestor_model || "—"));
+                    const orow = el("div", { class: "info-row" }, [
+                        el("span", { class: "label" }, "Ancestor origin"),
+                        el("span", {}, originBadge(m.inherit_origin)),
+                    ]);
+                    drawerContent.append(orow);
+                    if (m.description)
+                        drawerContent.append(
+                            infoRow(
+                                "Description",
+                                m.description +
+                                    (m.description_inherited_from ? ` (from ${m.description_inherited_from})` : ""),
+                            ),
+                        );
+                }
+
+                // Fields
+                drawerContent.append(el("h3", {}, `Fields (${fields.length})`));
+                const fb = el("div", { class: "field-breakdown" }, [
+                    el("div", { class: "fb-card own" }, [
+                        el("div", { class: "value" }, ownFields(fields)),
+                        el("div", { class: "label" }, "Own"),
+                    ]),
+                    el("div", { class: "fb-card extended" }, [
+                        el("div", { class: "value" }, extFields(fields)),
+                        el("div", { class: "label" }, "Extended"),
+                    ]),
+                ]);
+                drawerContent.append(fb);
+
+                // By type chips
+                const byType = {};
+                fields.forEach((f) => {
+                    byType[f.type] = (byType[f.type] || 0) + 1;
+                });
+                if (Object.keys(byType).length) {
+                    drawerContent.append(el("h4", {}, "By type"));
+                    const types = el("div", {});
+                    Object.entries(byType)
+                        .sort((a, b) => b[1] - a[1])
+                        .forEach(([t, n]) =>
+                            types.append(el("span", { class: "ft-chip" }, [t, el("span", { class: "count" }, n)])),
+                        );
+                    drawerContent.append(types);
+                }
+
+                if (fields.length) drawerContent.append(renderFieldsTable(fields));
+
+                // Methods
+                drawerContent.append(el("h3", {}, `Methods (${methods.length})`));
+                if (methods.length) {
+                    const bySection = {};
+                    methods.forEach((mt) => {
+                        bySection[mt.section] = (bySection[mt.section] || 0) + 1;
+                    });
+                    const chips = el("div", {});
+                    Object.entries(bySection)
+                        .sort((a, b) => b[1] - a[1])
+                        .forEach(([s, n]) =>
+                            chips.append(
+                                el("span", { class: `ft-chip ${SECTION_CLASS[s] || "other"}` }, [
+                                    s,
+                                    el("span", { class: "count" }, n),
+                                ]),
+                            ),
+                        );
+                    drawerContent.append(chips);
+                    drawerContent.append(renderMethodsTable(methods));
+                } else {
+                    drawerContent.append(el("div", { class: "empty-section" }, "No methods defined by this module."));
+                }
+
+                drawer.classList.add("open");
+                drawerBackdrop.classList.add("open");
+            }
+
+            function fieldFlags(f) {
+                const flags = [];
+                if (f.required) flags.push("req");
+                if (f.readonly) flags.push("ro");
+                if (f.store) flags.push("store");
+                if (f.compute) flags.push("computed");
+                if (f.related) flags.push("related");
+                return flags.join(" · ");
+            }
+
+            function renderFieldsTable(fields) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "Field"),
+                            el("th", {}, "Type"),
+                            el("th", {}, "Label"),
+                            el("th", {}, "Help"),
+                            el("th", {}, "Flags"),
+                            el("th", {}, "Status"),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                fields
+                    .slice()
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .forEach((f) => {
+                        const typeText = f.comodel ? `${f.type} → ${bareModel(f.comodel)}` : f.type;
+                        const label =
+                            f.label || (f.label_inferred ? el("span", { class: "muted" }, humanize(f.name)) : "—");
+                        const statusCell =
+                            f.origin_status === "extended"
+                                ? el("td", {}, [
+                                      el("span", { class: "status-pill extended" }, "extended"),
+                                      f.overrides
+                                          ? el(
+                                                "div",
+                                                { class: "ovr" },
+                                                `→ ${f.overrides.origin_module} (${f.overrides.origin})`,
+                                            )
+                                          : null,
+                                  ])
+                                : el("td", {}, el("span", { class: "status-pill" }, f.origin_status));
+                        tbody.append(
+                            el("tr", {}, [
+                                el("td", { class: "mono" }, f.name),
+                                el("td", { class: "mono", style: "font-size:.76rem" }, typeText),
+                                el("td", {}, label),
+                                el(
+                                    "td",
+                                    { class: "cell-help" },
+                                    f.help || (f.dynamic ? el("span", { class: "muted" }, "(dynamic)") : "—"),
+                                ),
+                                el("td", { class: "cell-flags" }, fieldFlags(f) || "—"),
+                                statusCell,
+                            ]),
+                        );
+                    });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            function renderMethodsTable(methods) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "Method"),
+                            el("th", {}, "Section"),
+                            el("th", {}, "Depends"),
+                            el("th", {}, "Doc"),
+                            el("th", {}, "Override"),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                methods
+                    .slice()
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .forEach((mt) => {
+                        const depends = (mt.decorators || [])
+                            .filter((d) => d.startsWith("api.depends"))
+                            .map((d) => d.replace(/^api\.depends\(|\)$/g, ""))
+                            .join("; ");
+                        tbody.append(
+                            el("tr", {}, [
+                                el(
+                                    "td",
+                                    { class: "mono", style: "font-size:.76rem" },
+                                    (mt.name || "") + (mt.signature || ""),
+                                ),
+                                el(
+                                    "td",
+                                    {},
+                                    el(
+                                        "span",
+                                        { class: `ft-chip ${SECTION_CLASS[mt.section] || "other"}` },
+                                        mt.section || "—",
+                                    ),
+                                ),
+                                el("td", { class: "muted mono", style: "font-size:.72rem" }, depends || "—"),
+                                el(
+                                    "td",
+                                    {},
+                                    mt.docstring
+                                        ? el("span", { class: "doc-yes" }, "✓")
+                                        : el("span", { class: "doc-no" }, "—"),
+                                ),
+                                el(
+                                    "td",
+                                    {},
+                                    mt.is_override && mt.overrides
+                                        ? el(
+                                              "span",
+                                              { class: "ovr" },
+                                              `→ ${mt.overrides.origin_module} (${mt.overrides.origin})`,
+                                          )
+                                        : "—",
+                                ),
+                            ]),
+                        );
+                    });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            // ── Views ───────────────────────────────────────────────────────
+            function renderViewsSections(mod) {
+                const section = el("section");
+                const views = mod.views;
+                section.append(el("h2", {}, `Views (${views.length})`));
+
+                const primary = views.filter((v) => v.mode === "primary" && v.view_type !== "qweb");
+                const extensions = views.filter((v) => v.mode === "extension" && v.view_type !== "qweb");
+                const qwebs = views.filter((v) => v.view_type === "qweb");
+
+                if (primary.length) {
+                    section.append(el("h3", {}, `Primary (${primary.length})`));
+                    section.append(renderViewsByModelTable(primary, false));
+                }
+                if (extensions.length) {
+                    section.append(el("h3", {}, `Extensions (${extensions.length})`));
+                    section.append(renderViewsByModelTable(extensions, true));
+                }
+                if (qwebs.length) {
+                    section.append(el("h3", {}, `Qweb (${qwebs.length})`));
+                    section.append(renderQwebTable(qwebs));
+                }
+                return section;
+            }
+
+            function renderViewsByModelTable(views, isExtension) {
+                const byModel = groupBy(views, (v) => bareModel(v.model) || "—");
+                const typesSeen = new Set(views.map((v) => v.view_type || "—"));
+                const typeOrder = [
+                    "form",
+                    "list",
+                    "tree",
+                    "search",
+                    "kanban",
+                    "calendar",
+                    "pivot",
+                    "graph",
+                    "gantt",
+                    "activity",
+                ];
+                const types = [
+                    ...typeOrder.filter((t) => typesSeen.has(t)),
+                    ...Array.from(typesSeen)
+                        .filter((t) => !typeOrder.includes(t))
+                        .sort(),
+                ];
+
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                const header = [el("th", {}, "Model")];
+                if (isExtension) {
+                    header.push(el("th", {}, "Ancestor module"));
+                    header.push(el("th", {}, "Origin"));
+                }
+                types.forEach((t) => header.push(el("th", { class: "num" }, t)));
+                header.push(el("th", { class: "num" }, "Total"));
+                table.append(el("thead", {}, el("tr", {}, header)));
+
+                const tbody = el("tbody");
+                Array.from(byModel.keys())
+                    .sort()
+                    .forEach((modelName) => {
+                        const list = byModel.get(modelName);
+                        const tr = el("tr", { class: "clickable" });
+                        tr.append(el("td", { class: "mono" }, modelName));
+                        if (isExtension) {
+                            const sample = list.find((v) => v.ancestor_module) || list[0];
+                            tr.append(el("td", { class: "muted mono" }, sample.ancestor_module || "—"));
+                            tr.append(el("td", {}, originBadge(sample.inherit_origin)));
+                        }
+                        types.forEach((t) => tr.append(numCell(list.filter((v) => (v.view_type || "—") === t).length)));
+                        tr.append(numCell(list.length));
+                        tr.addEventListener("click", () => openViewsDrawer(modelName, list, isExtension));
+                        tbody.append(tr);
+                    });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            function renderQwebTable(views) {
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [
+                            el("th", {}, "XML ID"),
+                            el("th", {}, "Mode"),
+                            el("th", {}, "Inherits"),
+                            el("th", {}, "Origin"),
+                        ]),
+                    ),
+                );
+                const tbody = el("tbody");
+                views
+                    .slice()
+                    .sort((a, b) => (a.xml_id || "").localeCompare(b.xml_id || ""))
+                    .forEach((v) => {
+                        tbody.append(
+                            el("tr", {}, [
+                                el("td", { class: "mono", style: "font-size:.75rem" }, v.xml_id || "—"),
+                                el("td", { class: "muted" }, v.mode || "—"),
+                                el("td", { class: "mono muted", style: "font-size:.75rem" }, v.inherit_id || "—"),
+                                el("td", {}, originBadge(v.origin)),
+                            ]),
+                        );
+                    });
+                table.append(tbody);
+                wrap.append(table);
+                return wrap;
+            }
+
+            function openViewsDrawer(modelName, views, isExtension) {
+                drawerContent.innerHTML = "";
+                drawerContent.append(el("h2", {}, modelName));
+                drawerContent.append(
+                    el(
+                        "div",
+                        { class: "drawer-sub" },
+                        `${views.length} ${isExtension ? "extension" : "primary"} view(s)`,
+                    ),
+                );
+
+                const wrap = el("div", { class: "table-wrap" });
+                const table = el("table");
+                const headers = [el("th", {}, "XML ID"), el("th", {}, "Name"), el("th", {}, "Type")];
+                if (isExtension) headers.push(el("th", {}, "Inherits"));
+                headers.push(el("th", { class: "num" }, "Fields"));
+                headers.push(el("th", { class: "num" }, "Buttons"));
+                table.append(el("thead", {}, el("tr", {}, headers)));
+
+                const tbody = el("tbody");
+                views
+                    .slice()
+                    .sort((a, b) => (a.xml_id || "").localeCompare(b.xml_id || ""))
+                    .forEach((v) => {
+                        const cells = [
+                            el("td", { class: "mono", style: "font-size:.75rem" }, v.xml_id || "—"),
+                            el("td", {}, v.name || "—"),
+                            el("td", {}, el("span", { class: "badge outline" }, v.view_type || "—")),
+                        ];
+                        if (isExtension)
+                            cells.push(
+                                el("td", { class: "mono muted", style: "font-size:.75rem" }, v.inherit_id || "—"),
+                            );
+                        cells.push(numCell(v.fields_count));
+                        cells.push(numCell(v.buttons_count));
+                        tbody.append(el("tr", {}, cells));
+                    });
+                table.append(tbody);
+                wrap.append(table);
+                drawerContent.append(wrap);
+
+                drawer.classList.add("open");
+                drawerBackdrop.classList.add("open");
+            }
+
+            // ── Header sub + footer ─────────────────────────────────────────
+            const modCount = (DATA.modules || []).length;
+            document.getElementById("meta-subtitle").textContent =
+                `${modCount} module(s) analysed` +
+                (DATA.metadata && DATA.metadata.command ? ` · ${DATA.metadata.command}` : "");
+            document.getElementById("meta-timestamp").textContent = DATA.metadata
+                ? formatTimestamp(DATA.metadata.generated_at)
+                : new Date().toLocaleString();
+            document.getElementById("raw-json").textContent = JSON.stringify(DATA, null, 2);
+            document.getElementById("raw-metadata").textContent =
+                DATA.metadata && Object.keys(DATA.metadata).length
+                    ? JSON.stringify(DATA.metadata, null, 2)
+                    : "No metadata in payload.";
+        </script>
+    </body>
+</html>

@@ -163,12 +163,6 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     metadata = get_metadata()
 
-    if output_format == "html":
-        raise OopsError(
-            "HTML output is being migrated to IR schema_version 2 and is temporarily "
-            "unavailable. Use --format json or --format text."
-        )
-
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
     json_mode = output_format == "json"
