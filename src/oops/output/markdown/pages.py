@@ -47,6 +47,12 @@ def humanize(name: str) -> str:
     return name.replace("_", " ").strip().title()
 
 
+def _truncate(text: str, limit: int = 80) -> str:
+    """Collapse newlines and truncate ``text`` to ``limit`` chars with an ellipsis."""
+    flat = " ".join(text.split())
+    return flat if len(flat) <= limit else flat[: limit - 1].rstrip() + "…"
+
+
 def render_ref(ref: Optional[Dict[str, Any]], from_page: str, label: Optional[str] = None) -> str:
     """Render a resolved reference (from ``resolve_ref``) as Markdown.
 
@@ -92,17 +98,23 @@ def build_index(dm: Dict[str, Any]) -> str:
     # Counts by classification (inventory) — origin folding noted in limitations.
     by_class: Dict[str, int] = {}
     total_missing = 0
+    total_missing_desc = 0
     total_loc = 0
     for mod in modules:
         cls = (mod.get("inventory") or {}).get("classification") or "unknown"
         by_class[cls] = by_class.get(cls, 0) + 1
         total_missing += (mod.get("metrics") or {}).get("missing_docs", 0)
+        total_missing_desc += (mod.get("metrics") or {}).get("models_missing_description", 0)
         total_loc += (mod.get("loc") or {}).get("total", 0)
 
     lines += ["## Overview", ""]
     overview_rows = [["Modules", str(len(modules))]]
     overview_rows += [[f"— {cls}", str(n)] for cls, n in sorted(by_class.items())]
-    overview_rows += [["Total LOC", str(total_loc)], ["Doc debt (missing docstrings)", str(total_missing)]]
+    overview_rows += [
+        ["Total LOC", str(total_loc)],
+        ["Doc debt (missing docstrings)", str(total_missing)],
+        ["Models without _description", str(total_missing_desc)],
+    ]
     lines += [render_markdown_table(["Name", "Value"], overview_rows), ""]
 
     # Module index.
@@ -132,11 +144,12 @@ def build_index(dm: Dict[str, Any]) -> str:
         for bare in sorted(models_by_bare):
             vals = models_by_bare[bare]
             contributions = vals.get("contributions", [])
+            desc = vals.get("description") or ""
 
             bare_model_rows += [
                 [
                     f"[{bare}]({model_page_path(bare)})",
-                    "",
+                    _truncate(desc) if desc else "",
                     str(len(contributions)),
                     str(sum(len(c.get("fields", [])) for c in contributions)),
                     str(sum(len(c.get("methods", [])) for c in contributions)),
@@ -314,6 +327,19 @@ def build_model(dm: Dict[str, Any], bare: str, entry: Dict[str, Any]) -> str:
 
     contributions = entry.get("contributions", [])
 
+    # Description — own or inherited; a new model lacking one is flagged.
+    description = entry.get("description")
+    inherited_from = entry.get("description_inherited_from")
+    is_new = any(c["model_node"].get("status") == "new" for c in contributions)
+    missing = any(c["model_node"].get("missing_description") for c in contributions)
+    if description:
+        body = description
+        if inherited_from:
+            body += f" *(inherited from `{inherited_from}`)*"
+        lines += ["## Description", "", body, ""]
+    elif is_new and missing:
+        lines += ["## Description", "", "_no `_description`_", ""]
+
     # Provenance — one line per contributing model node.
     lines += ["## Provenance", ""]
     for contrib in contributions:
@@ -403,13 +429,16 @@ def build_audit_index(dm: Dict[str, Any]) -> str:
     for mod in sorted(modules, key=lambda m: m["module"]):
         loc = (mod.get("loc") or {}).get("total", 0)
         missing = (mod.get("metrics") or {}).get("missing_docs", 0)
+        missing_desc = (mod.get("metrics") or {}).get("models_missing_description", 0)
         deps = len(mod.get("depends", []))
-        rows.append([mod["module"], str(deps), str(loc), str(missing)])
+        rows.append([mod["module"], str(deps), str(loc), str(missing), str(missing_desc)])
     if rows:
         lines += [
             "## Per-module economics",
             "",
-            render_markdown_table(["Module", "Depends", "LOC", "Missing docstrings"], rows),
+            render_markdown_table(
+                ["Module", "Depends", "LOC", "Missing docstrings", "Missing descriptions"], rows
+            ),
             "",
         ]
 

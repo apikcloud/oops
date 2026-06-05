@@ -39,6 +39,20 @@ def _make_global_kb(path: Path, version: str = "17.0") -> Path:
                         "source_line": 10,
                     }
                 ],
+                "model_origins": [
+                    {
+                        "model": "res.partner",
+                        "module": "base",
+                        "origin": "odoo",
+                        "role": "create",
+                        "model_type": "model",
+                        "inherit_json": "[]",
+                        "inherits_json": "{}",
+                        "source_file": "/odoo/src/base/models/res_partner.py",
+                        "source_line": 10,
+                        "description": "Contact",
+                    }
+                ],
             }
         ],
     )
@@ -81,6 +95,19 @@ class TestBuildProjectKb:
         with KBReader(db_path) as kb:
             meta = kb.get_meta()
             assert json.loads(meta["scope"]) == ["module_a", "module_b"]
+
+    def test_global_model_description_copied_to_project_kb(self, tmp_path):
+        """Regression: build_project_kb must carry the global _description over."""
+        global_kb = _make_global_kb(tmp_path / "global.db")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _make_tp_symlinks(repo, "module_a")
+
+        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb).data
+
+        with KBReader(db_path) as kb:
+            assert kb.get_model_description("res.partner") == "Contact"
+            assert kb.get_model_creators("res.partner")[0]["description"] == "Contact"
 
     def test_module_in_list_but_no_symlink_skipped(self, tmp_path):
         global_kb = _make_global_kb(tmp_path / "global.db")

@@ -19,6 +19,7 @@ from oops.kb.scanner import (
     classify_method,
     discover_root_addons,
     extract_field_refs,
+    get_description,
     odoo_addons_roots,
     scan_module,
     scan_tier,
@@ -109,6 +110,24 @@ ASYNC_METHOD_MODEL = """\
 
         async def _async_helper(self):
             pass
+"""
+
+DESCRIBED_MODEL = """\
+    from odoo import fields, models
+
+    class MyModel(models.Model):
+        _name = 'my.model'
+        _description = 'My Model'
+        name = fields.Char()
+"""
+
+DYNAMIC_DESCRIPTION_MODEL = """\
+    from odoo import fields, models
+
+    class MyModel(models.Model):
+        _name = 'my.model'
+        _description = _('My Model')
+        name = fields.Char()
 """
 
 
@@ -343,6 +362,37 @@ class TestScanModule:
         result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
         # good.py symbols should still be present
         assert len(result["symbols"]) > 0
+
+    def test_model_origins_carry_description(self, tmp_path):
+        module_dir = _make_module(tmp_path, "described", models={"m.py": DESCRIBED_MODEL})
+        result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
+        origin = next(o for o in result["model_origins"] if o["model"] == "my.model")
+        assert origin["description"] == "My Model"
+
+    def test_model_origins_description_none_when_absent(self, tmp_path):
+        module_dir = _make_module(tmp_path, "partner", models={"partner.py": SIMPLE_MODEL})
+        result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
+        origin = next(o for o in result["model_origins"] if o["model"] == "res.partner")
+        assert origin["description"] is None
+
+
+# ---------------------------------------------------------------------------
+# TestGetDescription
+# ---------------------------------------------------------------------------
+
+
+class TestGetDescription:
+    def test_literal_description(self):
+        node = _parse_class(DESCRIBED_MODEL)
+        assert get_description(node) == "My Model"
+
+    def test_absent_description_returns_none(self):
+        node = _parse_class(SIMPLE_MODEL)
+        assert get_description(node) is None
+
+    def test_non_literal_description_returns_none(self):
+        node = _parse_class(DYNAMIC_DESCRIPTION_MODEL)
+        assert get_description(node) is None
 
 
 # ---------------------------------------------------------------------------

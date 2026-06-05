@@ -155,7 +155,13 @@ def group_models_by_bare(modules: List[Dict[str, Any]]) -> Dict[str, Dict[str, A
             bare = _bare_of_model_node(node)
             entry = grouped.setdefault(
                 bare,
-                {"bare": bare, "page": model_page_path(bare), "contributions": []},
+                {
+                    "bare": bare,
+                    "page": model_page_path(bare),
+                    "contributions": [],
+                    "description": None,
+                    "description_inherited_from": None,
+                },
             )
             entry["contributions"].append(
                 {
@@ -166,4 +172,28 @@ def group_models_by_bare(modules: List[Dict[str, Any]]) -> Dict[str, Dict[str, A
                 }
             )
 
+    for entry in grouped.values():
+        _set_canonical_description(entry)
+
     return grouped
+
+
+def _set_canonical_description(entry: Dict[str, Any]) -> None:
+    """Pick the canonical description for a bare-model entry.
+
+    Prefers the ``status == "new"`` contribution's description; otherwise the
+    first contribution carrying a non-empty description. Records the
+    inherited-from module when the chosen description was resolved upstream.
+    """
+    contributions = entry["contributions"]
+    chosen = next(
+        (c for c in contributions if c["model_node"].get("status") == "new" and c["model_node"].get("description")),
+        None,
+    )
+    if chosen is None:
+        chosen = next((c for c in contributions if c["model_node"].get("description")), None)
+    if chosen is None:
+        return
+    node = chosen["model_node"]
+    entry["description"] = node.get("description")
+    entry["description_inherited_from"] = node.get("description_inherited_from")

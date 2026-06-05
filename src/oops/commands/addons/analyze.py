@@ -276,6 +276,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
                         ci.source_file = rel_file  # IR v2: own-module source path
                         all_class_infos.append(ci)
                         cs = _summarize_class(ci)
+                        cs.missing_description = cs.is_new_model and not ci.description
+                        cs.resolved_description = ci.description
                         if not cs.is_new_model and cs.inherit:
                             creators = kb.get_model_creators(cs.inherit[0])
                             if creators:
@@ -283,6 +285,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
                                 cs.ancestor_model = cs.inherit[0]
                                 cs.ancestor_module = best["module"]
                                 cs.ancestor_origin = best["origin"]
+                                if not cs.resolved_description and best.get("description"):
+                                    cs.resolved_description = best["description"]
+                                    cs.description_inherited_from = best["module"]
                         all_classes.append(cs)
                         model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
                         method_symbols.extend(

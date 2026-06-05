@@ -9,7 +9,7 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema (v5)
+Schema (v6)
 -----------
 meta          (key, value)
 sources       (origin, path)
@@ -20,9 +20,11 @@ symbols       (model, name, kind, origin, module, source_file, source_line,
               fields may omit it)
 field_refs    (model, field_name, module, kwarg, target_method)
 model_origins (model, module, origin, role, model_type,
-               inherit_json, inherits_json, source_file, source_line)
+               inherit_json, inherits_json, source_file, source_line,
+               description)
               role: 'create' | 'extend' | 'prototype'
               model_type: 'model' | 'transient' | 'abstract'
+              description: literal _description string (nullable)
 views         (xml_id, module, origin, name, model, view_type, inherit_id,
                mode, source_file, source_line, source_end_line,
                fields_json, buttons_json)
@@ -66,7 +68,7 @@ from oops.core.models import Result
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 5  # added source_end_line to symbols and views
+SCHEMA_VERSION = 6  # added description to model_origins
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -130,6 +132,7 @@ CREATE TABLE IF NOT EXISTS model_origins (
     inherits_json TEXT    NOT NULL DEFAULT '{}',
     source_file   TEXT    NOT NULL,
     source_line   INTEGER NOT NULL,
+    description   TEXT,                       -- literal _description / NULL when absent
     PRIMARY KEY (model, module)
 );
 CREATE INDEX IF NOT EXISTS idx_model_origins_model ON model_origins (model);
@@ -366,8 +369,9 @@ def _write_kb(
                         """
                         INSERT OR REPLACE INTO model_origins
                             (model, module, origin, role, model_type,
-                             inherit_json, inherits_json, source_file, source_line)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             inherit_json, inherits_json, source_file, source_line,
+                             description)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             orig["model"],
@@ -379,6 +383,7 @@ def _write_kb(
                             orig.get("inherits_json", "{}"),
                             orig["source_file"],
                             orig["source_line"],
+                            orig.get("description"),
                         ),
                     )
 
@@ -682,11 +687,12 @@ class KBReader:
             model: Dotted model name.
 
         Returns:
-            List of ``{"module", "origin", "source_file", "source_line"}`` dicts.
+            List of ``{"module", "origin", "source_file", "source_line",
+            "description"}`` dicts.
         """
         rows = self._con.execute(
             """
-            SELECT module, origin, source_file, source_line
+            SELECT module, origin, source_file, source_line, description
             FROM   model_origins
             WHERE  model = ? AND role IN ('create', 'prototype')
             ORDER  BY origin, module
@@ -694,6 +700,16 @@ class KBReader:
             (model,),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def get_model_description(self, model: str) -> Optional[str]:
+        """Return the _description of the first creator/prototype row, or None."""
+        row = self._con.execute(
+            "SELECT description FROM model_origins "
+            "WHERE model = ? AND role IN ('create','prototype') AND description IS NOT NULL "
+            "ORDER BY origin, module LIMIT 1",
+            (model,),
+        ).fetchone()
+        return row["description"] if row else None
 
     def get_model_symbols(
         self,

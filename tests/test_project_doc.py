@@ -323,6 +323,101 @@ class TestMarkdownPages:
         assert "depends" in md
 
 
+def _docmodel_with_descriptions() -> dict:
+    """DocModel with: a new model carrying its own _description, an extension
+    inheriting the parent description, and a new model lacking _description."""
+    result = Result()
+    result.data = {
+        "ir": {
+            "metadata": {"schema_version": 2},
+            "warnings": [],
+            "modules": [
+                {
+                    "module": "pm",
+                    "manifest": {"name": "PM"},
+                    "depends": ["base"],
+                    "loc": {"total": 50},
+                    "metrics": {"missing_docs": 0, "models_missing_description": 1},
+                    "models": [
+                        {
+                            "id": "pm:my.new", "model": "my.new", "status": "new",
+                            "description": "My New Model", "own_description": "My New Model",
+                            "description_inherited_from": None, "missing_description": False,
+                        },
+                        {
+                            "id": "pm:res.partner", "model": "res.partner", "status": "extension",
+                            "inherit_origin": "core", "ancestor_model": "res.partner",
+                            "ancestor_module": "base",
+                            "description": "Contact", "own_description": None,
+                            "description_inherited_from": "base", "missing_description": False,
+                        },
+                        {
+                            "id": "pm:my.undocumented", "model": "my.undocumented", "status": "new",
+                            "description": None, "own_description": None,
+                            "description_inherited_from": None, "missing_description": True,
+                        },
+                    ],
+                    "fields": [],
+                    "methods": [],
+                    "views": [],
+                },
+            ],
+        },
+        "inventory": {"pm": {"classification": "custom", "location": "active", "loc": {"total": 50}}},
+    }
+    out = ProjectDocPresenter().prepare(
+        result, target=RenderTarget(audience="machine", verbosity="full")
+    )
+    return out.layout
+
+
+class TestMarkdownDescriptions:
+    def test_index_description_cell_populated(self) -> None:
+        from oops.output.markdown.pages import build_index
+
+        md = build_index(_docmodel_with_descriptions())
+        assert "My New Model" in md
+        assert "Contact" in md  # inherited description surfaces in the index
+
+    def test_overview_models_without_description_row(self) -> None:
+        from oops.output.markdown.pages import build_index
+
+        md = build_index(_docmodel_with_descriptions())
+        assert "Models without _description" in md
+
+    def test_model_page_own_description(self) -> None:
+        from oops.output.markdown.pages import build_model
+
+        dm = _docmodel_with_descriptions()
+        md = build_model(dm, "my.new", dm["models_by_bare"]["my.new"])
+        assert "## Description" in md
+        assert "My New Model" in md
+        assert "inherited from" not in md
+
+    def test_model_page_inherited_description_noted(self) -> None:
+        from oops.output.markdown.pages import build_model
+
+        dm = _docmodel_with_descriptions()
+        md = build_model(dm, "res.partner", dm["models_by_bare"]["res.partner"])
+        assert "## Description" in md
+        assert "Contact" in md
+        assert "inherited from `base`" in md
+
+    def test_model_page_new_model_missing_description_flagged(self) -> None:
+        from oops.output.markdown.pages import build_model
+
+        dm = _docmodel_with_descriptions()
+        md = build_model(dm, "my.undocumented", dm["models_by_bare"]["my.undocumented"])
+        assert "## Description" in md
+        assert "_no `_description`_" in md
+
+    def test_appendix_missing_descriptions_column(self) -> None:
+        from oops.output.markdown.pages import build_audit_index
+
+        md = build_audit_index(_docmodel_with_descriptions())
+        assert "Missing descriptions" in md
+
+
 # ---------------------------------------------------------------------------
 # Audit pages + mermaid (Phase 4)
 # ---------------------------------------------------------------------------

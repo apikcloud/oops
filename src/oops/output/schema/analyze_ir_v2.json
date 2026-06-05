@@ -15,6 +15,7 @@
         "inherited_methods": { "type": "integer", "title": "Inherited methods", "x-kind": "count", "x-unit": null },
         "overridden_methods": { "type": "integer", "title": "Overrides", "x-kind": "count", "x-unit": null },
         "missing_docs": { "type": "integer", "title": "Missing docs", "x-kind": "count", "x-unit": null },
+        "models_missing_description": { "type": "integer", "title": "Models missing description", "x-kind": "count", "x-unit": null },
         "data": { "type": "integer", "title": "Data files", "x-kind": "count", "x-unit": null },
         "primary_views": { "type": "integer", "title": "Views (primary)", "x-kind": "count", "x-unit": null },
         "extension_views": { "type": "integer", "title": "Views (ext.)", "x-kind": "count", "x-unit": null },

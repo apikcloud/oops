@@ -166,7 +166,7 @@ def build_project_kb(
             dict(r)
             for r in kb._con.execute(
                 "SELECT model, module, origin, role, model_type, "
-                "inherit_json, inherits_json, source_file, source_line "
+                "inherit_json, inherits_json, source_file, source_line, description "
                 "FROM model_origins"
             ).fetchall()
         ]

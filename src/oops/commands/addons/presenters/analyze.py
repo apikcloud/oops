@@ -184,6 +184,7 @@ def _build_metrics(summary: "ModuleSummary") -> StatGroup:
     total_overrides = sum(c.overrides for c in summary.classes)
     total_inherited_methods = sum(c.inherited_methods for c in summary.classes)
     total_missing = sum(c.missing_docstrings for c in summary.classes)
+    total_missing_desc = sum(1 for c in summary.classes if c.missing_description)
     data_count = sum(n for ext in summary.structure.data.values() for n in ext.values())
     fields_own_total = sum((c.fields_base if c.is_new_model else c.fields_new) for c in summary.classes)
     fields_inherited_total = sum(c.fields_inherited for c in summary.classes)
@@ -204,6 +205,7 @@ def _build_metrics(summary: "ModuleSummary") -> StatGroup:
             _m("inherited_methods", total_inherited_methods),
             _m("overridden_methods", total_overrides),
             _m("missing_docs", total_missing),
+            _m("models_missing_description", total_missing_desc),
             _m("data", data_count),
         ],
     )
@@ -403,7 +405,10 @@ def _model_nodes(module: str, pairs: list) -> list:
                 "inherit_origin": normalize_origin(cs.ancestor_origin),
                 "ancestor_model": cs.ancestor_model,
                 "ancestor_module": cs.ancestor_module,
-                "description": ci.description,
+                "description": cs.resolved_description,
+                "own_description": ci.description,
+                "description_inherited_from": cs.description_inherited_from,
+                "missing_description": cs.missing_description,
                 "docstring": ci.docstring,
             }
         )
@@ -530,6 +535,7 @@ def _derived_metrics(summary: "ModuleSummary", models: list, fields: list, metho
         "inherited_methods": sum(1 for m in methods if m["is_inherited"]),
         "overridden_methods": sum(1 for m in methods if m["is_override"]),
         "missing_docs": sum(1 for m in methods if m["docstring"] is None),
+        "models_missing_description": sum(1 for m in models if m["missing_description"]),
         "data": data_count,
     }
     vs = summary.views_summary

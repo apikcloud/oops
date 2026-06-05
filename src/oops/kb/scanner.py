@@ -210,6 +210,16 @@ def get_inherits(class_node: ast.ClassDef) -> Dict[str, str]:
     return {}
 
 
+def get_description(class_node: ast.ClassDef) -> Optional[str]:
+    """Return the literal ``_description = "..."`` string, or None."""
+    for stmt in class_node.body:
+        if isinstance(stmt, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "_description" for t in stmt.targets
+        ):
+            return _extract_string_value(stmt.value)
+    return None
+
+
 def is_field_assignment(stmt: ast.stmt) -> Optional[Tuple[str, int, str]]:
     """If stmt assigns a fields.XXX, return (field_name, lineno, field_type). Else None.
 
@@ -678,6 +688,7 @@ def scan_module(  # noqa: C901
             _name, _inherit = get_model_names(node)
             _inherits_dict = get_inherits(node)
             model_type = get_model_type(node)
+            _description = get_description(node)
 
             if _name is not None:
                 role = "extend" if _name in _inherit else "create"
@@ -692,6 +703,7 @@ def scan_module(  # noqa: C901
                         "inherits_json": json.dumps(_inherits_dict),
                         "source_file": rel_path,
                         "source_line": node.lineno,
+                        "description": _description,
                     }
                 )
             else:
@@ -707,6 +719,7 @@ def scan_module(  # noqa: C901
                             "inherits_json": json.dumps({}),
                             "source_file": rel_path,
                             "source_line": node.lineno,
+                            "description": _description,
                         }
                     )
 

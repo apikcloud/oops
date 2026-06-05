@@ -25,6 +25,7 @@ def _write(
     views: list[dict] | None = None,
     actions: list[dict] | None = None,
     menus: list[dict] | None = None,
+    model_origins: list[dict] | None = None,
 ) -> None:
     scan_results = [
         {
@@ -34,6 +35,7 @@ def _write(
             "views": views or [],
             "actions": actions or [],
             "menus": menus or [],
+            "model_origins": model_origins or [],
         }
     ]
     write_project_kb(
@@ -101,7 +103,7 @@ class TestDDL:
         _write(db_path)
         with KBReader(db_path) as kb:
             meta = kb.get_meta()
-        assert meta.get("schema_version") == "5"
+        assert meta.get("schema_version") == "6"
 
     def test_write_twice_applies_schema_cleanly(self, tmp_path):
         db_path = tmp_path / "kb.db"
@@ -198,6 +200,53 @@ class TestRoundTrip:
             entries = kb.get_symbol("sale.order", "action_confirm", "method")
         assert entries[0]["source_end_line"] == 42
         assert entries[0]["source_end_line"] >= entries[0]["source_line"]
+
+    def test_model_origins_description_round_trips(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            model_origins=[
+                {
+                    "model": "res.partner",
+                    "module": "base",
+                    "origin": "odoo",
+                    "role": "create",
+                    "model_type": "model",
+                    "inherit_json": "[]",
+                    "inherits_json": "{}",
+                    "source_file": "addons/base/models/res_partner.py",
+                    "source_line": 10,
+                    "description": "Contact",
+                }
+            ],
+        )
+        with KBReader(db_path) as kb:
+            creators = kb.get_model_creators("res.partner")
+            assert creators[0]["description"] == "Contact"
+            assert kb.get_model_description("res.partner") == "Contact"
+
+    def test_model_description_none_when_absent(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            model_origins=[
+                {
+                    "model": "x.thing",
+                    "module": "mymod",
+                    "origin": "apik",
+                    "role": "create",
+                    "model_type": "model",
+                    "inherit_json": "[]",
+                    "inherits_json": "{}",
+                    "source_file": "models/thing.py",
+                    "source_line": 5,
+                    "description": None,
+                }
+            ],
+        )
+        with KBReader(db_path) as kb:
+            assert kb.get_model_description("x.thing") is None
+            assert kb.get_model_creators("x.thing")[0]["description"] is None
 
 
 # ---------------------------------------------------------------------------

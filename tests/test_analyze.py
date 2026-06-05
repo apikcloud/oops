@@ -54,7 +54,13 @@ def _make_kb(
     )
 
 
-def _kb_model_origin(model: str, module: str, origin: str = "odoo", role: str = "create") -> dict:
+def _kb_model_origin(
+    model: str,
+    module: str,
+    origin: str = "odoo",
+    role: str = "create",
+    description: str | None = None,
+) -> dict:
     return {
         "model": model,
         "module": module,
@@ -65,6 +71,7 @@ def _kb_model_origin(model: str, module: str, origin: str = "odoo", role: str = 
         "inherits_json": "{}",
         "source_file": f"addons/{module}/models/{model.replace('.', '_')}.py",
         "source_line": 1,
+        "description": description,
     }
 
 
@@ -1337,6 +1344,67 @@ class TestAnalyzeAncestorOrigin:
         assert cls["ancestor_module"] is None
         assert cls["inherit_origin"] is None
         assert cls["status"] == "new"
+
+    def test_json_extension_inherits_parent_description(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(
+            db_path,
+            symbols=[_kb_symbol("res.partner", "name", "field", "base")],
+            modules={"base": {"origin": "odoo", "depends": []}},
+            model_origins=[
+                _kb_model_origin("res.partner", "base", origin="odoo", role="create", description="Contact")
+            ],
+        )
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"res_partner_ext.py": INHERIT_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        cls = json.loads(result.output)["modules"][0]["models"][0]
+        assert cls["description"] == "Contact"
+        assert cls["description_inherited_from"] == "base"
+        assert cls["own_description"] is None
+        assert cls["missing_description"] is False
+
+    def test_json_new_model_with_description_not_missing(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_rich.py": RICH_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        cls = json.loads(result.output)["modules"][0]["models"][0]
+        assert cls["description"] == "My Rich Model"
+        assert cls["own_description"] == "My Rich Model"
+        assert cls["description_inherited_from"] is None
+        assert cls["missing_description"] is False
+
+    def test_json_new_model_without_description_is_missing(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+            models={"my_model.py": NEW_MODEL_SOURCE},
+        )
+        with _mock_analyze(tmp_path, db_path):
+            result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        cls = data["modules"][0]["models"][0]
+        assert cls["description"] is None
+        assert cls["missing_description"] is True
+        assert data["modules"][0]["metrics"]["models_missing_description"] == 1
 
     def test_json_views_list_shape(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
