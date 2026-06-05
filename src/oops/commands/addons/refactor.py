@@ -51,7 +51,7 @@ from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_st
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
 from oops.services.git import commit, require_repository
-from oops.utils.render import human_readable, print_rule, print_success, print_warning
+from oops.utils.render import human_readable, print_rule, print_success, print_warning, warn_experimental
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -107,7 +107,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     verbose: bool,
 ) -> None:
 
-    print_warning("This command is experimental and may change without notice between releases.")
+    warn_experimental()
 
     for mp in module_paths:
         if mp.is_symlink():
@@ -192,6 +192,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
     log.info("Using KB: %s", kb_path)
 
     branch_name = f"refactor/doc-{resolved_paths[0].name}" if len(resolved_paths) == 1 else "refactor/doc-multi"
+
+    assert kb_path
 
     with KBReader(kb_path) as kb:
         modules_index = kb.get_modules()

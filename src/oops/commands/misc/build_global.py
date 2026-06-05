@@ -45,8 +45,8 @@ from oops.output.formatters import (
 from oops.output.sinks import deliver
 from oops.services.git import require_repository
 from oops.utils.render import (
-    experimental_warning,
     prompt_select,
+    warn_experimental,
 )
 
 from .presenters.build_global import BuildGlobalPresenter
@@ -90,7 +90,7 @@ def main(
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
 
-    experimental_warning()
+    warn_experimental()
 
     if version is None:
         try:

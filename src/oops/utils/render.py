@@ -327,7 +327,7 @@ def print_warning(message: str, symbol: str = "⚠") -> None:
     get_console().print(f"{symbol} {message}", style="yellow")
 
 
-def experimental_warning() -> None:
+def warn_experimental() -> None:
     """Print a standard experimental-feature warning to the terminal."""
     print_warning("This command is experimental and may change without notice between releases.")
 
