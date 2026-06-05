@@ -92,8 +92,8 @@ def main(
     repo, repo_path = require_repository()
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
-    rows: Result[list] = Result()
-    rows.data = []
+    result: Result[list[AddonInfo]] = Result()
+    result.data = []
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
     with live_progress("Initialisation..."):
@@ -129,35 +129,20 @@ def main(
             sub = subs.get(addon.rel_path, {})
             enrich_addon(addon, sub)
 
-            loc = get_addon_loc(addon.path)
-            rows.data.append(
-                {
-                    "addon": addon.technical_name,
-                    "location": addon.location,
-                    "symlink": addon.symlink,
-                    "submodule": addon.submodule or "",
-                    "upstream": addon.branch or "",
-                    "pr": addon.pull_request or False,
-                    "version": addon.version,
-                    "classification": addon.classification,
-                    "author": addon.author,
-                    "loc_python": loc.python,
-                    "loc_xml": loc.xml,
-                    "loc_js": loc.javascript,
-                    "loc_docs": loc.docs,
-                    "loc_total": loc.total,
-                    "loc_pct": 0.0,
-                }
-            )
+            # add lines of code
+            addon.loc = get_addon_loc(addon.path)
+
+            result.data.append(addon)
 
         log.info("Finalizing...")
-        rows.data.sort(key=lambda r: r["addon"])
+        result.data.sort(key=lambda item: item.technical_name)
 
-        total_loc = sum(r["loc_total"] for r in rows.data)
+        total_loc = sum(addon.loc.total for addon in result.data if addon.loc)
+
         if total_loc:
-            for r in rows.data:
-                r["loc_pct"] = round(100.0 * r["loc_total"] / total_loc, 1)
+            for addon in result.data:
+                addon.loc_pct = round(100.0 * addon.loc.total / total_loc, 1) if addon.loc else 0.0
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = ListPresenter().prepare(rows, target=formatter.target, metadata=metadata)
+    output = ListPresenter().prepare(result, target=formatter.target, metadata=metadata)
     deliver(formatter, output, output_format, output_path)

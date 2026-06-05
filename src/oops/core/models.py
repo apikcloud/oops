@@ -173,6 +173,10 @@ class AddonInfo:
     pull_request: Optional[bool] = None
     classification: Optional[str] = None  # "custom" | "oca" | "third-party"
 
+    # Line of code
+    loc: "Optional[LocStats]" = None
+    loc_pct: float = 0.0
+
     @property
     def symlinked(self) -> bool:
         return self.symlink and self.root
@@ -236,7 +240,7 @@ class ClassSummary:
     ancestor_origin: Optional[str] = None
     resolved_description: Optional[str] = None
     description_inherited_from: Optional[str] = None  # module name, when inherited
-    missing_description: bool = False                  # new model w/o own _description
+    missing_description: bool = False  # new model w/o own _description
 
 
 @dataclass
