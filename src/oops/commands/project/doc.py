@@ -27,6 +27,7 @@ import click
 from oops.commands.base import command
 from oops.core.exceptions import AppAbort, EarlyExit, OopsError
 from oops.core.logger import live_progress, log
+from oops.core.metadata import get_metadata
 from oops.core.models import AddonInfo, Result
 from oops.io.file import enrich_addon, find_addons
 from oops.output.formatters import MarkdownSiteFormatter
@@ -51,9 +52,7 @@ def _build_inventory(
     submodule/branch/PR, LOC) used to enrich the documentation pages.
     """
     subs = list_submodules(repo)
-    active_paths = (
-        {path for path, info in subs.items() if info["name"] in names} if names else None
-    )
+    active_paths = {path for path, info in subs.items() if info["name"] in names} if names else None
 
     # Deduplicate by resolved path, preferring root-level symlinks over real
     # files (os.walk visits both when --all is used; see list.py).
@@ -192,7 +191,7 @@ def main(
     for warning in ir.get("warnings", []):
         result.add_warning(warning)
 
-    metadata = ctx.obj["metadata"]
+    metadata = get_metadata()
     formatter = MarkdownSiteFormatter()
     output = ProjectDocPresenter().prepare(result, target=formatter.target, metadata=metadata)
 

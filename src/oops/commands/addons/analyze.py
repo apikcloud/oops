@@ -85,6 +85,7 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
+from oops.core.metadata import get_metadata, update_metadata
 from oops.core.models import ClassSummary, ModuleSummary, Result, ResultCollection, StructureSummary, ViewsSummary
 from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import detect_readme, find_addons
@@ -160,7 +161,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     output_path: Path,
 ) -> None:
 
-    metadata = ctx.obj["metadata"]
+    metadata = get_metadata()
 
     if output_format == "html":
         raise OopsError(
@@ -324,11 +325,13 @@ def main(  # noqa: C901, PLR0912, PLR0915
     set_kb_metadata(repo_path, version)
 
     # IR v2 contract: stamp the schema version and the recorded limitations.
-    metadata.schema_version = 2
-    metadata.limitations = [
-        "oca origin folded into third_party (all submodule code labelled third_party)",
-        "controllers/wizard/report/data not analysed (see each module's not_analysed)",
-    ]
+    update_metadata(
+        schema_version=2,
+        limitations=[
+            "oca origin folded into third_party (all submodule code labelled third_party)",
+            "controllers/wizard/report/data not analysed (see each module's not_analysed)",
+        ],
+    )
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
     output = AnalyzePresenter().prepare(results, target=formatter.target, metadata=metadata)
@@ -372,9 +375,7 @@ def _summarize_class(ci: ClassInfo) -> ClassSummary:
         }
 
     override_details = [_detail(m) for m in methods if m.is_override]
-    inherited_method_details = [
-        _detail(m) for m in methods if m.kb_entry and not m.is_override and not ci.is_new_model
-    ]
+    inherited_method_details = [_detail(m) for m in methods if m.kb_entry and not m.is_override and not ci.is_new_model]
 
     return ClassSummary(
         class_name=ci.class_name,

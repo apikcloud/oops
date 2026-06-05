@@ -11,6 +11,7 @@ import click
 from oops.commands.base import command
 from oops.core.compat import Optional
 from oops.core.logger import live_progress, log
+from oops.core.metadata import get_metadata
 from oops.core.models import Result
 from oops.io.file import enrich_addon, find_addons, parse_odoo_version
 from oops.output.formatters import DependsReportFormatter, FormatterRegistry, JsonFormatter
@@ -47,7 +48,7 @@ FORMATTERS: FormatterRegistry = {
 def main(ctx, output_format: str, output_path: Optional[Path]) -> None:
     repo, repo_path = require_repository()
 
-    metadata = ctx.obj["metadata"]
+    metadata = get_metadata()
     formatter = FORMATTERS[output_format]()
 
     result: Result[dict] = Result()
