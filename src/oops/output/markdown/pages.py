@@ -19,7 +19,7 @@ from oops.core.compat import Any, Dict, List, Optional
 from oops.output.docmodel import anchor_for, model_page_path
 from oops.output.markdown.cards import descriptor_table
 from oops.output.markdown.mermaid import override_map, view_graph
-from oops.utils.render import render_markdown_table
+from oops.utils.render import render_markdown_table, render_mermaid_pie_chart
 
 # Descriptor key order for the manifest / loc / metrics cards.
 _MANIFEST_KEYS = [
@@ -116,6 +116,7 @@ def build_index(dm: Dict[str, Any]) -> str:
         ["Models without _description", str(total_missing_desc)],
     ]
     lines += [render_markdown_table(["Name", "Value"], overview_rows), ""]
+    lines += [render_mermaid_pie_chart("Addons classification", [(k, v) for k, v in sorted(by_class.items())])]
 
     # Module index.
     lines += ["## Modules", ""]
@@ -436,9 +437,7 @@ def build_audit_index(dm: Dict[str, Any]) -> str:
         lines += [
             "## Per-module economics",
             "",
-            render_markdown_table(
-                ["Module", "Depends", "LOC", "Missing docstrings", "Missing descriptions"], rows
-            ),
+            render_markdown_table(["Module", "Depends", "LOC", "Missing docstrings", "Missing descriptions"], rows),
             "",
         ]
 

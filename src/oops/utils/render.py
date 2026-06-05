@@ -275,6 +275,16 @@ def render_markdown_table(header: List[str], rows: List[List[str]]) -> str:
     return "\n".join(table)
 
 
+def render_mermaid_pie_chart(title: str, data: List[tuple[str, Any]]) -> str:
+    values = "\n".join([f'    "{k.capitalize()}" : {v}' for k, v in data])
+    return f"""
+```mermaid
+pie title {title}
+{values}
+```
+"""
+
+
 def render_maintainers(manifest: dict) -> str:
     """Render maintainer GitHub avatars as inline HTML image links.
 
