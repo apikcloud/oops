@@ -38,6 +38,14 @@ def model_page_path(bare: str) -> str:
     return f"models/{bare}.md"
 
 
+def method_page_path(method_id: str) -> str:
+    """Return the site-root-relative path of a method's detail page.
+
+    The id is slugified so ``:`` and ``#`` never reach the filename or a link href.
+    """
+    return f"methods/{slugify(method_id)}.md"
+
+
 def anchor_for(node_id: str) -> str:
     """Return a stable, unique anchor slug for any node id.
 
@@ -80,20 +88,31 @@ def build_index(modules: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
                 "name": bare,
             }
 
-    # Pass 2 — fields and methods hang off their owning model's page.
+    # Pass 2 — fields hang off their owning model's page; methods get their own page.
     for mod in modules:
         module = mod["module"]
         for kind in ("fields", "methods"):
             for node in mod.get(kind, []):
-                bare = model_bare.get(node["model"])
-                page = model_page_path(bare) if bare else None
-                index[node["id"]] = {
-                    "type": kind[:-1],  # "field" / "method"
-                    "module": module,
-                    "page": page,
-                    "anchor": anchor_for(node["id"]),
-                    "name": node["name"],
-                }
+                if kind == "methods":
+                    # Methods now have dedicated pages
+                    index[node["id"]] = {
+                        "type": "method",
+                        "module": module,
+                        "page": method_page_path(node["id"]),
+                        "anchor": None,
+                        "name": node["name"],
+                    }
+                else:
+                    # Fields still hang off their model's page
+                    bare = model_bare.get(node["model"])
+                    page = model_page_path(bare) if bare else None
+                    index[node["id"]] = {
+                        "type": "field",
+                        "module": module,
+                        "page": page,
+                        "anchor": anchor_for(node["id"]),
+                        "name": node["name"],
+                    }
         for node in mod.get("views", []):
             index[node["id"]] = {
                 "type": "view",

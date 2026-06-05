@@ -221,6 +221,8 @@ class MarkdownSiteFormatter(SiteFormatter):
             build_audit_overrides,
             build_audit_views,
             build_index,
+            build_method,
+            build_methods_index,
             build_model,
             build_module,
         )
@@ -233,6 +235,16 @@ class MarkdownSiteFormatter(SiteFormatter):
 
         for bare, entry in dm.get("models_by_bare", {}).items():
             files[entry["page"]] = build_model(dm, bare, entry)
+
+        # Generate method pages
+        from oops.output.docmodel import method_page_path
+
+        for mod in dm.get("modules", []):
+            for method in mod.get("methods", []):
+                method_id = method.get("id", "")
+                files[method_page_path(method_id)] = build_method(dm, method, mod["module"])
+
+        files["methods/index.md"] = build_methods_index(dm)
 
         files["audit/index.md"] = build_audit_index(dm)
         files["audit/overrides.md"] = build_audit_overrides(dm)

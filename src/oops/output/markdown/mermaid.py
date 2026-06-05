@@ -105,3 +105,13 @@ def view_graph(modules: List[Dict[str, Any]]) -> str:
             body.append(f'{parent} --> {parent_mod}["{ancestor_module}{tail}"]')
 
     return _fence(body) if has_edge else ""
+
+
+def pie_chart(title: str, data: List[tuple[str, Any]]) -> str:
+    values = "\n".join([f'    "{k.capitalize()}" : {v}' for k, v in data])
+    return f"""
+```mermaid
+pie title {title}
+{values}
+```
+"""

@@ -16,10 +16,10 @@ from __future__ import annotations
 import posixpath
 
 from oops.core.compat import Any, Dict, List, Optional
-from oops.output.docmodel import anchor_for, model_page_path
+from oops.output.docmodel import anchor_for, method_page_path, model_page_path, resolve_ref
 from oops.output.markdown.cards import descriptor_table
-from oops.output.markdown.mermaid import override_map, view_graph
-from oops.utils.render import render_markdown_table, render_mermaid_pie_chart
+from oops.output.markdown.mermaid import override_map, pie_chart, view_graph
+from oops.utils.render import render_markdown_table
 
 # Descriptor key order for the manifest / loc / metrics cards.
 _MANIFEST_KEYS = [
@@ -51,6 +51,14 @@ def _truncate(text: str, limit: int = 80) -> str:
     """Collapse newlines and truncate ``text`` to ``limit`` chars with an ellipsis."""
     flat = " ".join(text.split())
     return flat if len(flat) <= limit else flat[: limit - 1].rstrip() + "…"
+
+
+def _module_classification_map(dm: Dict[str, Any]) -> Dict[str, str]:
+    """Prebuilt module → classification map to avoid O(n) scans per method."""
+    return {
+        m["module"]: (m.get("inventory") or {}).get("classification", "") or ""
+        for m in dm.get("modules", [])
+    }
 
 
 def render_ref(ref: Optional[Dict[str, Any]], from_page: str, label: Optional[str] = None) -> str:
@@ -116,7 +124,7 @@ def build_index(dm: Dict[str, Any]) -> str:
         ["Models without _description", str(total_missing_desc)],
     ]
     lines += [render_markdown_table(["Name", "Value"], overview_rows), ""]
-    lines += [render_mermaid_pie_chart("Addons classification", [(k, v) for k, v in sorted(by_class.items())])]
+    lines += [pie_chart("Addons classification", [(k, v) for k, v in sorted(by_class.items())])]
 
     # Module index.
     lines += ["## Modules", ""]
@@ -124,6 +132,7 @@ def build_index(dm: Dict[str, Any]) -> str:
     for mod in sorted(modules, key=lambda m: m["module"]):
         name = mod["module"]
         manifest = mod.get("manifest", {})
+        inventory = mod.get("inventory") or {}
 
         module_rows += [
             [
@@ -131,10 +140,22 @@ def build_index(dm: Dict[str, Any]) -> str:
                 manifest.get("name", name),
                 manifest.get("version", "--"),
                 manifest.get("summary", ""),
+                manifest.get("author", "") or inventory.get("author", ""),
+                inventory.get("classification", ""),
             ]
         ]
 
-    lines += [render_markdown_table(["Technical name", "Name", "Version", "Summary"], module_rows), ""]
+    lines += [
+        render_markdown_table(
+            ["Technical name", "Name", "Version", "Summary", "Author", "Classification"], module_rows
+        ),
+        "",
+    ]
+
+    # Methods index.
+    total_methods = sum(len(mod.get("methods", [])) for mod in modules)
+    if total_methods > 0:
+        lines += [f"## [Methods](methods/index.md) ({total_methods} total)", ""]
 
     # Model index.
     models_by_bare = dm.get("models_by_bare", {})
@@ -297,8 +318,28 @@ def _field_row(field: Dict[str, Any], module: str, from_page: str) -> List[str]:
     if field.get("origin_status") == "extended" and ov:
         origin = ov.get("origin") or ""
 
+    # Field type: map origin_status to base/addition/inheritance
+    origin_status = field.get("origin_status", "")
+    field_type = {"base": "base", "new": "addition", "extended": "inheritance"}.get(origin_status, "")
+
     help_text = (field.get("help") or "").replace("\n", " ").replace("|", "\\|")
-    return [f"{anchor}`{name}`", type_cell, label, help_text, flags, module, origin]
+    return [f"{anchor}`{name}`", type_cell, label, help_text, flags, module, origin, field_type]
+
+
+def _method_row(
+    method: Dict[str, Any],
+    module: str,
+    from_page: str,
+    cls_map: Dict[str, str],
+) -> List[str]:
+    method_id = method.get("id", "")
+    name = method["name"]
+    method_type = _method_type(method)
+    section = method.get("section", "")
+    origin = _method_origin(method, module, cls_map)
+    target = method_page_path(method_id)
+    method_link = f"[{name}]({_rel_link(target, from_page)})"
+    return [method_link, method_type, section, origin]
 
 
 def _render_methods(methods: List[Dict[str, Any]], module: str) -> List[str]:
@@ -341,6 +382,24 @@ def build_model(dm: Dict[str, Any], bare: str, entry: Dict[str, Any]) -> str:
     elif is_new and missing:
         lines += ["## Description", "", "_no `_description`_", ""]
 
+    # Origin — single canonical origin (the new model contribution)
+    canonical_contrib = next((c for c in contributions if c["model_node"].get("status") == "new"), None)
+    if canonical_contrib:
+        node = canonical_contrib["model_node"]
+        origin_value = node.get("inherit_origin") or ""
+        lines += [
+            "## Origin",
+            "",
+            f"Created by **{canonical_contrib['module']}**" + (f" ({origin_value})" if origin_value else ""),
+            "",
+        ]
+
+    # Extending modules
+    extending = [c for c in contributions if c["model_node"].get("status") != "new"]
+    if extending:
+        ext_modules = [c["module"] for c in extending]
+        lines += ["## Extended by", "", ", ".join(f"**{m}**" for m in ext_modules), ""]
+
     # Provenance — one line per contributing model node.
     lines += ["## Provenance", ""]
     for contrib in contributions:
@@ -361,16 +420,102 @@ def build_model(dm: Dict[str, Any], bare: str, entry: Dict[str, Any]) -> str:
         for field in contrib["fields"]:
             field_rows.append(_field_row(field, contrib["module"], from_page))
     if field_rows:
-        header = ["Field", "Type", "Label", "Help", "Flags", "Module", "Origin"]
+        header = ["Field", "Type", "Label", "Help", "Flags", "Module", "Origin", "Kind"]
         lines += ["## Fields", "", render_markdown_table(header, field_rows), ""]
 
-    # Methods — grouped by contributing module.
-    method_lines: List[str] = []
+    # Methods — summary table with links to detail pages.
+    method_rows: List[List[str]] = []
+    cls_map = _module_classification_map(dm)
     for contrib in contributions:
-        method_lines += _render_methods(contrib["methods"], contrib["module"])
-    if method_lines:
-        lines += ["## Methods", ""] + method_lines
+        for method in contrib["methods"]:
+            method_rows.append(_method_row(method, contrib["module"], from_page, cls_map))
+    if method_rows:
+        lines += ["## Methods", "", render_markdown_table(["Method", "Type", "Section", "Origin"], method_rows), ""]
 
+    return "\n".join(lines)
+
+
+def _method_type(method: Dict[str, Any]) -> str:
+    if method.get("is_override"):
+        return "override"
+    if method.get("is_inherited"):
+        return "inheritance"
+    return "addition"
+
+
+def _method_origin(method: Dict[str, Any], module: str, cls_map: Dict[str, str]) -> str:
+    if method.get("is_override"):
+        ov = method.get("overrides") or {}
+        return ov.get("origin", "") or ""
+    if method.get("is_inherited"):
+        ih = method.get("inherited_from") or {}
+        return ih.get("origin", "") or ""
+    return cls_map.get(module, "") or ""
+
+
+def build_method(dm: Dict[str, Any], method: Dict[str, Any], module: str) -> str:
+    method_id = method.get("id", "")
+    from_page = method_page_path(method_id)
+    lines: List[str] = [f"# {method['name']}", ""]
+
+    # Metadata section — model cell resolved via index for a proper link.
+    lines += ["## Metadata", ""]
+    index = dm.get("index", {})
+    model_id_val = method.get("model", "")
+    model_ref = resolve_ref(model_id_val, index)
+    bare_name = (index.get(model_id_val) or {}).get("name") or model_id_val
+    model_cell = render_ref(model_ref, from_page, label=bare_name)
+
+    cls_map = _module_classification_map(dm)
+    meta_rows = [
+        ["Model", model_cell],
+        ["Module", module],
+        ["Signature", method.get("signature", "()")],
+        ["Type", _method_type(method)],
+        ["Section", method.get("section", "")],
+        ["Origin", _method_origin(method, module, cls_map)],
+        ["Length", str((method.get("line_end") or 0) - (method.get("line_start") or 0))],
+    ]
+    lines += [render_markdown_table(["Name", "Value"], meta_rows), ""]
+
+    # Docstring
+    if method.get("docstring"):
+        lines += ["## Docstring", "", method["docstring"], ""]
+
+    return "\n".join(lines)
+
+
+def build_methods_index(dm: Dict[str, Any]) -> str:
+    lines: List[str] = ["# Methods", ""]
+    from_page = "methods/index.md"
+
+    # Collect (module, method) pairs — module is known in the outer loop, no re-scan needed.
+    all_pairs: List[tuple] = []
+    for mod in dm.get("modules", []):
+        module = mod["module"]
+        for method in mod.get("methods", []):
+            all_pairs.append((module, method))
+
+    if not all_pairs:
+        lines += ["_No methods found._"]
+        return "\n".join(lines)
+
+    cls_map = _module_classification_map(dm)
+    method_rows = []
+    for module, method in sorted(all_pairs, key=lambda p: (p[1].get("section", ""), p[1].get("name", ""))):
+        method_id = method.get("id", "")
+        target = method_page_path(method_id)
+        method_rows.append(
+            [
+                method.get("section", ""),
+                _method_origin(method, module, cls_map),
+                module,
+                _method_type(method),
+                f"[{method['name']}]({_rel_link(target, from_page)})",
+            ]
+        )
+
+    lines += [render_markdown_table(["Section", "Origin", "Module", "Type", "Method"], method_rows), ""]
     return "\n".join(lines)
 
 

@@ -147,12 +147,24 @@ class TestDocModelHelpers:
         assert "field" in a and "dev" in a and "hours" in a
 
     def test_in_repo_ref_resolves_to_link(self) -> None:
+        from oops.output.docmodel import method_page_path
+
         modules = [_module_payload()]
         index = build_index(modules)
-        ref = resolve_ref("pm:project.project#method:_compute_dev_hours", index)
+        method_id = "pm:project.project#method:_compute_dev_hours"
+        ref = resolve_ref(method_id, index)
+        assert ref["kind"] == "link"
+        assert ref["path"] == method_page_path(method_id)
+        assert ref["anchor"] is None  # method pages have no in-page anchor
+
+    def test_field_ref_resolves_to_model_page(self) -> None:
+        modules = [_module_payload()]
+        index = build_index(modules)
+        field_id = "pm:project.project#field:dev_hours"
+        ref = resolve_ref(field_id, index)
         assert ref["kind"] == "link"
         assert ref["path"] == "models/project.project.md"
-        assert ref["anchor"] == anchor_for("pm:project.project#method:_compute_dev_hours")
+        assert ref["anchor"] == anchor_for(field_id)
 
     def test_external_ref_is_labeled(self) -> None:
         index = build_index([_module_payload()])
@@ -317,10 +329,10 @@ class TestMarkdownPages:
         assert "pm" in md and "crm_ext" in md
         # extended field carries its override origin.
         assert "custom" in md
-        # method rendered with docstring + depends decorator.
+        # method summary table: name, section, type present (docstring moved to method page).
         assert "_compute_dev_hours" in md
-        assert "Sum the hours." in md
-        assert "depends" in md
+        assert "COMPUTE" in md
+        assert "addition" in md
 
 
 def _docmodel_with_descriptions() -> dict:
@@ -518,6 +530,90 @@ class TestFullSiteTree:
         assert "audit/index.md" in files
         assert "audit/overrides.md" in files
         assert "audit/views.md" in files
+        assert "methods/index.md" in files
+        method_pages = [k for k in files if k.startswith("methods/") and k != "methods/index.md"]
+        assert len(method_pages) >= 1
+
+    def test_method_paths_have_no_unsafe_chars(self) -> None:
+        from oops.output.formatters import MarkdownSiteFormatter
+        from oops.output.layout import Output
+
+        dm = _docmodel_with_overrides_and_views()
+        files = MarkdownSiteFormatter().render_site(Output(layout=dm))
+        method_pages = [k for k in files if k.startswith("methods/") and k != "methods/index.md"]
+        assert method_pages, "expected at least one method page"
+        for path in method_pages:
+            assert "#" not in path, f"unsafe char '#' in {path}"
+            assert ":" not in path, f"unsafe char ':' in {path}"
+
+
+# ---------------------------------------------------------------------------
+# New coverage — method pages, origin/extended-by, field Kind, index columns
+# ---------------------------------------------------------------------------
+
+
+class TestNewCoverage:
+    def test_index_module_table_has_author_and_classification(self) -> None:
+        from oops.output.markdown.pages import build_index
+
+        md = build_index(_docmodel_two_modules())
+        assert "Author" in md
+        assert "Classification" in md
+        assert "Apik" in md
+        assert "custom" in md
+
+    def test_model_page_origin_and_extended_by(self) -> None:
+        from oops.output.markdown.pages import build_model
+
+        dm = _docmodel_with_descriptions()
+        # my.new is a new model — Origin section; no Extended by.
+        md = build_model(dm, "my.new", dm["models_by_bare"]["my.new"])
+        assert "## Origin" in md
+        assert "pm" in md
+        assert "## Extended by" not in md
+
+    def test_model_page_field_kind_column(self) -> None:
+        from oops.output.markdown.pages import build_model
+
+        dm = _docmodel_two_modules()
+        entry = dm["models_by_bare"]["project.project"]
+        md = build_model(dm, "project.project", entry)
+        # pm's field has origin_status "new" → "addition"; crm_ext's has "extended" → "inheritance".
+        assert "Kind" in md
+        assert "addition" in md
+        assert "inheritance" in md
+
+    def test_method_page_renders_metadata_and_docstring(self) -> None:
+        from oops.output.markdown.pages import build_method
+
+        dm = _docmodel_two_modules()
+        pm = next(m for m in dm["modules"] if m["module"] == "pm")
+        method = pm["methods"][0]
+        md = build_method(dm, method, "pm")
+        # Metadata table rows.
+        assert "project.project" in md  # model cell shows bare name
+        assert "models/project.project.md" in md  # model cell is a link
+        assert "(self)" in md  # signature
+        assert "addition" in md  # type
+        assert "COMPUTE" in md  # section
+        assert "custom" in md  # origin (pm classification)
+        # Docstring section.
+        assert "## Docstring" in md
+        assert "Sum the hours." in md
+
+    def test_method_page_slug_matches_index(self) -> None:
+        from oops.output.docmodel import build_index, method_page_path
+        from oops.output.formatters import MarkdownSiteFormatter
+        from oops.output.layout import Output
+
+        dm = _docmodel_two_modules()
+        index = build_index(dm["modules"])
+        method_id = "pm:project.project#method:_compute_dev_hours"
+        # Index registers the slugified path.
+        assert index[method_id]["page"] == method_page_path(method_id)
+        # Formatter writes to the same path.
+        files = MarkdownSiteFormatter().render_site(Output(layout=dm))
+        assert method_page_path(method_id) in files
 
 
 # ---------------------------------------------------------------------------
