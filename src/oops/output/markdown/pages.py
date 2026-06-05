@@ -22,8 +22,17 @@ from oops.output.markdown.mermaid import override_map, view_graph
 from oops.utils.render import render_markdown_table
 
 # Descriptor key order for the manifest / loc / metrics cards.
-_MANIFEST_KEYS = ["name", "version", "author", "license", "category", "summary",
-                  "application", "installable", "website"]
+_MANIFEST_KEYS = [
+    "name",
+    "version",
+    "author",
+    "license",
+    "category",
+    "summary",
+    "application",
+    "installable",
+    "website",
+]
 _LOC_KEYS = ["python", "xml", "javascript", "docs", "total", "pct"]
 
 
@@ -69,11 +78,13 @@ def build_index(dm: Dict[str, Any]) -> str:
     tool = meta.get("tool_version")
     schema = meta.get("schema_version")
     stamp = " · ".join(
-        part for part in (
+        part
+        for part in (
             f"generated {generated}" if generated else "",
             f"tool {tool}" if tool else "",
             f"schema v{schema}" if schema else "",
-        ) if part
+        )
+        if part
     )
     if stamp:
         lines += [f"_{stamp}_", ""]
@@ -92,7 +103,7 @@ def build_index(dm: Dict[str, Any]) -> str:
     overview_rows = [["Modules", str(len(modules))]]
     overview_rows += [[f"— {cls}", str(n)] for cls, n in sorted(by_class.items())]
     overview_rows += [["Total LOC", str(total_loc)], ["Doc debt (missing docstrings)", str(total_missing)]]
-    lines += [render_markdown_table(["", ""], overview_rows), ""]
+    lines += [render_markdown_table(["Name", "Value"], overview_rows), ""]
 
     # Module index.
     lines += ["## Modules", ""]
@@ -111,10 +122,14 @@ def build_index(dm: Dict[str, Any]) -> str:
         lines.append("")
 
     # Audit pages.
-    lines += ["## Audit", "",
-              "- [Project economics](audit/index.md)",
-              "- [Overrides & inheritance](audit/overrides.md)",
-              "- [View extensions](audit/views.md)", ""]
+    lines += [
+        "## Audit",
+        "",
+        "- [Project economics](audit/index.md)",
+        "- [Overrides & inheritance](audit/overrides.md)",
+        "- [View extensions](audit/views.md)",
+        "",
+    ]
 
     # Warnings + limitations.
     warnings = dm.get("warnings", [])
@@ -146,15 +161,20 @@ def build_module(dm: Dict[str, Any], mod: Dict[str, Any]) -> str:
     # Inventory facts joined from Stage A.
     inv = mod.get("inventory") or {}
     inv_rows = []
-    for label, key in (("Classification", "classification"), ("Location", "location"),
-                       ("Submodule", "submodule"), ("Branch", "branch"), ("Version", "version")):
+    for label, key in (
+        ("Classification", "classification"),
+        ("Location", "location"),
+        ("Submodule", "submodule"),
+        ("Branch", "branch"),
+        ("Version", "version"),
+    ):
         val = inv.get(key)
         if val:
             inv_rows.append([label, str(val)])
     if inv.get("pr"):
         inv_rows.append(["Pull request", "yes"])
     if inv_rows:
-        lines += ["## Project facts", "", render_markdown_table(["", ""], inv_rows), ""]
+        lines += ["## Project facts", "", render_markdown_table(["Name", "Value"], inv_rows), ""]
 
     loc_table = descriptor_table("loc", mod.get("loc") or {}, _LOC_KEYS)
     if loc_table:
@@ -179,18 +199,25 @@ def build_module(dm: Dict[str, Any], mod: Dict[str, Any]) -> str:
             lines += [readme["content"], ""]
         else:
             fmt = readme.get("format") or "txt"
-            lines += [f"_Raw {fmt.upper()} (conversion to Markdown deferred):_", "",
-                      f"```{fmt}", readme["content"], "```", ""]
+            lines += [
+                f"_Raw {fmt.upper()} (conversion to Markdown deferred):_",
+                "",
+                f"```{fmt}",
+                readme["content"],
+                "```",
+                "",
+            ]
 
     # Table of contents — model pages this module touches.
-    touched = sorted({
-        dm["index"][node["model"]]["name"]
-        for kind in ("fields", "methods")
-        for node in mod.get(kind, [])
-        if node.get("model") in dm["index"]
-    } | {
-        m["model"] for m in mod.get("models", [])
-    })
+    touched = sorted(
+        {
+            dm["index"][node["model"]]["name"]
+            for kind in ("fields", "methods")
+            for node in mod.get(kind, [])
+            if node.get("model") in dm["index"]
+        }
+        | {m["model"] for m in mod.get("models", [])}
+    )
     if touched:
         lines += ["## Models touched", ""]
         for bare in touched:
@@ -216,8 +243,7 @@ def _field_row(field: Dict[str, Any], module: str, from_page: str) -> List[str]:
     label = label or ""
 
     flags = ",".join(
-        flag for flag, key in (("req", "required"), ("ro", "readonly"), ("store", "store"))
-        if field.get(key)
+        flag for flag, key in (("req", "required"), ("ro", "readonly"), ("store", "store")) if field.get(key)
     )
 
     type_cell = field.get("type") or ""
@@ -306,7 +332,10 @@ def build_audit_overrides(dm: Dict[str, Any]) -> str:
     if graph:
         lines += [
             "Each local symbol that overrides or inherits an upstream symbol, "
-            "linked to its origin (node color = origin).", "", graph, "",
+            "linked to its origin (node color = origin).",
+            "",
+            graph,
+            "",
         ]
     else:
         lines += ["_No overrides or inherited symbols found._", ""]
@@ -335,9 +364,12 @@ def build_audit_index(dm: Dict[str, Any]) -> str:
         cls = (mod.get("inventory") or {}).get("classification") or "unknown"
         by_class[cls] = by_class.get(cls, 0) + 1
     if by_class:
-        lines += ["## Modules by classification", "",
-                  render_markdown_table(["Classification", "Modules"],
-                                        [[c, str(n)] for c, n in sorted(by_class.items())]), ""]
+        lines += [
+            "## Modules by classification",
+            "",
+            render_markdown_table(["Classification", "Modules"], [[c, str(n)] for c, n in sorted(by_class.items())]),
+            "",
+        ]
 
     # Per-module LOC + doc debt.
     rows: List[List[str]] = []
@@ -347,7 +379,11 @@ def build_audit_index(dm: Dict[str, Any]) -> str:
         deps = len(mod.get("depends", []))
         rows.append([mod["module"], str(deps), str(loc), str(missing)])
     if rows:
-        lines += ["## Per-module economics", "",
-                  render_markdown_table(["Module", "Depends", "LOC", "Missing docstrings"], rows), ""]
+        lines += [
+            "## Per-module economics",
+            "",
+            render_markdown_table(["Module", "Depends", "LOC", "Missing docstrings"], rows),
+            "",
+        ]
 
     return "\n".join(lines)

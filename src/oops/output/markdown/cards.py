@@ -40,8 +40,5 @@ def descriptor_table(group: str, data: Dict[str, Any], keys: Optional[List[str]]
     given, otherwise insertion order is used.
     """
     ordered = [k for k in (keys or list(data)) if k in data]
-    rows = [
-        [label_of(group, key, key) or key, format_value(kind_of(group, key), data[key])]
-        for key in ordered
-    ]
-    return render_markdown_table(["", ""], rows) if rows else ""
+    rows = [[label_of(group, key, key) or key, format_value(kind_of(group, key), data[key])] for key in ordered]
+    return render_markdown_table(["Name", "Value"], rows) if rows else ""

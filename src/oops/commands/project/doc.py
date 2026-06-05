@@ -127,7 +127,7 @@ def _run_analyze(paths: list[str], refresh: bool) -> dict:
     "-o",
     "output_dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=Path("oops-docs"),
+    default=Path("docs"),
     show_default=True,
     help="Target directory for the generated site. Created if absent.",
 )

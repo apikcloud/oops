@@ -19,7 +19,8 @@ class ProjectDocPresenter(Presenter[Result]):
     """Stage C — build the DocModel from the combined IR + inventory Result."""
 
     def to_machine(self, result: Result) -> dict:
-        data = result.data or {}
+        data = result.unwrap
+
         ir = data.get("ir", {})
         inventory = data.get("inventory", {})
         modules = ir.get("modules", [])
