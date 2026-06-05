@@ -21,7 +21,7 @@ from pathlib import Path
 
 import click
 from oops.core.compat import Literal, Optional
-from oops.output.base import OutputFormatter
+from oops.output.base import OutputFormatter, SiteFormatter
 from oops.output.layout import Output
 
 DefaultSink = Literal["stdout", "tempfile"]
@@ -106,3 +106,22 @@ def deliver(
         path = write_output(content, output_format, output_path)
         if path is not None:
             click.echo(f"Report written to {path}", err=True)
+
+
+def write_site(files: "dict[str, str]", output_dir: Path) -> Path:
+    """Write a ``{relative_path: content}`` tree under ``output_dir``.
+
+    Creates each file's parent directory as needed. Returns the root directory.
+    """
+    for rel_path, content in files.items():
+        dest = output_dir / rel_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
+    return output_dir
+
+
+def deliver_site(formatter: SiteFormatter, output: Output, output_dir: Path) -> None:
+    """Render a site formatter to a file tree and report the root path."""
+    files = formatter.render_site(output)
+    root = write_site(files, output_dir)
+    click.echo(f"Documentation written to {root}", err=True)

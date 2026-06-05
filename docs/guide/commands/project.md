@@ -60,6 +60,41 @@ oops project convert -v 18 --no-enterprise
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.project.doc
+    :command: main
+    :prog_name: oops project doc
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Generate the Markdown documentation site into the default `oops-docs/` directory:
+
+```bash
+oops project doc
+```
+
+Write to a custom directory, wiping it first:
+
+```bash
+oops project doc -o build/docs --clean
+```
+
+Include inactive addons (not symlinked at the repo root):
+
+```bash
+oops project doc --all
+```
+
+Limit to specific submodules and force a KB rebuild:
+
+```bash
+oops project doc -n OCA/server-tools --refresh
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.project.exclude
     :command: main
     :prog_name: oops project exclude
