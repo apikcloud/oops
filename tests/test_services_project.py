@@ -8,7 +8,58 @@ from unittest.mock import patch
 import git
 import pytest
 from oops.core.exceptions import APIError
-from oops.services.project import copy_project_files, fetch_project_files
+from oops.services.project import copy_project_files, fetch_project_files, find_projects
+
+
+class TestFindProjects:
+    def _make_git_repo(self, base: Path, name: str) -> Path:
+        d = base / name
+        d.mkdir()
+        (d / ".git").mkdir()
+        return d
+
+    def test_returns_valid_project(self, tmp_path: Path) -> None:
+        proj = self._make_git_repo(tmp_path, "valid")
+        for f in ("requirements.txt", "odoo_version.txt", "packages.txt"):
+            (proj / f).write_text("")
+
+        result = find_projects(tmp_path)
+
+        assert result == [proj]
+
+    def test_skips_repo_missing_mandatory_file(self, tmp_path: Path) -> None:
+        incomplete = self._make_git_repo(tmp_path, "incomplete")
+        (incomplete / "requirements.txt").write_text("")
+        # missing odoo_version.txt and packages.txt
+
+        result = find_projects(tmp_path)
+
+        assert result == []
+
+    def test_skips_plain_dir(self, tmp_path: Path) -> None:
+        plain = tmp_path / "plain"
+        plain.mkdir()
+        for f in ("requirements.txt", "odoo_version.txt", "packages.txt"):
+            (plain / f).write_text("")
+
+        result = find_projects(tmp_path)
+
+        assert result == []
+
+    def test_returns_empty_for_nonexistent_working_dir(self, tmp_path: Path) -> None:
+        result = find_projects(tmp_path / "does_not_exist")
+
+        assert result == []
+
+    def test_returns_sorted(self, tmp_path: Path) -> None:
+        for name in ("zz_proj", "aa_proj"):
+            proj = self._make_git_repo(tmp_path, name)
+            for f in ("requirements.txt", "odoo_version.txt", "packages.txt"):
+                (proj / f).write_text("")
+
+        result = find_projects(tmp_path)
+
+        assert [p.name for p in result] == ["aa_proj", "zz_proj"]
 
 
 class TestCopyProjectFiles:

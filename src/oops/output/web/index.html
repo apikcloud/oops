@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>oops</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --apik-primary: #2e3548;
+                --apik-accent: #505ba6;
+                --apik-accent-light: #8b93cf;
+                --bg: #f7f8fb;
+                --bg-card: #fff;
+                --bg-soft: #eef0f6;
+                --border: #e2e5ee;
+                --text: #1c2230;
+                --text-muted: #6b7180;
+                --font: "DM Sans", system-ui, sans-serif;
+                --mono: "DM Mono", ui-monospace, monospace;
+                --core: #505ba6;
+                --oca: #4f828f;
+                --custom: #5f8a6a;
+                --third-party: #b07449;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                font-family: var(--font);
+                background: var(--bg);
+                color: var(--text);
+                margin: 0;
+            }
+
+            .topbar {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+            }
+            .site-header {
+                background: var(--apik-primary);
+                color: #fff;
+                padding: 1rem 1.5rem;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+            .brand {
+                display: flex;
+                align-items: baseline;
+                gap: 0.5rem;
+                margin-right: auto;
+            }
+            .project-info {
+                display: flex;
+                gap: 1.1rem;
+                align-items: baseline;
+                flex-wrap: wrap;
+            }
+            .project-info .pi {
+                display: flex;
+                flex-direction: column;
+                line-height: 1.15;
+            }
+            .project-info .pi-k {
+                font-size: 0.6rem;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: rgba(255, 255, 255, 0.45);
+            }
+            .project-info .pi-v {
+                font-family: var(--mono);
+                font-size: 0.82rem;
+                color: #fff;
+            }
+            .brand-name {
+                font-family: var(--mono);
+                font-size: 1.4rem;
+                font-weight: 500;
+                color: var(--apik-accent-light);
+            }
+            .brand-cmd {
+                font-family: var(--mono);
+                font-size: 0.78rem;
+                color: rgba(255, 255, 255, 0.45);
+            }
+            .mode-pill {
+                font-family: var(--mono);
+                font-size: 0.7rem;
+                padding: 0.15rem 0.5rem;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.12);
+            }
+
+            .toolbar {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                padding: 0.85rem 1.5rem;
+                background: var(--bg-card);
+                border-bottom: 1px solid var(--border);
+                flex-wrap: wrap;
+            }
+            .toolbar .project {
+                font-family: var(--mono);
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                margin-right: auto;
+            }
+            button {
+                font-family: var(--font);
+                font-size: 0.82rem;
+                padding: 0.4rem 0.8rem;
+                border: 1px solid var(--border);
+                background: var(--bg-card);
+                border-radius: 5px;
+                cursor: pointer;
+                color: var(--text);
+            }
+            button:hover:not(:disabled) {
+                border-color: var(--apik-accent);
+                color: var(--apik-accent);
+            }
+            button.primary {
+                background: var(--apik-primary);
+                color: #fff;
+                border-color: var(--apik-primary);
+            }
+            button:disabled {
+                opacity: 0.45;
+                cursor: not-allowed;
+            }
+
+            main {
+                max-width: 1100px;
+                margin: 0 auto;
+                padding: 1.5rem;
+            }
+            .status {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                padding: 0.6rem 0;
+            }
+
+            .cards {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1rem 1.1rem;
+            }
+            .card-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--text-muted);
+                padding-bottom: 0.6rem;
+                margin-bottom: 0.6rem;
+                border-bottom: 1px solid var(--border);
+            }
+            .row {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                padding: 0.2rem 0;
+            }
+            .row .k {
+                font-size: 0.82rem;
+                color: var(--text-muted);
+                text-transform: capitalize;
+            }
+            .row .v {
+                font-family: var(--mono);
+                font-weight: 600;
+            }
+
+            h2 {
+                font-size: 0.78rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+                margin: 1.5rem 0 0.75rem;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.84rem;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 0.45rem 0.7rem;
+                border-bottom: 1px solid var(--border);
+            }
+            th {
+                background: var(--bg-soft);
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+            }
+            td.num {
+                font-family: var(--mono);
+                text-align: right;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+            .badge {
+                font-family: var(--mono);
+                font-size: 0.64rem;
+                text-transform: uppercase;
+                padding: 0.08rem 0.45rem;
+                border-radius: 3px;
+                color: #fff;
+            }
+            .badge.core {
+                background: var(--core);
+            }
+            .badge.oca {
+                background: var(--oca);
+            }
+            .badge.custom {
+                background: var(--custom);
+            }
+            .badge.third-party {
+                background: var(--third-party);
+            }
+            select.project {
+                font-family: var(--mono);
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                border: 1px solid var(--border);
+                border-radius: 5px;
+                padding: 0.35rem 0.6rem;
+                background: var(--bg-card);
+                margin-right: auto;
+                max-width: 260px;
+            }
+            tr.clickable {
+                cursor: pointer;
+            }
+            tr.clickable:hover td {
+                background: var(--bg-soft);
+            }
+
+            .loading {
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+                padding: 2rem 0;
+                color: var(--text-muted);
+            }
+            .spinner {
+                width: 1.1rem;
+                height: 1.1rem;
+                border: 2px solid var(--border);
+                border-top-color: var(--apik-accent);
+                border-radius: 50%;
+                animation: spin 0.7s linear infinite;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .box {
+                border: 1px solid;
+                border-radius: 6px;
+                padding: 0.7rem 0.9rem;
+                margin-bottom: 1rem;
+                font-size: 0.85rem;
+            }
+            .box-title {
+                font-weight: 600;
+                margin-bottom: 0.3rem;
+            }
+            .box ul {
+                margin: 0;
+                padding-left: 1.1rem;
+            }
+            .box.error {
+                background: #fcebea;
+                border-color: #e0b4b0;
+                color: #8a1f17;
+            }
+            .box.warn {
+                background: #fdf6e3;
+                border-color: #e8d9a8;
+                color: #7a5c12;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="topbar">
+            <header class="site-header">
+                <div class="brand"><span class="brand-name">oops</span><span class="brand-cmd">dashboard</span></div>
+                <div class="project-info" id="project-info"></div>
+                <span class="mode-pill" id="mode-pill">detecting…</span>
+            </header>
+            <div class="toolbar">
+                <select id="project-select" class="project"></select>
+                <button id="btn-scan" class="primary" disabled>Scan</button>
+                <button id="btn-checks" disabled>Run checks</button>
+            </div>
+        </div>
+
+        <main>
+            <div class="status" id="status">Waiting for the bridge…</div>
+            <div id="view"></div>
+        </main>
+
+        <script>
+            // ── tiny DOM helper ─────────────────────────────────────────────
+            const el = (t, a = {}, c = []) => {
+                const n = document.createElement(t);
+                for (const [k, v] of Object.entries(a))
+                    k === "class" ? (n.className = v) : v != null && n.setAttribute(k, v);
+                [].concat(c).forEach((x) => x != null && n.append(x instanceof Node ? x : String(x)));
+                return n;
+            };
+            const $ = (id) => document.getElementById(id);
+            const fmt = (n) => (typeof n === "number" ? n.toLocaleString() : n);
+
+            // ── bridge: live (pywebview) vs static (browser) ────────────────
+            const hasBridge = () => typeof window.pywebview !== "undefined";
+            async function callApi(method, ...args) {
+                if (!hasBridge()) throw new Error("live mode unavailable — open via `python app.py`");
+                return await window.pywebview.api[method](...args); // returns a JS object
+            }
+
+            // ── command → view registry (the dispatch key is metadata.command) ──
+            const VIEWS = {
+                "addons list": renderSynthesis,
+                "addons analyze": renderAnalyzeSummary,
+                "project check": renderChecks,
+                "requirements check": renderChecks,
+                checks: renderChecksGrouped,
+                cancelled: () => setStatus("Cancelled."),
+                error: (p) => showError(p.error || "unknown"),
+            };
+            function render(payload) {
+                const cmd = payload && payload.metadata && payload.metadata.command;
+                (VIEWS[cmd] || renderUnknown)(payload);
+            }
+            const setStatus = (msg) => ($("status").textContent = msg || "");
+
+            // ── header helpers ───────────────────────────────────────────────
+            const pick = (pairs, label) => {
+                const row = (pairs || []).find((r) => r[0] === label);
+                return row ? row[1] : "—";
+            };
+            function renderHeader(info) {
+                const box = $("project-info");
+                box.innerHTML = "";
+                if (!info || (info.metadata && info.metadata.command === "error")) return;
+                const odoo = (info.metrics && info.metrics.odoo) || [];
+                const fields = [
+                    ["Project", info.project || (info.metadata && info.metadata.project_name) || "—"],
+                    ["Odoo", pick(odoo, "Version")],
+                    ["Image date", pick(odoo, "Image date")],
+                    ["Branch", (info.metadata && info.metadata.git_branch) || "—"],
+                ];
+                fields.forEach(([k, v]) =>
+                    box.append(
+                        el("div", { class: "pi" }, [
+                            el("span", { class: "pi-k" }, k),
+                            el("span", { class: "pi-v" }, v),
+                        ]),
+                    ),
+                );
+            }
+
+            // ── loading / feedback helpers ───────────────────────────────────
+            function showLoading(label) {
+                setStatus("");
+                const root = $("view");
+                root.innerHTML = "";
+                root.append(
+                    el("div", { class: "loading" }, [el("div", { class: "spinner" }), el("span", {}, label + "…")]),
+                );
+            }
+            function showError(msg) {
+                setStatus("");
+                const root = $("view");
+                root.innerHTML = "";
+                root.append(
+                    el("div", { class: "box error" }, [
+                        el("div", { class: "box-title" }, "Error"),
+                        el("div", {}, msg || "unknown error"),
+                    ]),
+                );
+            }
+            function renderWarnings(p) {
+                const ws = (p && p.warnings) || [];
+                if (!ws.length) return null;
+                return el("div", { class: "box warn" }, [
+                    el("div", { class: "box-title" }, ws.length + " warning" + (ws.length > 1 ? "s" : "")),
+                    el(
+                        "ul",
+                        {},
+                        ws.map((w) => el("li", {}, w)),
+                    ),
+                ]);
+            }
+
+            // ── renderers (pure functions of the payload, source-agnostic) ──
+            function renderSynthesis(p) {
+                const root = $("view");
+                root.innerHTML = "";
+                setStatus("");
+                const warn = renderWarnings(p);
+                if (warn) root.append(warn);
+
+                // metric groups (addons list payload: metrics = [{label, values:[{name,value}]}])
+                const cards = el("div", { class: "cards" });
+                (p.metrics || []).forEach((g) => {
+                    const card = el("div", { class: "card" }, el("div", { class: "card-label" }, g.label));
+                    (g.values || []).forEach((v) =>
+                        card.append(
+                            el("div", { class: "row" }, [
+                                el("span", { class: "k" }, v.name.replace(/_/g, " ")),
+                                el("span", { class: "v" }, fmt(v.value)),
+                            ]),
+                        ),
+                    );
+                    cards.append(card);
+                });
+                root.append(cards);
+
+                // compact addon catalogue
+                const addons = (p.data || []).slice();
+                root.append(el("h2", {}, `Addons (${addons.length})`));
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [el("th", {}, "Addon"), el("th", {}, "Type"), el("th", { class: "num" }, "LoC")]),
+                    ),
+                );
+                const tb = el("tbody");
+                addons
+                    .map((a) => ({
+                        ...a,
+                        _loc: (a.loc.python || 0) + (a.loc.xml || 0) + (a.loc.javascript || 0) + (a.loc.docs || 0),
+                    }))
+                    .sort((a, b) => b._loc - a._loc)
+                    .forEach((a) => {
+                        const tr = el("tr", { class: "clickable" }, [
+                            el("td", {}, a.technical_name),
+                            el("td", {}, el("span", { class: `badge ${a.classification}` }, a.classification)),
+                            el("td", { class: "num" }, fmt(a._loc)),
+                        ]);
+                        tr.addEventListener("click", () => runCommand("analyze_module", "Analyzing module", a.path));
+                        tb.append(tr);
+                    });
+                table.append(tb);
+                root.append(table);
+            }
+
+            function renderAnalyzeSummary(p) {
+                const root = $("view");
+                root.innerHTML = "";
+                setStatus("");
+                const warn = renderWarnings(p);
+                if (warn) root.append(warn);
+                const mod = (p.modules || [])[0];
+                if (!mod) return setStatus("No module in payload.");
+                root.append(el("h2", {}, `Analyzed: ${mod.module}`));
+                const cards = el("div", { class: "cards" });
+                const card = el("div", { class: "card" }, el("div", { class: "card-label" }, "Metrics"));
+                Object.entries(mod.metrics || {}).forEach(([k, v]) =>
+                    card.append(
+                        el("div", { class: "row" }, [
+                            el("span", { class: "k" }, k.replace(/_/g, " ")),
+                            el("span", { class: "v" }, fmt(v)),
+                        ]),
+                    ),
+                );
+                cards.append(card);
+                root.append(cards);
+                root.append(
+                    el(
+                        "div",
+                        { class: "status" },
+                        "Full per-model detail lives in the analyze report — this PoC shows the synthesis only.",
+                    ),
+                );
+            }
+
+            function buildCheckTable(data) {
+                const cls = (s) => (s === "passed" ? "custom" : s === "failed" ? "third-party" : "core");
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [el("th", {}, "Check"), el("th", {}, "Status"), el("th", {}, "Items")]),
+                    ),
+                );
+                const tb = el("tbody");
+                (data || []).forEach((c) =>
+                    tb.append(
+                        el("tr", {}, [
+                            el("td", {}, c.label),
+                            el("td", {}, el("span", { class: `badge ${cls(c.status)}` }, c.status)),
+                            el("td", {}, (c.items || []).join(", ") || "—"),
+                        ]),
+                    ),
+                );
+                table.append(tb);
+                return table;
+            }
+
+            function renderChecks(p) {
+                const root = $("view");
+                root.innerHTML = "";
+                setStatus("");
+                const warn = renderWarnings(p);
+                if (warn) root.append(warn);
+                root.append(el("h2", {}, "Checks"));
+                root.append(buildCheckTable(p.data));
+            }
+
+            function renderChecksGrouped(p) {
+                const root = $("view");
+                root.innerHTML = "";
+                setStatus("");
+                const sections = p.sections || [];
+
+                const counts = { total: 0, passed: 0, failed: 0, skipped: 0 };
+                sections.forEach((s) =>
+                    (s.data || []).forEach((c) => {
+                        counts.total++;
+                        if (counts[c.status] != null) counts[c.status]++;
+                    }),
+                );
+                const cards = el("div", { class: "cards" });
+                const card = el("div", { class: "card" }, el("div", { class: "card-label" }, "Summary"));
+                [
+                    ["total", counts.total],
+                    ["passed", counts.passed],
+                    ["failed", counts.failed],
+                    ["skipped", counts.skipped],
+                ].forEach(([k, v]) =>
+                    card.append(
+                        el("div", { class: "row" }, [
+                            el("span", { class: "k" }, k),
+                            el("span", { class: "v" }, fmt(v)),
+                        ]),
+                    ),
+                );
+                cards.append(card);
+                root.append(cards);
+
+                sections.forEach((s) => {
+                    root.append(el("h2", {}, s.title));
+                    if (s.error) {
+                        root.append(
+                            el("div", { class: "box warn" }, [
+                                el("div", { class: "box-title" }, "Not run"),
+                                el("div", {}, s.error),
+                            ]),
+                        );
+                        return;
+                    }
+                    const warn = renderWarnings(s);
+                    if (warn) root.append(warn);
+                    root.append(buildCheckTable(s.data));
+                });
+            }
+
+            function renderUnknown(p) {
+                setStatus("No view registered for command: " + (p?.metadata?.command || "—"));
+            }
+
+            // ── command launchers (with loading state) ──────────────────────
+            async function runCommand(method, label, ...args) {
+                showLoading(label);
+                document.querySelectorAll(".toolbar button").forEach((b) => (b.disabled = true));
+                try {
+                    render(await callApi(method, ...args));
+                } catch (e) {
+                    showError(e.message);
+                } finally {
+                    enableCommands(true);
+                }
+            }
+            function loadProject() {
+                callApi("project_info")
+                    .then(renderHeader)
+                    .catch(() => {});
+                runCommand("scan_project", "Scanning project");
+            }
+            function enableCommands(on) {
+                ["btn-scan", "btn-checks"].forEach((id) => ($(id).disabled = !on));
+            }
+
+            $("btn-scan").addEventListener("click", () => runCommand("scan_project", "Scanning project"));
+            $("btn-checks").addEventListener("click", () => runCommand("check_all", "Running checks"));
+
+            // ── boot: populate project selector, then auto-scan ────────────
+            async function boot() {
+                $("mode-pill").textContent = "live";
+                const info = await callApi("list_projects");
+                const sel = $("project-select");
+                sel.innerHTML = "";
+                (info.projects || []).forEach((pr) => {
+                    const o = el("option", { value: pr.path }, pr.name);
+                    if (pr.path === info.current) o.selected = true;
+                    sel.append(o);
+                });
+                sel.addEventListener("change", async () => {
+                    await callApi("select_project", sel.value);
+                    loadProject();
+                });
+                if (info.projects && info.projects.length) {
+                    enableCommands(true);
+                    await callApi("select_project", sel.value);
+                    loadProject();
+                } else {
+                    enableCommands(false);
+                    setStatus("No project found. Set `working_dir` in your .oops.yaml.");
+                }
+            }
+            if (hasBridge()) {
+                boot();
+            } else {
+                window.addEventListener("pywebviewready", boot);
+                // static fallback: if a data.js set window.OOPS, render it offline
+                setTimeout(() => {
+                    if (!hasBridge()) {
+                        $("mode-pill").textContent = "static";
+                        if (window.OOPS) {
+                            render(window.OOPS);
+                        } else setStatus("Static mode — open via `python app.py` to run commands.");
+                    }
+                }, 400);
+            }
+        </script>
+    </body>
+</html>

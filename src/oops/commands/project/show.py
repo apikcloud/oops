@@ -18,6 +18,7 @@ import requests
 from oops.commands.base import command
 from oops.core.compat import Optional
 from oops.core.logger import live_progress
+from oops.core.metadata import get_metadata
 from oops.core.models import Result
 from oops.io.file import parse_odoo_version
 from oops.output.formatters import FormatterRegistry, JsonFormatter, MetricsConsoleFormatter
@@ -62,6 +63,8 @@ FORMATTERS: FormatterRegistry = {
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
 def main(token: Optional[str], output_format: str, output_path: Path):  # noqa: C901, PLR0912, PLR0915
+
+    metadata = get_metadata()
 
     repo, repo_path = require_repository()
     formatter = FORMATTERS[output_format]()
@@ -136,5 +139,5 @@ def main(token: Optional[str], output_format: str, output_path: Path):  # noqa: 
                 result.add_warning(f"GitHub Actions fetch failed: {e}")
 
     # 4. Prepare for the chosen audience and render.
-    output = ShowPresenter().prepare(result, target=formatter.target)
+    output = ShowPresenter().prepare(result, target=formatter.target, metadata=metadata)
     deliver(formatter, output, output_format, output_path)
