@@ -2110,10 +2110,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-dashboard = [
-    { name = "pywebview", version = "6.1", source = { registry = "https://pypi.org/simple" }, extra = ["qt"], marker = "python_full_version < '3.8'" },
-    { name = "pywebview", version = "6.2.1", source = { registry = "https://pypi.org/simple" }, extra = ["qt"], marker = "python_full_version >= '3.8'" },
-]
 dev = [
     { name = "coverage", version = "7.2.7", source = { registry = "https://pypi.org/simple" }, extra = ["toml"], marker = "python_full_version < '3.8'" },
     { name = "coverage", version = "7.6.1", source = { registry = "https://pypi.org/simple" }, extra = ["toml"], marker = "python_full_version == '3.8.*'" },
@@ -2146,6 +2142,10 @@ docs = [
     { name = "mkdocstrings", version = "0.30.1", source = { registry = "https://pypi.org/simple" }, extra = ["python"], marker = "python_full_version == '3.9.*'" },
     { name = "mkdocstrings", version = "1.0.3", source = { registry = "https://pypi.org/simple" }, extra = ["python"], marker = "python_full_version >= '3.10'" },
 ]
+gui = [
+    { name = "pywebview", version = "6.1", source = { registry = "https://pypi.org/simple" }, extra = ["qt"], marker = "python_full_version < '3.8'" },
+    { name = "pywebview", version = "6.2.1", source = { registry = "https://pypi.org/simple" }, extra = ["qt"], marker = "python_full_version >= '3.8'" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -2170,7 +2170,7 @@ requires-dist = [
     { name = "pyright", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "pywebview", extras = ["qt"], marker = "extra == 'dashboard'" },
+    { name = "pywebview", extras = ["qt"], marker = "extra == 'gui'" },
     { name = "pyyaml" },
     { name = "questionary" },
     { name = "requests" },
@@ -2181,7 +2181,7 @@ requires-dist = [
     { name = "typing-extensions", marker = "python_full_version < '3.8'", specifier = ">=4.7" },
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-provides-extras = ["dashboard", "dev", "docs"]
+provides-extras = ["dev", "docs", "gui"]
 
 [[package]]
 name = "packaging"

@@ -13,7 +13,7 @@ help:
 	@echo "  make cov          Run pytest with coverage"
 	@echo "  make cov-html     Run pytest with coverage (HTML)"
 	@echo "  make install-docs Install docs dependencies"
-	@echo "  make install-ui   Install GUI (pywebview) dependencies"
+	@echo "  make install-gui   Install GUI (pywebview) dependencies"
 	@echo "  make build        Build wheel/sdist"
 	@echo "  make docs         Build documentation site"
 	@echo "  make docs-serve   Reinstall + serve docs with live-reload"
@@ -25,8 +25,8 @@ install:
 install-docs:
 	uv sync --extra docs
 
-install-ui:
-	uv sync --extra dashboard --active
+install-gui:
+	uv sync --extra gui --active
 
 lint:
 	uv run ruff check .
