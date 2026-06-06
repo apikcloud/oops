@@ -15,6 +15,7 @@ from oops.kb.resolve import (
     build_depends_chain,
     format_source_line,
     resolve_symbol,
+    resolve_symbol_root,
 )
 
 # ---------------------------------------------------------------------------
@@ -263,6 +264,84 @@ class TestResolveSymbol:
         result_a = resolve_symbol([not_in_chain, transitive, in_chain], "my_module", index)
         result_b = resolve_symbol([in_chain, not_in_chain, transitive], "my_module", index)
         assert result_a["module"] == result_b["module"] == "sale"
+
+
+# ---------------------------------------------------------------------------
+# TestResolveSymbolRoot
+# ---------------------------------------------------------------------------
+
+
+class TestResolveSymbolRoot:
+    def test_empty_entries_returns_none(self):
+        assert resolve_symbol_root([], "my_module", {}) is None
+
+    def test_single_entry_returned_directly(self):
+        e = _entry("sale")
+        assert resolve_symbol_root([e], "my_module", {}) is e
+
+    def test_single_entry_from_same_module_returns_none(self):
+        e = _entry("my_module")
+        assert resolve_symbol_root([e], "my_module", {}) is None
+
+    def test_farther_dep_wins_over_closer_dep(self):
+        # project_sequence → project_role → project (core)
+        # resolve_symbol picks project_role (closest); resolve_symbol_root picks project (root)
+        index = _index(
+            ("project_sequence", "third-party", ["project_role"]),
+            ("project_role", "third-party", ["project"]),
+            ("project", "odoo", []),
+        )
+        closer = _entry("project_role", origin="third-party")
+        farther = _entry("project", origin="odoo")
+        result = resolve_symbol_root([closer, farther], "project_sequence", index)
+        assert result is not None
+        assert result["module"] == "project"
+
+    def test_same_distance_tier_breaks_toward_most_core(self):
+        # Both at distance 1 — odoo wins (most core)
+        index = _index(
+            ("my_module", "apik", ["tp_mod", "odoo_mod"]),
+            ("tp_mod", "third-party", []),
+            ("odoo_mod", "odoo", []),
+        )
+        tp = _entry("tp_mod", origin="third-party")
+        odoo = _entry("odoo_mod", origin="odoo")
+        result = resolve_symbol_root([tp, odoo], "my_module", index)
+        assert result is not None
+        assert result["module"] == "odoo_mod"
+
+    def test_intermediate_module_ignored_picks_original(self):
+        # Mirrors the bug: project_sequence deps include both hr_timesheet (odoo)
+        # and project_role (third-party) which both depend on project (odoo).
+        # resolve_symbol picks project_role (closest); resolve_symbol_root must
+        # pick project (the only entry with no upstream among the candidates).
+        index = _index(
+            ("project_sequence", "third-party", ["project_role", "hr_timesheet"]),
+            ("project_role", "third-party", ["project"]),
+            ("hr_timesheet", "odoo", ["project"]),
+            ("project", "odoo", []),
+        )
+        root = _entry("project", origin="odoo")
+        intermediate_tp = _entry("project_role", origin="third-party")
+        intermediate_core = _entry("hr_timesheet", origin="odoo")
+        result = resolve_symbol_root(
+            [root, intermediate_tp, intermediate_core], "project_sequence", index
+        )
+        assert result is not None
+        assert result["module"] == "project"
+
+    def test_order_of_input_entries_does_not_affect_result(self):
+        index = _index(
+            ("my_module", "apik", ["sale_ext"]),
+            ("sale_ext", "third-party", ["sale"]),
+            ("sale", "odoo", []),
+        )
+        closer = _entry("sale_ext", origin="third-party")
+        farther = _entry("sale", origin="odoo")
+        r1 = resolve_symbol_root([closer, farther], "my_module", index)
+        r2 = resolve_symbol_root([farther, closer], "my_module", index)
+        assert r1 is not None and r2 is not None
+        assert r1["module"] == r2["module"] == "sale"
 
 
 # ---------------------------------------------------------------------------

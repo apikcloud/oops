@@ -382,8 +382,8 @@ def _override_ref(sym, model: str) -> "Optional[dict]":
 
 
 def _inherited_ref(sym) -> dict:
-    """Descriptive inherited-from reference from the symbol's KB entry."""
-    e = sym.kb_entry or {}
+    """Descriptive inherited-from reference — uses root (original) KB entry when available."""
+    e = (getattr(sym, "kb_root_entry", None) or sym.kb_entry) or {}
     return {
         "origin_module": e.get("module") or None,
         "origin": normalize_origin(e.get("origin")),
