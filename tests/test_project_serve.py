@@ -82,6 +82,29 @@ class TestBuildPayload:
             "schema",
         }
 
+    def test_build_payload_merges_command_metadata(self, tmp_path: Path) -> None:
+        from oops.core.metadata import Metadata
+
+        addon = _fake_addon("my_module", str(tmp_path / "my_module"))
+        fake_meta = Metadata(command="project serve", project_name="acme", git_branch="main")
+        with patch("oops.commands.project.doc.list_submodules", return_value={}), \
+                patch("oops.commands.project.doc.find_addons", return_value=[addon]), \
+                patch("oops.commands.project.doc.enrich_addon"), \
+                patch(
+                    "oops.commands.project.doc.get_addon_loc",
+                    return_value=LocStats(python=10),
+                ), \
+                patch("oops.commands.project.serve._run_analyze", return_value=_FAKE_IR), \
+                patch("oops.commands.project.serve.get_metadata", return_value=fake_meta):
+            payload = build_payload(
+                MagicMock(), tmp_path, show_all=False, names=(), refresh=False
+            )
+
+        meta = payload["metadata"]
+        assert meta["project_name"] == "acme"
+        assert meta["git_branch"] == "main"
+        assert meta["schema_version"] == 2
+
     def test_build_payload_empty_inventory_raises_early_exit(
         self, tmp_path: Path
     ) -> None:

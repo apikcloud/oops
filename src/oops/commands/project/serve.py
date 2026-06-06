@@ -50,7 +50,9 @@ def build_payload(
     target = RenderTarget(audience="machine", verbosity="full")
     output = ProjectDocPresenter().prepare(result, target=target, metadata=get_metadata())
     docmodel = output.layout
-    return {**docmodel, "schema": load_descriptors()}
+    cmd_meta = {k: v for k, v in output.metadata.to_dict().items() if v is not None} if output.metadata else {}
+    merged_meta = {**docmodel.get("metadata", {}), **cmd_meta}
+    return {**docmodel, "metadata": merged_meta, "schema": load_descriptors()}
 
 
 def prepare_site_dir(payload: dict, dest: Path) -> Path:
