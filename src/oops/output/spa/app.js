@@ -114,6 +114,7 @@ const ROUTES = [
 function route() {
   const hash = location.hash || "#/";
   const app = document.getElementById("app");
+  if (_drawer) { _drawer.close(); }
   for (const r of ROUTES) {
     const m = hash.match(r.re);
     if (m) { app.innerHTML = ""; app.appendChild(r.view(m)); return; }
@@ -613,6 +614,93 @@ function viewModule(name) {
   return wrap;
 }
 
+// ----- Method kind helper (used across model page) -----
+function methodKind(m) {
+  if (m.is_override)  return "override";
+  if (m.is_inherited) return "inherited";
+  return "added";
+}
+
+// ----- Slide-in method drawer -----
+let _drawer = null;
+
+function ensureDrawer() {
+  if (_drawer) return _drawer;
+
+  const overlay  = el("div", { class: "drawer-overlay" });
+  const panel    = el("div", { class: "drawer-panel" });
+  const closeBtn = el("button", { class: "drawer-close", "aria-label": "Close" }, "✕");
+  const body     = el("div", { class: "drawer-body" });
+
+  panel.appendChild(closeBtn);
+  panel.appendChild(body);
+  document.body.appendChild(overlay);
+  document.body.appendChild(panel);
+
+  const close = () => {
+    panel.classList.remove("drawer-open");
+    overlay.classList.remove("drawer-overlay-visible");
+  };
+  closeBtn.addEventListener("click", close);
+  overlay.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+
+  _drawer = { panel, overlay, body, close };
+  return _drawer;
+}
+
+function openMethodDrawer(m) {
+  const { panel, overlay, body } = ensureDrawer();
+  body.innerHTML = "";
+
+  const kind = methodKind(m);
+  const lineCount = (m.line_start != null && m.line_end != null)
+    ? `lines ${m.line_start}–${m.line_end} (${m.line_end - m.line_start + 1} lines)` : null;
+  const decorators = (m.decorators || []);
+  const sig = [m.signature, ...decorators].filter(Boolean).join("\n");
+
+  body.appendChild(el("div", { class: "drawer-method-name mono" }, m.name || "—"));
+  body.appendChild(el("div", { class: "drawer-meta" }, [
+    el("span", { class: `ft-chip ${SECTION_CLASS[m.section || "OTHER"] || "other"}` }, m.section || "OTHER"),
+    el("span", { class: `kind-pill kind-${kind}` }, kind),
+  ]));
+
+  if (kind === "override" && m.overrides) {
+    const ov = m.overrides;
+    body.appendChild(el("div", { class: "drawer-row" }, [
+      el("span", { class: "drawer-label" }, "Overrides"),
+      el("span", {}, [(ov.origin_module || "—") + " ", ov.origin ? originBadge(ov.origin) : null]),
+    ]));
+  } else if (kind === "inherited" && m.inherited_from) {
+    const ih = m.inherited_from;
+    body.appendChild(el("div", { class: "drawer-row" }, [
+      el("span", { class: "drawer-label" }, "Inherited from"),
+      el("span", {}, [(ih.origin_module || "—") + " ", ih.origin ? originBadge(ih.origin) : null]),
+    ]));
+  }
+
+  if (m.docstring) {
+    body.appendChild(el("div", { class: "drawer-label" }, "Docstring"));
+    body.appendChild(el("p", { class: "drawer-docstring" }, m.docstring));
+  }
+
+  if (sig) {
+    body.appendChild(el("div", { class: "drawer-label" }, "Signature"));
+    body.appendChild(el("pre", { class: "drawer-sig" }, sig));
+  }
+
+  if (m.source_file) {
+    body.appendChild(el("div", { class: "drawer-label" }, "File"));
+    body.appendChild(el("div", { class: "drawer-path mono" }, m.source_file));
+  }
+  if (lineCount) {
+    body.appendChild(el("div", { class: "drawer-path" }, lineCount));
+  }
+
+  panel.classList.add("drawer-open");
+  overlay.classList.add("drawer-overlay-visible");
+}
+
 // ----- Model page (#/model/:bare) -----
 function viewModel(bare) {
   const data = window.OOPS;
@@ -632,72 +720,137 @@ function viewModel(bare) {
       : null,
   ]));
 
-  // Provenance
-  wrap.appendChild(el("h2", {}, "Provenance"));
-  const prov = el("p", { class: "page-subtitle" });
-  prov.appendChild(document.createTextNode(
-    "Extended by " + contributions.length + " module" + (contributions.length !== 1 ? "s" : "") + ": "
-  ));
-  contributions.forEach((c, i) => {
-    if (i > 0) prov.appendChild(document.createTextNode(", "));
-    prov.appendChild(el("a", { href: "#/module/" + encodeURIComponent(c.module) }, c.module));
-    prov.appendChild(document.createTextNode(
-      " (" + (c.fields || []).length + " fields, " + (c.methods || []).length + " methods)"
-    ));
+  // ----- Phase 1: Provenance + Extension Table -----
+  const provSection = el("div", { class: "provenance-section" });
+  provSection.appendChild(el("h2", {}, "Provenance"));
+
+  const extThead = el("thead", {}, [el("tr", {}, [
+    el("th", {}, "Module"),
+    el("th", {}, "Status"),
+    el("th", {}, "Origin"),
+    el("th", {}, "Ancestor"),
+    el("th", { class: "num", title: "Fields added (base/new)" }, "F+"),
+    el("th", { class: "num", title: "Fields inherited (extended)" }, "F~"),
+    el("th", { class: "num", title: "Methods added" }, "M+"),
+    el("th", { class: "num", title: "Methods inherited" }, "M~"),
+    el("th", { class: "num", title: "Methods overridden" }, "M↑"),
+  ])]);
+  const extRows = contributions.map((c) => {
+    const node    = c.model_node || {};
+    const fields  = c.fields  || [];
+    const methods = c.methods || [];
+    const fAdded  = fields.filter((f) => f.origin_status === "new" || f.origin_status === "base").length;
+    const fInher  = fields.filter((f) => f.origin_status === "extended").length;
+    const mAdded  = methods.filter((m) => methodKind(m) === "added").length;
+    const mInher  = methods.filter((m) => methodKind(m) === "inherited").length;
+    const mOver   = methods.filter((m) => methodKind(m) === "override").length;
+    const cls     = (window.OOPS.modules || []).find((mod) => mod.module === c.module)?.inventory?.classification;
+    const ownOrigin = cls === "third-party" ? "third_party" : (cls || null);
+    return el("tr", {}, [
+      el("td", { class: "mono" }, el("a", { href: "#/module/" + encodeURIComponent(c.module) }, c.module)),
+      el("td", {}, node.status ? el("span", { class: "status-pill" }, node.status) : "—"),
+      el("td", {}, ownOrigin ? originBadge(ownOrigin) : "—"),
+      el("td", { class: "mono prov-ancestor" }, node.ancestor_module || "—"),
+      numCell(fAdded), numCell(fInher),
+      numCell(mAdded), numCell(mInher), numCell(mOver),
+    ]);
   });
-  wrap.appendChild(prov);
+  provSection.appendChild(tableWrap(el("table", {}, [extThead, el("tbody", {}, extRows)])));
+  wrap.appendChild(provSection);
+
+  // ----- Unified metrics summary -----
+  const fTotal    = contributions.reduce((n, c) => n + (c.fields  || []).length, 0);
+  const fMetAdded = contributions.reduce((n, c) => n + (c.fields  || []).filter((f) => f.origin_status === "new" || f.origin_status === "base").length, 0);
+  const fMetInher = contributions.reduce((n, c) => n + (c.fields  || []).filter((f) => f.origin_status === "extended").length, 0);
+  const mTotal    = contributions.reduce((n, c) => n + (c.methods || []).length, 0);
+  const mMetAdded = contributions.reduce((n, c) => n + (c.methods || []).filter((m) => methodKind(m) === "added").length, 0);
+  const mMetInher = contributions.reduce((n, c) => n + (c.methods || []).filter((m) => methodKind(m) === "inherited").length, 0);
+  const mMetOver  = contributions.reduce((n, c) => n + (c.methods || []).filter((m) => methodKind(m) === "override").length, 0);
+
+  const mkCard = (value, label, cls) => el("div", { class: `fb-card ${cls}` }, [
+    el("div", { class: "fb-value" }, value),
+    el("div", { class: "fb-label" }, label),
+  ]);
+
+  const metricsGrid = el("div", { class: "model-metrics" });
+  if (fTotal) {
+    metricsGrid.appendChild(el("div", { class: "mm-row" }, [
+      el("span", { class: "mm-label" }, "Fields"),
+      mkCard(fTotal,    "Total",     "total"),
+      mkCard(fMetAdded, "Added",     "own"),
+      mkCard(fMetInher, "Inherited", "extended"),
+    ]));
+  }
+  if (mTotal) {
+    metricsGrid.appendChild(el("div", { class: "mm-row" }, [
+      el("span", { class: "mm-label" }, "Methods"),
+      mkCard(mTotal,    "Total",      "total"),
+      mkCard(mMetAdded, "Added",      "own"),
+      mkCard(mMetInher, "Inherited",  "extended"),
+      mkCard(mMetOver,  "Overridden", "override"),
+    ]));
+  }
+  wrap.appendChild(metricsGrid);
+
+  // ----- Phase 3: Page-wide module selector -----
+  const allModuleNames = [...new Set(contributions.map((c) => c.module))];
+  const pageFilterRow = el("div", { class: "filters", style: "margin-bottom:1rem" });
+  const modSelect = el("select", { class: "filter-select" });
+  modSelect.appendChild(el("option", { value: "" }, "All modules"));
+  allModuleNames.forEach((m) => modSelect.appendChild(el("option", { value: m }, m)));
+  pageFilterRow.appendChild(
+    el("label", { style: "display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted)" },
+      ["Filter by module ", modSelect])
+  );
+  wrap.appendChild(pageFilterRow);
 
   // ----- Fields -----
   const allFields = contributions.flatMap((c) =>
     (c.fields || []).map((f) => ({ ...f, _module: c.module }))
   );
 
-  if (allFields.length) {
-    wrap.appendChild(el("h2", {}, `Fields (${allFields.length})`));
+  let fieldsTbody         = null;
+  let typeSelect          = null;
+  let fieldKindSelect     = null;
+  let fieldsH2            = null;
+  let typesChipsContainer = null;
 
-    // Field breakdown cards
-    const ownCount = allFields.filter((f) => f.origin_status === "new" || f.origin_status === "base").length;
-    const extCount = allFields.filter((f) => f.origin_status === "extended").length;
-    wrap.appendChild(el("div", { class: "field-breakdown" }, [
-      el("div", { class: "fb-card own" }, [
-        el("div", { class: "fb-value" }, ownCount),
-        el("div", { class: "fb-label" }, "Own"),
-      ]),
-      el("div", { class: "fb-card extended" }, [
-        el("div", { class: "fb-value" }, extCount),
-        el("div", { class: "fb-label" }, "Extended"),
-      ]),
-    ]));
+  if (allFields.length) {
+    fieldsH2 = el("h2", {}, `Fields (${allFields.length})`);
+    wrap.appendChild(fieldsH2);
 
     // By type chips
     const byType = {};
     allFields.forEach((f) => { byType[f.type] = (byType[f.type] || 0) + 1; });
-    if (Object.keys(byType).length) {
-      wrap.appendChild(el("h4", {}, "By type"));
-      const types = el("div", {});
-      Object.entries(byType)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([t, n]) =>
-          types.appendChild(el("span", { class: "ft-chip" }, [t, el("span", { class: "count" }, n)]))
-        );
-      wrap.appendChild(types);
-    }
+    wrap.appendChild(el("h4", {}, "By type"));
+    typesChipsContainer = el("div", {});
+    Object.entries(byType)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([t, n]) =>
+        typesChipsContainer.appendChild(el("span", { class: "ft-chip" }, [t, el("span", { class: "count" }, n)]))
+      );
+    wrap.appendChild(typesChipsContainer);
 
-    // Filters
-    const modules = [...new Set(allFields.map((f) => f._module))];
-    const types = [...new Set(allFields.map((f) => f.type || "").filter(Boolean))].sort();
-    const filterRow = el("div", { class: "filters", style: "margin-top:1rem" });
-    const modSelect = el("select", { class: "filter-select" });
-    modSelect.appendChild(el("option", { value: "" }, "All modules"));
-    modules.forEach((m) => modSelect.appendChild(el("option", { value: m }, m)));
-    const typeSelect = el("select", { class: "filter-select" });
+    // Type filter (fields-only)
+    const fieldFilterRow = el("div", { class: "filters", style: "margin-top:1rem" });
+    const fieldTypes = [...new Set(allFields.map((f) => f.type || "").filter(Boolean))].sort();
+    typeSelect = el("select", { class: "filter-select" });
     typeSelect.appendChild(el("option", { value: "" }, "All types"));
-    types.forEach((t) => typeSelect.appendChild(el("option", { value: t }, t)));
-    filterRow.appendChild(el("label", { style: "display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted)" }, ["Module ", modSelect]));
-    filterRow.appendChild(el("label", { style: "display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted)" }, ["Type ", typeSelect]));
-    wrap.appendChild(filterRow);
+    fieldTypes.forEach((t) => typeSelect.appendChild(el("option", { value: t }, t)));
+    fieldFilterRow.appendChild(
+      el("label", { style: "display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted)" },
+        ["Type ", typeSelect])
+    );
+    fieldKindSelect = el("select", { class: "filter-select" });
+    [["", "All kinds"], ["added", "Added"], ["inherited", "Inherited"]]
+      .forEach(([v, l]) => fieldKindSelect.appendChild(el("option", { value: v }, l)));
+    fieldFilterRow.appendChild(
+      el("label", { style: "display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted)" },
+        ["Kind ", fieldKindSelect])
+    );
+    wrap.appendChild(fieldFilterRow);
 
-    const thead = el("thead", {}, [
+    const fThead = el("thead", {}, [
       el("tr", {}, [
         el("th", {}, "Field"),
         el("th", {}, "Type"),
@@ -709,7 +862,7 @@ function viewModel(bare) {
       ]),
     ]);
 
-    const tbody = el("tbody", {});
+    fieldsTbody = el("tbody", {});
     allFields
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -742,40 +895,50 @@ function viewModel(bare) {
             ])
           : el("td", {}, el("span", { class: "status-pill" }, f.origin_status || "—"));
 
-        const row = el("tr", { "data-module": f._module, "data-type": f.type || "" }, [
+        const fieldKind = f.origin_status === "extended" ? "inherited" : "added";
+        const row = el("tr", { "data-module": f._module, "data-type": f.type || "", "data-kind": fieldKind }, [
           el("td", { class: "mono" }, f.name || "—"),
           typeCell,
           el("td", {}, label),
           el("td", { class: "cell-help" }, helpText),
           el("td", { class: "cell-flags" }, flags || "—"),
-          el("td", {}, badge((data.modules || []).find((m) => m.module === f._module)?.inventory?.classification)),
+          el("td", { class: "mono", style: "font-size:.76rem" }, el("a", { href: "#/module/" + encodeURIComponent(f._module) }, f._module)),
           statusCell,
         ]);
-        tbody.appendChild(row);
+        fieldsTbody.appendChild(row);
       });
 
-    wrap.appendChild(tableWrap(el("table", {}, [thead, tbody])));
+    wrap.appendChild(tableWrap(el("table", {}, [fThead, fieldsTbody])));
 
-    // Wire filters
-    function applyFilters() {
-      const mod = modSelect.value;
+    const applyFieldFilters = () => {
+      const mod  = modSelect.value;
       const type = typeSelect.value;
-      for (const row of tbody.querySelectorAll("tr")) {
-        const show = (!mod || row.dataset.module === mod) && (!type || row.dataset.type === type);
+      const kind = fieldKindSelect.value;
+      for (const row of fieldsTbody.querySelectorAll("tr")) {
+        const show = (!mod  || row.dataset.module === mod)
+          && (!type || row.dataset.type === type)
+          && (!kind || row.dataset.kind === kind);
         row.style.display = show ? "" : "none";
       }
-    }
-    modSelect.addEventListener("change", applyFilters);
-    typeSelect.addEventListener("change", applyFilters);
+    };
+    typeSelect.addEventListener("change", applyFieldFilters);
+    fieldKindSelect.addEventListener("change", applyFieldFilters);
   }
 
-  // ----- Methods grouped by section -----
+  // ----- Methods -----
   const allMethods = contributions.flatMap((c) =>
     (c.methods || []).map((m) => ({ ...m, _module: c.module }))
   );
 
+  let methodsTbody         = null;
+  let sectionSelect        = null;
+  let kindSelect           = null;
+  let methodsH2            = null;
+  let sectionChipsContainer = null;
+
   if (allMethods.length) {
-    wrap.appendChild(el("h2", {}, `Methods (${allMethods.length})`));
+    methodsH2 = el("h2", {}, `Methods (${allMethods.length})`);
+    wrap.appendChild(methodsH2);
 
     // Section summary chips
     const bySection = {};
@@ -783,75 +946,208 @@ function viewModel(bare) {
       const sec = m.section || "OTHER";
       (bySection[sec] = bySection[sec] || []).push(m);
     }
-    const chips = el("div", { style: "margin-bottom:1rem" });
+    sectionChipsContainer = el("div", { style: "margin-bottom:1rem" });
     Object.entries(bySection)
       .sort((a, b) => b[1].length - a[1].length)
       .forEach(([s, arr]) =>
-        chips.appendChild(el("span", { class: `ft-chip ${SECTION_CLASS[s] || "other"}` }, [
+        sectionChipsContainer.appendChild(el("span", { class: `ft-chip ${SECTION_CLASS[s] || "other"}` }, [
           s, el("span", { class: "count" }, arr.length),
         ]))
       );
-    wrap.appendChild(chips);
+    wrap.appendChild(sectionChipsContainer);
 
-    const sectionOrder = [...SECTION_ORDER];
-    for (const sec of Object.keys(bySection)) {
-      if (!sectionOrder.includes(sec)) sectionOrder.push(sec);
+    // Phase 4: Section + kind selectors
+    const methodFilterRow = el("div", { class: "filters", style: "margin-bottom:1rem" });
+
+    sectionSelect = el("select", { class: "filter-select" });
+    sectionSelect.appendChild(el("option", { value: "" }, "All sections"));
+    const presentSections = SECTION_ORDER.filter((s) => bySection[s]?.length);
+    for (const sec of presentSections) {
+      sectionSelect.appendChild(el("option", { value: sec }, sec));
     }
 
-    for (const sec of sectionOrder) {
-      const methods = bySection[sec];
-      if (!methods || !methods.length) continue;
+    kindSelect = el("select", { class: "filter-select" });
+    [["", "All kinds"], ["added", "Added"], ["inherited", "Inherited"], ["override", "Overridden"]]
+      .forEach(([v, l]) => kindSelect.appendChild(el("option", { value: v }, l)));
 
-      wrap.appendChild(el("h3", {
-        style: `font-size:.9rem;color:var(--section-${SECTION_CLASS[sec] || "other"})`
-      }, sec));
+    methodFilterRow.appendChild(
+      el("label", { style: "display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted)" },
+        ["Section ", sectionSelect])
+    );
+    methodFilterRow.appendChild(
+      el("label", { style: "display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-muted)" },
+        ["Kind ", kindSelect])
+    );
+    wrap.appendChild(methodFilterRow);
 
-      const thead = el("thead", {}, [
-        el("tr", {}, [
-          el("th", {}, "Method"),
-          el("th", {}, "Signature"),
-          el("th", {}, "Module"),
-          el("th", {}, "Overrides"),
-          el("th", {}, "Doc"),
-        ]),
-      ]);
+    // Phase 4: Unified methods table
+    const mThead = el("thead", {}, [el("tr", {}, [
+      el("th", {}, "Method"),
+      el("th", {}, "Section"),
+      el("th", {}, "Kind"),
+      el("th", {}, "Module"),
+      el("th", {}, "Origin / From"),
+      el("th", { class: "num" }, "Lines"),
+      el("th", {}, "Doc"),
+    ])]);
 
-      const rows = methods
-        .slice()
-        .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
-        .map((m) => {
-          const decorators = (m.decorators || []).join(", ");
-          const sig = (m.signature || "") + (decorators ? "\n" + decorators : "");
+    methodsTbody = el("tbody", {});
 
-          let overrideCell;
-          if (m.overrides) {
-            const ov = m.overrides;
-            overrideCell = m.model_ref
-              ? renderRef(m.model_ref)
-              : el("span", { class: "ovr" }, [
-                  (ov.origin_module || "—"),
-                  ov.origin ? [" ", originBadge(ov.origin)] : null,
-                ]);
-          } else {
-            overrideCell = el("span", { style: "color:var(--text-muted)" }, "—");
-          }
+    allMethods
+      .slice()
+      .sort((a, b) => {
+        const si = SECTION_ORDER.indexOf(a.section || "OTHER") - SECTION_ORDER.indexOf(b.section || "OTHER");
+        return si !== 0 ? si : (a.name || "").localeCompare(b.name || "");
+      })
+      .forEach((m) => {
+        const kind  = methodKind(m);
+        const lines = (m.line_start != null && m.line_end != null)
+          ? (m.line_end - m.line_start + 1) : null;
 
-          return el("tr", {}, [
-            el("td", { class: "mono", style: "font-size:.76rem" }, m.name || "—"),
-            el("td", { class: "mono", style: "font-size:.72rem;white-space:pre" }, sig),
-            el("td", {}, m._module
-              ? badge((data.modules || []).find((mod) => mod.module === m._module)?.inventory?.classification)
-              : "—"),
-            el("td", {}, overrideCell),
-            el("td", {}, m.docstring
-              ? el("span", { class: "doc-yes" }, "✓")
-              : el("span", { class: "doc-no" }, "—")),
+        let originCell;
+        if (kind === "override" && m.overrides) {
+          const ov = m.overrides;
+          originCell = el("td", {}, [
+            el("span", { class: "ovr" }, (ov.origin_module || "—") + " "),
+            ov.origin ? originBadge(ov.origin) : null,
           ]);
-        });
+        } else if (kind === "inherited" && m.inherited_from) {
+          const ih = m.inherited_from;
+          originCell = el("td", {}, [
+            el("span", { class: "ovr" }, (ih.origin_module || "—") + " "),
+            ih.origin ? originBadge(ih.origin) : null,
+          ]);
+        } else {
+          originCell = el("td", { style: "color:var(--text-muted)" }, "—");
+        }
 
-      wrap.appendChild(tableWrap(el("table", {}, [thead, el("tbody", {}, rows)])));
+        const row = el("tr", {
+          class: "clickable",
+          "data-module": m._module,
+          "data-section": m.section || "OTHER",
+          "data-kind": kind,
+        }, [
+          el("td", { class: "mono", style: "font-size:.76rem" }, m.name || "—"),
+          el("td", {}, el("span", {
+            class: `ft-chip ${SECTION_CLASS[m.section || "OTHER"] || "other"}`,
+            style: "font-size:.68rem;padding:.05rem .35rem",
+          }, m.section || "OTHER")),
+          el("td", {}, el("span", { class: `kind-pill kind-${kind}` }, kind)),
+          el("td", { class: "mono", style: "font-size:.76rem" }, m._module
+            ? el("a", { href: "#/module/" + encodeURIComponent(m._module) }, m._module)
+            : "—"),
+          originCell,
+          el("td", { class: "num" }, lines != null ? lines : "—"),
+          el("td", {}, m.docstring
+            ? el("span", { class: "doc-yes" }, "✓")
+            : el("span", { class: "doc-no" }, "—")),
+        ]);
+
+        row.addEventListener("click", () => openMethodDrawer(m));
+        methodsTbody.appendChild(row);
+      });
+
+    wrap.appendChild(tableWrap(el("table", {}, [mThead, methodsTbody])));
+
+    function applyMethodFilters() {
+      const sec  = sectionSelect.value;
+      const kind = kindSelect.value;
+      const mod  = modSelect.value;
+      for (const row of methodsTbody.querySelectorAll("tr")) {
+        const show = (!sec || row.dataset.section === sec)
+          && (!kind || row.dataset.kind === kind)
+          && (!mod  || row.dataset.module  === mod);
+        row.style.display = show ? "" : "none";
+      }
+    }
+    sectionSelect.addEventListener("change", applyMethodFilters);
+    kindSelect.addEventListener("change", applyMethodFilters);
+  }
+
+  // Phase 3: Wire page-wide module selector to both tables and metrics
+  function updateMetricsFor(mod) {
+    const ff = mod ? allFields.filter((f) => f._module === mod)  : allFields;
+    const fm = mod ? allMethods.filter((m) => m._module === mod) : allMethods;
+
+    // Metrics grid
+    const fT = ff.length;
+    const fA = ff.filter((f) => f.origin_status === "new" || f.origin_status === "base").length;
+    const fI = ff.filter((f) => f.origin_status === "extended").length;
+    const mT = fm.length;
+    const mA = fm.filter((m) => methodKind(m) === "added").length;
+    const mI = fm.filter((m) => methodKind(m) === "inherited").length;
+    const mO = fm.filter((m) => methodKind(m) === "override").length;
+    metricsGrid.innerHTML = "";
+    if (fT) {
+      metricsGrid.appendChild(el("div", { class: "mm-row" }, [
+        el("span", { class: "mm-label" }, "Fields"),
+        mkCard(fT, "Total", "total"),
+        mkCard(fA, "Added", "own"),
+        mkCard(fI, "Inherited", "extended"),
+      ]));
+    }
+    if (mT) {
+      metricsGrid.appendChild(el("div", { class: "mm-row" }, [
+        el("span", { class: "mm-label" }, "Methods"),
+        mkCard(mT, "Total", "total"),
+        mkCard(mA, "Added", "own"),
+        mkCard(mI, "Inherited", "extended"),
+        mkCard(mO, "Overridden", "override"),
+      ]));
+    }
+
+    // Fields h2 + by-type chips
+    if (fieldsH2) fieldsH2.textContent = `Fields (${fT})`;
+    if (typesChipsContainer) {
+      typesChipsContainer.innerHTML = "";
+      const byType = {};
+      ff.forEach((f) => { byType[f.type] = (byType[f.type] || 0) + 1; });
+      Object.entries(byType).sort((a, b) => b[1] - a[1]).forEach(([t, n]) =>
+        typesChipsContainer.appendChild(el("span", { class: "ft-chip" }, [t, el("span", { class: "count" }, n)]))
+      );
+    }
+
+    // Methods h2 + section chips
+    if (methodsH2) methodsH2.textContent = `Methods (${mT})`;
+    if (sectionChipsContainer) {
+      sectionChipsContainer.innerHTML = "";
+      const bySection = {};
+      for (const m of fm) {
+        const sec = m.section || "OTHER";
+        (bySection[sec] = bySection[sec] || []).push(m);
+      }
+      Object.entries(bySection).sort((a, b) => b[1].length - a[1].length).forEach(([s, arr]) =>
+        sectionChipsContainer.appendChild(el("span", { class: `ft-chip ${SECTION_CLASS[s] || "other"}` }, [
+          s, el("span", { class: "count" }, arr.length),
+        ]))
+      );
     }
   }
+
+  modSelect.addEventListener("change", () => {
+    const mod = modSelect.value;
+    updateMetricsFor(mod);
+    if (fieldsTbody) {
+      const type = typeSelect      ? typeSelect.value      : "";
+      const kind = fieldKindSelect ? fieldKindSelect.value : "";
+      for (const row of fieldsTbody.querySelectorAll("tr")) {
+        const show = (!mod  || row.dataset.module === mod)
+          && (!type || row.dataset.type === type)
+          && (!kind || row.dataset.kind === kind);
+        row.style.display = show ? "" : "none";
+      }
+    }
+    if (methodsTbody) {
+      const sec  = sectionSelect ? sectionSelect.value : "";
+      const kind = kindSelect    ? kindSelect.value    : "";
+      for (const row of methodsTbody.querySelectorAll("tr")) {
+        const show = (!mod  || row.dataset.module  === mod)
+          && (!sec  || row.dataset.section === sec)
+          && (!kind || row.dataset.kind    === kind);
+        row.style.display = show ? "" : "none";
+      }
+    }
+  });
 
   return wrap;
 }
