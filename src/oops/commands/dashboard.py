@@ -105,6 +105,12 @@ class Api:
             return {"metadata": {"command": "error"}, "error": "no project selected"}
         return _run_oops(["requirements", "check"], cwd=path)
 
+    def project_info(self, path: "str | None" = None) -> dict:
+        path = path or self._project_path
+        if not path:
+            return {"metadata": {"command": "error"}, "error": "no project selected"}
+        return _run_oops(["project", "show"], cwd=path)
+
 
 @command(name="dashboard", help="Launch the oops project synthesis dashboard (desktop GUI).")
 @click.option("--debug", is_flag=True, default=False, hidden=True, help="Open devtools.")

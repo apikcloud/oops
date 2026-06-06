@@ -268,7 +268,7 @@ class JsonFormatter(OutputFormatter):
     def render(self, output: Output[dict]) -> str:
         data = output.unwrap
 
-        assert output.metadata is not None
+        assert output.metadata is not None, "Metadata is missing"
         data = {**data, "metadata": output.metadata.to_dict()}
 
         return to_json_string(data)
