@@ -105,6 +105,4 @@ def stats_flush_marker() -> Path:
 # ---------------------------------------------------------------------------
 
 
-TEMPLATES = files("oops.output") / "templates"
-SPA = files("oops.output") / "spa"
-WEB = files("oops.output") / "web"
+UI = files("oops.output") / "ui"

@@ -18,11 +18,11 @@ from oops.core.metadata import get_metadata
 from oops.core.models import AddonInfo, Result
 from oops.io.file import enrich_addon, find_addons
 from oops.output.formatters import (
-    AddonsReportFormatter,
     CsvFormatter,
     FormatterRegistry,
     JsonFormatter,
     OutputFormatter,
+    SpaReportFormatter,
     SummaryConsoleFormatter,
 )
 from oops.output.sinks import deliver
@@ -34,7 +34,7 @@ from .presenters.list import ListPresenter
 FORMATTERS: FormatterRegistry = {
     "text": SummaryConsoleFormatter,
     "json": JsonFormatter,
-    "html": AddonsReportFormatter,
+    "html": SpaReportFormatter,
     "csv": CsvFormatter,
 }
 

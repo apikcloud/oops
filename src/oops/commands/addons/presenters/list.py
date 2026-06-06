@@ -123,8 +123,18 @@ class ListPresenter(SimplePresenter[List[AddonInfo]]):
 
         metrics = _build_metrics(result)
 
+        def _flatten(addon: "AddonInfo") -> dict:
+            d = asdict(addon)
+            loc = d.get("loc") or {}
+            d["loc_python"] = loc.get("python", 0)
+            d["loc_xml"] = loc.get("xml", 0)
+            d["loc_js"] = loc.get("javascript", 0)
+            d["loc_docs"] = loc.get("docs", 0)
+            d["loc_total"] = loc.get("python", 0) + loc.get("xml", 0) + loc.get("javascript", 0) + loc.get("docs", 0)
+            return d
+
         return {
-            "data": [asdict(addon) for addon in result.unwrap],
+            "data": [_flatten(addon) for addon in result.unwrap],
             "metrics": [s.to_dict(summary=True) for s in metrics],
             "warnings": result.warnings,
         }

@@ -11,6 +11,8 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+!src/oops/output/ui/dist/
+!src/oops/output/ui/dist/app.bundle.js
 downloads/
 eggs/
 .eggs/

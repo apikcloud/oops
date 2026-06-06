@@ -26,7 +26,7 @@ from oops.core.exceptions import EarlyExit
 from oops.core.logger import live_progress
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
-from oops.core.paths import SPA
+from oops.core.paths import UI
 from oops.output.base import RenderTarget
 from oops.output.descriptors import load_descriptors
 from oops.output.serializers import to_json_string
@@ -51,13 +51,13 @@ def build_payload(
     output = ProjectDocPresenter().prepare(result, target=target, metadata=get_metadata())
     docmodel = output.layout
     cmd_meta = {k: v for k, v in output.metadata.to_dict().items() if v is not None} if output.metadata else {}
-    merged_meta = {**docmodel.get("metadata", {}), **cmd_meta}
+    merged_meta = {**docmodel.get("metadata", {}), **cmd_meta, "command": "project serve"}
     return {**docmodel, "metadata": merged_meta, "schema": load_descriptors()}
 
 
 def prepare_site_dir(payload: dict, dest: Path) -> Path:
-    """Copy vendored SPA assets into `dest` and write `data.js`."""
-    shutil.copytree(str(SPA), dest, dirs_exist_ok=True)
+    """Copy UI assets into `dest` and write `data.js`."""
+    shutil.copytree(str(UI), dest, dirs_exist_ok=True)
     (dest / "data.js").write_text(
         "window.OOPS = " + to_json_string(payload) + ";\n",
         encoding="utf-8",

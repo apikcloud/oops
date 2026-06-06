@@ -95,6 +95,21 @@ class Api:
             )
         return {"metadata": {"command": "checks"}, "sections": sections}
 
+    def doc_project(self, path: "str | None" = None) -> dict:
+        from pathlib import Path  # noqa: PLC0415
+
+        from git import Repo  # noqa: PLC0415
+        from oops.commands.project.serve import build_payload  # noqa: PLC0415
+
+        p = path or self._project_path
+        if not p:
+            return {"metadata": {"command": "error"}, "error": "no project selected"}
+        try:
+            repo = Repo(p, search_parent_directories=True)
+            return build_payload(repo, Path(p), show_all=False, names=(), refresh=False)
+        except Exception as exc:
+            return {"metadata": {"command": "error"}, "error": str(exc)}
+
     def project_info(self, path: "str | None" = None) -> dict:
         path = path or self._project_path
         if not path:

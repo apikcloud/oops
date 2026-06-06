@@ -21,8 +21,8 @@ from oops.output.formatters import (
     FormatterRegistry,
     JsonFormatter,
     OutputFormatter,
-    ReleasesReportFormatter,
     SimpleSummaryConsoleFormatter,
+    SpaReportFormatter,
 )
 from oops.services.git import require_repository
 from oops.utils.versioning import count_release_types, read_releases
@@ -32,7 +32,7 @@ from .presenters.show import ShowPresenter
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
     "json": JsonFormatter,
-    "html": ReleasesReportFormatter,
+    "html": SpaReportFormatter,
 }
 
 

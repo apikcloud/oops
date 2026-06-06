@@ -97,10 +97,10 @@ from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_st
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
 from oops.output.formatters import (
-    AnalysisReportFormatter,
     FormatterRegistry,
     JsonFormatter,
     OutputFormatter,
+    SpaReportFormatter,
     SummaryConsoleFormatter,
 )
 from oops.output.sinks import deliver
@@ -115,7 +115,7 @@ from .presenters.analyze import AnalyzePresenter
 FORMATTERS: FormatterRegistry = {
     "text": SummaryConsoleFormatter,
     "json": JsonFormatter,
-    "html": AnalysisReportFormatter,
+    "html": SpaReportFormatter,
 }
 
 

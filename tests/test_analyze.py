@@ -600,7 +600,7 @@ class TestAnalyzeSchemaV2:
             for key in module[group]:
                 assert descriptor(group, key) is not None, f"no descriptor for {group}.{key}"
 
-    def test_html_gated(self, tmp_path: Path) -> None:
+    def test_html_produces_self_contained_output(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
         _make_kb(db_path)
         module_path = _make_module_full(
@@ -608,10 +608,15 @@ class TestAnalyzeSchemaV2:
             "my_module",
             manifest={"name": "My Module", "depends": ["base"]},
         )
+        out_path = tmp_path / "out.html"
         with _mock_analyze(tmp_path, db_path):
-            result = CliRunner().invoke(main, ["--format", "html", str(module_path)])
-        assert result.exit_code != 0
-        assert "temporarily" in result.output.lower() or "unavailable" in result.output.lower()
+            result = CliRunner().invoke(
+                main, ["--format", "html", "--output-path", str(out_path), str(module_path)]
+            )
+        assert result.exit_code == 0, result.output
+        content = out_path.read_text(encoding="utf-8")
+        assert "<html" in content
+        assert "window.OOPS" in content
 
 
 # ---------------------------------------------------------------------------

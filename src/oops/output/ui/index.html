@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oops</title>
+  <link rel="stylesheet" href="./css/tokens.css" />
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <div class="brand"><span class="brand-name">oops</span><span class="brand-cmd" id="brand-cmd"></span></div>
+    </div>
+  </header>
+  <main id="app">Loading…</main>
+
+  <!--
+    Hydration source, by mode:
+      serve     → data.js exists, sets window.OOPS        (static)
+      export    → the assembler replaces this line with    <script>window.OOPS = {…}</script>
+      dashboard → data.js 404s (ignored), window.pywebview present (bridge)
+  -->
+  <script src="./data.js" onerror="void 0"></script>
+  <script src="./dist/app.bundle.js"></script>
+</body>
+</html>
