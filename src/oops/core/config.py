@@ -229,6 +229,8 @@ class Config:
     stats: StatsConfig = field(default_factory=StatsConfig)
     requirements: RequirementsConfig = field(default_factory=RequirementsConfig)
 
+    working_dir: Optional[str] = None
+
     # Internal / misc (not exposed in .oops.yaml)
     manifest_names: List[str] = field(default_factory=lambda: ["__manifest__.py", "__openerp__.py", "__terp__.py"])
     default_timeout: int = 60

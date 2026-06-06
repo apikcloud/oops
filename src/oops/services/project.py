@@ -65,6 +65,24 @@ class CheckRecommendedFiles(Check[ProjectCheckContext]):
         return self.result
 
 
+def find_projects(working_dir: Path) -> list[Path]:
+    """Return sorted child directories of *working_dir* that look like oops projects.
+
+    A directory qualifies when it is a git repository (``.git`` present) and
+    contains every file in ``config.project.mandatory_files``.
+    """
+    if not working_dir.is_dir():
+        return []
+    mandatory = config.project.mandatory_files
+    projects: list[Path] = []
+    for child in sorted(working_dir.iterdir()):
+        if not child.is_dir() or not (child / ".git").exists():
+            continue
+        if mandatory.issubset(set(os.listdir(child))):
+            projects.append(child)
+    return projects
+
+
 def require_project(repo_path: Path) -> ImageInfo:
     """Guard: assert all mandatory files exist, then parse and return the Odoo version.
 

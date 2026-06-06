@@ -213,6 +213,19 @@
             .badge.third-party {
                 background: var(--third-party);
             }
+            select.project {
+                font-family: var(--mono);
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                border: 1px solid var(--border);
+                border-radius: 5px;
+                padding: 0.35rem 0.6rem;
+                background: var(--bg-card);
+                margin-right: auto;
+                max-width: 260px;
+            }
+            tr.clickable { cursor: pointer; }
+            tr.clickable:hover td { background: var(--bg-soft); }
         </style>
     </head>
     <body>
@@ -224,10 +237,10 @@
         </header>
 
         <div class="toolbar">
-            <span class="project" id="project-path">no project selected</span>
-            <button id="btn-pick">Choose project…</button>
-            <button id="btn-scan" class="primary" disabled>Scan project</button>
-            <button id="btn-analyze" disabled>Analyze module…</button>
+            <select id="project-select" class="project"></select>
+            <button id="btn-scan" class="primary" disabled>Scan</button>
+            <button id="btn-check-project" disabled>Project check</button>
+            <button id="btn-check-req" disabled>Requirements check</button>
         </div>
 
         <main>
@@ -258,6 +271,8 @@
             const VIEWS = {
                 "addons list": renderSynthesis,
                 "addons analyze": renderAnalyzeSummary,
+                "project check": renderChecks,
+                "requirements check": renderChecks,
                 cancelled: () => setStatus("Cancelled."),
                 error: (p) => setStatus("Error: " + (p.error || "unknown")),
             };
@@ -307,15 +322,15 @@
                         _loc: (a.loc.python || 0) + (a.loc.xml || 0) + (a.loc.javascript || 0) + (a.loc.docs || 0),
                     }))
                     .sort((a, b) => b._loc - a._loc)
-                    .forEach((a) =>
-                        tb.append(
-                            el("tr", {}, [
-                                el("td", {}, a.technical_name),
-                                el("td", {}, el("span", { class: `badge ${a.classification}` }, a.classification)),
-                                el("td", { class: "num" }, fmt(a._loc)),
-                            ]),
-                        ),
-                    );
+                    .forEach((a) => {
+                        const tr = el("tr", { class: "clickable" }, [
+                            el("td", {}, a.technical_name),
+                            el("td", {}, el("span", { class: `badge ${a.classification}` }, a.classification)),
+                            el("td", { class: "num" }, fmt(a._loc)),
+                        ]);
+                        tr.addEventListener("click", () => runCommand("analyze_module", "Analyzing module", a.path));
+                        tb.append(tr);
+                    });
                 table.append(tb);
                 root.append(table);
             }
@@ -348,6 +363,24 @@
                 );
             }
 
+            function renderChecks(p) {
+                const root = $("view"); root.innerHTML = ""; setStatus("");
+                const cls = (s) => (s === "passed" ? "custom" : s === "failed" ? "third-party" : "core");
+                root.append(el("h2", {}, "Checks"));
+                const table = el("table");
+                table.append(el("thead", {}, el("tr", {}, [
+                    el("th", {}, "Check"), el("th", {}, "Status"), el("th", {}, "Items"),
+                ])));
+                const tb = el("tbody");
+                (p.data || []).forEach((c) => tb.append(el("tr", {}, [
+                    el("td", {}, c.label),
+                    el("td", {}, el("span", { class: `badge ${cls(c.status)}` }, c.status)),
+                    el("td", {}, (c.items || []).join(", ") || "—"),
+                ])));
+                table.append(tb); root.append(table);
+                (p.warnings || []).forEach((w) => root.append(el("div", { class: "status" }, "⚠ " + w)));
+            }
+
             function renderUnknown(p) {
                 setStatus("No view registered for command: " + (p?.metadata?.command || "—"));
             }
@@ -361,32 +394,40 @@
                 } catch (e) {
                     setStatus(e.message);
                 } finally {
-                    enableCommands();
+                    enableCommands(true);
                 }
             }
-            function enableCommands() {
-                const live = hasBridge();
-                $("btn-pick").disabled = !live;
-                $("btn-scan").disabled = !live;
-                $("btn-analyze").disabled = !live;
+            function enableCommands(on) {
+                ["btn-scan", "btn-check-project", "btn-check-req"].forEach((id) => ($(id).disabled = !on));
             }
 
             $("btn-scan").addEventListener("click", () => runCommand("scan_project", "Scanning project"));
-            $("btn-analyze").addEventListener("click", () => runCommand("analyze_module", "Analyzing module"));
-            $("btn-pick").addEventListener("click", async () => {
-                const path = await callApi("pick_project");
-                if (path) {
-                    $("project-path").textContent = path;
-                    runCommand("scan_project", "Scanning project");
-                }
-            });
+            $("btn-check-project").addEventListener("click", () => runCommand("check_project", "Checking project"));
+            $("btn-check-req").addEventListener("click", () => runCommand("check_requirements", "Checking requirements"));
 
-            // ── boot: wait for the bridge, then auto-scan ───────────────────
-            function boot() {
+            // ── boot: populate project selector, then auto-scan ────────────
+            async function boot() {
                 $("mode-pill").textContent = "live";
-                enableCommands();
-                setStatus("Ready. Scanning current project…");
-                runCommand("scan_project", "Scanning project");
+                const info = await callApi("list_projects");
+                const sel = $("project-select");
+                sel.innerHTML = "";
+                (info.projects || []).forEach((pr) => {
+                    const o = el("option", { value: pr.path }, pr.name);
+                    if (pr.path === info.current) o.selected = true;
+                    sel.append(o);
+                });
+                sel.addEventListener("change", async () => {
+                    await callApi("select_project", sel.value);
+                    runCommand("scan_project", "Scanning project");
+                });
+                if (info.projects && info.projects.length) {
+                    enableCommands(true);
+                    await callApi("select_project", sel.value);
+                    runCommand("scan_project", "Scanning project");
+                } else {
+                    enableCommands(false);
+                    setStatus("No project found. Set `working_dir` in your .oops.yaml.");
+                }
             }
             if (hasBridge()) {
                 boot();
