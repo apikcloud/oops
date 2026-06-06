@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>oops</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --apik-primary: #2e3548;
+                --apik-accent: #505ba6;
+                --apik-accent-light: #8b93cf;
+                --bg: #f7f8fb;
+                --bg-card: #fff;
+                --bg-soft: #eef0f6;
+                --border: #e2e5ee;
+                --text: #1c2230;
+                --text-muted: #6b7180;
+                --font: "DM Sans", system-ui, sans-serif;
+                --mono: "DM Mono", ui-monospace, monospace;
+                --core: #505ba6;
+                --oca: #4f828f;
+                --custom: #5f8a6a;
+                --third-party: #b07449;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                font-family: var(--font);
+                background: var(--bg);
+                color: var(--text);
+                margin: 0;
+            }
+
+            .site-header {
+                background: var(--apik-primary);
+                color: #fff;
+                padding: 1rem 1.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+            }
+            .brand {
+                display: flex;
+                align-items: baseline;
+                gap: 0.5rem;
+            }
+            .brand-name {
+                font-family: var(--mono);
+                font-size: 1.4rem;
+                font-weight: 500;
+                color: var(--apik-accent-light);
+            }
+            .brand-cmd {
+                font-family: var(--mono);
+                font-size: 0.78rem;
+                color: rgba(255, 255, 255, 0.45);
+            }
+            .mode-pill {
+                font-family: var(--mono);
+                font-size: 0.7rem;
+                padding: 0.15rem 0.5rem;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.12);
+            }
+
+            .toolbar {
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+                padding: 0.85rem 1.5rem;
+                background: var(--bg-card);
+                border-bottom: 1px solid var(--border);
+                flex-wrap: wrap;
+            }
+            .toolbar .project {
+                font-family: var(--mono);
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                margin-right: auto;
+            }
+            button {
+                font-family: var(--font);
+                font-size: 0.82rem;
+                padding: 0.4rem 0.8rem;
+                border: 1px solid var(--border);
+                background: var(--bg-card);
+                border-radius: 5px;
+                cursor: pointer;
+                color: var(--text);
+            }
+            button:hover:not(:disabled) {
+                border-color: var(--apik-accent);
+                color: var(--apik-accent);
+            }
+            button.primary {
+                background: var(--apik-primary);
+                color: #fff;
+                border-color: var(--apik-primary);
+            }
+            button:disabled {
+                opacity: 0.45;
+                cursor: not-allowed;
+            }
+
+            main {
+                max-width: 1100px;
+                margin: 0 auto;
+                padding: 1.5rem;
+            }
+            .status {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                padding: 0.6rem 0;
+            }
+
+            .cards {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1rem 1.1rem;
+            }
+            .card-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                color: var(--text-muted);
+                padding-bottom: 0.6rem;
+                margin-bottom: 0.6rem;
+                border-bottom: 1px solid var(--border);
+            }
+            .row {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                padding: 0.2rem 0;
+            }
+            .row .k {
+                font-size: 0.82rem;
+                color: var(--text-muted);
+                text-transform: capitalize;
+            }
+            .row .v {
+                font-family: var(--mono);
+                font-weight: 600;
+            }
+
+            h2 {
+                font-size: 0.78rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+                margin: 1.5rem 0 0.75rem;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.84rem;
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            th,
+            td {
+                text-align: left;
+                padding: 0.45rem 0.7rem;
+                border-bottom: 1px solid var(--border);
+            }
+            th {
+                background: var(--bg-soft);
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+            }
+            td.num {
+                font-family: var(--mono);
+                text-align: right;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+            .badge {
+                font-family: var(--mono);
+                font-size: 0.64rem;
+                text-transform: uppercase;
+                padding: 0.08rem 0.45rem;
+                border-radius: 3px;
+                color: #fff;
+            }
+            .badge.core {
+                background: var(--core);
+            }
+            .badge.oca {
+                background: var(--oca);
+            }
+            .badge.custom {
+                background: var(--custom);
+            }
+            .badge.third-party {
+                background: var(--third-party);
+            }
+        </style>
+    </head>
+    <body>
+        <header class="site-header">
+            <div class="brand">
+                <span class="brand-name">oops</span><span class="brand-cmd">project synthesis</span>
+            </div>
+            <span class="mode-pill" id="mode-pill">detecting…</span>
+        </header>
+
+        <div class="toolbar">
+            <span class="project" id="project-path">no project selected</span>
+            <button id="btn-pick">Choose project…</button>
+            <button id="btn-scan" class="primary" disabled>Scan project</button>
+            <button id="btn-analyze" disabled>Analyze module…</button>
+        </div>
+
+        <main>
+            <div class="status" id="status">Waiting for the bridge…</div>
+            <div id="view"></div>
+        </main>
+
+        <script>
+            // ── tiny DOM helper ─────────────────────────────────────────────
+            const el = (t, a = {}, c = []) => {
+                const n = document.createElement(t);
+                for (const [k, v] of Object.entries(a))
+                    k === "class" ? (n.className = v) : v != null && n.setAttribute(k, v);
+                [].concat(c).forEach((x) => x != null && n.append(x instanceof Node ? x : String(x)));
+                return n;
+            };
+            const $ = (id) => document.getElementById(id);
+            const fmt = (n) => (typeof n === "number" ? n.toLocaleString() : n);
+
+            // ── bridge: live (pywebview) vs static (browser) ────────────────
+            const hasBridge = () => typeof window.pywebview !== "undefined";
+            async function callApi(method, ...args) {
+                if (!hasBridge()) throw new Error("live mode unavailable — open via `python app.py`");
+                return await window.pywebview.api[method](...args); // returns a JS object
+            }
+
+            // ── command → view registry (the dispatch key is metadata.command) ──
+            const VIEWS = {
+                "addons list": renderSynthesis,
+                "addons analyze": renderAnalyzeSummary,
+                cancelled: () => setStatus("Cancelled."),
+                error: (p) => setStatus("Error: " + (p.error || "unknown")),
+            };
+            function render(payload) {
+                const cmd = payload && payload.metadata && payload.metadata.command;
+                (VIEWS[cmd] || renderUnknown)(payload);
+            }
+            const setStatus = (msg) => ($("status").textContent = msg || "");
+
+            // ── renderers (pure functions of the payload, source-agnostic) ──
+            function renderSynthesis(p) {
+                const root = $("view");
+                root.innerHTML = "";
+                setStatus("");
+
+                // metric groups (addons list payload: metrics = [{label, values:[{name,value}]}])
+                const cards = el("div", { class: "cards" });
+                (p.metrics || []).forEach((g) => {
+                    const card = el("div", { class: "card" }, el("div", { class: "card-label" }, g.label));
+                    (g.values || []).forEach((v) =>
+                        card.append(
+                            el("div", { class: "row" }, [
+                                el("span", { class: "k" }, v.name.replace(/_/g, " ")),
+                                el("span", { class: "v" }, fmt(v.value)),
+                            ]),
+                        ),
+                    );
+                    cards.append(card);
+                });
+                root.append(cards);
+
+                // compact addon catalogue
+                const addons = (p.data || []).slice();
+                root.append(el("h2", {}, `Addons (${addons.length})`));
+                const table = el("table");
+                table.append(
+                    el(
+                        "thead",
+                        {},
+                        el("tr", {}, [el("th", {}, "Addon"), el("th", {}, "Type"), el("th", { class: "num" }, "LoC")]),
+                    ),
+                );
+                const tb = el("tbody");
+                addons
+                    .map((a) => ({
+                        ...a,
+                        _loc: (a.loc.python || 0) + (a.loc.xml || 0) + (a.loc.javascript || 0) + (a.loc.docs || 0),
+                    }))
+                    .sort((a, b) => b._loc - a._loc)
+                    .forEach((a) =>
+                        tb.append(
+                            el("tr", {}, [
+                                el("td", {}, a.technical_name),
+                                el("td", {}, el("span", { class: `badge ${a.classification}` }, a.classification)),
+                                el("td", { class: "num" }, fmt(a._loc)),
+                            ]),
+                        ),
+                    );
+                table.append(tb);
+                root.append(table);
+            }
+
+            function renderAnalyzeSummary(p) {
+                const root = $("view");
+                root.innerHTML = "";
+                setStatus("");
+                const mod = (p.modules || [])[0];
+                if (!mod) return setStatus("No module in payload.");
+                root.append(el("h2", {}, `Analyzed: ${mod.module}`));
+                const cards = el("div", { class: "cards" });
+                const card = el("div", { class: "card" }, el("div", { class: "card-label" }, "Metrics"));
+                Object.entries(mod.metrics || {}).forEach(([k, v]) =>
+                    card.append(
+                        el("div", { class: "row" }, [
+                            el("span", { class: "k" }, k.replace(/_/g, " ")),
+                            el("span", { class: "v" }, fmt(v)),
+                        ]),
+                    ),
+                );
+                cards.append(card);
+                root.append(cards);
+                root.append(
+                    el(
+                        "div",
+                        { class: "status" },
+                        "Full per-model detail lives in the analyze report — this PoC shows the synthesis only.",
+                    ),
+                );
+            }
+
+            function renderUnknown(p) {
+                setStatus("No view registered for command: " + (p?.metadata?.command || "—"));
+            }
+
+            // ── command launchers (with loading state) ──────────────────────
+            async function runCommand(method, label, ...args) {
+                setStatus(label + "…");
+                document.querySelectorAll(".toolbar button").forEach((b) => (b.disabled = true));
+                try {
+                    render(await callApi(method, ...args));
+                } catch (e) {
+                    setStatus(e.message);
+                } finally {
+                    enableCommands();
+                }
+            }
+            function enableCommands() {
+                const live = hasBridge();
+                $("btn-pick").disabled = !live;
+                $("btn-scan").disabled = !live;
+                $("btn-analyze").disabled = !live;
+            }
+
+            $("btn-scan").addEventListener("click", () => runCommand("scan_project", "Scanning project"));
+            $("btn-analyze").addEventListener("click", () => runCommand("analyze_module", "Analyzing module"));
+            $("btn-pick").addEventListener("click", async () => {
+                const path = await callApi("pick_project");
+                if (path) {
+                    $("project-path").textContent = path;
+                    runCommand("scan_project", "Scanning project");
+                }
+            });
+
+            // ── boot: wait for the bridge, then auto-scan ───────────────────
+            function boot() {
+                $("mode-pill").textContent = "live";
+                enableCommands();
+                setStatus("Ready. Scanning current project…");
+                runCommand("scan_project", "Scanning project");
+            }
+            if (hasBridge()) {
+                boot();
+            } else {
+                window.addEventListener("pywebviewready", boot);
+                // static fallback: if a data.js set window.OOPS, render it offline
+                setTimeout(() => {
+                    if (!hasBridge()) {
+                        $("mode-pill").textContent = "static";
+                        if (window.OOPS) {
+                            render(window.OOPS);
+                        } else setStatus("Static mode — open via `python app.py` to run commands.");
+                    }
+                }, 400);
+            }
+        </script>
+    </body>
+</html>

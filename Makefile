@@ -1,7 +1,7 @@
 # Makefile for oops project
 # Requires Python >=3.7 and uv. All dev tools are installed via: make install
 
-.PHONY: help install install-docs lint typecheck test cov cov-html clean build docs docs-serve
+.PHONY: help install install-docs install-gui lint typecheck test cov cov-html clean build docs docs-serve
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo "  make cov          Run pytest with coverage"
 	@echo "  make cov-html     Run pytest with coverage (HTML)"
 	@echo "  make install-docs Install docs dependencies"
+	@echo "  make install-ui   Install GUI (pywebview) dependencies"
 	@echo "  make build        Build wheel/sdist"
 	@echo "  make docs         Build documentation site"
 	@echo "  make docs-serve   Reinstall + serve docs with live-reload"
@@ -23,6 +24,9 @@ install:
 
 install-docs:
 	uv sync --extra docs
+
+install-ui:
+	uv sync --extra dashboard --active
 
 lint:
 	uv run ruff check .
