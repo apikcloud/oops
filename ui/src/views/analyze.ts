@@ -5,9 +5,10 @@ import {
   renderMetadataBar, renderStructure,
   originBadge, methodKind,
 } from "../dom";
-import { manifestGrid } from "../components/manifestGrid";
-import { fieldsTable }  from "../components/fieldsTable";
-import { methodsTable } from "../components/methodsTable";
+import { manifestGrid }   from "../components/manifestGrid";
+import { fieldsTable }    from "../components/fieldsTable";
+import { methodsTable }   from "../components/methodsTable";
+import { domainProfile }  from "../components/domainProfile";
 
 // ---------------------------------------------------------------------------
 // Analyze-specific types (flat payload, no models_by_bare)
@@ -16,6 +17,24 @@ import { methodsTable } from "../components/methodsTable";
 interface AnalyzeLoc {
   python: number; xml: number; javascript: number; docs: number;
   total?: number; pct?: number;
+}
+
+interface DomainIndicators {
+  models_extended: number; fields_new: number; fields_override: number;
+  methods_new: number; methods_inherited: number; methods_override: number;
+  views_primary: number; views_extended: number; loc: number;
+}
+
+interface DomainEntry {
+  domain: string; label: string; weight_raw: number;
+  score_proportional: number; score_relative: number;
+  indicators: DomainIndicators;
+}
+
+interface DomainProfile {
+  domains: DomainEntry[];
+  pillars: DomainEntry[];
+  custom_models: number;
 }
 
 interface AnalyzeModelNode extends ModelNode {
@@ -42,6 +61,7 @@ interface AnalyzeModuleEntry {
   loc?: AnalyzeLoc;
   not_analysed?: string[];
   warnings?: string[];
+  domain_profile?: DomainProfile;
 }
 
 interface AnalyzePayload {
@@ -133,6 +153,15 @@ function _renderModule(mod: AnalyzeModuleEntry): HTMLElement {
   if (mod.loc?.total) {
     section.appendChild(el("h4", {}, "Lines of code"));
     section.appendChild(_locGrid(mod.loc));
+  }
+
+  // Domain profile
+  if (mod.domain_profile) {
+    const dp = domainProfile(mod.domain_profile);
+    if (dp) {
+      section.appendChild(el("h4", {}, "Domain profile"));
+      section.appendChild(dp);
+    }
   }
 
   // Structure

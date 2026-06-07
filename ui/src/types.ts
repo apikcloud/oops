@@ -147,6 +147,7 @@ export interface ModuleEntry {
   models?: ModelNode[];
   fields?: FieldNode[];
   methods?: MethodNode[];
+  domain_profile?: Record<string, unknown>;
   _locTotal?: number;
 }
 

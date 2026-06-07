@@ -10,6 +10,7 @@ import {
 import { manifestGrid }    from "../components/manifestGrid";
 import { provenanceTable } from "../components/provenanceTable";
 import { fieldsTable }     from "../components/fieldsTable";
+import { domainProfile }   from "../components/domainProfile";
 import { methodsTable }    from "../components/methodsTable";
 import { closeDrawer }     from "../components/methodDrawer";
 
@@ -427,6 +428,14 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
 
     const structSect = renderStructure(inv.loc ? mod.structure : undefined);
     if (structSect) card.append(structSect);
+
+    if (mod.domain_profile) {
+      const dp = domainProfile(mod.domain_profile as unknown as Parameters<typeof domainProfile>[0]);
+      if (dp) {
+        card.append(el("h4", {}, "Domain profile"));
+        card.append(dp);
+      }
+    }
 
     wrap.append(card);
 

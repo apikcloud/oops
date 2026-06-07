@@ -724,6 +724,71 @@ footer {
     opacity: 0.75;
 }
 
+/* ── Domain profile ───────────────────────────────────────────── */
+.dp-card .dp-toggle { margin-bottom: 1rem; }
+.dp-row {
+    display: grid;
+    grid-template-columns: minmax(280px, 340px) 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+.dp-chart {
+    min-height: 240px;
+    aspect-ratio: 1;
+}
+
+.dp-grid,
+.dp-spoke { stroke-width: 1; }
+.dp-poly { transition: all 0.15s; }
+.dp-vertex { cursor: pointer; transition: r 0.1s; }
+.dp-vertex:hover { r: 5; }
+.dp-axis-label { cursor: pointer; }
+
+.dp-detail {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 0.9rem;
+    min-height: 240px;
+}
+.dp-detail-empty { color: var(--text-muted); font-size: 0.8rem; }
+.dp-detail-title {
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+}
+.dp-detail-score { font-family: var(--mono); color: var(--accent); }
+.dp-indicators { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 0.9rem; }
+.dp-indicator { display: flex; justify-content: space-between; font-size: 0.78rem; }
+.dp-indicator.zero { opacity: 0.45; }
+.dp-ind-label { color: var(--text-muted); }
+.dp-ind-value { font-family: var(--mono); }
+
+/* Bar fallback (1–2 domains) */
+.dp-bars { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; padding: 0.5rem 0; }
+.dp-bar-row { display: grid; grid-template-columns: 90px 1fr; gap: 0.6rem; align-items: center; }
+.dp-bar-label { font-size: 0.78rem; color: var(--text-muted); }
+.dp-bar-track { background: var(--bg-soft); border-radius: 3px; height: 14px; overflow: hidden; }
+.dp-bar-fill { height: 100%; border-radius: 3px; transition: width 0.15s; }
+
+/* Pillars */
+.dp-pillars-wrap { margin-top: 1rem; }
+.dp-subhead {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+.dp-pillar { cursor: pointer; }
+.dp-custom { margin-top: 0.75rem; font-size: 0.78rem; }
+
+@media (max-width: 640px) {
+    .dp-row { grid-template-columns: 1fr; }
+}
+
 /* ── Metadata bar ─────────────────────────────────────────────── */
 .metadata-bar {
     display: flex;
