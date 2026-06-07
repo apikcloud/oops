@@ -173,6 +173,7 @@ cython_debug/
 .codegraph/
 .claude/
 graphify-out/
+node_modules/
 thoughts/
 CLAUDE.md
 AGENT.md
