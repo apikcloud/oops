@@ -467,25 +467,35 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
     const contributions = entry.contributions ?? [];
     const wrap = el("div", {});
 
+    // Defining contribution: status "new"/"base" = where the model was declared
+    const definingContrib = contributions.find((c) => {
+      const node = (c as Record<string, unknown>)["model_node"] as Record<string, unknown> | undefined;
+      return node?.["status"] === "new" || node?.["status"] === "base";
+    }) ?? contributions[0];
+    const definingModule = definingContrib?.module;
+    const originCls = definingModule ? modClassification(definingModule) : undefined;
+
+    const titleRow = el("div", { class: "page-title-row" });
+    titleRow.append(el("h1", {}, bare));
+    if (originCls && originCls !== "unknown") titleRow.append(badge(originCls));
+
+    const subtitleParts: string[] = [];
+    if (definingModule) subtitleParts.push("defined in " + definingModule);
+    if (entry.description_inherited_from) subtitleParts.push("description from " + entry.description_inherited_from);
+    const subtitleText = entry.description
+      ? entry.description + (subtitleParts.length ? " · " + subtitleParts.join(" · ") : "")
+      : subtitleParts.join(" · ");
+
     wrap.append(el("div", { class: "page-header" }, [
-      el("h1", {}, bare),
-      entry.description
-        ? el("p", { class: "page-subtitle" },
-            entry.description + (entry.description_inherited_from ? ` (inherited from ${entry.description_inherited_from})` : ""))
-        : null,
+      titleRow,
+      subtitleText ? el("p", { class: "page-subtitle" }, subtitleText) : null,
     ]));
 
     wrap.append(provenanceTable(entry, modules));
 
-    // Metrics summary
+    // Metrics summary — same metrics-grid design as module view
     const allFields  = contributions.flatMap((c) => (c.fields  ?? []).map((f) => ({ ...f, _module: c.module })));
     const allMethods = contributions.flatMap((c) => (c.methods ?? []).map((m) => ({ ...m, _module: c.module })));
-
-    const mkCard = (value: number, label: string, cls: string) =>
-      el("div", { class: `fb-card ${cls}` }, [
-        el("div", { class: "fb-value" }, value),
-        el("div", { class: "fb-label" }, label),
-      ]);
 
     const fTotal = allFields.length;
     const fAdded = allFields.filter((f) => f.origin_status === "new" || f.origin_status === "base").length;
@@ -495,17 +505,20 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
     const mInher = allMethods.filter((m) => methodKind(m) === "inherited").length;
     const mOver  = allMethods.filter((m) => methodKind(m) === "override").length;
 
-    const metricsGrid = el("div", { class: "model-metrics" });
-    if (fTotal) metricsGrid.append(el("div", { class: "mm-row" }, [
-      el("span", { class: "mm-label" }, "Fields"),
-      mkCard(fTotal, "Total", "total"), mkCard(fAdded, "Added", "own"), mkCard(fInher, "Inherited", "extended"),
-    ]));
-    if (mTotal) metricsGrid.append(el("div", { class: "mm-row" }, [
-      el("span", { class: "mm-label" }, "Methods"),
-      mkCard(mTotal, "Total", "total"), mkCard(mAdded, "Added", "own"),
-      mkCard(mInher, "Inherited", "extended"), mkCard(mOver, "Overridden", "override"),
-    ]));
-    wrap.append(metricsGrid);
+    const metricDefs: Array<[string, number]> = [
+      ...(fTotal ? [["fields total", fTotal], ["fields added", fAdded], ["fields inherited", fInher]] as Array<[string, number]> : []),
+      ...(mTotal ? [["methods total", mTotal], ["methods added", mAdded], ["methods inherited", mInher], ["methods overridden", mOver]] as Array<[string, number]> : []),
+    ];
+    if (metricDefs.length) {
+      const grid = el("div", { class: "metrics-grid" });
+      metricDefs.forEach(([key, value]) => {
+        grid.append(el("div", { class: "metric" + (!value ? " zero" : "") }, [
+          el("div", { class: "metric-value" }, String(value)),
+          el("div", { class: "metric-label" }, key),
+        ]));
+      });
+      wrap.append(grid);
+    }
 
     // Page-level module filter
     const allModuleNames = [...new Set(contributions.map((c) => c.module))];
