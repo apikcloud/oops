@@ -103,7 +103,7 @@ class TestDDL:
         _write(db_path)
         with KBReader(db_path) as kb:
             meta = kb.get_meta()
-        assert meta.get("schema_version") == "6"
+        assert meta.get("schema_version") == "7"
 
     def test_write_twice_applies_schema_cleanly(self, tmp_path):
         db_path = tmp_path / "kb.db"

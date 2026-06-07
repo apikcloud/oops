@@ -688,8 +688,13 @@ def scan_module(  # noqa: C901
     result: Dict[str, Any] = {"modules": {}, "symbols": [], "field_refs": [], "model_origins": []}
 
     # --- manifest ---
-    depends = load_manifest(module_dir).get("depends", [])
-    result["modules"][module_name] = {"origin": origin, "depends": depends}
+    manifest = load_manifest(module_dir)
+    depends = manifest.get("depends", [])
+    result["modules"][module_name] = {
+        "origin": origin,
+        "depends": depends,
+        "application": 1 if manifest.get("application") else 0,
+    }
 
     # --- models ---
     models_dir = module_dir / "models"

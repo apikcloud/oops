@@ -198,6 +198,31 @@ class GithubConfig:
 
 
 @dataclass
+class AnalyzeConfig:
+    """Configuration for the `oops addons analyze` command.
+
+    ``domain_weights`` maps coefficient names to float values. A partial
+    override in ``.oops.yaml`` replaces the whole map — to allow per-key
+    overrides, merge with defaults in the consumer:
+    ``{**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}``.
+    """
+
+    domain_weights: Dict[str, float] = field(
+        default_factory=lambda: {
+            "w_model_extend": 5.0,
+            "w_field_new": 1.0,
+            "w_field_override": 2.0,
+            "w_method_new": 2.0,
+            "w_method_inherit": 3.0,
+            "w_method_override": 5.0,
+            "w_view_extend": 2.0,
+            "w_view_primary": 3.0,
+            "w_loc": 1.0,
+        }
+    )
+
+
+@dataclass
 class RequirementsConfig:
     python_requirements_mapping: Dict[str, str] = field(
         default_factory=lambda: {
@@ -228,6 +253,7 @@ class Config:
     github: GithubConfig = field(default_factory=GithubConfig)
     stats: StatsConfig = field(default_factory=StatsConfig)
     requirements: RequirementsConfig = field(default_factory=RequirementsConfig)
+    analyze: AnalyzeConfig = field(default_factory=AnalyzeConfig)
 
     working_dir: Optional[str] = None
 

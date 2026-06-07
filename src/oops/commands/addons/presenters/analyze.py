@@ -279,6 +279,43 @@ def _build_loc(data: "Optional[LocStats]", pct: float = 0.0) -> StatGroup:
     )
 
 
+def _build_domain_table(summary: "ModuleSummary") -> "Optional[TableBlock]":
+    dp = summary.domain_profile
+    if not dp:
+        return None
+    rows = []
+    for entry in dp.get("domains", []):
+        rows.append([
+            entry["label"],
+            "domain",
+            str(entry["indicators"].get("models_extended", 0)),
+            f"{entry['score_relative']:.0%}",
+        ])
+    for entry in dp.get("pillars", []):
+        rows.append([
+            entry["label"],
+            "pillar",
+            "",
+            f"{entry['score_relative']:.0%}",
+        ])
+    if not rows:
+        return None
+    columns = [
+        ("Domain / Pillar", "brand.primary", "left"),
+        ("Kind", "dim", "left"),
+        ("Models ext.", "green", "right"),
+        ("Score", "green", "right"),
+    ]
+    custom = dp.get("custom_models", 0)
+    footer = f"Custom models (unattributed): {custom}" if custom else None
+    return TableBlock(
+        title="Domain Profile" + (f"  [{footer}]" if footer else ""),
+        columns=columns,
+        rows=rows,
+        counter=len(rows),
+    )
+
+
 def _build_section(result: "Result[ModuleSummary]") -> SectionBlock:
     summary = result.unwrap
 
@@ -312,6 +349,10 @@ def _build_section(result: "Result[ModuleSummary]") -> SectionBlock:
         vt = _build_views_table(summary.views_summary)
         if vt is not None:
             tables.append(vt)
+
+    dt = _build_domain_table(summary)
+    if dt is not None:
+        tables.append(dt)
 
     st = _build_structure_table(summary.structure)
     if st is not None:
@@ -637,6 +678,7 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
                 },
                 "metrics": _derived_metrics(summary, models, fields, methods),
                 "loc": _loc_raw(summary),
+                "domain_profile": summary.domain_profile,
                 "not_analysed": not_analysed,
                 "warnings": result.warnings,
             }

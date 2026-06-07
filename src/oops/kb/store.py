@@ -9,11 +9,12 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema (v6)
+Schema (v7)
 -----------
 meta          (key, value)
 sources       (origin, path)
-modules       (name, origin, depends)         -- depends is a JSON array string
+modules       (name, origin, depends,         -- depends is a JSON array string
+               application, app)             -- application flag + owning app
 symbols       (model, name, kind, origin, module, source_file, source_line,
                source_end_line, field_type, section)
               source_end_line: last source line of the definition (nullable —
@@ -68,7 +69,7 @@ from oops.core.models import Result
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 6  # added description to model_origins
+SCHEMA_VERSION = 7  # added application, app to modules
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -90,9 +91,11 @@ CREATE TABLE IF NOT EXISTS sources (
 );
 
 CREATE TABLE IF NOT EXISTS modules (
-    name    TEXT NOT NULL PRIMARY KEY,
-    origin  TEXT NOT NULL,
-    depends TEXT NOT NULL DEFAULT '[]'
+    name        TEXT    NOT NULL PRIMARY KEY,
+    origin      TEXT    NOT NULL,
+    depends     TEXT    NOT NULL DEFAULT '[]',
+    application INTEGER NOT NULL DEFAULT 0,   -- 1 if manifest application=True
+    app         TEXT                          -- owning app technical name, NULL if none
 );
 CREATE INDEX IF NOT EXISTS idx_modules_origin ON modules (origin);
 
@@ -316,13 +319,15 @@ def _write_kb(
                 for mod_name, mod_data in scan.get("modules", {}).items():
                     con.execute(
                         """
-                        INSERT OR REPLACE INTO modules (name, origin, depends)
-                        VALUES (?, ?, ?)
+                        INSERT OR REPLACE INTO modules (name, origin, depends, application, app)
+                        VALUES (?, ?, ?, ?, ?)
                         """,
                         (
                             mod_name,
                             mod_data["origin"],
                             json.dumps(mod_data["depends"]),
+                            mod_data.get("application", 0),
+                            mod_data.get("app"),
                         ),
                     )
 
@@ -558,16 +563,37 @@ class KBReader:
         """Return all modules indexed by name.
 
         Returns:
-            Mapping of module name to ``{"origin": str, "depends": [str, ...]}``.
+            Mapping of module name to ``{"origin": str, "depends": [str, ...],
+            "application": bool, "app": Optional[str]}``.
+            On schema < 7 (no application/app columns), those fields default to
+            ``False`` / ``None`` for backward compatibility.
         """
-        rows = self._con.execute("SELECT name, origin, depends FROM modules").fetchall()
-        return {
-            r["name"]: {
-                "origin": r["origin"],
-                "depends": json.loads(r["depends"]),
+        try:
+            rows = self._con.execute(
+                "SELECT name, origin, depends, application, app FROM modules"
+            ).fetchall()
+            return {
+                r["name"]: {
+                    "origin": r["origin"],
+                    "depends": json.loads(r["depends"]),
+                    "application": bool(r["application"]),
+                    "app": r["app"],
+                }
+                for r in rows
             }
-            for r in rows
-        }
+        except Exception:
+            rows = self._con.execute(
+                "SELECT name, origin, depends FROM modules"
+            ).fetchall()
+            return {
+                r["name"]: {
+                    "origin": r["origin"],
+                    "depends": json.loads(r["depends"]),
+                    "application": False,
+                    "app": None,
+                }
+                for r in rows
+            }
 
     def module_exists(self, name: str) -> bool:
         """Return True if the named module is present in the KB.
@@ -580,6 +606,53 @@ class KBReader:
         """
         row = self._con.execute("SELECT 1 FROM modules WHERE name = ?", (name,)).fetchone()
         return row is not None
+
+    def get_module_app(self, module: str) -> Optional[str]:
+        """Return the owning application for a module, or None if none.
+
+        Args:
+            module: Module technical name.
+
+        Returns:
+            Owning app technical name, or None.
+        """
+        row = self._con.execute("SELECT app FROM modules WHERE name = ?", (module,)).fetchone()
+        return row["app"] if row else None
+
+    def is_application(self, module: str) -> bool:
+        """Return True if the module is itself an Odoo application.
+
+        Args:
+            module: Module technical name.
+
+        Returns:
+            True if application=1 in the KB, False otherwise.
+        """
+        row = self._con.execute(
+            "SELECT application FROM modules WHERE name = ?", (module,)
+        ).fetchone()
+        return bool(row["application"]) if row else False
+
+    def get_model_inherits(self, model: str) -> List[str]:
+        """Return the union of _inherits parent model names across all model_origins rows.
+
+        Args:
+            model: Dotted model name.
+
+        Returns:
+            Sorted list of parent model names from _inherits declarations.
+        """
+        rows = self._con.execute(
+            "SELECT inherits_json FROM model_origins WHERE model = ?", (model,)
+        ).fetchall()
+        parents: set = set()
+        for r in rows:
+            try:
+                d = json.loads(r["inherits_json"] or "{}")
+                parents.update(d.keys())
+            except (ValueError, TypeError):
+                pass
+        return sorted(parents)
 
     # --- symbols ---
 
