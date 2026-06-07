@@ -67,10 +67,6 @@ export function viewDepends(root: HTMLElement, payload: Payload, _source: Source
   // Switch #app to full-screen layout
   root.classList.add("depends-full");
 
-  // Clean up on next route change (hashchange fires before render clears root)
-  const cleanup = () => { root.classList.remove("depends-full"); };
-  window.addEventListener("hashchange", cleanup, { once: true });
-
   // Origin colors from CSS variables
   const cs = getComputedStyle(document.documentElement);
   const ORIGIN_COLORS: Record<string, string> = {};
@@ -595,4 +591,14 @@ export function viewDepends(root: HTMLElement, payload: Payload, _source: Source
     rebuildLayout();
     setTimeout(fitToContent, 120);
   });
+
+  // Clean up when another view replaces this one (dashboard uses direct calls, not hashchange)
+  const viewCleanup = new MutationObserver(() => {
+    if (!root.contains(sidebar)) {
+      root.classList.remove("depends-full");
+      simulation.stop();
+      viewCleanup.disconnect();
+    }
+  });
+  viewCleanup.observe(root, { childList: true });
 }
