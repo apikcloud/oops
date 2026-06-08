@@ -1392,6 +1392,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="&nbsp;config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oops.core.config.AnalyzeConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AnalyzeConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2800,6 +2817,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="&nbsp;config">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oops.core.config.AnalyzeConfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;AnalyzeConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2847,6 +2881,32 @@
 
 
 
+<p><span class="doc-section-title">Classes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;AnalyzeConfig&lt;/span&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt; (&lt;code&gt;oops.core.config.AnalyzeConfig&lt;/code&gt;)" href="#oops.core.config.AnalyzeConfig">AnalyzeConfig</a></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Configuration for the <code>oops addons analyze</code> command.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
 
 
 
@@ -2861,6 +2921,67 @@
 
 
 
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="oops.core.config.AnalyzeConfig" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">AnalyzeConfig</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#oops.core.config.AnalyzeConfig" class="headerlink" title="Permanent link">¶</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">AnalyzeConfig</span><span class="p">(</span><span class="n"><span title="oops.core.config.AnalyzeConfig(domain_weights)">domain_weights</span></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#float">float</a></span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">{</span><span class="s1">'w_model_extend'</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span> <span class="s1">'w_field_new'</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">'w_field_override'</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">'w_method_new'</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">'w_method_inherit'</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s1">'w_method_override'</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span> <span class="s1">'w_view_extend'</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">'w_view_primary'</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s1">'w_loc'</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})())</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Configuration for the <code>oops addons analyze</code> command.</p>
+<p><code>domain_weights</code> maps coefficient names to float values. A partial
+override in <code>.oops.yaml</code> replaces the whole map — to allow per-key
+overrides, merge with defaults in the consumer:
+<code>{**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}</code>.</p>
+
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
