@@ -9,6 +9,31 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.20.0] - 2026-06-08
+
+A big update focused on documentation, visualization, and the analysis pipeline. 🎉
+
+### ✨ What's new
+
+- **`oops project serve`**: browse your project's documentation in the browser — a fully offline single-page app, no server or internet connection needed
+- **`oops project doc`**: generate a complete Markdown documentation site for your project, with per-method detail pages, model indexes, and module tables
+- **`oops addons analyze`: domain profile** — instantly see which Odoo functional domains your module touches (Sales, Accounting, Inventory…) and which transversal pillars (product, analytic…) it relies on, with weighted scores; tune weights in `.oops.yaml`
+- **`oops addons analyze --format html`**: HTML reports are back — a single self-contained file you can open directly in your browser or share as an attachment, no external dependencies
+- **`oops addons analyze`: richer JSON output** — flat, id-addressable lists of models, fields, methods, and views (IR v2); method line ranges and source paths included
+- **Improved HTML reports**: model pages now show a provenance table, metrics panel, method drawer, and origin badge; addon classification displayed as a Mermaid pie chart
+- **Dashboard**: depends and release views added to the dashboard and `oops project serve`
+
+### 🔄 Improvements
+
+- All HTML output is now built from a single shared TypeScript UI bundle — consistent look and feel across all commands
+
+### 🐛 Fixes
+
+- **`oops addons analyze`**: `inherited_from` references now point to the module that first defined the method, not an intermediate module that merely re-inherited it
+- **KB accuracy**: `create` role and model description are now correctly preserved when a module reopens a model it defined earlier
+
+---
+
 ## [0.19.3] - 2026-06-04
 
 A small update that fixes an over-strict check. Thanks for your trust! 🎉

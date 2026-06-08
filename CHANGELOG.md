@@ -10,6 +10,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-06-08
+
+### Added
+
+- `oops project serve`: offline SPA for browsing project documentation in the browser — opens directly, no server required
+- `oops project doc`: Markdown site generator for project documentation; method detail pages with slugified paths and linked model cells; tables for module and model index pages
+- `oops addons analyze`: domain profile block in JSON/HTML output — quantifies how much a module touches each Odoo functional domain (Sales, Accounting, Inventory…) and transversal pillars (product, analytic…); scores are proportional and relative; configurable weights via `analyze.domain_weights` in `.oops.yaml`
+- `oops addons analyze --format html`: re-enabled as a self-contained single-file SPA (zero external dependencies, opens over `file://`, shareable as an attachment)
+- `oops addons analyze`: IR v2 JSON output with flat, id-addressable lists of models, fields, methods, and views
+- `oops addons analyze`: method list, symbol line ranges, and source paths in output
+- Dashboard and `oops project serve`: depends and release views
+- Model page: provenance table, metrics, method drawer, and origin badge
+- Mermaid pie chart for addon classification in HTML reports
+- KB: model `_description` extracted, inherited, and flagged across the dependency chain
+
+### Changed
+
+- All HTML output unified onto a single TypeScript UI bundle — self-contained reports shared across `addons analyze`, `project serve`, and the dashboard
+
+### Fixed
+
+- KB: `inherited_from` now resolves to the original definer (the module that first introduced the symbol), not the closest re-inheritor in the dependency chain
+- KB: `create` role and `_description` preserved on intra-module model reopens
+
+### Documentation
+
+- Domain profile, HTML output format, and `resolve_symbol_root` algorithm documented
+
 ## [0.19.3] - 2026-06-04
 
 ### Fixed
