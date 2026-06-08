@@ -20,6 +20,7 @@ from oops.core.logger import log
 from oops.kb.resolve import (
     format_source_line,
     resolve_symbol,
+    resolve_symbol_root,
 )
 from oops.kb.scanner import (
     FIELD_TYPES,
@@ -100,6 +101,7 @@ class SymbolInfo:
     has_super: bool = False
     super_methods: List[str] = field(default_factory=lambda: [])
     kb_entry: Optional[Dict[str, Any]] = None
+    kb_root_entry: Optional[Dict[str, Any]] = None
     is_override: bool = False
     field_type: Optional[str] = None
     # IR v2 content (additive; defaults preserve rewriter behaviour) ----------
@@ -343,6 +345,7 @@ def analyse_file(
 
             kb_entries = kb.get_symbol(model_name, stmt.name, "method")
             kb_entry = resolve_symbol(kb_entries, custom_module, modules_index)
+            kb_root_entry = resolve_symbol_root(kb_entries, custom_module, modules_index)
 
             ci.symbols.append(
                 SymbolInfo(
@@ -355,6 +358,7 @@ def analyse_file(
                     has_super=has_super,
                     super_methods=super_methods,
                     kb_entry=kb_entry,
+                    kb_root_entry=kb_root_entry,
                     is_override=(not is_new_model) and bool(kb_entry) and not has_super,
                     docstring=ast.get_docstring(stmt, clean=True),
                     signature=reconstruct_signature(stmt),

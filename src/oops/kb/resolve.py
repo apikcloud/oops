@@ -132,6 +132,43 @@ def resolve_symbol(
     return best
 
 
+def resolve_symbol_root(
+    entries: List[Dict[str, Any]],
+    custom_module: str,
+    modules_index: Dict[str, Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """Select the original definer of a symbol.
+
+    Finds the entry whose module has no other known upstream definition —
+    i.e. the module where the symbol was first introduced.  Used for
+    ``inherited_from`` references where we want the root origin, not the
+    closest intermediary that merely re-inherits the symbol.
+
+    Algorithm:
+    1. Drop the custom module's own entry.
+    2. For each candidate, check whether any *other* candidate appears in that
+       candidate's depends chain.  A candidate with no such upstream is a root.
+    3. If exactly one root, return it.  Multiple roots: prefer most-core tier
+       (odoo > enterprise > apik > third-party).
+    4. Fallback (all have upstreams / missing data): most-core tier entry.
+    """
+    if not entries:
+        return None
+    entries = [e for e in entries if e.get("module") != custom_module]
+    if not entries:
+        return None
+    if len(entries) == 1:
+        return entries[0]
+
+    def has_upstream(entry: Dict[str, Any]) -> bool:
+        chain_set = set(build_depends_chain(entry["module"], modules_index))
+        return any(e["module"] in chain_set for e in entries if e["module"] != entry["module"])
+
+    roots = [e for e in entries if not has_upstream(e)]
+    candidates = roots if roots else entries
+    return sorted(candidates, key=lambda e: -_tier_rank(e.get("origin", "")))[0]
+
+
 def format_source_line(entry: Dict[str, Any]) -> str:
     """Format a Source: line for a docstring from a KB entry.
 

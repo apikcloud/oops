@@ -15,6 +15,7 @@ from oops.core.models import Result
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
 from oops.io.file import find_addons
 from oops.io.installed_modules import installed_modules_path
+from oops.kb.resolve import build_depends_chain
 from oops.kb.scanner import (
     discover_root_addons,
     scan_module,
@@ -49,6 +50,31 @@ def _resolve_prototype_roles(scan_results: list[dict]) -> None:
             inherit_targets: list[str] = json.loads(entry.get("inherit_json", "[]"))
             if any(t in concrete_models for t in inherit_targets):
                 entry["role"] = "prototype"
+
+
+def _resolve_module_apps(scan_results: list[dict]) -> None:
+    """In-place: set each module's owning ``app`` (closest ancestor application).
+
+    A module that is itself an application owns itself. Otherwise its app is the
+    first application encountered walking its transitive depends, closest first.
+    None when no application is reachable.
+
+    Args:
+        scan_results: List of ScanResult dicts, mutated in place.
+    """
+    index: dict[str, dict] = {}
+    for result in scan_results:
+        for name, data in result.get("modules", {}).items():
+            index[name] = data
+    apps = {n for n, d in index.items() if d.get("application")}
+
+    for result in scan_results:
+        for name, data in result.get("modules", {}).items():
+            if name in apps:
+                data["app"] = name
+                continue
+            chain = build_depends_chain(name, index)
+            data["app"] = next((m for m in chain if m in apps), None)
 
 
 _VIEW_TYPE_MAX_DEPTH = 10
@@ -271,10 +297,11 @@ def build_project_kb(
     # --- Scope (input list, not actually-scanned set) ---
     scope = sorted(modules_list)
 
-    # --- Resolve prototype roles and view types across all scan results ---
+    # --- Resolve prototype roles, view types, and module apps across all scan results ---
     all_scan_results = [global_scan] + project_scan_results
     _resolve_prototype_roles(all_scan_results)
     _resolve_view_types(all_scan_results)
+    _resolve_module_apps(all_scan_results)
 
     # --- Write ---
     log.info(f"Writing project KB → {db_path}")

@@ -6,7 +6,6 @@ import sys
 
 from oops.core.compat import Dict, Type
 from oops.core.exceptions import get_error_console
-from oops.core.paths import TEMPLATES
 from oops.output.base import OutputFormatter, RenderTarget, SiteFormatter
 from oops.output.layout import MetricsLayout, MinimalLayout, Output, SimpleSummaryLayout, SummaryLayout
 from oops.output.serializers import to_json_string
@@ -172,46 +171,25 @@ class MetricsConsoleFormatter(RichFormatter):
         conclude(data.conclusion.status, data.conclusion.message)
 
 
-class HtmlFormatter(OutputFormatter):
+class SpaReportFormatter(OutputFormatter):
+    """Single-file export from the shared UI bundle."""
+
     target = RenderTarget(audience="machine", verbosity="full")
-    template: str
 
     def render(self, output: "Output[dict]") -> str:
-        template = (TEMPLATES / self.template).read_text()
+        from oops.output.inline import build_report  # noqa: PLC0415
+
         data = output.unwrap
-
         assert output.metadata is not None
-
-        data = {**data, "metadata": output.metadata.to_dict()}
-
-        payload = to_json_string(data)
-
-        return template.replace("__REPORT_DATA__", payload)
+        return build_report({**data, "metadata": output.metadata.to_dict()})
 
     def error(self, message: str, code: int = 1) -> None:
-        # HTML has no meaningful inline error rendering — delegate to stderr.
-        import sys
+        import sys  # noqa: PLC0415
 
         print(f"Error ({code}): {message}", file=sys.stderr)
 
     def success(self, message: str) -> None:
         pass
-
-
-class AnalysisReportFormatter(HtmlFormatter):
-    template = "analyze_v5.html"
-
-
-class AddonsReportFormatter(HtmlFormatter):
-    template = "list_v4.html"
-
-
-class DependsReportFormatter(HtmlFormatter):
-    template = "depends_v4.html"
-
-
-class ReleasesReportFormatter(HtmlFormatter):
-    template = "releases.html"
 
 
 class MarkdownSiteFormatter(SiteFormatter):

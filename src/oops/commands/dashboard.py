@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import click
 from oops.commands.base import command
-from oops.core.paths import WEB
+from oops.core.paths import UI
 from oops.dashboard.api import Api
 
 GUI = "qt"
@@ -36,10 +36,10 @@ def main(debug: bool) -> None:
     api = Api()
     webview.create_window(
         "oops",
-        url=str(WEB / "index.html"),
+        url=str(UI / "index.html"),
         js_api=api,
-        width=1200,
-        height=820,
+        width=1440,
+        height=900,
         min_size=(900, 600),
         resizable=True,
         confirm_close=False,

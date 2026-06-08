@@ -32,7 +32,7 @@ from oops.core.logger import live_progress, log
 from oops.core.models import Result
 from oops.core.paths import global_kb_dir
 from oops.io.file import get_odoo_sources_dirs, list_odoo_sources_versions, parse_odoo_version
-from oops.kb.build import _resolve_prototype_roles, _resolve_view_types
+from oops.kb.build import _resolve_module_apps, _resolve_prototype_roles, _resolve_view_types
 from oops.kb.scanner import odoo_addons_roots, scan_tier
 from oops.kb.store import write_global_kb
 from oops.kb.xml_scanner import scan_tier_xml
@@ -173,6 +173,9 @@ def main(
 
         log.info("Resolving view types…")
         _resolve_view_types(scan_results)
+
+        log.info("Resolving module apps…")
+        _resolve_module_apps(scan_results)
 
         log.info(f"Writing file to {db_path}")
         temp_result = write_global_kb(

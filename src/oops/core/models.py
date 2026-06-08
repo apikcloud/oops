@@ -281,6 +281,8 @@ class ModuleSummary:
     """Raw ClassInfo list (with enriched symbols) for the IR v2 machine path."""
     readme: "Optional[dict]" = None
     """README capture: {present, format, path, content} — see io.file.detect_readme."""
+    domain_profile: "Optional[dict]" = None
+    """Domain profile: {domains, pillars, custom_models} — see domain_profile.py."""
 
 
 class HasStatus(Protocol):

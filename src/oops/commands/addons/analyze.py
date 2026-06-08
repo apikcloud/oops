@@ -82,7 +82,7 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.config import config
+from oops.core.config import AnalyzeConfig, config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata, update_metadata
@@ -97,10 +97,10 @@ from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_st
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
 from oops.output.formatters import (
-    AnalysisReportFormatter,
     FormatterRegistry,
     JsonFormatter,
     OutputFormatter,
+    SpaReportFormatter,
     SummaryConsoleFormatter,
 )
 from oops.output.sinks import deliver
@@ -110,12 +110,13 @@ from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
 
+from .domain_profile import compute_domain_profile
 from .presenters.analyze import AnalyzePresenter
 
 FORMATTERS: FormatterRegistry = {
     "text": SummaryConsoleFormatter,
     "json": JsonFormatter,
-    "html": AnalysisReportFormatter,
+    "html": SpaReportFormatter,
 }
 
 
@@ -317,6 +318,11 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     method_symbols=method_symbols,
                     class_infos=all_class_infos,
                     readme=detect_readme(module_path),
+                )
+
+                weights = {**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}
+                module_result.data.domain_profile = compute_domain_profile(
+                    module_result.data, kb, weights
                 )
 
                 results.add(module_result)

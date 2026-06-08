@@ -14,7 +14,7 @@ from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
 from oops.io.file import enrich_addon, find_addons, parse_odoo_version
-from oops.output.formatters import DependsReportFormatter, FormatterRegistry, JsonFormatter
+from oops.output.formatters import FormatterRegistry, JsonFormatter, SpaReportFormatter
 from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.kb import load_odoo_kb, require_kb
@@ -24,7 +24,7 @@ from .presenters.show import ShowPresenter
 
 FORMATTERS: FormatterRegistry = {
     "json": JsonFormatter,
-    "html": DependsReportFormatter,
+    "html": SpaReportFormatter,
 }
 
 

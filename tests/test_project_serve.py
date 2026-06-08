@@ -141,22 +141,21 @@ class TestPrepareSiteDir:
         prepare_site_dir(payload, dest)
 
         assert (dest / "index.html").exists()
-        assert (dest / "app.js").exists()
+        assert (dest / "dist" / "app.bundle.js").exists()
 
     def test_offline_guard_no_external_urls_in_index_html(self) -> None:
-        from oops.core.paths import SPA
+        from oops.core.paths import UI
 
-        content = (SPA / "index.html").read_text(encoding="utf-8")
+        content = (UI / "index.html").read_text(encoding="utf-8")
         assert "http://" not in content
         assert "https://" not in content
 
-    def test_vendor_files_exist_and_nonempty(self) -> None:
-        from oops.core.paths import SPA
+    def test_bundle_exists_and_nonempty(self) -> None:
+        from oops.core.paths import UI
 
-        for name in ("alpine.min.js", "fuse.min.js", "d3.min.js"):
-            path = Path(str(SPA / "vendor" / name))
-            assert path.is_file(), f"missing vendor/{name}"
-            assert path.stat().st_size > 1000, f"vendor/{name} suspiciously small"
+        bundle = Path(str(UI / "dist" / "app.bundle.js"))
+        assert bundle.is_file(), "dist/app.bundle.js missing"
+        assert bundle.stat().st_size > 10_000, "dist/app.bundle.js suspiciously small"
 
 
 class TestResolutionContract:

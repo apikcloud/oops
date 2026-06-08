@@ -1,0 +1,19 @@
+{
+  "name": "oops-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs --minify",
+    "dev": "node build.mjs --watch",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "d3": "^7.9.0",
+    "fuse.js": "^7.4.2"
+  }
+}
