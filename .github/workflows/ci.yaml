@@ -14,11 +14,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
       - run: npm ci
-        working-directory: src/oops/output/ui
+        working-directory: ui
       - run: npm run check
-        working-directory: src/oops/output/ui
+        working-directory: ui
       - run: npm run build
-        working-directory: src/oops/output/ui
+        working-directory: ui
       - name: Bundle must be committed fresh
         run: git diff --exit-code src/oops/output/ui/dist/app.bundle.js
 
