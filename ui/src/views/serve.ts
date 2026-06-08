@@ -478,7 +478,7 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
 
     // Defining contribution: status "new"/"base" = where the model was declared
     const definingContrib = contributions.find((c) => {
-      const node = (c as Record<string, unknown>)["model_node"] as Record<string, unknown> | undefined;
+      const node = ((c as unknown) as Record<string, unknown>)["model_node"] as Record<string, unknown> | undefined;
       return node?.["status"] === "new" || node?.["status"] === "base";
     }) ?? contributions[0];
     const definingModule = definingContrib?.module;
