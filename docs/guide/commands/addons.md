@@ -99,10 +99,46 @@ or `inherit_origin` for what an entity inherits/overrides).
 - `controllers/`, `wizard/`, `report/` and `data` are **not analysed**; each
   module lists its uncovered areas under `not_analysed`.
 
-!!! note "`--format html` temporarily unavailable"
-    The HTML report is being migrated to the IR v2 + descriptor registry and is
-    gated off for now. `oops addons analyze --format html` exits with a clear
-    message; use `--format json` or `--format text`.
+### HTML output — self-contained SPA
+
+`--format html` produces a single portable file with no external dependencies —
+openable over `file://` and shareable as an attachment.  The page embeds the
+full UI bundle (CSS + JS) and the JSON payload inline.
+
+```bash
+# write to a path
+oops addons analyze plant_nursery --format html --output /tmp/plant_nursery.html
+
+# open immediately (default: temp file)
+oops addons analyze plant_nursery --format html
+```
+
+### Domain profile
+
+Each module's JSON payload includes a `domain_profile` block that quantifies
+how much the module touches each Odoo functional domain (Sales, Accounting,
+Inventory…) and which transversal pillars (product, analytic…) it relies on.
+
+```json
+{
+  "domain_profile": {
+    "domains": [
+      {"domain": "sale", "label": "Sales", "weight_raw": 12.5,
+       "score_proportional": 0.63, "score_relative": 1.0,
+       "indicators": {"models_extended": 1, "methods_override": 2, ...}}
+    ],
+    "pillars": [
+      {"domain": "product", "label": "Product", "weight_raw": 4.0, ...}
+    ],
+    "custom_models": 0
+  }
+}
+```
+
+Scoring weights can be tuned via `analyze.domain_weights` in `.oops.yaml`.
+See [`AnalyzeConfig`](../../reference/core/config.md) for the full weight list
+and [`kb/domains`](../../reference/kb/domains.md) for the domain/pillar
+classification tables.
 
 Analyse several modules in one invocation:
 

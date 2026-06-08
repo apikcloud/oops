@@ -234,6 +234,7 @@ nav:
       - KB:
           - reference/kb/index.md
           - Build: reference/kb/build.md
+          - Domains: reference/kb/domains.md
           - Resolve: reference/kb/resolve.md
           - Scanner: reference/kb/scanner.md
           - Store: reference/kb/store.md
