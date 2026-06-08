@@ -48,8 +48,35 @@ jobs:
 
       - name: Run tests
         run: make test
+  package:
+    needs: [ui]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # hatch-vcs a besoin des tags
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - name: Wheel must contain the bundle, not the TS sources
+        run: |
+          python -m zipfile -l dist/*.whl | tee /tmp/wheel.txt
+          grep -q 'oops/output/ui/dist/app.bundle.js' /tmp/wheel.txt
+          grep -q 'oops/output/ui/index.html'        /tmp/wheel.txt
+          ! grep -qE '\.ts$|package\.json|build\.mjs|node_modules' /tmp/wheel.txt
+
+  release:
+    needs: [test, ui, package]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: gh release create "${{ github.ref_name }}" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   update-dotfiles:
-    needs: [test, ui]
+    needs: [release]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
