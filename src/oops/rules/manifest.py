@@ -546,25 +546,26 @@ class ManifestKeyOrder(LintRule):
         return current == expected
 
     def _rebuild_elements(self, sorted_els: List[Any]) -> List[Any]:
-        """Re-assign commas so the last element has no trailing comma issue.
-
-        libcst stores each comma on the *preceding* element, so after reordering
-        we must ensure the new last element doesn't carry a comma, and every
-        other element does.
+        """libcst stores each comma on the *preceding* element, so after reordering
+        we must ensure the new last element carry a comma, and every other element does.
         """
         result = []
-        last_idx = len(sorted_els) - 1
-        for i, el in enumerate(sorted_els):
+
+        comma_ws = cst.ParenthesizedWhitespace(
+            first_line=cst.TrailingWhitespace(
+                whitespace=cst.SimpleWhitespace(""),
+                newline=cst.Newline(),
+            ),
+            last_line=cst.SimpleWhitespace("    "),
+        )
+
+        for el in sorted_els:
             if isinstance(el, cst.DictElement):
-                if i == last_idx:
-                    # MaybeSentinel.DEFAULT lets libcst decide (usually no comma).
-                    comma: Any = cst.MaybeSentinel.DEFAULT
-                elif isinstance(el.comma, cst.Comma):
-                    comma = el.comma  # keep original comma (preserves whitespace)
-                else:
-                    comma = cst.Comma(whitespace_after=cst.SimpleWhitespace(" "))
-                el = el.with_changes(comma=comma)  # noqa: PLW2901
+                new_comma = cst.Comma(whitespace_after=comma_ws)
+                el = el.with_changes(comma=new_comma)
+
             result.append(el)
+
         return result
 
 
