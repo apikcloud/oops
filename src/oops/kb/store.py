@@ -9,7 +9,7 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema (v8)
+Schema (v9)
 -----------
 meta          (key, value)
 sources       (origin, path)
@@ -19,7 +19,8 @@ modules       (name, origin, depends,         -- depends is a JSON array string
 symbols       (model, name, kind, origin, module, source_file, source_line,
                source_end_line, field_type, section,
                import_index,                -- file position in __init__.py import order
-               attrs_json)                  -- JSON object of full field attributes (fields only)
+               attrs_json,                  -- JSON object of full field attributes (fields only)
+               has_super)                   -- 1 if method calls super().<attr>(), NULL for fields
               source_end_line: last source line of the definition (nullable —
               fields may omit it)
 field_refs    (model, field_name, module, kwarg, target_method)
@@ -73,7 +74,7 @@ from oops.core.models import Result
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 8  # v8: depth/load_index on modules, import_index on model_origins, import_index/attrs_json on symbols
+SCHEMA_VERSION = 9  # v9: has_super column on symbols (methods only)
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -118,6 +119,7 @@ CREATE TABLE IF NOT EXISTS symbols (
     section     TEXT,                       -- canonical section name / NULL for fields
     import_index INTEGER,                   -- file position in __init__.py import order; NULL if not stamped
     attrs_json  TEXT,                       -- JSON object of full field attributes; NULL for methods
+    has_super   INTEGER,                    -- 1 if method calls super().<attr>(), 0 if not, NULL for fields
     PRIMARY KEY (model, name, kind, module)
 );
 CREATE INDEX IF NOT EXISTS idx_symbols_lookup ON symbols (model, name, kind);
@@ -347,8 +349,9 @@ def _write_kb(
                         """
                         INSERT OR REPLACE INTO symbols
                             (model, name, kind, origin, module, source_file, source_line,
-                             source_end_line, field_type, section, import_index, attrs_json)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             source_end_line, field_type, section, import_index, attrs_json,
+                             has_super)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             sym["model"],
@@ -363,6 +366,7 @@ def _write_kb(
                             sym.get("section"),
                             sym.get("import_index"),
                             sym.get("attrs_json"),
+                            sym.get("has_super"),
                         ),
                     )
 
@@ -708,7 +712,7 @@ class KBReader:
         rows = self._con.execute(
             """
             SELECT origin, module, source_file, source_line, source_end_line,
-                   field_type, section
+                   field_type, section, has_super
             FROM   symbols
             WHERE  model = ? AND name = ? AND kind = ?
             ORDER  BY origin  -- stable ordering; resolve.py re-sorts by depends
@@ -785,25 +789,41 @@ class KBReader:
         ).fetchone()
         return row is None
 
-    def get_model_creators(self, model: str) -> List[Dict[str, Any]]:
+    def get_model_creators(
+        self, model: str, by_load_index: bool = False
+    ) -> List[Dict[str, Any]]:
         """Return all modules recorded as creators of ``model``.
 
         Args:
             model: Dotted model name.
+            by_load_index: When True, order by load_index ASC (earliest-loaded first)
+                instead of the default ``origin, module`` alphabetical order.
 
         Returns:
             List of ``{"module", "origin", "source_file", "source_line",
             "description"}`` dicts.
         """
-        rows = self._con.execute(
-            """
-            SELECT module, origin, source_file, source_line, description
-            FROM   model_origins
-            WHERE  model = ? AND role IN ('create', 'prototype')
-            ORDER  BY origin, module
-            """,
-            (model,),
-        ).fetchall()
+        if by_load_index:
+            rows = self._con.execute(
+                """
+                SELECT mo.module, mo.origin, mo.source_file, mo.source_line, mo.description
+                FROM   model_origins mo
+                LEFT JOIN modules m ON mo.module = m.name
+                WHERE  mo.model = ? AND mo.role IN ('create', 'prototype')
+                ORDER  BY m.load_index ASC NULLS LAST, mo.module
+                """,
+                (model,),
+            ).fetchall()
+        else:
+            rows = self._con.execute(
+                """
+                SELECT module, origin, source_file, source_line, description
+                FROM   model_origins
+                WHERE  model = ? AND role IN ('create', 'prototype')
+                ORDER  BY origin, module
+                """,
+                (model,),
+            ).fetchall()
         return [dict(r) for r in rows]
 
     def get_model_description(self, model: str) -> Optional[str]:
@@ -1058,6 +1078,31 @@ class KBReader:
             row["attrs"] = json.loads(r["attrs_json"]) if r["attrs_json"] else {}
             result.append(row)
         return result
+
+    def get_method_layers(self, model: str, method_name: str) -> List[Dict[str, Any]]:
+        """Return per-layer method info for a given model+method.
+
+        Args:
+            model: Dotted model name.
+            method_name: Method name.
+
+        Returns:
+            List of dicts with module, origin, source_file, source_line, section,
+            has_super, load_index, import_index. Unsorted — caller must sort.
+        """
+        rows = self._con.execute(
+            """
+            SELECT s.module, s.origin, s.source_file, s.source_line, s.section,
+                   s.has_super, m.load_index, s.import_index
+            FROM symbols s
+            LEFT JOIN modules m ON s.module = m.name
+            WHERE s.model=? AND s.name=? AND s.kind='method'
+            """,
+            (model, method_name),
+        ).fetchall()
+        cols = ["module", "origin", "source_file", "source_line", "section",
+                "has_super", "load_index", "import_index"]
+        return [dict(zip(cols, tuple(r))) for r in rows]
 
     def get_field_refs_for_field(
         self, model: str, field_name: str, module: Optional[str] = None

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from oops.kb.inheritance import build_class_chain, compute_mro, merge_fields
+from oops.kb.inheritance import build_class_chain, compute_mro, merge_fields, merge_methods
 from oops.kb.load_order import compute_load_order
 from oops.kb.store import KBReader
 
@@ -58,12 +58,14 @@ class InheritanceResolver:
 
         load_order = compute_load_order(installed_modules, all_depends)
         chain = build_class_chain(model_name, reader, load_order)
-        mro = compute_mro(chain)
-        fields = merge_fields(mro, reader)
+        mro = compute_mro(chain, reader=reader, load_order=load_order)
+        fields = merge_fields(mro, reader, load_order=load_order)
+        methods = merge_methods(mro, reader, load_order=load_order)
 
         return {
             "model": model_name,
             "chain": chain,
             "mro": mro,
             "fields": fields,
+            "methods": methods,
         }

@@ -698,6 +698,20 @@ def _make_attrs_json(stmt: ast.stmt) -> Optional[str]:
     return json.dumps(attrs)
 
 
+def _detect_super_in_func(fn: ast.AST) -> bool:
+    """True if the function body contains a super().<attr>(...) call."""
+    for node in ast.walk(fn):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Call)
+            and isinstance(node.func.value.func, ast.Name)
+            and node.func.value.func.id == "super"
+        ):
+            return True
+    return False
+
+
 def scan_module(  # noqa: C901
     module_dir: Path,
     origin: str,
@@ -868,6 +882,7 @@ def scan_module(  # noqa: C901
                 "section": section,
                 "import_index": mth_import_index,
                 "attrs_json": None,
+                "has_super": _detect_super_in_func(fn_node),
             }
         )
 

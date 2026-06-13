@@ -94,6 +94,8 @@ from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
 from oops.io.refactor import ClassInfo, SymbolInfo, analyse_file
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
+from oops.kb.provenance import normalize_origin
+from oops.kb.resolver import InheritanceResolver
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
 from oops.output.formatters import (
@@ -240,6 +242,16 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
         with KBReader(kb_path) as kb:
             modules_index = kb.get_modules()
+            resolver = InheritanceResolver(kb)
+            _resolved_cache: dict = {}
+
+            def _get_resolved(model: str) -> dict:
+                if model not in _resolved_cache:
+                    try:
+                        _resolved_cache[model] = resolver.resolve(model)
+                    except Exception:
+                        _resolved_cache[model] = {}
+                return _resolved_cache[model]
 
             for i, module_path in enumerate(resolved_paths, start=1):
                 log.info(f"Analysing {module_path.name} ({i}/{len(resolved_paths)})...")
@@ -274,29 +286,40 @@ def main(  # noqa: C901, PLR0912, PLR0915
                         cs.missing_description = cs.is_new_model and not ci.description
                         cs.resolved_description = ci.description
                         if not cs.is_new_model and cs.inherit:
-                            creators = kb.get_model_creators(cs.inherit[0])
-                            if creators:
-                                best = creators[0]
-                                cs.ancestor_model = cs.inherit[0]
-                                cs.ancestor_module = best["module"]
-                                cs.ancestor_origin = best["origin"]
-                                if not cs.resolved_description and best.get("description"):
-                                    cs.resolved_description = best["description"]
-                                    cs.description_inherited_from = best["module"]
+                            inherited_model = cs.inherit[0]
+                            cs.ancestor_model = inherited_model
+                            resolved = _get_resolved(inherited_model)
+                            mro = resolved.get("mro", [])
+                            # Find immediate upstream layer (first MRO entry after module_name)
+                            mro_modules = [r["module"] for r in mro]
+                            try:
+                                idx = mro_modules.index(module_name)
+                                upstream = mro[idx + 1] if idx + 1 < len(mro) else None
+                            except ValueError:
+                                upstream = mro[0] if mro else None
+                            if upstream:
+                                cs.ancestor_module = upstream["module"]
+                                cs.ancestor_origin = upstream.get("origin", "")
+                            # Root = last MRO layer (original creator)
+                            root = mro[-1] if mro else None
+                            if not upstream and root:
+                                cs.ancestor_module = root["module"]
+                                cs.ancestor_origin = root.get("origin", "")
+                            # Description: prefer upstream, fall back to root
+                            if not cs.resolved_description:
+                                for candidate in (upstream, root):
+                                    if candidate:
+                                        desc = kb.get_model_description(inherited_model)
+                                        if desc:
+                                            cs.resolved_description = desc
+                                            cs.description_inherited_from = candidate["module"]
+                                            break
                         all_classes.append(cs)
                         model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
+                        resolved_m = _get_resolved(model_label) if model_label else {}
+                        resolver_methods = resolved_m.get("methods", {})
                         method_symbols.extend(
-                            {
-                                "model": model_label,
-                                "kind": "method",
-                                "name": s.name,
-                                "section": s.section,
-                                "line_start": s.lineno,
-                                "line_end": s.end_lineno,
-                                "source_file": rel_file,
-                                "is_override": s.is_override,
-                                "has_docstring": s.has_docstring,
-                            }
+                            _enrich_method_sym(s, rel_file, model_label, module_name, resolver_methods)
                             for s in ci.symbols
                             if s.kind == "method"
                         )
@@ -346,6 +369,39 @@ def main(  # noqa: C901, PLR0912, PLR0915
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _enrich_method_sym(
+    s: "SymbolInfo",
+    rel_file: str,
+    model_label: str,
+    module_name: str,
+    resolver_methods: dict,
+) -> dict:
+    """Build method_symbols IR entry, enriching with resolver stack if available."""
+    overrides_ref = None
+    method_stack = resolver_methods.get(s.name, {}).get("stack", [])
+    if method_stack and s.is_override:
+        # upstream reference = root of the resolver stack (original definer)
+        root = method_stack[-1]
+        overrides_ref = {
+            "module": root["module"],
+            "origin": normalize_origin(root.get("origin")),
+            "source_file": root.get("source_file"),
+            "source_line": root.get("source_line"),
+        }
+    return {
+        "model": model_label,
+        "kind": "method",
+        "name": s.name,
+        "section": s.section,
+        "line_start": s.lineno,
+        "line_end": s.end_lineno,
+        "source_file": rel_file,
+        "is_override": s.is_override,
+        "has_docstring": s.has_docstring,
+        "overrides": overrides_ref,
+    }
 
 
 def _summarize_class(ci: ClassInfo) -> ClassSummary:

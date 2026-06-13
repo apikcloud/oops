@@ -44,6 +44,7 @@ def _make_db(tmp_path: Path) -> Path:
             source_end_line INTEGER,
             field_type TEXT, section TEXT,
             import_index INTEGER, attrs_json TEXT,
+            has_super INTEGER,
             PRIMARY KEY (model, name, kind, module)
         );
         CREATE TABLE field_refs (
@@ -51,7 +52,7 @@ def _make_db(tmp_path: Path) -> Path:
             kwarg TEXT, target_method TEXT,
             PRIMARY KEY (model, field_name, module, kwarg)
         );
-        INSERT INTO meta VALUES ('schema_version', '8');
+        INSERT INTO meta VALUES ('schema_version', '9');
     """)
     # Modules: base(depth=0,idx=0), mail(depth=1,idx=1), custom(depth=2,idx=2)
     con.executemany(
@@ -269,3 +270,146 @@ class TestFieldMerge:
         assert sel[0] == ["c", "C"]
         assert ["a", "A"] in sel
         assert ["b", "B"] in sel
+
+
+# ---------------------------------------------------------------------------
+# Multi-inherit / prototype C3 fixtures
+# ---------------------------------------------------------------------------
+
+def _make_diamond_db(tmp_path: Path) -> Path:
+    """Diamond inheritance: base ← a, base ← b, c ← (a, b).
+
+    Modules: base_mod(0) → a_mod(1) → b_mod(2) → c_mod(3)
+    Models:
+      base.model  created in base_mod
+      a.model     prototype from base.model  (a_mod)
+      b.model     prototype from base.model  (b_mod)
+      c.model     creates with _inherit=[a.model, b.model]  (c_mod)
+    """
+    db_path = tmp_path / "diamond.db"
+    con = sqlite3.connect(str(db_path))
+    con.executescript("""
+        CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+        CREATE TABLE modules (
+            name TEXT PRIMARY KEY, origin TEXT,
+            depends TEXT DEFAULT '[]',
+            application INTEGER DEFAULT 0,
+            app TEXT, depth INTEGER, load_index INTEGER
+        );
+        CREATE TABLE model_origins (
+            model TEXT, module TEXT, origin TEXT, role TEXT,
+            model_type TEXT DEFAULT 'model',
+            inherit_json TEXT DEFAULT '[]',
+            inherits_json TEXT DEFAULT '{}',
+            source_file TEXT, source_line INTEGER,
+            description TEXT, import_index INTEGER,
+            PRIMARY KEY (model, module)
+        );
+        CREATE TABLE symbols (
+            model TEXT, name TEXT, kind TEXT,
+            origin TEXT, module TEXT,
+            source_file TEXT, source_line INTEGER,
+            source_end_line INTEGER,
+            field_type TEXT, section TEXT,
+            import_index INTEGER, attrs_json TEXT,
+            has_super INTEGER,
+            PRIMARY KEY (model, name, kind, module)
+        );
+        CREATE TABLE field_refs (
+            model TEXT, field_name TEXT, module TEXT,
+            kwarg TEXT, target_method TEXT,
+            PRIMARY KEY (model, field_name, module, kwarg)
+        );
+        INSERT INTO meta VALUES ('schema_version', '9');
+    """)
+    con.executemany(
+        "INSERT INTO modules (name, origin, depends, depth, load_index) VALUES (?,?,?,?,?)",
+        [
+            ("base_mod", "odoo", "[]", 0, 0),
+            ("a_mod",    "odoo", '["base_mod"]', 1, 1),
+            ("b_mod",    "odoo", '["base_mod"]', 1, 2),
+            ("c_mod",    "apik", '["a_mod","b_mod"]', 2, 3),
+        ],
+    )
+    rows = [
+        ("base.model", "base_mod", "odoo", "create",    "model", "[]",                   "{}", "f.py", 1, None, 0),
+        ("a.model",    "a_mod",    "odoo", "prototype", "model", '["base.model"]',        "{}", "f.py", 1, None, 0),
+        ("b.model",    "b_mod",    "odoo", "prototype", "model", '["base.model"]',        "{}", "f.py", 1, None, 0),
+        ("c.model",    "c_mod",    "apik", "create",    "model", '["a.model","b.model"]', "{}", "f.py", 1, None, 0),
+    ]
+    con.executemany("INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows)
+    con.commit()
+    con.close()
+    return db_path
+
+
+class TestMROC3:
+    def test_diamond_c3_order(self, tmp_path):
+        """c.model MRO must be [c, a, b, base] (classic diamond C3)."""
+        db_path = _make_diamond_db(tmp_path)
+        with KBReader(db_path) as reader:
+            chain = build_class_chain("c.model", reader, {})
+            mro = compute_mro(chain, reader=reader, load_order={})
+        model_names = [r["model"] for r in mro]
+        assert model_names == ["c.model", "a.model", "b.model", "base.model"]
+
+    def test_prototype_mro_includes_parent(self, tmp_path):
+        """a.model MRO must be [a, base]."""
+        db_path = _make_diamond_db(tmp_path)
+        with KBReader(db_path) as reader:
+            chain = build_class_chain("a.model", reader, {})
+            mro = compute_mro(chain, reader=reader, load_order={})
+        model_names = [r["model"] for r in mro]
+        assert model_names == ["a.model", "base.model"]
+
+    def test_single_inherit_unchanged_with_reader(self, tmp_path):
+        """Passing reader to a single-inherit chain must not change MRO."""
+        db_path = _make_diamond_db(tmp_path)
+        with KBReader(db_path) as reader:
+            chain = build_class_chain("base.model", reader, {})
+            mro_no_reader = compute_mro(chain)
+            mro_with_reader = compute_mro(chain, reader=reader, load_order={})
+        assert [r["module"] for r in mro_no_reader] == [r["module"] for r in mro_with_reader]
+
+    def test_cycle_guard_does_not_infinite_loop(self, tmp_path):
+        """Cyclic _inherit references must not cause infinite recursion."""
+        db_path = tmp_path / "cycle.db"
+        con = sqlite3.connect(str(db_path))
+        con.executescript("""
+            CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+            CREATE TABLE modules (name TEXT PRIMARY KEY, origin TEXT,
+                depends TEXT DEFAULT '[]', application INTEGER DEFAULT 0,
+                app TEXT, depth INTEGER, load_index INTEGER);
+            CREATE TABLE model_origins (model TEXT, module TEXT, origin TEXT,
+                role TEXT, model_type TEXT DEFAULT 'model',
+                inherit_json TEXT DEFAULT '[]', inherits_json TEXT DEFAULT '{}',
+                source_file TEXT, source_line INTEGER, description TEXT,
+                import_index INTEGER, PRIMARY KEY (model, module));
+            CREATE TABLE symbols (model TEXT, name TEXT, kind TEXT,
+                origin TEXT, module TEXT, source_file TEXT, source_line INTEGER,
+                source_end_line INTEGER, field_type TEXT, section TEXT,
+                import_index INTEGER, attrs_json TEXT, has_super INTEGER,
+                PRIMARY KEY (model, name, kind, module));
+            CREATE TABLE field_refs (model TEXT, field_name TEXT, module TEXT,
+                kwarg TEXT, target_method TEXT,
+                PRIMARY KEY (model, field_name, module, kwarg));
+            INSERT INTO meta VALUES ('schema_version', '9');
+        """)
+        con.executemany(
+            "INSERT INTO modules (name, origin, depth, load_index) VALUES (?,?,?,?)",
+            [("mod_x", "odoo", 0, 0), ("mod_y", "odoo", 1, 1)],
+        )
+        con.executemany(
+            "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            [
+                ("x.model", "mod_x", "odoo", "prototype", "model", '["y.model"]', "{}", "f.py", 1, None, 0),
+                ("y.model", "mod_y", "odoo", "prototype", "model", '["x.model"]', "{}", "f.py", 1, None, 0),
+            ],
+        )
+        con.commit()
+        con.close()
+        with KBReader(db_path) as reader:
+            chain = build_class_chain("x.model", reader, {})
+            mro = compute_mro(chain, reader=reader, load_order={})
+        # Must not raise; exact order is the fallback (reversed chain)
+        assert len(mro) >= 1

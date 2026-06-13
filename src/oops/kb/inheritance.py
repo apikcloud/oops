@@ -51,20 +51,26 @@ def build_class_chain(
     return records
 
 
-def compute_mro(chain: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def compute_mro(  # noqa: C901
+    chain: list[dict[str, Any]],
+    reader: Any = None,
+    load_order: dict[str, Any] | None = None,
+    _seen: "set[str] | None" = None,
+) -> list[dict[str, Any]]:
     """C3 linearization over the class chain.
 
     For single-inherit chains (the 95%+ case): returns the chain reversed
-    (most-derived first). For multi-inherit prototype edges: full C3.
+    (most-derived first). For multi-inherit / prototype edges: full C3 over
+    model names, then expands each name to its own chain records.
 
     Args:
         chain: Output of ``build_class_chain`` (earliest-loaded first).
+        reader: KBReader instance; required for prototype/multi-inherit C3.
+        load_order: load_order dict; forwarded to recursive calls.
+        _seen: model names already on the call stack (cycle guard).
 
     Returns:
         Class records ordered most-derived first (standard Python MRO order).
-
-    Raises:
-        ValueError: If the hierarchy is inconsistent and C3 fails.
     """
     if not chain:
         return []
@@ -73,8 +79,27 @@ def compute_mro(chain: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not multi:
         return list(reversed(chain))
 
-    def c3_merge(seqs: list[list[Any]]) -> list[Any]:
-        result: list[Any] = []
+    if reader is None:
+        return list(reversed(chain))
+
+    if _seen is None:
+        _seen = set()
+
+    model_name: str = chain[0]["model"]
+    _seen = _seen | {model_name}
+
+    # Collect unique parent model names that differ from this model
+    parent_names: list[str] = []
+    for r in chain:
+        for parent in r["inherit"]:
+            if parent != model_name and parent not in parent_names:
+                parent_names.append(parent)
+
+    if not parent_names:
+        return list(reversed(chain))
+
+    def _c3_merge(seqs: list[list[str]]) -> list[str]:
+        result: list[str] = []
         while True:
             seqs = [s for s in seqs if s]
             if not seqs:
@@ -84,22 +109,143 @@ def compute_mro(chain: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 if not any(candidate in s[1:] for s in seqs):
                     result.append(candidate)
                     for s in seqs:
-                        if s and s[0] is candidate:
+                        if s and s[0] == candidate:
                             s.pop(0)
                     break
             else:
                 raise ValueError("C3 linearisation failed — inconsistent hierarchy")
 
-    # Full C3 for the multi-inherit / prototype case.
-    # The chain is already sorted earliest-first; reverse gives most-derived first.
-    # TODO: integrate prototype edge traversal when exercised against real multi-inherit data.
-    return list(reversed(chain))
+    def _name_seq(mro: list[dict[str, Any]]) -> list[str]:
+        seen_n: set[str] = set()
+        result: list[str] = []
+        for r in mro:
+            n = r["model"]
+            if n not in seen_n:
+                seen_n.add(n)
+                result.append(n)
+        return result
+
+    # Recursively resolve each parent model's MRO (as name sequence)
+    parent_name_seqs: list[list[str]] = []
+    for parent in parent_names:
+        if parent in _seen:
+            continue
+        p_chain = build_class_chain(parent, reader, load_order or {})
+        if p_chain:
+            p_mro = compute_mro(p_chain, reader=reader, load_order=load_order, _seen=_seen)
+            parent_name_seqs.append(_name_seq(p_mro))
+
+    if not parent_name_seqs:
+        return list(reversed(chain))
+
+    direct_heads = [seq[0] for seq in parent_name_seqs if seq]
+    c3_inputs = [[model_name]] + parent_name_seqs + [direct_heads]
+
+    try:
+        name_order = _c3_merge(c3_inputs)
+    except ValueError:
+        return list(reversed(chain))
+
+    # Expand model name order → actual records (most-derived-first within each model)
+    result: list[dict[str, Any]] = []
+    for name in name_order:
+        if name == model_name:
+            result.extend(reversed(chain))
+        else:
+            sub_chain = build_class_chain(name, reader, load_order or {})
+            result.extend(reversed(sub_chain))
+
+    return result
+
+
+def _dyn_load_idx(module: str, load_order: dict[str, Any] | None, stored: Any) -> int:
+    """Resolve the effective load index for sorting, preferring dynamic load_order."""
+    if load_order:
+        entry = load_order.get(module)
+        return entry[1] if entry is not None else 10 ** 9
+    return stored or 0
+
+
+def merge_methods(
+    mro: list[dict[str, Any]],
+    reader: Any,
+    load_order: dict[str, Any] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Build the full ordered method override stack along MRO.
+
+    Args:
+        mro: Output of ``compute_mro`` (most-derived first).
+        reader: KBReader instance.
+
+    Returns:
+        Mapping of method_name → ``{"stack": [...], "root": {...}}``.
+        Each stack entry has keys: module, origin, source_file, source_line,
+        section, has_super, reachable, is_override.
+        ``reachable`` is True for layers reachable via super() chains from the
+        top. ``is_override`` is True for a non-top layer that does NOT call
+        super() (replaces upstream).
+    """
+    if not mro:
+        return {}
+
+    method_names: set[str] = set()
+    for record in mro:
+        for sym in reader.get_symbols_by_module_model(record["module"], record["model"]):
+            if sym["kind"] == "method":
+                method_names.add(sym["name"])
+
+    merged: dict[str, dict[str, Any]] = {}
+    for mname in method_names:
+        # get_method_layers may return records from any model in the MRO
+        layers = reader.get_method_layers(mro[0]["model"], mname)
+        # Also fetch layers from parent models in the MRO (for prototype chains)
+        seen_models: set[str] = {mro[0]["model"]}
+        for record in mro[1:]:
+            if record["model"] not in seen_models:
+                seen_models.add(record["model"])
+                parent_layers = reader.get_method_layers(record["model"], mname)
+                layers.extend(parent_layers)
+
+        if not layers:
+            continue
+
+        # Sort most-derived first, using dynamic load_order when available.
+        layers.sort(key=lambda r: (
+            -_dyn_load_idx(r["module"], load_order, r["load_index"]),
+            -(r["import_index"] or 0),
+        ))
+
+        # Walk top→down computing reachability and is_override.
+        # Layer N is reachable iff every layer 0..N-1 called super().
+        stack: list[dict[str, Any]] = []
+        reachable = True
+        for i, layer in enumerate(layers):
+            is_top = i == 0
+            entry = {
+                "module":      layer["module"],
+                "origin":      layer["origin"],
+                "source_file": layer["source_file"],
+                "source_line": layer["source_line"],
+                "section":     layer["section"],
+                "has_super":   bool(layer["has_super"]) if layer["has_super"] is not None else None,
+                "reachable":   reachable,
+                "is_override": not is_top and not layer["has_super"],
+            }
+            stack.append(entry)
+            # If this layer does not forward via super(), subsequent layers are unreachable.
+            if not layer["has_super"]:
+                reachable = False
+
+        merged[mname] = {"stack": stack, "root": stack[-1] if stack else None}
+
+    return merged
 
 
 def merge_fields(
     mro: list[dict[str, Any]],
     reader: Any,
     inherits_delegation: dict[str, str] | None = None,
+    load_order: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Attribute-level field merge along MRO.
 
@@ -126,9 +272,9 @@ def merge_fields(
     merged: dict[str, dict[str, Any]] = {}
     for fname in field_names:
         attrs_per_layer = reader.get_field_attrs(model, fname)
-        # Most-derived (highest load_index) first to match MRO order.
+        # Most-derived (highest load_index) first, using dynamic load_order when available.
         attrs_per_layer.sort(key=lambda r: (
-            -(r["load_index"] or 0),
+            -_dyn_load_idx(r["module"], load_order, r["load_index"]),
             -(r["import_index"] or 0),
         ))
 

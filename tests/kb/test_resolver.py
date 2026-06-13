@@ -7,7 +7,9 @@ import json
 import sqlite3
 from pathlib import Path
 
+from oops.kb.inheritance import merge_methods
 from oops.kb.resolver import InheritanceResolver
+from oops.kb.store import KBReader
 
 
 def _make_fixture_kb(tmp_path: Path) -> Path:
@@ -37,6 +39,7 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
             source_end_line INTEGER,
             field_type TEXT, section TEXT,
             import_index INTEGER, attrs_json TEXT,
+            has_super INTEGER,
             PRIMARY KEY (model, name, kind, module)
         );
         CREATE TABLE field_refs (
@@ -44,7 +47,7 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
             kwarg TEXT, target_method TEXT,
             PRIMARY KEY (model, field_name, module, kwarg)
         );
-        INSERT INTO meta VALUES ('schema_version', '8');
+        INSERT INTO meta VALUES ('schema_version', '9');
         INSERT INTO meta VALUES ('odoo_version', '17.0');
         INSERT INTO meta VALUES ('layer', 'project');
     """)
@@ -90,7 +93,7 @@ class TestInheritanceResolver:
         db_path = _make_fixture_kb(tmp_path)
         resolver = InheritanceResolver.from_project_kb(db_path)
         result = resolver.resolve("sale.order")
-        assert set(result.keys()) == {"model", "chain", "mro", "fields"}
+        assert set(result.keys()) == {"model", "chain", "mro", "fields", "methods"}
         assert result["model"] == "sale.order"
 
     def test_chain_length(self, tmp_path):
@@ -134,3 +137,133 @@ class TestInheritanceResolver:
         mro_modules = [r["module"] for r in result["mro"]]
         chain_modules = [r["module"] for r in result["chain"]]
         assert mro_modules == list(reversed(chain_modules))
+
+    def test_methods_key_present(self, tmp_path):
+        db_path = _make_fixture_kb(tmp_path)
+        resolver = InheritanceResolver.from_project_kb(db_path)
+        result = resolver.resolve("sale.order")
+        assert isinstance(result["methods"], dict)
+
+
+def _make_method_fixture_kb(tmp_path: Path) -> Path:
+    """KB with a 3-layer method stack: base (no super), sale (super), custom (super)."""
+    db_path = tmp_path / "method_kb.db"
+    con = sqlite3.connect(str(db_path))
+    con.executescript("""
+        CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+        CREATE TABLE modules (
+            name TEXT PRIMARY KEY, origin TEXT,
+            depends TEXT DEFAULT '[]',
+            application INTEGER DEFAULT 0,
+            app TEXT, depth INTEGER, load_index INTEGER
+        );
+        CREATE TABLE model_origins (
+            model TEXT, module TEXT, origin TEXT, role TEXT,
+            model_type TEXT DEFAULT 'model',
+            inherit_json TEXT DEFAULT '[]',
+            inherits_json TEXT DEFAULT '{}',
+            source_file TEXT, source_line INTEGER,
+            description TEXT, import_index INTEGER,
+            PRIMARY KEY (model, module)
+        );
+        CREATE TABLE symbols (
+            model TEXT, name TEXT, kind TEXT,
+            origin TEXT, module TEXT,
+            source_file TEXT, source_line INTEGER,
+            source_end_line INTEGER,
+            field_type TEXT, section TEXT,
+            import_index INTEGER, attrs_json TEXT,
+            has_super INTEGER,
+            PRIMARY KEY (model, name, kind, module)
+        );
+        CREATE TABLE field_refs (
+            model TEXT, field_name TEXT, module TEXT,
+            kwarg TEXT, target_method TEXT,
+            PRIMARY KEY (model, field_name, module, kwarg)
+        );
+        INSERT INTO meta VALUES ('schema_version', '9');
+        INSERT INTO meta VALUES ('odoo_version', '17.0');
+        INSERT INTO meta VALUES ('layer', 'project');
+    """)
+    con.executemany(
+        "INSERT INTO modules (name, origin, depends, depth, load_index) VALUES (?,?,?,?,?)",
+        [
+            ("base",        "odoo", "[]",              0, 0),
+            ("sale",        "odoo", '["base"]',        1, 1),
+            ("custom_sale", "apik", '["sale"]',        2, 2),
+        ],
+    )
+    con.executemany(
+        "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("sale.order", "base",        "odoo", "create", "model", "[]", "{}", "base/sale_order.py", 1, None, 0),
+            ("sale.order", "sale",        "odoo", "extend", "model", "[]", "{}", "sale/sale_order.py", 1, None, 0),
+            ("sale.order", "custom_sale", "apik", "extend", "model", "[]", "{}", "custom/sale_order.py", 1, None, 0),
+        ],
+    )
+    _sym = (
+        "INSERT INTO symbols"
+        " (model, name, kind, origin, module, source_file, source_line, import_index, has_super)"
+        " VALUES (?,?,?,?,?,?,?,?,?)"
+    )
+    con.executemany(
+        _sym,
+        [
+            # write: base (no super), sale (super), custom_sale (super)
+            ("sale.order", "write", "method", "odoo", "base",        "base/sale_order.py", 10, 0, 0),
+            ("sale.order", "write", "method", "odoo", "sale",        "sale/sale_order.py", 20, 0, 1),
+            ("sale.order", "write", "method", "apik", "custom_sale", "custom/sale_order.py", 5, 0, 1),
+            # override_me: only base (no super)
+            ("sale.order", "override_me", "method", "odoo", "base", "base/sale_order.py", 15, 0, 0),
+            ("sale.order", "override_me", "method", "apik", "custom_sale", "custom/sale_order.py", 8, 0, 0),
+        ],
+    )
+    con.commit()
+    con.close()
+    return db_path
+
+
+class TestMergeMethods:
+    def test_super_chain_all_reachable(self, tmp_path):
+        """custom_sale→super→sale→super→base: all 3 layers reachable."""
+        db_path = _make_method_fixture_kb(tmp_path)
+        with KBReader(db_path) as reader:
+            from oops.kb.inheritance import build_class_chain, compute_mro
+            chain = build_class_chain("sale.order", reader, {})
+            mro = compute_mro(chain, reader=reader, load_order={})
+            methods = merge_methods(mro, reader)
+        assert "write" in methods
+        stack = methods["write"]["stack"]
+        assert len(stack) == 3
+        assert all(e["reachable"] for e in stack)
+
+    def test_override_without_super_truncates(self, tmp_path):
+        """custom_sale.override_me has no super → base layer unreachable."""
+        db_path = _make_method_fixture_kb(tmp_path)
+        with KBReader(db_path) as reader:
+            from oops.kb.inheritance import build_class_chain, compute_mro
+            chain = build_class_chain("sale.order", reader, {})
+            mro = compute_mro(chain, reader=reader, load_order={})
+            methods = merge_methods(mro, reader)
+        assert "override_me" in methods
+        stack = methods["override_me"]["stack"]
+        assert len(stack) == 2
+        top = stack[0]
+        bottom = stack[1]
+        assert top["module"] == "custom_sale"
+        assert top["reachable"] is True
+        assert top["is_override"] is False  # top layer is never is_override
+        assert bottom["module"] == "base"
+        assert bottom["reachable"] is False
+        assert bottom["is_override"] is True
+
+    def test_root_is_last_stack_entry(self, tmp_path):
+        db_path = _make_method_fixture_kb(tmp_path)
+        with KBReader(db_path) as reader:
+            from oops.kb.inheritance import build_class_chain, compute_mro
+            chain = build_class_chain("sale.order", reader, {})
+            mro = compute_mro(chain, reader=reader, load_order={})
+            methods = merge_methods(mro, reader)
+        write = methods["write"]
+        assert write["root"] == write["stack"][-1]
+        assert write["root"]["module"] == "base"

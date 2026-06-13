@@ -14,6 +14,7 @@ from pathlib import Path
 
 from oops.kb.scanner import (
     _dedup_model_origins,
+    _detect_super_in_func,
     _extract_string_value,
     _parse_file,
     build_module_field_refs,
@@ -929,3 +930,72 @@ class TestScanModuleFieldTypesAndRefs:
         result = scan_tier(tier_root, origin="apik")
         assert "field_refs" in result.data
         assert len(result.data["field_refs"]) > 0
+
+    def test_method_with_super_has_has_super_true(self, tmp_path):
+        module_dir = _make_module(tmp_path, "sale_ext", models={"sale_order.py": INHERIT_MODEL})
+        result = scan_module(module_dir, origin="apik", tier_root=tmp_path)
+        write_sym = next(
+            (s for s in result["symbols"] if s["kind"] == "method" and s["name"] == "write"), None
+        )
+        assert write_sym is not None
+        assert write_sym["has_super"] is True
+
+    def test_method_without_super_has_has_super_false(self, tmp_path):
+        module_dir = _make_module(tmp_path, "partner", models={"partner.py": SIMPLE_MODEL})
+        result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
+        action_sym = next(
+            (s for s in result["symbols"] if s["kind"] == "method" and s["name"] == "action_open"), None
+        )
+        assert action_sym is not None
+        assert action_sym["has_super"] is False
+
+    def test_field_symbols_have_no_has_super(self, tmp_path):
+        module_dir = _make_module(tmp_path, "partner", models={"partner.py": SIMPLE_MODEL})
+        result = scan_module(module_dir, origin="odoo", tier_root=tmp_path)
+        field_syms = [s for s in result["symbols"] if s["kind"] == "field"]
+        assert all(s.get("has_super") is None for s in field_syms)
+
+
+class TestDetectSuperInFunc:
+    def _parse_func(self, src: str) -> ast.AST:
+        tree = ast.parse(textwrap.dedent(src))
+        return next(
+            n for n in ast.walk(tree)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        )
+
+    def test_super_call_detected(self):
+        fn = self._parse_func("""
+            def write(self, vals):
+                return super().write(vals)
+        """)
+        assert _detect_super_in_func(fn) is True
+
+    def test_no_super_returns_false(self):
+        fn = self._parse_func("""
+            def action_open(self):
+                pass
+        """)
+        assert _detect_super_in_func(fn) is False
+
+    def test_nested_super_detected(self):
+        fn = self._parse_func("""
+            def compute(self):
+                if True:
+                    super().compute()
+        """)
+        assert _detect_super_in_func(fn) is True
+
+    def test_async_def_super_detected(self):
+        fn = self._parse_func("""
+            async def _async_helper(self):
+                await super()._async_helper()
+        """)
+        assert _detect_super_in_func(fn) is True
+
+    def test_super_without_attribute_call_not_detected(self):
+        fn = self._parse_func("""
+            def init(self):
+                x = super()
+        """)
+        assert _detect_super_in_func(fn) is False

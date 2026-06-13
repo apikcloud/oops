@@ -180,7 +180,8 @@ def build_project_kb(
         global_symbols = [
             dict(r)
             for r in kb._con.execute(
-                "SELECT model, name, kind, origin, module, source_file, source_line, field_type, section FROM symbols"
+                "SELECT model, name, kind, origin, module, source_file, source_line, "
+                "field_type, section, import_index, attrs_json, has_super FROM symbols"
             ).fetchall()
         ]
         global_field_refs = [
