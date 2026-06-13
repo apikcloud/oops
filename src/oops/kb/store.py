@@ -9,20 +9,24 @@ Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
 - kb_project.db  : global + third-party + apik, scoped to a project.
 
-Schema (v7)
+Schema (v8)
 -----------
 meta          (key, value)
 sources       (origin, path)
 modules       (name, origin, depends,         -- depends is a JSON array string
-               application, app)             -- application flag + owning app
+               application, app,             -- application flag + owning app
+               depth, load_index)            -- NULL until compute_load_order() runs
 symbols       (model, name, kind, origin, module, source_file, source_line,
-               source_end_line, field_type, section)
+               source_end_line, field_type, section,
+               import_index,                -- file position in __init__.py import order
+               attrs_json)                  -- JSON object of full field attributes (fields only)
               source_end_line: last source line of the definition (nullable —
               fields may omit it)
 field_refs    (model, field_name, module, kwarg, target_method)
 model_origins (model, module, origin, role, model_type,
                inherit_json, inherits_json, source_file, source_line,
-               description)
+               description,
+               import_index)               -- file position in __init__.py import order
               role: 'create' | 'extend' | 'prototype'
               model_type: 'model' | 'transient' | 'abstract'
               description: literal _description string (nullable)
@@ -69,7 +73,7 @@ from oops.core.models import Result
 # Schema versioning
 # ---------------------------------------------------------------------------
 
-SCHEMA_VERSION = 7  # added application, app to modules
+SCHEMA_VERSION = 8  # v8: depth/load_index on modules, import_index on model_origins, import_index/attrs_json on symbols
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -95,7 +99,9 @@ CREATE TABLE IF NOT EXISTS modules (
     origin      TEXT    NOT NULL,
     depends     TEXT    NOT NULL DEFAULT '[]',
     application INTEGER NOT NULL DEFAULT 0,   -- 1 if manifest application=True
-    app         TEXT                          -- owning app technical name, NULL if none
+    app         TEXT,                         -- owning app technical name, NULL if none
+    depth       INTEGER,                      -- longest path to base; NULL until compute_load_order() runs
+    load_index  INTEGER                       -- position in sorted load order; NULL until compute_load_order() runs
 );
 CREATE INDEX IF NOT EXISTS idx_modules_origin ON modules (origin);
 
@@ -110,6 +116,8 @@ CREATE TABLE IF NOT EXISTS symbols (
     source_end_line INTEGER,                 -- last source line / NULL for fields without one
     field_type  TEXT,                       -- e.g. 'Boolean' / NULL for methods
     section     TEXT,                       -- canonical section name / NULL for fields
+    import_index INTEGER,                   -- file position in __init__.py import order; NULL if not stamped
+    attrs_json  TEXT,                       -- JSON object of full field attributes; NULL for methods
     PRIMARY KEY (model, name, kind, module)
 );
 CREATE INDEX IF NOT EXISTS idx_symbols_lookup ON symbols (model, name, kind);
@@ -136,6 +144,7 @@ CREATE TABLE IF NOT EXISTS model_origins (
     source_file   TEXT    NOT NULL,
     source_line   INTEGER NOT NULL,
     description   TEXT,                       -- literal _description / NULL when absent
+    import_index  INTEGER,                    -- file position in __init__.py import order; NULL if not stamped
     PRIMARY KEY (model, module)
 );
 CREATE INDEX IF NOT EXISTS idx_model_origins_model ON model_origins (model);
@@ -319,8 +328,8 @@ def _write_kb(
                 for mod_name, mod_data in scan.get("modules", {}).items():
                     con.execute(
                         """
-                        INSERT OR REPLACE INTO modules (name, origin, depends, application, app)
-                        VALUES (?, ?, ?, ?, ?)
+                        INSERT OR REPLACE INTO modules (name, origin, depends, application, app, depth, load_index)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             mod_name,
@@ -328,6 +337,8 @@ def _write_kb(
                             json.dumps(mod_data["depends"]),
                             mod_data.get("application", 0),
                             mod_data.get("app"),
+                            mod_data.get("depth"),
+                            mod_data.get("load_index"),
                         ),
                     )
 
@@ -336,8 +347,8 @@ def _write_kb(
                         """
                         INSERT OR REPLACE INTO symbols
                             (model, name, kind, origin, module, source_file, source_line,
-                             source_end_line, field_type, section)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             source_end_line, field_type, section, import_index, attrs_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             sym["model"],
@@ -350,6 +361,8 @@ def _write_kb(
                             sym.get("source_end_line"),
                             sym.get("field_type"),
                             sym.get("section"),
+                            sym.get("import_index"),
+                            sym.get("attrs_json"),
                         ),
                     )
 
@@ -375,8 +388,8 @@ def _write_kb(
                         INSERT OR REPLACE INTO model_origins
                             (model, module, origin, role, model_type,
                              inherit_json, inherits_json, source_file, source_line,
-                             description)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             description, import_index)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             orig["model"],
@@ -389,6 +402,7 @@ def _write_kb(
                             orig["source_file"],
                             orig["source_line"],
                             orig.get("description"),
+                            orig.get("import_index"),
                         ),
                     )
 
@@ -467,6 +481,24 @@ def _write_kb(
     kb_result.merge(stats)
     kb_result.data = stats.data
     return kb_result
+
+
+def update_module_load_order(db_path: Path, load_result: Dict[str, Any]) -> None:
+    """Stamp depth and load_index onto each module row after initial write.
+
+    Args:
+        db_path: Path to the KB database.
+        load_result: dict mapping module_name → (depth, load_index).
+    """
+    con = sqlite3.connect(str(db_path))
+    try:
+        with con:
+            con.executemany(
+                "UPDATE modules SET depth=?, load_index=? WHERE name=?",
+                [(depth, load_index, name) for name, (depth, load_index) in load_result.items()],
+            )
+    finally:
+        con.close()
 
 
 def _get_stats(db_path: Path) -> Result[dict]:
@@ -943,6 +975,89 @@ class KBReader:
             Integer count.
         """
         return self._con.execute("SELECT COUNT(*) FROM menus WHERE module = ?", (module,)).fetchone()[0]
+
+    def get_modules_with_depends(self) -> Dict[str, List[str]]:
+        """Return all modules and their dependency lists.
+
+        Returns:
+            Mapping of module name to list of declared depends.
+        """
+        rows = self._con.execute("SELECT name, depends FROM modules").fetchall()
+        return {r["name"]: json.loads(r["depends"]) for r in rows}
+
+    def get_model_origins_with_order(self, model: str) -> List[Dict[str, Any]]:
+        """Return all model_origins rows for a model, joined with module load_index.
+
+        Args:
+            model: Dotted model name.
+
+        Returns:
+            List of dicts with keys: model, module, origin, role, inherit_json,
+            inherits_json, source_file, source_line, import_index, load_index.
+        """
+        rows = self._con.execute(
+            """
+            SELECT mo.model, mo.module, mo.origin, mo.role,
+                   mo.inherit_json, mo.inherits_json,
+                   mo.source_file, mo.source_line,
+                   mo.import_index,
+                   m.load_index
+            FROM model_origins mo
+            LEFT JOIN modules m ON mo.module = m.name
+            WHERE mo.model = ?
+            """,
+            (model,),
+        ).fetchall()
+        cols = [
+            "model", "module", "origin", "role", "inherit_json", "inherits_json",
+            "source_file", "source_line", "import_index", "load_index",
+        ]
+        return [dict(zip(cols, tuple(r))) for r in rows]
+
+    def get_symbols_by_module_model(self, module: str, model: str) -> List[Dict[str, Any]]:
+        """Return all symbols for a given module+model combination.
+
+        Args:
+            module: Module name.
+            model: Dotted model name.
+
+        Returns:
+            List of symbol dicts with name and kind.
+        """
+        rows = self._con.execute(
+            "SELECT name, kind FROM symbols WHERE module=? AND model=?",
+            (module, model),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_field_attrs(self, model: str, field_name: str) -> List[Dict[str, Any]]:
+        """Return per-layer field attributes for a given model+field.
+
+        Args:
+            model: Dotted model name.
+            field_name: Field name.
+
+        Returns:
+            List of dicts with module, attrs_json, source_file, source_line,
+            load_index, import_index, and parsed attrs dict.
+        """
+        rows = self._con.execute(
+            """
+            SELECT s.module, s.attrs_json, s.source_file, s.source_line,
+                   m.load_index, s.import_index
+            FROM symbols s
+            LEFT JOIN modules m ON s.module = m.name
+            WHERE s.model=? AND s.name=? AND s.kind='field'
+            """,
+            (model, field_name),
+        ).fetchall()
+        cols = ["module", "attrs_json", "source_file", "source_line", "load_index", "import_index"]
+        result = []
+        for r in rows:
+            row = dict(zip(cols, tuple(r)))
+            row["attrs"] = json.loads(r["attrs_json"]) if r["attrs_json"] else {}
+            result.append(row)
+        return result
 
     def get_field_refs_for_field(
         self, model: str, field_name: str, module: Optional[str] = None

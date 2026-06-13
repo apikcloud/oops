@@ -15,13 +15,14 @@ from oops.core.models import Result
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
 from oops.io.file import find_addons
 from oops.io.installed_modules import installed_modules_path
+from oops.kb.load_order import compute_load_order
 from oops.kb.resolve import build_depends_chain
 from oops.kb.scanner import (
     discover_root_addons,
     scan_module,
     tier_root_from_real_path,
 )
-from oops.kb.store import SCHEMA_VERSION, KBReader, write_project_kb
+from oops.kb.store import SCHEMA_VERSION, KBReader, update_module_load_order, write_project_kb
 from oops.kb.xml_scanner import scan_module_xml
 
 
@@ -314,6 +315,15 @@ def build_project_kb(
         scan_results=all_scan_results,
     )
     result.merge(write_result)
+
+    # --- Compute and persist load order ---
+    with KBReader(db_path) as kb:
+        modules_depends = kb.get_modules_with_depends()
+    all_installed = set(modules_depends.keys())
+    load_result = compute_load_order(all_installed, modules_depends)
+    update_module_load_order(db_path, load_result)
+    log.info(f"Load order stamped for {len(load_result)} modules")
+
     result.data = db_path
     return result
 
