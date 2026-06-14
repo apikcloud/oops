@@ -318,10 +318,11 @@ def build_project_kb(
     result.merge(write_result)
 
     # --- Compute and persist load order ---
+    # Restrict to the caller-supplied installed set, not every module in the KB
+    # (the KB also contains the global KB modules which are not all installed).
     with KBReader(db_path) as kb:
         modules_depends = kb.get_modules_with_depends()
-    all_installed = set(modules_depends.keys())
-    load_result = compute_load_order(all_installed, modules_depends)
+    load_result = compute_load_order(set(modules_list), modules_depends)
     update_module_load_order(db_path, load_result)
     log.info(f"Load order stamped for {len(load_result)} modules")
 

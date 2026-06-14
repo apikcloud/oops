@@ -209,6 +209,12 @@ def merge_methods(
         if not layers:
             continue
 
+        # Drop layers from modules not in the installed set.
+        if load_order:
+            layers = [layer for layer in layers if layer["module"] in load_order]
+        if not layers:
+            continue
+
         # Sort most-derived first, using dynamic load_order when available.
         layers.sort(key=lambda r: (
             -_dyn_load_idx(r["module"], load_order, r["load_index"]),
@@ -217,26 +223,31 @@ def merge_methods(
 
         # Walk top→down computing reachability and is_override.
         # Layer N is reachable iff every layer 0..N-1 called super().
+        # Root (last entry, oldest/original definer) is never is_override.
+        n = len(layers)
         stack: list[dict[str, Any]] = []
         reachable = True
         for i, layer in enumerate(layers):
-            is_top = i == 0
+            is_root = (i == n - 1)
             entry = {
-                "module":      layer["module"],
-                "origin":      layer["origin"],
-                "source_file": layer["source_file"],
-                "source_line": layer["source_line"],
-                "section":     layer["section"],
-                "has_super":   bool(layer["has_super"]) if layer["has_super"] is not None else None,
-                "reachable":   reachable,
-                "is_override": not is_top and not layer["has_super"],
+                "module":          layer["module"],
+                "origin":          layer["origin"],
+                "source_file":     layer["source_file"],
+                "source_line":     layer["source_line"],
+                "source_end_line": layer["source_end_line"],
+                "section":         layer["section"],
+                "has_super":       bool(layer["has_super"]) if layer["has_super"] is not None else None,
+                "reachable":       reachable,
+                "is_override":     not is_root and not layer["has_super"],
             }
             stack.append(entry)
             # If this layer does not forward via super(), subsequent layers are unreachable.
             if not layer["has_super"]:
                 reachable = False
 
-        merged[mname] = {"stack": stack, "root": stack[-1] if stack else None}
+        # Reverse so root (oldest/original) comes first — bottom-up display order.
+        stack.reverse()
+        merged[mname] = {"stack": stack, "root": stack[0] if stack else None}
 
     return merged
 

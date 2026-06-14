@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import Fuse from "fuse.js";
-import type { Payload, ServePayload, ModuleEntry, BareModelEntry, Schema, InventoryNode, Loc } from "../types";
+import type { Payload, ServePayload, ModuleEntry, BareModelEntry, Schema, InventoryNode, Loc, NodeTotals } from "../types";
 import type { Source } from "../source";
 import {
   el, fmt, badge, numCell, tableWrap,
@@ -89,6 +89,7 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
   const modules      = p.modules       ?? [];
   const modelsByBare = p.models_by_bare ?? {};
   const schema       = p.schema;
+  const nodeTotals   = (p as unknown as { node_totals?: NodeTotals }).node_totals;
 
   let fuseIndex: Fuse<SearchEntry> | null = null;
   const getIndex = () => {
@@ -167,10 +168,13 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
     const metaBar = renderMetadataBar(p.metadata);
     if (metaBar) wrap.appendChild(metaBar);
 
+    const totalsText = nodeTotals
+      ? ` · ${fmt(nodeTotals.total)} nodes (${nodeTotals.models} models · ${nodeTotals.fields} fields · ${nodeTotals.methods} methods · ${nodeTotals.views} views)`
+      : "";
     wrap.appendChild(el("div", { class: "page-header" }, [
       el("h1", {}, "Project Addons"),
       el("p", { class: "page-subtitle" }, [
-        `${modules.length} addons · ${fmt(totalLoc)} total LoC · `,
+        `${modules.length} addons · ${fmt(totalLoc)} total LoC${totalsText} · `,
         el("a", { href: "#/search" }, "Search →"),
       ]),
     ]));
@@ -388,6 +392,8 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
     if (inv.version)   meta.push("v" + inv.version);
     if (inv.submodule) meta.push("submodule: " + inv.submodule);
     if (inv.branch)    meta.push("branch: " + inv.branch);
+    const mNode = mod.node;
+    if (mNode?.load_index != null) meta.push(`load order: #${mNode.load_index}` + (mNode.depth != null ? ` (depth ${mNode.depth})` : ""));
 
     wrap.append(el("div", { class: "page-header" }, [
       titleRow,

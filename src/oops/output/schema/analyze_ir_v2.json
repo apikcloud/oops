@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://apik.cloud/oops/schema/analyze_ir_v2.json",
-  "title": "oops analyze IR v2 metric descriptors",
-  "description": "Descriptor registry (spec §0a, §10). Per-module JSON carries raw values only; this schema describes every manifest/metrics/loc key once, at the type level. title is the single-language display label; x-kind drives formatter rendering; x-unit is the optional unit.",
-  "x-schema-version": 2,
+  "$id": "https://apik.cloud/oops/schema/analyze_ir_v3.json",
+  "title": "oops analyze IR v3 metric descriptors",
+  "description": "Descriptor registry (spec §0a, §10). Per-module JSON carries raw values only; this schema describes every manifest/metrics/loc/module_node/method_stack_layer/node_totals key once, at the type level. title is the single-language display label; x-kind drives formatter rendering; x-unit is the optional unit.",
+  "x-schema-version": 3,
   "definitions": {
     "metrics": {
       "type": "object",
@@ -53,6 +53,45 @@
         "application": { "type": "boolean", "title": "Application", "x-kind": "boolean", "x-unit": null },
         "installable": { "type": "boolean", "title": "Installable", "x-kind": "boolean", "x-unit": null },
         "website": { "type": "string", "title": "Website", "x-kind": "text", "x-unit": null }
+      }
+    },
+    "module_node": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "title": "Module ID", "x-kind": "text", "x-unit": null },
+        "module": { "type": "string", "title": "Module", "x-kind": "text", "x-unit": null },
+        "origin": { "type": "string", "title": "Origin", "x-kind": "text", "x-unit": null },
+        "depth": { "type": "integer", "title": "Depth", "x-kind": "count", "x-unit": null },
+        "load_index": { "type": "integer", "title": "Load order", "x-kind": "count", "x-unit": null },
+        "installed": { "type": "boolean", "title": "Installed", "x-kind": "boolean", "x-unit": null },
+        "depends": { "title": "Depends", "x-kind": "text", "x-unit": null }
+      }
+    },
+    "method_stack_layer": {
+      "type": "object",
+      "properties": {
+        "module": { "type": "string", "title": "Module", "x-kind": "text", "x-unit": null },
+        "origin": { "type": "string", "title": "Origin", "x-kind": "text", "x-unit": null },
+        "model": { "type": "string", "title": "Model", "x-kind": "text", "x-unit": null },
+        "method": { "type": "string", "title": "Method", "x-kind": "text", "x-unit": null },
+        "section": { "type": "string", "title": "Section", "x-kind": "text", "x-unit": null },
+        "source_file": { "type": "string", "title": "Source file", "x-kind": "text", "x-unit": null },
+        "line_start": { "type": "integer", "title": "Line start", "x-kind": "count", "x-unit": null },
+        "line_end": { "type": "integer", "title": "Line end", "x-kind": "count", "x-unit": null },
+        "has_super": { "title": "Calls super()", "x-kind": "boolean", "x-unit": null },
+        "reachable": { "type": "boolean", "title": "Reachable", "x-kind": "boolean", "x-unit": null },
+        "is_override": { "type": "boolean", "title": "Is override", "x-kind": "boolean", "x-unit": null }
+      }
+    },
+    "node_totals": {
+      "type": "object",
+      "properties": {
+        "modules": { "type": "integer", "title": "Modules", "x-kind": "count", "x-unit": null },
+        "models": { "type": "integer", "title": "Models", "x-kind": "count", "x-unit": null },
+        "fields": { "type": "integer", "title": "Fields", "x-kind": "count", "x-unit": null },
+        "methods": { "type": "integer", "title": "Methods", "x-kind": "count", "x-unit": null },
+        "views": { "type": "integer", "title": "Views", "x-kind": "count", "x-unit": null },
+        "total": { "type": "integer", "title": "Total nodes", "x-kind": "count", "x-unit": null }
       }
     }
   }

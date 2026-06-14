@@ -179,9 +179,12 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
 
+    installed: set[str] | None = None
+
     with live_progress("Analysis..."):
         version = str(odoo_image.major_version)
         info = read_installed_modules(repo_path)
+        installed = set(info.modules) if info is not None else None
 
         if info is not None:
             _gkb = global_kb_path(version)
@@ -242,13 +245,14 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
         with KBReader(kb_path) as kb:
             modules_index = kb.get_modules()
+            load_order = kb.get_module_load_order()
             resolver = InheritanceResolver(kb)
             _resolved_cache: dict = {}
 
             def _get_resolved(model: str) -> dict:
                 if model not in _resolved_cache:
                     try:
-                        _resolved_cache[model] = resolver.resolve(model)
+                        _resolved_cache[model] = resolver.resolve(model, installed_modules=installed)
                     except Exception:
                         _resolved_cache[model] = {}
                 return _resolved_cache[model]
@@ -276,6 +280,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 all_classes: list[ClassSummary] = []
                 all_class_infos: list[ClassInfo] = []
                 method_symbols: list[dict] = []
+                method_stacks: dict = {}
                 for py_file in model_py_files:
                     rel_file = f"{module_name}/{py_file.relative_to(module_path).as_posix()}"
                     class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
@@ -323,6 +328,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
                             for s in ci.symbols
                             if s.kind == "method"
                         )
+                        for mname, mdata in resolver_methods.items():
+                            method_stacks[(model_label, mname)] = mdata.get("stack", [])
 
                 views_summary, xml_analysed = _build_views_summary(module_name, manifest, kb)
                 structure = _build_structure(module_path, manifest, xml_analysed)
@@ -341,6 +348,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     method_symbols=method_symbols,
                     class_infos=all_class_infos,
                     readme=detect_readme(module_path),
+                    method_stacks=method_stacks,
+                    origin=modules_index.get(module_name, {}).get("origin"),
                 )
 
                 weights = {**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}
@@ -352,17 +361,20 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     set_kb_metadata(repo_path, version)
 
-    # IR v2 contract: stamp the schema version and the recorded limitations.
+    # IR v3 contract: stamp the schema version and the recorded limitations.
     update_metadata(
-        schema_version=2,
+        schema_version=3,
         limitations=[
             "oca origin folded into third_party (all submodule code labelled third_party)",
             "controllers/wizard/report/data not analysed (see each module's not_analysed)",
+            "module load order is installed-scoped; model nodes carry start-line only",
         ],
     )
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = AnalyzePresenter().prepare(results, target=formatter.target, metadata=metadata)
+    output = AnalyzePresenter(installed=installed, load_order=load_order).prepare(
+        results, target=formatter.target, metadata=metadata
+    )
     deliver(formatter, output, output_format, output_path)
 
 
@@ -383,7 +395,7 @@ def _enrich_method_sym(
     method_stack = resolver_methods.get(s.name, {}).get("stack", [])
     if method_stack and s.is_override:
         # upstream reference = root of the resolver stack (original definer)
-        root = method_stack[-1]
+        root = method_stack[0]
         overrides_ref = {
             "module": root["module"],
             "origin": normalize_origin(root.get("origin")),

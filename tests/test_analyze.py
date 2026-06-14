@@ -573,7 +573,7 @@ class TestAnalyzeSchemaV2:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
         meta = json.loads(result.output)["metadata"]
-        assert meta["schema_version"] == 2
+        assert meta["schema_version"] == 3
         assert isinstance(meta["limitations"], list) and meta["limitations"]
         assert any("oca" in lim.lower() for lim in meta["limitations"])
 
@@ -1615,9 +1615,9 @@ class TestAnalyzeAcceptanceV2:
             assert node["source_file"].startswith("my_module/")
             assert "/my_module/" not in node["source_file"]  # no deeper repo prefix
 
-    def test_schema_version_is_two(self, tmp_path: Path) -> None:
+    def test_schema_version_is_three(self, tmp_path: Path) -> None:
         data = self._run(tmp_path, RICH_MODEL_SOURCE)
-        assert data["metadata"]["schema_version"] == 2
+        assert data["metadata"]["schema_version"] == 3
 
     def test_derived_rollups_internally_consistent(self, tmp_path: Path) -> None:
         module = self._run(
@@ -1640,3 +1640,37 @@ class TestAnalyzeAcceptanceV2:
         assert metrics["inherited_methods"] == sum(1 for m in methods if m["is_inherited"])
         assert metrics["own_fields"] == sum(1 for f in fields if f["origin_status"] in ("base", "new"))
         assert metrics["inherited_fields"] == sum(1 for f in fields if f["origin_status"] == "extended")
+
+    def test_node_totals_present_and_consistent(self, tmp_path: Path) -> None:
+        data = self._run(tmp_path, RICH_MODEL_SOURCE)
+        totals = data.get("node_totals")
+        assert totals is not None, "node_totals missing from top-level payload"
+        modules = data["modules"]
+        assert totals["modules"] == len(modules)
+        assert totals["models"] == sum(len(m["models"]) for m in modules)
+        assert totals["fields"] == sum(len(m["fields"]) for m in modules)
+        assert totals["methods"] == sum(len(m["methods"]) for m in modules)
+        assert totals["views"] == sum(len(m.get("views", [])) for m in modules)
+        expected_total = totals["modules"] + totals["models"] + totals["fields"] + totals["methods"] + totals["views"]
+        assert totals["total"] == expected_total
+
+    def test_module_node_present_with_required_fields(self, tmp_path: Path) -> None:
+        module = self._run(tmp_path, RICH_MODEL_SOURCE)["modules"][0]
+        node = module.get("node")
+        assert node is not None, "module_node ('node' key) missing from module dict"
+        assert node["id"] == module["module"]
+        assert node["module"] == module["module"]
+        assert "installed" in node
+        assert "depends" in node
+        assert "counts" in node
+        counts = node["counts"]
+        assert counts["models"] == len(module["models"])
+        assert counts["fields"] == len(module["fields"])
+        assert counts["methods"] == len(module["methods"])
+        assert counts["views"] == len(module.get("views", []))
+
+    def test_method_nodes_have_stack_field(self, tmp_path: Path) -> None:
+        module = self._run(tmp_path, RICH_MODEL_SOURCE)["modules"][0]
+        for m in module["methods"]:
+            assert "stack" in m, f"method {m['name']} missing stack field"
+            assert isinstance(m["stack"], list)

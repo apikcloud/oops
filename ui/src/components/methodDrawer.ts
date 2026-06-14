@@ -1,4 +1,4 @@
-import type { MethodNode } from "../types";
+import type { MethodNode, MethodStackLayer } from "../types";
 import { el, originBadge, methodKind, SECTION_CLASS } from "../dom";
 
 interface DrawerState {
@@ -81,6 +81,31 @@ export function openMethodDrawer(m: MethodNode): void {
   }
   if (lineCount) {
     body.appendChild(el("div", { class: "drawer-path" }, lineCount));
+  }
+
+  if (m.stack && m.stack.length > 1) {
+    body.appendChild(el("div", { class: "drawer-label" }, `Inheritance stack (${m.stack.length} layers)`));
+    const stackEl = el("ol", { class: "drawer-stack" });
+    for (const layer of m.stack as MethodStackLayer[]) {
+      const lines = layer.line_start != null
+        ? (layer.line_end != null && layer.line_end !== layer.line_start
+            ? `${layer.line_start}–${layer.line_end}` : `${layer.line_start}`)
+        : null;
+      const markers: (HTMLElement | string | null)[] = [];
+      if (layer.is_override) markers.push(el("span", { class: "stack-marker stack-override", title: "override (no super)" }, "override"));
+      if (layer.reachable === false) markers.push(el("span", { class: "stack-marker stack-unreachable", title: "unreachable" }, "unreachable"));
+      if (layer.has_super) markers.push(el("span", { class: "stack-marker stack-super", title: "calls super()" }, "super"));
+      const layerEl = el("li", { class: "drawer-stack-layer" }, [
+        el("div", { class: "drawer-stack-header" }, [
+          el("span", { class: "mono" }, layer.module ?? "—"),
+          layer.origin ? originBadge(layer.origin) : null,
+          ...markers,
+        ]),
+        layer.source_file ? el("div", { class: "drawer-path mono" }, layer.source_file + (lines ? `:${lines}` : "")) : null,
+      ]);
+      stackEl.appendChild(layerEl);
+    }
+    body.appendChild(stackEl);
   }
 
   panel.classList.add("drawer-open");

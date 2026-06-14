@@ -25,7 +25,7 @@ from oops.core.models import (
     StructureSummary,
     ViewsSummary,
 )
-from oops.kb.identity import field_id, method_id, model_id, normalize_source_file
+from oops.kb.identity import field_id, method_id, model_id, module_id, normalize_source_file
 from oops.kb.provenance import normalize_origin
 from oops.output.base import Presenter
 from oops.output.descriptors import label_of
@@ -506,7 +506,7 @@ def _field_nodes(module: str, pairs: list, in_repo_models: set, in_repo_methods:
     return out
 
 
-def _method_nodes(module: str, pairs: list) -> list:
+def _method_nodes(module: str, pairs: list, method_stacks: dict) -> list:
     out = []
     for cs, ci in pairs:
         model = _canonical_model(ci)
@@ -515,6 +515,23 @@ def _method_nodes(module: str, pairs: list) -> list:
             if sym.kind != "method":
                 continue
             is_inherited = bool(sym.kb_entry) and not sym.is_override and not cs.is_new_model
+            raw_stack = method_stacks.get((model, sym.name)) or []
+            stack = [
+                {
+                    "module": L["module"],
+                    "origin": normalize_origin(L["origin"]),
+                    "model": model,
+                    "method": sym.name,
+                    "section": L["section"],
+                    "source_file": normalize_source_file(L["source_file"], L["module"] or ""),
+                    "line_start": L["source_line"],
+                    "line_end": L["source_end_line"],
+                    "has_super": L["has_super"],
+                    "reachable": L["reachable"],
+                    "is_override": L["is_override"],
+                }
+                for L in raw_stack
+            ]
             out.append(
                 {
                     "id": method_id(module, model, sym.name),
@@ -531,6 +548,7 @@ def _method_nodes(module: str, pairs: list) -> list:
                     "source_file": normalize_source_file(ci.source_file, module),
                     "line_start": sym.lineno,
                     "line_end": sym.end_lineno,
+                    "stack": stack,
                 }
             )
     return out
@@ -611,7 +629,50 @@ def _loc_raw(summary: "ModuleSummary") -> dict:
     }
 
 
+def _module_node(
+    summary: "ModuleSummary",
+    load_order: dict,
+    installed: "Optional[set]",
+    models: list,
+    fields: list,
+    methods: list,
+    views: list,
+) -> dict:
+    name = summary.module_name
+    depth, load_idx = load_order.get(name, (None, None))
+    return {
+        "id": module_id(name),
+        "module": name,
+        "origin": normalize_origin(summary.origin),
+        "depth": depth,
+        "load_index": load_idx,
+        "installed": installed is None or name in installed,
+        "depends": summary.manifest.get("depends", []),
+        "counts": {
+            "models": len(models),
+            "fields": len(fields),
+            "methods": len(methods),
+            "views": len(views),
+        },
+    }
+
+
+def _totals(modules: list) -> dict:
+    t: dict = {"modules": len(modules), "models": 0, "fields": 0, "methods": 0, "views": 0}
+    for m in modules:
+        t["models"] += len(m["models"])
+        t["fields"] += len(m["fields"])
+        t["methods"] += len(m["methods"])
+        t["views"] += len(m["views"])
+    t["total"] = sum(t.values())
+    return t
+
+
 class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
+    def __init__(self, installed: "Optional[set]" = None, load_order: "Optional[dict]" = None):
+        self._installed = installed
+        self._load_order: dict = load_order or {}
+
     def to_human(self, results: ResultCollection[ModuleSummary]) -> SummaryLayout:
         """Reduced payload for console output."""
 
@@ -625,11 +686,18 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
         )
 
     def to_machine(self, results: ResultCollection[ModuleSummary]) -> dict:
-        """Full IR v2 payload: four flat sibling lists of id-addressable nodes."""
+        """Full IR v3 payload: module nodes + four flat sibling lists + node_totals."""
+
+        installed = self._installed
+        load_order = self._load_order
 
         def _make(result: "Result[ModuleSummary]") -> dict:
             summary = result.unwrap
             module = summary.module_name
+
+            # Skip non-installed modules (defensive — project KB is already scoped).
+            if installed is not None and module not in installed:
+                return None  # type: ignore[return-value]
 
             # ClassSummary (ancestor enrichment) paired with raw ClassInfo
             # (enriched symbols/content) — aligned 1:1 by the analyze loop.
@@ -641,8 +709,9 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
 
             models = _model_nodes(module, pairs)
             fields = _field_nodes(module, pairs, in_repo_models, in_repo_methods)
-            methods = _method_nodes(module, pairs)
+            methods = _method_nodes(module, pairs, summary.method_stacks)
             views = _view_nodes(module, summary.views_summary, in_repo_models)
+            node = _module_node(summary, load_order, installed, models, fields, methods, views)
 
             s = summary.structure
             not_analysed: list[str] = []
@@ -660,6 +729,7 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
                 not_analysed.append("static/")
 
             return {
+                "node": node,
                 "module": module,
                 "manifest": _manifest_raw(summary),
                 "readme": summary.readme or {"present": False, "format": None, "path": None, "content": None},
@@ -683,7 +753,9 @@ class AnalyzePresenter(Presenter[ResultCollection[ModuleSummary]]):
                 "warnings": result.warnings,
             }
 
+        modules = [m for m in (_make(r) for r in results) if m is not None]
         return {
             "warnings": results.warnings,
-            "modules": [_make(r) for r in results],
+            "modules": modules,
+            "node_totals": _totals(modules),
         }

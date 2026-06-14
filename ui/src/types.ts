@@ -73,6 +73,20 @@ export interface FieldNode {
   [k: string]: unknown;
 }
 
+export interface MethodStackLayer {
+  module?: string;
+  origin?: string;
+  model?: string;
+  method?: string;
+  section?: string;
+  source_file?: string;
+  line_start?: number;
+  line_end?: number;
+  has_super?: boolean | null;
+  reachable?: boolean;
+  is_override?: boolean;
+}
+
 export interface MethodNode {
   id: string;
   name: string;
@@ -85,7 +99,28 @@ export interface MethodNode {
   line_end?: number;
   overrides?: { module?: string; model?: string; id?: string };
   docstring?: string;
+  stack?: MethodStackLayer[];
   [k: string]: unknown;
+}
+
+export interface ModuleNode {
+  id: string;
+  module: string;
+  origin?: string;
+  depth?: number;
+  load_index?: number;
+  installed?: boolean;
+  depends?: string[];
+  counts?: { models: number; fields: number; methods: number; views: number };
+}
+
+export interface NodeTotals {
+  modules: number;
+  models: number;
+  fields: number;
+  methods: number;
+  views: number;
+  total: number;
 }
 
 export interface ModelNode {
@@ -136,6 +171,7 @@ export interface BareModelEntry {
 
 export interface ModuleEntry {
   module: string;
+  node?: ModuleNode;
   inventory?: InventoryNode;
   manifest?: Record<string, unknown>;
   readme?: { present?: boolean; content?: string };
@@ -165,4 +201,5 @@ export interface ServePayload {
   schema?: Schema;
   metadata: Metadata;
   warnings?: string[];
+  node_totals?: NodeTotals;
 }

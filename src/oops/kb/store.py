@@ -1005,6 +1005,15 @@ class KBReader:
         rows = self._con.execute("SELECT name, depends FROM modules").fetchall()
         return {r["name"]: json.loads(r["depends"]) for r in rows}
 
+    def get_module_load_order(self) -> Dict[str, tuple]:
+        """Return {module_name: (depth, load_index)} from persisted columns.
+
+        Returns:
+            Mapping of module name to (depth, load_index); both None when never stamped.
+        """
+        rows = self._con.execute("SELECT name, depth, load_index FROM modules").fetchall()
+        return {r[0]: (r[1], r[2]) for r in rows}
+
     def get_model_origins_with_order(self, model: str) -> List[Dict[str, Any]]:
         """Return all model_origins rows for a model, joined with module load_index.
 
@@ -1092,16 +1101,16 @@ class KBReader:
         """
         rows = self._con.execute(
             """
-            SELECT s.module, s.origin, s.source_file, s.source_line, s.section,
-                   s.has_super, m.load_index, s.import_index
+            SELECT s.module, s.origin, s.source_file, s.source_line, s.source_end_line,
+                   s.section, s.has_super, m.load_index, s.import_index
             FROM symbols s
             LEFT JOIN modules m ON s.module = m.name
             WHERE s.model=? AND s.name=? AND s.kind='method'
             """,
             (model, method_name),
         ).fetchall()
-        cols = ["module", "origin", "source_file", "source_line", "section",
-                "has_super", "load_index", "import_index"]
+        cols = ["module", "origin", "source_file", "source_line", "source_end_line",
+                "section", "has_super", "load_index", "import_index"]
         return [dict(zip(cols, tuple(r))) for r in rows]
 
     def get_field_refs_for_field(

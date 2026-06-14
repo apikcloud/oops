@@ -248,16 +248,16 @@ class TestMergeMethods:
         assert "override_me" in methods
         stack = methods["override_me"]["stack"]
         assert len(stack) == 2
-        top = stack[0]
-        bottom = stack[1]
-        assert top["module"] == "custom_sale"
-        assert top["reachable"] is True
-        assert top["is_override"] is False  # top layer is never is_override
-        assert bottom["module"] == "base"
-        assert bottom["reachable"] is False
-        assert bottom["is_override"] is True
+        root = stack[0]
+        derived = stack[1]
+        assert root["module"] == "base"
+        assert root["reachable"] is False   # blocked by override above
+        assert root["is_override"] is False  # root (original definer) is never is_override
+        assert derived["module"] == "custom_sale"
+        assert derived["reachable"] is True
+        assert derived["is_override"] is True  # overrides root without calling super
 
-    def test_root_is_last_stack_entry(self, tmp_path):
+    def test_root_is_first_stack_entry(self, tmp_path):
         db_path = _make_method_fixture_kb(tmp_path)
         with KBReader(db_path) as reader:
             from oops.kb.inheritance import build_class_chain, compute_mro
@@ -265,5 +265,5 @@ class TestMergeMethods:
             mro = compute_mro(chain, reader=reader, load_order={})
             methods = merge_methods(mro, reader)
         write = methods["write"]
-        assert write["root"] == write["stack"][-1]
+        assert write["root"] == write["stack"][0]
         assert write["root"]["module"] == "base"
