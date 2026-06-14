@@ -1,6 +1,6 @@
 import * as d3 from "d3";
 import Fuse from "fuse.js";
-import type { Payload, ServePayload, ModuleEntry, BareModelEntry, Schema, InventoryNode, Loc, NodeTotals } from "../types";
+import type { Payload, ServePayload, ModuleEntry, BareModelEntry, ContributionEntry, Schema, InventoryNode, Loc, NodeTotals } from "../types";
 import type { Source } from "../source";
 import {
   el, fmt, badge, numCell, tableWrap,
@@ -100,6 +100,18 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
 
   const modClassification = (name: string) =>
     modules.find((m) => m.module === name)?.inventory?.classification ?? "unknown";
+
+  // For models that project only *extends* (no "new"/"base" contribution),
+  // fall back to inherit_origin from the model_node (set by the analyze presenter).
+  const modelOrigin = (contribs: ContributionEntry[]): string => {
+    const defining = contribs.find((c) => {
+      const s = c.model_node?.status;
+      return s === "new" || s === "base";
+    });
+    if (defining) return modClassification(defining.module);
+    const inheritOrigin = (contribs[0]?.model_node as Record<string, unknown> | undefined)?.["inherit_origin"];
+    return (typeof inheritOrigin === "string" && inheritOrigin) ? inheritOrigin : "unknown";
+  };
 
   // Inject persistent nav into the header (once per page load).
   const headerInner = document.querySelector<HTMLElement>(".site-header-inner");
@@ -396,13 +408,9 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
 
     const rows = Object.entries(modelsByBare).map(([bare, entry]) => {
       const contribs = entry.contributions ?? [];
-      const defining = contribs.find((c) => {
-        const node = (c as unknown as Record<string, unknown>)["model_node"] as Record<string, unknown> | undefined;
-        return node?.["status"] === "new" || node?.["status"] === "base";
-      }) ?? contribs[0];
       return {
         name: bare,
-        origin: defining?.module ? modClassification(defining.module) : "unknown",
+        origin: modelOrigin(contribs),
         contribs: contribs.length,
         fields:  contribs.reduce((n, c) => n + (c.fields?.length  ?? 0), 0),
         methods: contribs.reduce((n, c) => n + (c.methods?.length ?? 0), 0),
@@ -580,13 +588,14 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
     const contributions = entry.contributions ?? [];
     const wrap = el("div", {});
 
-    // Defining contribution: status "new"/"base" = where the model was declared
+    // Defining contribution: status "new"/"base" = where the model was declared.
+    // For purely-extended models (Odoo standard), fall back to inherit_origin.
     const definingContrib = contributions.find((c) => {
-      const node = ((c as unknown) as Record<string, unknown>)["model_node"] as Record<string, unknown> | undefined;
-      return node?.["status"] === "new" || node?.["status"] === "base";
+      const s = c.model_node?.status;
+      return s === "new" || s === "base";
     }) ?? contributions[0];
     const definingModule = definingContrib?.module;
-    const originCls = definingModule ? modClassification(definingModule) : undefined;
+    const originCls = modelOrigin(contributions);
 
     const titleRow = el("div", { class: "page-title-row" });
     titleRow.append(el("h1", {}, bare));
