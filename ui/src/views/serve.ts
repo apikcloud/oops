@@ -106,6 +106,7 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
   if (headerInner && !headerInner.querySelector(".site-nav")) {
     headerInner.appendChild(el("nav", { class: "site-nav" }, [
       el("a", { href: "#/" }, "Addons"),
+      el("a", { href: "#/models" }, "Models"),
       el("a", { href: "#/search" }, "Search"),
     ]));
   }
@@ -114,6 +115,7 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
   const ROUTES: Array<{ re: RegExp; view(m: RegExpMatchArray): HTMLElement }> = [
     { re: /^#\/module\/(.+)$/, view: (m) => _viewModule(decodeURIComponent(m[1]!)) },
     { re: /^#\/model\/(.+)$/,  view: (m) => _viewModel(decodeURIComponent(m[1]!)) },
+    { re: /^#\/models$/,       view: () => _viewModels() },
     { re: /^#\/search$/,       view: () => _viewSearch() },
     { re: /^(#\/?)?$/,         view: () => _viewIndex() },
   ];
@@ -374,6 +376,96 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
     }
 
     searchInput.addEventListener("input", () => { state.search = searchInput.value; renderTable(); });
+    renderTable();
+    return wrap;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Models list view (#/models)
+  // ---------------------------------------------------------------------------
+
+  function _viewModels(): HTMLElement {
+    const wrap = el("div", {});
+    const metaBar = renderMetadataBar(p.metadata);
+    if (metaBar) wrap.appendChild(metaBar);
+
+    if (Object.keys(modelsByBare).length === 0) {
+      wrap.appendChild(el("p", { class: "placeholder" }, "No models found."));
+      return wrap;
+    }
+
+    const rows = Object.entries(modelsByBare).map(([bare, entry]) => {
+      const contribs = entry.contributions ?? [];
+      const defining = contribs.find((c) => {
+        const node = (c as unknown as Record<string, unknown>)["model_node"] as Record<string, unknown> | undefined;
+        return node?.["status"] === "new" || node?.["status"] === "base";
+      }) ?? contribs[0];
+      return {
+        name: bare,
+        origin: defining?.module ? modClassification(defining.module) : "unknown",
+        contribs: contribs.length,
+        fields:  contribs.reduce((n, c) => n + (c.fields?.length  ?? 0), 0),
+        methods: contribs.reduce((n, c) => n + (c.methods?.length ?? 0), 0),
+        views:   contribs.reduce((n, c) => n + (c.views?.length   ?? 0), 0),
+        description: entry.description ?? "",
+      };
+    });
+
+    wrap.appendChild(el("div", { class: "page-header" }, [
+      el("h1", {}, "Project Models"),
+      el("p", { class: "page-subtitle" }, `${rows.length} models`),
+    ]));
+
+    const state = { sortKey: "name", sortDir: "asc" as "asc" | "desc" };
+
+    const cols: Array<{ key: string; label: string; num?: boolean }> = [
+      { key: "name",        label: "Model" },
+      { key: "origin",      label: "Type" },
+      { key: "contribs",    label: "Contributions", num: true },
+      { key: "fields",      label: "Fields",        num: true },
+      { key: "methods",     label: "Methods",       num: true },
+      { key: "views",       label: "Views",         num: true },
+      { key: "description", label: "Description" },
+    ];
+    const thead = el("thead", {}, [el("tr", {}, cols.map((c) =>
+      el("th", { class: (c.num ? "num " : "") + "sortable", "data-sort": c.key }, c.label)))]);
+    for (const th of thead.querySelectorAll<HTMLElement>("th[data-sort]")) {
+      th.addEventListener("click", () => {
+        const key = th.dataset["sort"]!;
+        state.sortDir = state.sortKey === key && state.sortDir === "asc" ? "desc" : "asc";
+        state.sortKey = key;
+        renderTable();
+      });
+    }
+    const tbody = el("tbody", {});
+    wrap.appendChild(tableWrap(el("table", {}, [thead, tbody])));
+
+    function renderTable() {
+      tbody.innerHTML = "";
+      const sorted = [...rows].sort((a, b) => {
+        const av = (a as Record<string, unknown>)[state.sortKey];
+        const bv = (b as Record<string, unknown>)[state.sortKey];
+        if (typeof av === "number" && typeof bv === "number")
+          return state.sortDir === "asc" ? av - bv : bv - av;
+        return state.sortDir === "asc"
+          ? String(av).localeCompare(String(bv))
+          : String(bv).localeCompare(String(av));
+      });
+      for (const r of sorted) {
+        tbody.appendChild(el("tr", {}, [
+          el("td", { class: "mono" }, el("a", { href: "#/model/" + encodeURIComponent(r.name) }, r.name)),
+          el("td", {}, badge(r.origin)),
+          numCell(r.contribs), numCell(r.fields), numCell(r.methods), numCell(r.views),
+          el("td", { class: "muted" }, r.description),
+        ]));
+      }
+      for (const th of thead.querySelectorAll<HTMLElement>("th[data-sort]")) {
+        th.classList.remove("sorted-asc", "sorted-desc");
+        if (th.dataset["sort"] === state.sortKey)
+          th.classList.add(state.sortDir === "asc" ? "sorted-asc" : "sorted-desc");
+      }
+    }
+
     renderTable();
     return wrap;
   }
