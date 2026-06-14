@@ -1050,6 +1050,34 @@ footer {
     word-break: break-all;
 }
 
+/* ── Field drawer code toggle ─────────────────────────────────── */
+.stack-code-toggle {
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.stack-code-toggle:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+}
+.stack-code-area {
+    margin-top: 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.stack-code-unavail {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding: 0.4rem 0.75rem;
+    margin: 0;
+}
+
 /* ── Source code viewer ───────────────────────────────────────── */
 .source-code {
     margin: 0;
