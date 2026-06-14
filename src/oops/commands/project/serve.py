@@ -108,7 +108,24 @@ def _read_source_slice(roots: dict, file: str, start: int, end: int) -> tuple[in
         return 500, {"error": str(exc)}
 
     s = max(0, start - 1)           # 1-indexed → 0-indexed
-    e = end if end > 0 else len(lines)
+    if end > 0:
+        e = end
+    else:
+        # end unknown (source_end_line NULL in KB for Odoo core): detect function
+        # boundary by scanning for the next def/class/@ at the same indent level.
+        e = len(lines)
+        if s < len(lines):
+            def_indent = len(lines[s]) - len(lines[s].lstrip())
+            for i in range(s + 1, len(lines)):
+                stripped = lines[i].strip()
+                if not stripped:
+                    continue
+                curr_indent = len(lines[i]) - len(lines[i].lstrip())
+                if curr_indent <= def_indent and (
+                    stripped.startswith(("def ", "class ", "async def ", "@"))
+                ):
+                    e = i
+                    break
     return 200, {"code": "\n".join(lines[s:e]), "file": file}
 
 

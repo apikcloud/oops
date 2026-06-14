@@ -856,7 +856,7 @@ def scan_module(  # noqa: C901
                                 rel_path,
                                 stmt,
                                 stmt.name,
-                                stmt.lineno,
+                                stmt.decorator_list[0].lineno if stmt.decorator_list else stmt.lineno,
                                 getattr(stmt, "end_lineno", None) or stmt.lineno,
                                 import_index,
                             )

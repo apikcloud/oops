@@ -154,7 +154,8 @@ function renderStackGraph(
       onNodeClick(layer);
     });
   });
-  if (rects.length) rects[0].attr("stroke-width", 3);
+  // Highlight most-derived (last) node by default — matches auto-loaded code.
+  if (rects.length) rects[rects.length - 1].attr("stroke-width", 3);
   return wrap;
 }
 
@@ -268,7 +269,9 @@ export function openMethodDrawer(m: MethodNode): void {
       return;
     }
     code.appendChild(el("p", { class: "mv-loading" }, "Loading…"));
-    const src = await fetchSource(layer.source_file, layer.line_start, layer.line_end ?? layer.line_start);
+    // line_end may be null (Odoo core modules lack source_end_line in KB);
+    // passing 0 tells the server to read from line_start to EOF.
+    const src = await fetchSource(layer.source_file, layer.line_start, layer.line_end ?? 0);
     code.innerHTML = "";
     if (src != null) {
       code.appendChild(renderHighlightedCode(src, layer.line_start));
@@ -295,22 +298,27 @@ export function openMethodDrawer(m: MethodNode): void {
       }));
     }
 
-    const top = stack[0];
-    if (top.source_file) {
+    // Auto-load: prefer method node fields (AST-derived, always correct for custom
+    // modules) over stack top (KB rows may have NULL source_end_line).
+    const srcFile  = m.source_file  ?? stack[stack.length - 1]?.source_file;
+    const srcStart = m.line_start   ?? stack[stack.length - 1]?.line_start;
+    const srcEnd   = m.line_end     ?? stack[stack.length - 1]?.line_end;
+
+    if (srcFile) {
       meta.appendChild(mLabel("Source"));
-      const sfText = top.source_file
-        + (top.line_start != null ? `:${top.line_start}` : "")
-        + (top.line_end != null && top.line_end !== top.line_start ? `–${top.line_end}` : "");
+      const sfText = srcFile
+        + (srcStart != null ? `:${srcStart}` : "")
+        + (srcEnd != null && srcEnd !== srcStart ? `–${srcEnd}` : "");
       meta.appendChild(el("div", { class: "drawer-path mono mv-src-path" }, sfText));
     }
-    void loadCode(top);
+    void loadCode({ source_file: srcFile, line_start: srcStart, line_end: srcEnd } as MethodStackLayer);
   } else if (mAny["source_file"]) {
     meta.appendChild(mLabel("Source"));
     meta.appendChild(el("div", { class: "drawer-path mono" }, String(mAny["source_file"])));
     void loadCode({
       source_file: String(mAny["source_file"]),
       line_start: m.line_start,
-      line_end: m.line_end,
+      line_end: m.line_end ?? 0,
     });
   }
 
