@@ -238,11 +238,12 @@ def merge_methods(
                 "section":         layer["section"],
                 "has_super":       bool(layer["has_super"]) if layer["has_super"] is not None else None,
                 "reachable":       reachable,
-                "is_override":     not is_root and not layer["has_super"],
+                "is_override":     not is_root and layer["has_super"] is not None and not layer["has_super"],
             }
             stack.append(entry)
             # If this layer does not forward via super(), subsequent layers are unreachable.
-            if not layer["has_super"]:
+            # NULL (unknown) does not break the chain.
+            if layer["has_super"] is not None and not layer["has_super"]:
                 reachable = False
 
         # Reverse so root (oldest/original) comes first — bottom-up display order.

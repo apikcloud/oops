@@ -1084,7 +1084,7 @@ class KBReader:
         result = []
         for r in rows:
             row = dict(zip(cols, tuple(r)))
-            row["attrs"] = json.loads(r["attrs_json"]) if r["attrs_json"] else {}
+            row["attrs"] = json.loads(row["attrs_json"]) if row["attrs_json"] else {}
             result.append(row)
         return result
 
