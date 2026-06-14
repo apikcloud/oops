@@ -1,5 +1,6 @@
 import type { FieldNode, Schema } from "../types";
 import { el, tableWrap, renderRef, originBadge } from "../dom";
+import { openFieldDrawer } from "./fieldDrawer";
 
 type RichField = FieldNode & { _module?: string };
 
@@ -82,7 +83,7 @@ export function fieldsTable(allFields: RichField[], _schema?: Schema): FieldsTab
       : el("td", {}, el("span", { class: "status-pill" }, f.origin_status ?? "—"));
 
     const fieldKind = f.origin_status === "extended" ? "inherited" : "added";
-    const row = el("tr", { "data-module": f._module ?? "", "data-type": f.type ?? "", "data-kind": fieldKind }, [
+    const row = el("tr", { class: "clickable", "data-module": f._module ?? "", "data-type": f.type ?? "", "data-kind": fieldKind }, [
       el("td", { class: "mono", style: "font-size:.76rem" }, f.name ?? "—"),
       typeCell,
       el("td", {}, label),
@@ -92,6 +93,10 @@ export function fieldsTable(allFields: RichField[], _schema?: Schema): FieldsTab
         f._module ? el("a", { href: "#/module/" + encodeURIComponent(f._module) }, f._module) : "—"),
       statusCell,
     ]);
+    row.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).tagName === "A") return;
+      openFieldDrawer(f);
+    });
     tbody.appendChild(row);
   });
 

@@ -12,7 +12,8 @@ import { provenanceTable } from "../components/provenanceTable";
 import { fieldsTable }     from "../components/fieldsTable";
 import { domainProfile }   from "../components/domainProfile";
 import { methodsTable }    from "../components/methodsTable";
-import { closeDrawer }     from "../components/methodDrawer";
+import { closeDrawer }           from "../components/detailDrawer";
+import { closeMethodView }       from "../components/methodDrawer";
 
 // ---------------------------------------------------------------------------
 // Fuse.js search index (lazy, rebuilt per payload)
@@ -121,6 +122,7 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
     const hash = location.hash || "#/";
     root.innerHTML = "";
     closeDrawer();
+    closeMethodView();
     for (const r of ROUTES) {
       const m = hash.match(r.re);
       if (m) { root.appendChild(r.view(m)); return; }
@@ -281,6 +283,7 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
       el("th", { class: "sortable", "data-sort": "module" }, "Addon"),
       el("th", { class: "sortable", "data-sort": "classification" }, "Type"),
       el("th", { class: "sortable", "data-sort": "version" }, "Version"),
+      el("th", { class: "num sortable", "data-sort": "load_index" }, "Load"),
       el("th", { class: "num sortable", "data-sort": "_locTotal" }, "LoC"),
       el("th", {}, "Breakdown"),
     ])]);
@@ -320,6 +323,7 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
         const key = state.sortKey;
         let av: unknown, bv: unknown;
         if (key === "_locTotal") { av = a._locTotal ?? 0; bv = b._locTotal ?? 0; }
+        else if (key === "load_index")     { av = a.node?.load_index ?? Infinity; bv = b.node?.load_index ?? Infinity; }
         else if (key === "module")         { av = a.module ?? "";           bv = b.module ?? ""; }
         else if (key === "classification") { av = a.inventory?.classification ?? ""; bv = b.inventory?.classification ?? ""; }
         else if (key === "version")        { av = a.inventory?.version ?? "";  bv = b.inventory?.version ?? ""; }
@@ -358,7 +362,9 @@ export function viewServe(root: HTMLElement, payload: Payload, _source: Source):
           el("div", { class: "addon-name" }, el("a", { href: "#/module/" + encodeURIComponent(name) }, name)),
           mfst["summary"] ? el("div", { class: "addon-summary" }, String(mfst["summary"])) : null,
         ]);
-        tbody.append(el("tr", {}, [nameCell, el("td", {}, badge(cls)), el("td", { class: "muted" }, inv.version ?? "—"), numCell(locTot || null), el("td", {}, bar)]));
+        const loadCell = el("td", { class: "num muted" },
+          mod.node?.load_index != null ? "#" + mod.node.load_index : "—");
+        tbody.append(el("tr", {}, [nameCell, el("td", {}, badge(cls)), el("td", { class: "muted" }, inv.version ?? "—"), loadCell, numCell(locTot || null), el("td", {}, bar)]));
       }
 
       for (const th of thead.querySelectorAll<HTMLElement>("th[data-sort]")) {

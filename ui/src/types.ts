@@ -70,6 +70,9 @@ export interface FieldNode {
   origin_status?: string;
   comodel_ref?: RefObject;
   overrides?: { origin_module?: string; origin?: string };
+  source_file?: string;
+  line_start?: number;
+  line_end?: number;
   [k: string]: unknown;
 }
 
