@@ -31,6 +31,7 @@ class Api:
     def __init__(self) -> None:
         self._current = _current_project()
         self._project_path: "str | None" = self._current
+        self._source_roots: "dict" = {}
 
     # --- project selector --------------------------------------------------
     def list_projects(self) -> dict:
@@ -99,14 +100,16 @@ class Api:
         from pathlib import Path  # noqa: PLC0415
 
         from git import Repo  # noqa: PLC0415
-        from oops.commands.project.serve import build_payload  # noqa: PLC0415
+        from oops.commands.project.serve import build_payload, source_roots_from_payload  # noqa: PLC0415
 
         p = path or self._project_path
         if not p:
             return {"metadata": {"command": "error"}, "error": "no project selected"}
         try:
             repo = Repo(p, search_parent_directories=True)
-            return build_payload(repo, Path(p), show_all=False, names=(), refresh=False)
+            payload = build_payload(repo, Path(p), show_all=False, names=(), refresh=False)
+            self._source_roots = source_roots_from_payload(payload)
+            return payload
         except Exception as exc:
             return {"metadata": {"command": "error"}, "error": str(exc)}
 
@@ -128,7 +131,9 @@ class Api:
         p = self._project_path
         if not p:
             return {"error": "no project selected"}
-        roots = _build_source_roots(Path(p))
+        # Prefer roots cached from the last doc_project call (derived from
+        # inventory paths — always current). Fall back to KB-based lookup.
+        roots = self._source_roots or _build_source_roots(Path(p))
         _, payload = _read_source_slice(roots, file, int(start), int(end))
         return payload
 

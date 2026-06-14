@@ -17,6 +17,7 @@ from oops.commands.project.serve import (
     _resolve_module_root,
     build_payload,
     prepare_site_dir,
+    source_roots_from_payload,
 )
 from oops.services.loc import LocStats
 
@@ -241,6 +242,30 @@ class TestResolveModuleRoot:
 
     def test_returns_none_when_not_found(self, tmp_path: Path) -> None:
         assert _resolve_module_root("missing_mod", tmp_path) is None
+
+
+class TestSourceRootsFromPayload:
+    def test_empty_payload(self) -> None:
+        assert source_roots_from_payload({}) == {}
+
+    def test_extracts_parent_from_inventory_path(self, tmp_path):
+        mod_path = tmp_path / "apik-addons" / "apik_account"
+        payload = {
+            "modules": [
+                {"module": "apik_account", "inventory": {"path": str(mod_path)}},
+            ]
+        }
+        roots = source_roots_from_payload(payload)
+        assert roots["apik_account"] == str(tmp_path / "apik-addons")
+
+    def test_skips_modules_without_inventory_path(self) -> None:
+        payload = {
+            "modules": [
+                {"module": "apik_account"},
+                {"module": "other", "inventory": {}},
+            ]
+        }
+        assert source_roots_from_payload(payload) == {}
 
 
 class TestBuildSourceRoots:

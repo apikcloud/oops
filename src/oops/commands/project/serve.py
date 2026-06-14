@@ -37,6 +37,28 @@ from oops.services.git import require_repository
 from oops.services.project import require_project
 
 
+def source_roots_from_payload(payload: dict) -> dict:
+    """Build module_name → parent_dir from the payload's inventory paths.
+
+    Each module node in the payload carries ``inventory.path`` — the absolute,
+    resolved real path to the module directory as computed at analysis time.
+    The parent of that directory is the root needed to reconstruct the absolute
+    path from the module-relative ``source_file`` (``"<module>/sub/file.py"``).
+
+    Preferred over the KB-based approach because inventory paths are always
+    fresh (computed at payload-build time) and do not depend on paths stored
+    in the KB at an earlier scan.
+    """
+    roots: dict = {}
+    for mod in payload.get("modules", []):
+        inv = mod.get("inventory") or {}
+        path = inv.get("path", "")
+        name = mod.get("module")
+        if path and name:
+            roots[name] = str(Path(path).parent)
+    return roots
+
+
 def _resolve_module_root(name: str, tier_root: Path) -> str | None:
     """Return the parent directory of ``name`` inside ``tier_root``.
 
@@ -56,9 +78,10 @@ def _resolve_module_root(name: str, tier_root: Path) -> str | None:
 def _build_source_roots(repo_path: Path) -> dict:
     """Map module_name → parent dir of the module using the project KB.
 
-    The returned root is the directory that, when joined with the module-relative
-    ``source_file`` (``"<module>/sub/file.py"``), gives the absolute path.
-    Returns an empty dict when the KB does not exist yet.
+    Fallback when the payload is not available (e.g. dashboard before first
+    ``doc_project`` call). The returned root is the directory that, when joined
+    with the module-relative ``source_file`` (``"<module>/sub/file.py"``), gives
+    the absolute path. Returns an empty dict when the KB does not exist yet.
     """
     kb_path = project_kb_path(repo_path)
     if not kb_path.exists():
@@ -222,7 +245,7 @@ def main(show_all, refresh, names, port, no_browser):
     with live_progress("Building documentation data..."):
         payload = build_payload(repo, repo_path, show_all, names, refresh)
 
-    source_roots = _build_source_roots(repo_path)
+    source_roots = source_roots_from_payload(payload)
 
     with tempfile.TemporaryDirectory(prefix="oops-serve-") as tmp:
         site = prepare_site_dir(payload, Path(tmp))
