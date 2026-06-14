@@ -108,7 +108,7 @@ export function openFieldDrawer(f: FieldNode & { _module?: string }): void {
         if (!loaded) {
           loaded = true;
           codeArea.textContent = "Loading…";
-          const code = await fetchSource(f.source_file!, f.line_start!, f.line_end ?? f.line_start!);
+          const code = await fetchSource(f.source_file!, f.line_start!, f.line_end ?? 0);
           codeArea.innerHTML = "";
           if (code != null) codeArea.appendChild(renderCode(code, f.line_start!));
           else codeArea.appendChild(el("p", { class: "stack-code-unavail" }, "Source not available."));

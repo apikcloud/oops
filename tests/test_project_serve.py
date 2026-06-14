@@ -16,6 +16,7 @@ from oops.commands.project.serve import (
     _read_source_slice,
     _resolve_module_root,
     build_payload,
+    merge_source_roots,
     prepare_site_dir,
     source_roots_from_payload,
 )
@@ -324,6 +325,85 @@ class TestBuildSourceRoots:
 
         assert roots["sale_order_type"] == str(oca_root / "sale-workflow")
 
+    def test_two_tier_odoo_both_resolve(self, tmp_path: Path) -> None:
+        from unittest.mock import MagicMock, patch
+
+        addons_root = tmp_path / "community" / "addons"
+        odoo_addons_root = tmp_path / "community" / "odoo" / "addons"
+        (addons_root / "sale" / "models").mkdir(parents=True)
+        (odoo_addons_root / "base" / "models").mkdir(parents=True)
+
+        fake_modules = {
+            "sale": {"origin": "odoo"},
+            "base": {"origin": "odoo_core"},
+        }
+        fake_sources = {
+            "odoo": str(addons_root),
+            "odoo_core": str(odoo_addons_root),
+        }
+
+        with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.KBReader") as KBR:
+            pkp.return_value = MagicMock(exists=lambda: True)
+            inst = KBR.return_value.__enter__.return_value
+            inst.get_modules.return_value = fake_modules
+            inst.get_sources.return_value = fake_sources
+
+            roots = _build_source_roots(tmp_path)
+
+        assert roots["sale"] == str(addons_root)
+        assert roots["base"] == str(odoo_addons_root)
+
+
+class TestMergeSourceRoots:
+    def test_payload_wins_on_collision(self, tmp_path: Path) -> None:
+        from unittest.mock import MagicMock, patch
+
+        kb_root = tmp_path / "odoo_addons"
+        project_root = tmp_path / "project_addons"
+        (kb_root / "sale").mkdir(parents=True)
+        (project_root / "sale").mkdir(parents=True)
+
+        fake_modules = {"sale": {"origin": "odoo"}}
+        fake_sources = {"odoo": str(kb_root)}
+
+        payload = {
+            "modules": [
+                {"module": "sale", "inventory": {"path": str(project_root / "sale")}},
+            ]
+        }
+
+        with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.KBReader") as KBR:
+            pkp.return_value = MagicMock(exists=lambda: True)
+            inst = KBR.return_value.__enter__.return_value
+            inst.get_modules.return_value = fake_modules
+            inst.get_sources.return_value = fake_sources
+
+            roots = merge_source_roots(payload, tmp_path)
+
+        assert roots["sale"] == str(project_root)
+
+    def test_kb_only_module_included(self, tmp_path: Path) -> None:
+        from unittest.mock import MagicMock, patch
+
+        odoo_addons = tmp_path / "odoo_addons"
+        (odoo_addons / "base").mkdir(parents=True)
+
+        fake_modules = {"base": {"origin": "odoo_core"}}
+        fake_sources = {"odoo_core": str(odoo_addons)}
+
+        with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.KBReader") as KBR:
+            pkp.return_value = MagicMock(exists=lambda: True)
+            inst = KBR.return_value.__enter__.return_value
+            inst.get_modules.return_value = fake_modules
+            inst.get_sources.return_value = fake_sources
+
+            roots = merge_source_roots({}, tmp_path)
+
+        assert roots["base"] == str(odoo_addons)
+
 
 class TestReadSourceSlice:
     def test_missing_file_param_returns_400(self) -> None:
@@ -375,3 +455,27 @@ class TestReadSourceSlice:
         status2, body2 = _read_source_slice(roots, "mymod/a.py", 1, -1)
         assert status2 == 200
         assert body2["code"] == "a\nb\nc"
+
+    def test_boundary_detection_decorated_method(self, tmp_path: Path) -> None:
+        src = tmp_path / "mymod"
+        (src / "mymod").mkdir(parents=True)
+        f = src / "mymod" / "models.py"
+        src_text = "\n".join([
+            "class MyModel:",
+            "    @api.multi",
+            "    def action_confirm(self):",
+            "        return True",
+            "",
+            "    @api.multi",
+            "    def action_cancel(self):",
+            "        return False",
+        ])
+        f.write_text(src_text, encoding="utf-8")
+        roots = {"mymod": str(src)}
+        # line_start = 2 (decorator), end = 0 (unknown) → boundary detection
+        status, body = _read_source_slice(roots, "mymod/models.py", 2, 0)
+        assert status == 200
+        code = body["code"]
+        assert "def action_confirm" in code
+        assert "return True" in code
+        assert "def action_cancel" not in code

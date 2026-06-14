@@ -100,6 +100,15 @@ def _build_source_roots(repo_path: Path) -> dict:
     return roots
 
 
+def merge_source_roots(payload: dict, repo_path: Path) -> dict:
+    """Merge KB-derived roots (all origins, incl. Odoo) with fresh payload roots.
+
+    Project payload roots take precedence: they are always current (computed at
+    payload-build time) and override any stale KB-derived path for the same module.
+    """
+    return {**_build_source_roots(repo_path), **source_roots_from_payload(payload)}
+
+
 def _read_source_slice(roots: dict, file: str, start: int, end: int) -> tuple[int, dict]:
     """Resolve a module-relative ``file`` path and return a line slice.
 
@@ -134,12 +143,20 @@ def _read_source_slice(roots: dict, file: str, start: int, end: int) -> tuple[in
     if end > 0:
         e = end
     else:
-        # end unknown (source_end_line NULL in KB for Odoo core): detect function
-        # boundary by scanning for the next def/class/@ at the same indent level.
+        # end unknown (source_end_line NULL in KB): detect function boundary by
+        # scanning for the next def/class/@ at the same indent level.
+        # source_line may point to the first decorator — skip to the actual def
+        # line before measuring indent so decorated methods are handled correctly.
         e = len(lines)
         if s < len(lines):
-            def_indent = len(lines[s]) - len(lines[s].lstrip())
-            for i in range(s + 1, len(lines)):
+            def_line = s
+            for j in range(s, len(lines)):
+                sl = lines[j].lstrip()
+                if sl.startswith(("def ", "async def ")):
+                    def_line = j
+                    break
+            def_indent = len(lines[def_line]) - len(lines[def_line].lstrip())
+            for i in range(def_line + 1, len(lines)):
                 stripped = lines[i].strip()
                 if not stripped:
                     continue
@@ -245,7 +262,7 @@ def main(show_all, refresh, names, port, no_browser):
     with live_progress("Building documentation data..."):
         payload = build_payload(repo, repo_path, show_all, names, refresh)
 
-    source_roots = source_roots_from_payload(payload)
+    source_roots = merge_source_roots(payload, repo_path)
 
     with tempfile.TemporaryDirectory(prefix="oops-serve-") as tmp:
         site = prepare_site_dir(payload, Path(tmp))

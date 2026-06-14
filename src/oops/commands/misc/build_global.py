@@ -53,6 +53,12 @@ from .presenters.build_global import BuildGlobalPresenter
 
 _ORIGIN_MAP = {"community": "odoo"}
 
+# (base_origin, relative-path-of-addons-root) → tier origin name.
+# Only entries that differ from the base name are listed.
+_TIER_ORIGIN_MAP: dict[tuple[str, str], str] = {
+    ("odoo", "odoo/addons"): "odoo_core",  # community/odoo/addons tier
+}
+
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
     "json": JsonFormatter,
@@ -123,19 +129,24 @@ def main(
 
     with live_progress("Building global KB..."):
         for path in get_odoo_sources_dirs(version):
-            name = _ORIGIN_MAP.get(path.name, path.name)
-
-            log.info(f"Analyzing {name.capitalize()}...")
+            base_name = _ORIGIN_MAP.get(path.name, path.name)
 
             if not path.exists():
                 continue
 
             for root in odoo_addons_roots(path):
-                local_result: Result[dict] = scan_tier(root, name)
-                for w in local_result.warnings:
-                    result.add_warning(f"[{name}] {w}")
+                rel = "/".join(root.relative_to(path).parts)
+                tier_name = _TIER_ORIGIN_MAP.get((base_name, rel), base_name)
 
-                xml_result = scan_tier_xml(root, name)
+                log.info(f"Analyzing {tier_name.capitalize()} ({root})...")
+                if not root.exists():
+                    continue
+
+                local_result: Result[dict] = scan_tier(root, tier_name)
+                for w in local_result.warnings:
+                    result.add_warning(f"[{tier_name}] {w}")
+
+                xml_result = scan_tier_xml(root, tier_name)
 
                 if local_result.data is None:
                     local_result.data = {}
@@ -147,14 +158,14 @@ def main(
                 local_result.data["actions"] = xml_result.data["actions"]
                 local_result.data["menus"] = xml_result.data["menus"]
                 for w in xml_result.warnings:
-                    result.add_warning(f"[{name}] {w}")
+                    result.add_warning(f"[{tier_name}] {w}")
 
                 scan_results.append(local_result.data)
                 data = local_result.data
 
                 result.data["stats"].append(
                     {
-                        "name": name,
+                        "name": tier_name,
                         "path": root,
                         "modules": len(data.get("modules", {})),
                         "symbols": len(data.get("symbols", [])),
@@ -166,7 +177,7 @@ def main(
                     }
                 )
 
-            sources[name] = str(path)
+                sources[tier_name] = str(root)  # tier root, not checkout root
 
         log.info("Resolving prototype roles…")
         _resolve_prototype_roles(scan_results)
