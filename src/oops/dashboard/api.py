@@ -122,6 +122,16 @@ class Api:
             return {"metadata": {"command": "error"}, "error": "no project selected"}
         return run_oops(["release", "show"], cwd=path)
 
+    def read_source(self, file: str, start: int, end: int) -> dict:
+        from oops.commands.project.serve import _build_source_roots, _read_source_slice  # noqa: PLC0415
+
+        p = self._project_path
+        if not p:
+            return {"error": "no project selected"}
+        roots = _build_source_roots(Path(p))
+        _, payload = _read_source_slice(roots, file, int(start), int(end))
+        return payload
+
     def project_info(self, path: "str | None" = None) -> dict:
         path = path or self._project_path
         if not path:

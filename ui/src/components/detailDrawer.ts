@@ -38,8 +38,15 @@ export function closeDrawer(): void {
   _singleton?.close();
 }
 
+type PwApi = Record<string, (...a: unknown[]) => Promise<{ code?: string }>>;
+
 export async function fetchSource(file: string, start: number, end: number): Promise<string | null> {
   try {
+    const pw = (window as unknown as Record<string, unknown>).pywebview as { api?: PwApi } | undefined;
+    if (pw?.api?.read_source) {
+      const data = await pw.api.read_source(file, start, end);
+      return data.code ?? null;
+    }
     const url = `/api/source?file=${encodeURIComponent(file)}&start=${start}&end=${end}`;
     const res = await fetch(url);
     if (!res.ok) return null;
