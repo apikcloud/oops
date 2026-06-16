@@ -9,6 +9,22 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.21.0] - 2026-06-16
+
+New tooling for installation and a deeper view into your Odoo modules.
+
+### ✨ What's new
+
+- **MRO method stack in `oops project serve`**: click on any method and browse its full inheritance chain — see each override in context, with source code pulled directly from your Odoo installation
+- **Linux installer**: `oops` can now be installed on Linux with a single script — no manual steps required
+- **Automated GitHub releases**: new releases are now published automatically on GitHub
+
+### 🐛 Fixes
+
+- **`oops project serve`**: fixed an edge case that could cause a crash when browsing certain model nodes
+
+---
+
 ## [0.20.0] - 2026-06-08
 
 A big update focused on documentation, visualization, and the analysis pipeline. 🎉
