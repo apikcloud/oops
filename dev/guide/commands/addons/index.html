@@ -3350,61 +3350,6 @@ and method breakdown, plus counts of declared data files and assets.</p>
 <p>This command is read-only. It rebuilds the project KB if stale (same
 semantics as <code>oops addons refactor</code>) but performs no source rewriting,
 no git operations, and no manifest edits.</p>
-<p>JSON output — IR v2 (--format json)::</p>
-<div class="language-text highlight"><pre><span></span><code>metadata.schema_version == 2. The payload is a clean intermediate
-representation: per module, four FLAT sibling lists of id-addressable
-nodes (models / fields / methods / views) wired by id references, plus
-raw metric payloads (manifest / metrics / loc) whose labels/kinds live
-in the descriptor registry (src/oops/output/schema/analyze_ir_v2.json),
-not in the data.
-
-{
-  "metadata": {"schema_version": 2, "tool_version": "vX.Y.Z",
-               "limitations": ["oca origin folded into third_party", "..."]},
-  "warnings": ["..."],
-  "modules": [
-    {
-      "module": "project_management",
-      "manifest": {"name": "...", "version": "...", "...": "..."},   # raw values
-      "readme": {"present": true, "format": "rst", "path": "...", "content": "..."},
-      "depends": ["..."],
-      "models":  [{"id": "project_management:project.project", "model": "project.project",
-                   "class_name": "ProjectProject", "status": "extension",
-                   "inherit": ["project.project"], "inherit_origin": "core",
-                   "ancestor_model": "...", "ancestor_module": "...",
-                   "description": null, "docstring": null}],
-      "fields":  [{"id": "project_management:project.project#field:dev_hours",
-                   "name": "dev_hours", "model": "project_management:project.project",
-                   "type": "Float", "label": "Dev Hours", "label_inferred": false,
-                   "help": "...", "compute": "...#method:_compute_dev_hours",
-                   "origin_status": "new", "dynamic": false, "source_file": "...",
-                   "line_start": 12, "line_end": 12}],
-      "methods": [{"id": "project_management:project.project#method:_compute_dev_hours",
-                   "name": "_compute_dev_hours", "model": "project_management:project.project",
-                   "signature": "(self)", "section": "COMPUTE",
-                   "decorators": ["api.depends('timesheet_ids.unit_amount')"],
-                   "docstring": "...", "is_override": false, "overrides": null,
-                   "is_inherited": false, "inherited_from": null,
-                   "source_file": "...", "line_start": 14, "line_end": 18}],
-      "views":   [{"id": "project_management.portal_tasks_list", "xml_id": "...",
-                   "model": "...", "mode": "primary", "view_type": "list",
-                   "origin": "custom", "inherit_origin": null, "inherit_id": null,
-                   "name": "...", "fields_count": 4, "buttons_count": 0,
-                   "ancestor_module": null, "source_file": "...",
-                   "line_start": 3, "line_end": 61}],
-      "structure": {"...": "..."},
-      "metrics":  {"models": 1, "own_fields": 1, "overridden_methods": 0, "...": "..."},
-      "loc":      {"python": 120, "xml": 60, "total": 200, "pct": 3.4, "...": "..."},
-      "not_analysed": ["data", "controllers/"],
-      "warnings": ["..."]
-    }
-  ]
-}
-</code></pre></div>
-<p>Origins use one enum everywhere: {core, enterprise, oca, third_party, custom}
-(oca is currently folded into third_party — see metadata.limitations).</p>
-<p>--format html is temporarily unavailable while the HTML report is migrated to
-this IR; use --format json or --format text.</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops addons analyze [OPTIONS] MODULE_PATHS...
 </span></code></pre></div>
