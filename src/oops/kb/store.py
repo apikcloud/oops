@@ -1113,6 +1113,40 @@ class KBReader:
                 "section", "has_super", "load_index", "import_index"]
         return [dict(zip(cols, tuple(r))) for r in rows]
 
+    def get_method_layers_bulk(
+        self, models: List[str]
+    ) -> "Dict[tuple, List[Dict[str, Any]]]":
+        """Fetch all method layers for a list of models in a single query.
+
+        Args:
+            models: List of dotted model names.
+
+        Returns:
+            Dict keyed by ``(model, method_name)`` → list of layer dicts.
+            Each layer dict has the same shape as ``get_method_layers`` results.
+        """
+        if not models:
+            return {}
+        placeholders = ",".join("?" * len(models))
+        rows = self._con.execute(
+            f"""
+            SELECT s.model, s.name, s.module, s.origin, s.source_file, s.source_line,
+                   s.source_end_line, s.section, s.has_super, m.load_index, s.import_index
+            FROM symbols s
+            LEFT JOIN modules m ON s.module = m.name
+            WHERE s.kind='method' AND s.model IN ({placeholders})
+            """,
+            models,
+        ).fetchall()
+        cols = ["model", "name", "module", "origin", "source_file", "source_line",
+                "source_end_line", "section", "has_super", "load_index", "import_index"]
+        result: Dict[tuple, List[Dict[str, Any]]] = {}
+        for r in rows:
+            row = dict(zip(cols, tuple(r)))
+            key = (row.pop("model"), row.pop("name"))
+            result.setdefault(key, []).append(row)
+        return result
+
     def get_field_refs_for_field(
         self, model: str, field_name: str, module: Optional[str] = None
     ) -> List[Dict[str, Any]]:

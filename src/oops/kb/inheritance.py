@@ -188,23 +188,21 @@ def merge_methods(
     if not mro:
         return {}
 
-    method_names: set[str] = set()
-    for record in mro:
-        for sym in reader.get_symbols_by_module_model(record["module"], record["model"]):
-            if sym["kind"] == "method":
-                method_names.add(sym["name"])
+    # Bulk-fetch all method layers for every model in the MRO in one query
+    # instead of O(methods × MRO_depth) individual queries.
+    unique_models: list[str] = list(dict.fromkeys(r["model"] for r in mro))
+    all_layers = reader.get_method_layers_bulk(unique_models)
+    method_names: set[str] = {name for (_, name) in all_layers}
 
     merged: dict[str, dict[str, Any]] = {}
     for mname in method_names:
-        # get_method_layers may return records from any model in the MRO
-        layers = reader.get_method_layers(mro[0]["model"], mname)
-        # Also fetch layers from parent models in the MRO (for prototype chains)
-        seen_models: set[str] = {mro[0]["model"]}
-        for record in mro[1:]:
-            if record["model"] not in seen_models:
-                seen_models.add(record["model"])
-                parent_layers = reader.get_method_layers(record["model"], mname)
-                layers.extend(parent_layers)
+        layers: list[Any] = []
+        seen_models: set[str] = set()
+        for record in mro:
+            m = record["model"]
+            if m not in seen_models:
+                seen_models.add(m)
+                layers.extend(all_layers.get((m, mname), []))
 
         if not layers:
             continue
