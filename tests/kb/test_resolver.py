@@ -91,28 +91,28 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
 class TestInheritanceResolver:
     def test_resolve_returns_expected_keys(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        resolver = InheritanceResolver.from_project_kb(db_path)
-        result = resolver.resolve("sale.order")
+        with InheritanceResolver.from_project_kb(db_path) as resolver:
+            result = resolver.resolve("sale.order")
         assert set(result.keys()) == {"model", "chain", "mro", "fields", "methods"}
         assert result["model"] == "sale.order"
 
     def test_chain_length(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        resolver = InheritanceResolver.from_project_kb(db_path)
-        result = resolver.resolve("sale.order")
+        with InheritanceResolver.from_project_kb(db_path) as resolver:
+            result = resolver.resolve("sale.order")
         assert len(result["chain"]) == 3
 
     def test_chain_load_order(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        resolver = InheritanceResolver.from_project_kb(db_path)
-        result = resolver.resolve("sale.order")
+        with InheritanceResolver.from_project_kb(db_path) as resolver:
+            result = resolver.resolve("sale.order")
         modules = [r["module"] for r in result["chain"]]
         assert modules == ["base", "sale", "custom_sale"]
 
     def test_field_source_override(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        resolver = InheritanceResolver.from_project_kb(db_path)
-        result = resolver.resolve("sale.order")
+        with InheritanceResolver.from_project_kb(db_path) as resolver:
+            result = resolver.resolve("sale.order")
         assert "name" in result["fields"]
         # custom_sale overrides required=True
         assert result["fields"]["name"]["attrs"].get("required") is True
@@ -120,9 +120,9 @@ class TestInheritanceResolver:
 
     def test_installed_modules_restriction(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        resolver = InheritanceResolver.from_project_kb(db_path)
-        # Restrict to base+sale only — custom_sale excluded
-        result = resolver.resolve("sale.order", installed_modules={"base", "sale"})
+        with InheritanceResolver.from_project_kb(db_path) as resolver:
+            # Restrict to base+sale only — custom_sale excluded
+            result = resolver.resolve("sale.order", installed_modules={"base", "sale"})
         chain_modules = {r["module"] for r in result["chain"]}
         # custom_sale is in KB but excluded from load_order
         # chain still includes all DB rows, but load_index for custom_sale will be None
@@ -132,16 +132,16 @@ class TestInheritanceResolver:
 
     def test_mro_most_derived_first(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        resolver = InheritanceResolver.from_project_kb(db_path)
-        result = resolver.resolve("sale.order")
+        with InheritanceResolver.from_project_kb(db_path) as resolver:
+            result = resolver.resolve("sale.order")
         mro_modules = [r["module"] for r in result["mro"]]
         chain_modules = [r["module"] for r in result["chain"]]
         assert mro_modules == list(reversed(chain_modules))
 
     def test_methods_key_present(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        resolver = InheritanceResolver.from_project_kb(db_path)
-        result = resolver.resolve("sale.order")
+        with InheritanceResolver.from_project_kb(db_path) as resolver:
+            result = resolver.resolve("sale.order")
         assert isinstance(result["methods"], dict)
 
 

@@ -23,17 +23,34 @@ from oops.kb.store import KBReader
 class InheritanceResolver:
     """Resolve Odoo model inheritance without a live Odoo instance."""
 
-    def __init__(self, reader: KBReader) -> None:
+    def __init__(self, reader: KBReader, _owns_reader: bool = False) -> None:
         self._reader = reader
+        self._owns_reader = _owns_reader
 
     @classmethod
     def from_project_kb(cls, kb_path: Path) -> "InheritanceResolver":
         """Open a KB and return a resolver.
 
+        Use as a context manager to ensure the connection is closed::
+
+            with InheritanceResolver.from_project_kb(kb_path) as resolver:
+                result = resolver.resolve("sale.order")
+
         Args:
             kb_path: Path to a project KB ``.db`` file.
         """
-        return cls(KBReader(kb_path))
+        return cls(KBReader(kb_path), _owns_reader=True)
+
+    def close(self) -> None:
+        """Close the underlying KB connection if this resolver owns it."""
+        if self._owns_reader:
+            self._reader.close()
+
+    def __enter__(self) -> "InheritanceResolver":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
 
     def resolve(
         self,
