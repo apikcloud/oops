@@ -15,13 +15,14 @@ from oops.core.models import Result
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
 from oops.io.file import find_addons
 from oops.io.installed_modules import installed_modules_path
+from oops.kb.load_order import compute_load_order
 from oops.kb.resolve import build_depends_chain
 from oops.kb.scanner import (
     discover_root_addons,
     scan_module,
     tier_root_from_real_path,
 )
-from oops.kb.store import SCHEMA_VERSION, KBReader, write_project_kb
+from oops.kb.store import SCHEMA_VERSION, KBReader, update_module_load_order, write_project_kb
 from oops.kb.xml_scanner import scan_module_xml
 
 
@@ -179,7 +180,8 @@ def build_project_kb(
         global_symbols = [
             dict(r)
             for r in kb._con.execute(
-                "SELECT model, name, kind, origin, module, source_file, source_line, field_type, section FROM symbols"
+                "SELECT model, name, kind, origin, module, source_file, source_line, "
+                "source_end_line, field_type, section, import_index, attrs_json, has_super FROM symbols"
             ).fetchall()
         ]
         global_field_refs = [
@@ -314,6 +316,16 @@ def build_project_kb(
         scan_results=all_scan_results,
     )
     result.merge(write_result)
+
+    # --- Compute and persist load order ---
+    # Restrict to the caller-supplied installed set, not every module in the KB
+    # (the KB also contains the global KB modules which are not all installed).
+    with KBReader(db_path) as kb:
+        modules_depends = kb.get_modules_with_depends()
+    load_result = compute_load_order(set(modules_list), modules_depends)
+    update_module_load_order(db_path, load_result)
+    log.info(f"Load order stamped for {len(load_result)} modules")
+
     result.data = db_path
     return result
 

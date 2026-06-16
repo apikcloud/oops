@@ -23,6 +23,7 @@ from oops.core.config import config
 from oops.core.logger import log
 from oops.core.models import Result
 from oops.io.manifest import load_manifest
+from oops.io.python_imports import discover_imported_files
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -669,6 +670,48 @@ def build_module_field_refs(
 # }
 
 
+def _build_import_index(module_path: Path) -> Dict[str, int]:
+    """Return a mapping of absolute file path → import order index for a module.
+
+    Uses the models/ subpackage when present, falls back to the module root.
+    """
+    models_dir = module_path / "models"
+    if not models_dir.is_dir():
+        models_dir = module_path
+    files = discover_imported_files(models_dir)
+    return {str(f): i for i, f in enumerate(files)}
+
+
+def _make_attrs_json(stmt: ast.stmt) -> Optional[str]:
+    """Return a JSON-serialised attributes dict for a field assignment, or None."""
+    details = extract_field_details(stmt)
+    if details is None:
+        return None
+    attrs: Dict[str, Any] = {}
+    for key in (
+        "type", "label", "help", "required", "readonly", "store",
+        "comodel", "inverse_name", "relation", "compute", "related",
+        "default", "selection", "dynamic",
+    ):
+        if details.get(key) is not None:
+            attrs[key] = details[key]
+    return json.dumps(attrs)
+
+
+def _detect_super_in_func(fn: ast.AST) -> bool:
+    """True if the function body contains a super().<attr>(...) call."""
+    for node in ast.walk(fn):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Call)
+            and isinstance(node.func.value.func, ast.Name)
+            and node.func.value.func.id == "super"
+        ):
+            return True
+    return False
+
+
 def scan_module(  # noqa: C901
     module_dir: Path,
     origin: str,
@@ -701,6 +744,9 @@ def scan_module(  # noqa: C901
     if not models_dir.is_dir():
         return result
 
+    # Build import order index: absolute path → position in __init__.py import chain.
+    file_to_import_index = _build_import_index(module_dir)
+
     # Parse all model files up front so we can do two passes.
     parsed_files: List[Tuple[Path, str, ast.Module]] = []
     for py_file in models_dir.rglob("*.py"):
@@ -719,7 +765,8 @@ def scan_module(  # noqa: C901
     field_symbols: List[Dict[str, Any]] = []
     pending_methods: List[Tuple[str, str, ast.FunctionDef, str, int, int]] = []
 
-    for _, rel_path, tree in parsed_files:
+    for py_file, rel_path, tree in parsed_files:
+        import_index = file_to_import_index.get(str(py_file.resolve()))
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
@@ -745,6 +792,7 @@ def scan_module(  # noqa: C901
                         "source_file": rel_path,
                         "source_line": node.lineno,
                         "description": _description,
+                        "import_index": import_index,
                     }
                 )
             else:
@@ -761,6 +809,7 @@ def scan_module(  # noqa: C901
                             "source_file": rel_path,
                             "source_line": node.lineno,
                             "description": _description,
+                            "import_index": import_index,
                         }
                     )
 
@@ -784,6 +833,8 @@ def scan_module(  # noqa: C901
                                 "source_end_line": end_lineno,
                                 "field_type": ftype,
                                 "section": None,
+                                "import_index": import_index,
+                                "attrs_json": _make_attrs_json(stmt),
                             }
                         )
                         for kwarg, target in extract_field_refs(stmt).items():
@@ -805,14 +856,15 @@ def scan_module(  # noqa: C901
                                 rel_path,
                                 stmt,
                                 stmt.name,
-                                stmt.lineno,
+                                stmt.decorator_list[0].lineno if stmt.decorator_list else stmt.lineno,
                                 getattr(stmt, "end_lineno", None) or stmt.lineno,
+                                import_index,
                             )
                         )
 
     # ---- Pass 2: classify methods using the collected field refs. ----
     method_symbols: List[Dict[str, Any]] = []
-    for model_name, rel_path, fn_node, mname, lineno, end_lineno in pending_methods:
+    for model_name, rel_path, fn_node, mname, lineno, end_lineno, mth_import_index in pending_methods:
         ref_kwargs = refs_by_target.get((model_name, mname), [])
         decs = _get_decorator_names(fn_node)
         section = classify_method(mname, decs, ref_kwargs)
@@ -828,6 +880,9 @@ def scan_module(  # noqa: C901
                 "source_end_line": end_lineno,
                 "field_type": None,
                 "section": section,
+                "import_index": mth_import_index,
+                "attrs_json": None,
+                "has_super": _detect_super_in_func(fn_node),
             }
         )
 

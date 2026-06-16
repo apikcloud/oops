@@ -7,23 +7,18 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
-import pytest
 from oops.commands.addons.domain_profile import (
-    _classify_model,
-    _resolve_new_model_domain,
     compute_domain_profile,
 )
 from oops.core.config import AnalyzeConfig
 from oops.core.models import ClassSummary, ModuleSummary, ViewsSummary
 from oops.kb.build import _resolve_module_apps
-from oops.kb.domains import DOMAIN_LABELS, domain_label
+from oops.kb.domains import domain_label
 from oops.kb.store import KBReader, write_project_kb
-
 
 # ---------------------------------------------------------------------------
 # Helpers — minimal KB fixtures
@@ -517,7 +512,7 @@ class TestAnalyzeConfig:
         assert cfg.domain_weights["w_loc"] == 1.0
 
     def test_partial_override_merged_correctly(self):
-        from oops.core.config import _apply, Config
+        from oops.core.config import Config, _apply
         cfg = Config()
         _apply(cfg, {"analyze": {"domain_weights": {"w_loc": 2.0}}})
         # Config._apply replaces the whole dict; consumer should merge with defaults.

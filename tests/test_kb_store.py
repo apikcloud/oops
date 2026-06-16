@@ -103,7 +103,7 @@ class TestDDL:
         _write(db_path)
         with KBReader(db_path) as kb:
             meta = kb.get_meta()
-        assert meta.get("schema_version") == "7"
+        assert meta.get("schema_version") == "9"
 
     def test_write_twice_applies_schema_cleanly(self, tmp_path):
         db_path = tmp_path / "kb.db"
@@ -591,3 +591,30 @@ class TestModuleHelpers:
         with KBReader(db_path) as kb:
             rows = kb.get_module_views("nonexistent_module")
         assert rows == []
+
+    def test_get_module_load_order_returns_depth_and_load_index(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            modules={
+                "base": {"origin": "odoo", "depends": [], "depth": 0, "load_index": 0},
+                "sale": {"origin": "odoo", "depends": ["base"], "depth": 1, "load_index": 1},
+            },
+        )
+        with KBReader(db_path) as kb:
+            lo = kb.get_module_load_order()
+        assert lo["base"] == (0, 0)
+        assert lo["sale"] == (1, 1)
+
+    def test_get_module_load_order_null_when_not_stamped(self, tmp_path):
+        db_path = tmp_path / "kb.db"
+        _write(
+            db_path,
+            modules={"base": {"origin": "odoo", "depends": []}},
+        )
+        with KBReader(db_path) as kb:
+            lo = kb.get_module_load_order()
+        assert "base" in lo
+        depth, load_index = lo["base"]
+        assert depth is None
+        assert load_index is None

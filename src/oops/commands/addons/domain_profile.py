@@ -56,7 +56,7 @@ def _classify_model(model: str, kb: "KBReader") -> Tuple[str, Optional[str]]:
             'domain' — functional Odoo application.
     anchor: app or pillar technical name (None for noise).
     """
-    creators = kb.get_model_creators(model)
+    creators = kb.get_model_creators(model, by_load_index=True)
     if not creators:
         return ("noise", None)
 

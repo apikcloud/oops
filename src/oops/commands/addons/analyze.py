@@ -15,64 +15,6 @@ and method breakdown, plus counts of declared data files and assets.
 This command is read-only. It rebuilds the project KB if stale (same
 semantics as `oops addons refactor`) but performs no source rewriting,
 no git operations, and no manifest edits.
-
-JSON output — IR v2 (--format json)::
-
-    metadata.schema_version == 2. The payload is a clean intermediate
-    representation: per module, four FLAT sibling lists of id-addressable
-    nodes (models / fields / methods / views) wired by id references, plus
-    raw metric payloads (manifest / metrics / loc) whose labels/kinds live
-    in the descriptor registry (src/oops/output/schema/analyze_ir_v2.json),
-    not in the data.
-
-    {
-      "metadata": {"schema_version": 2, "tool_version": "vX.Y.Z",
-                   "limitations": ["oca origin folded into third_party", "..."]},
-      "warnings": ["..."],
-      "modules": [
-        {
-          "module": "project_management",
-          "manifest": {"name": "...", "version": "...", "...": "..."},   # raw values
-          "readme": {"present": true, "format": "rst", "path": "...", "content": "..."},
-          "depends": ["..."],
-          "models":  [{"id": "project_management:project.project", "model": "project.project",
-                       "class_name": "ProjectProject", "status": "extension",
-                       "inherit": ["project.project"], "inherit_origin": "core",
-                       "ancestor_model": "...", "ancestor_module": "...",
-                       "description": null, "docstring": null}],
-          "fields":  [{"id": "project_management:project.project#field:dev_hours",
-                       "name": "dev_hours", "model": "project_management:project.project",
-                       "type": "Float", "label": "Dev Hours", "label_inferred": false,
-                       "help": "...", "compute": "...#method:_compute_dev_hours",
-                       "origin_status": "new", "dynamic": false, "source_file": "...",
-                       "line_start": 12, "line_end": 12}],
-          "methods": [{"id": "project_management:project.project#method:_compute_dev_hours",
-                       "name": "_compute_dev_hours", "model": "project_management:project.project",
-                       "signature": "(self)", "section": "COMPUTE",
-                       "decorators": ["api.depends('timesheet_ids.unit_amount')"],
-                       "docstring": "...", "is_override": false, "overrides": null,
-                       "is_inherited": false, "inherited_from": null,
-                       "source_file": "...", "line_start": 14, "line_end": 18}],
-          "views":   [{"id": "project_management.portal_tasks_list", "xml_id": "...",
-                       "model": "...", "mode": "primary", "view_type": "list",
-                       "origin": "custom", "inherit_origin": null, "inherit_id": null,
-                       "name": "...", "fields_count": 4, "buttons_count": 0,
-                       "ancestor_module": null, "source_file": "...",
-                       "line_start": 3, "line_end": 61}],
-          "structure": {"...": "..."},
-          "metrics":  {"models": 1, "own_fields": 1, "overridden_methods": 0, "...": "..."},
-          "loc":      {"python": 120, "xml": 60, "total": 200, "pct": 3.4, "...": "..."},
-          "not_analysed": ["data", "controllers/"],
-          "warnings": ["..."]
-        }
-      ]
-    }
-
-Origins use one enum everywhere: {core, enterprise, oca, third_party, custom}
-(oca is currently folded into third_party — see metadata.limitations).
-
---format html is temporarily unavailable while the HTML report is migrated to
-this IR; use --format json or --format text.
 """
 
 from __future__ import annotations
@@ -94,6 +36,8 @@ from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
 from oops.io.refactor import ClassInfo, SymbolInfo, analyse_file
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
+from oops.kb.provenance import normalize_origin
+from oops.kb.resolver import InheritanceResolver
 from oops.kb.scanner import build_module_field_refs
 from oops.kb.store import KBReader
 from oops.output.formatters import (
@@ -177,9 +121,12 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
 
+    installed: set[str] | None = None
+
     with live_progress("Analysis..."):
         version = str(odoo_image.major_version)
         info = read_installed_modules(repo_path)
+        installed = set(info.modules) if info is not None else None
 
         if info is not None:
             _gkb = global_kb_path(version)
@@ -240,6 +187,18 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
         with KBReader(kb_path) as kb:
             modules_index = kb.get_modules()
+            load_order = kb.get_module_load_order()
+            resolver = InheritanceResolver(kb)
+            _resolved_cache: dict = {}
+
+            def _get_resolved(model: str) -> dict:
+                if model not in _resolved_cache:
+                    try:
+                        _resolved_cache[model] = resolver.resolve(model, installed_modules=installed)
+                    except Exception as exc:
+                        results.add_warning(f"Resolver failed for {model!r}: {exc}")
+                        _resolved_cache[model] = {}
+                return _resolved_cache[model]
 
             for i, module_path in enumerate(resolved_paths, start=1):
                 log.info(f"Analysing {module_path.name} ({i}/{len(resolved_paths)})...")
@@ -264,6 +223,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 all_classes: list[ClassSummary] = []
                 all_class_infos: list[ClassInfo] = []
                 method_symbols: list[dict] = []
+                method_stacks: dict = {}
                 for py_file in model_py_files:
                     rel_file = f"{module_name}/{py_file.relative_to(module_path).as_posix()}"
                     class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
@@ -274,32 +234,50 @@ def main(  # noqa: C901, PLR0912, PLR0915
                         cs.missing_description = cs.is_new_model and not ci.description
                         cs.resolved_description = ci.description
                         if not cs.is_new_model and cs.inherit:
-                            creators = kb.get_model_creators(cs.inherit[0])
-                            if creators:
-                                best = creators[0]
-                                cs.ancestor_model = cs.inherit[0]
-                                cs.ancestor_module = best["module"]
-                                cs.ancestor_origin = best["origin"]
-                                if not cs.resolved_description and best.get("description"):
-                                    cs.resolved_description = best["description"]
-                                    cs.description_inherited_from = best["module"]
+                            inherited_model = cs.inherit[0]
+                            cs.ancestor_model = inherited_model
+                            resolved = _get_resolved(inherited_model)
+                            mro = resolved.get("mro", [])
+                            # Find immediate upstream layer (first MRO entry after module_name)
+                            mro_modules = [r["module"] for r in mro]
+                            try:
+                                idx = mro_modules.index(module_name)
+                                upstream = mro[idx + 1] if idx + 1 < len(mro) else None
+                            except ValueError:
+                                upstream = mro[0] if mro else None
+                            if upstream:
+                                cs.ancestor_module = upstream["module"]
+                                cs.ancestor_origin = upstream.get("origin", "")
+                            # Root = original creator: chain[0] (earliest-loaded).
+                            # mro[-1] is wrong in multi-inherit C3 (last mixin, not base).
+                            chain = resolved.get("chain", [])
+                            root = chain[0] if chain else (mro[-1] if mro else None)
+                            if root:
+                                cs.root_module = root["module"]
+                                cs.root_origin = root.get("origin", "")
+                            if not upstream and root:
+                                cs.ancestor_module = root["module"]
+                                cs.ancestor_origin = root.get("origin", "")
+                            # Description: prefer upstream, fall back to root
+                            if not cs.resolved_description:
+                                for candidate in (upstream, root):
+                                    if candidate:
+                                        desc = kb.get_model_description(inherited_model)
+                                        if desc:
+                                            cs.resolved_description = desc
+                                            cs.description_inherited_from = candidate["module"]
+                                            break
                         all_classes.append(cs)
                         model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
+                        resolved_m = _get_resolved(model_label) if model_label else {}
+                        resolver_methods = resolved_m.get("methods", {})
                         method_symbols.extend(
-                            {
-                                "model": model_label,
-                                "kind": "method",
-                                "name": s.name,
-                                "section": s.section,
-                                "line_start": s.lineno,
-                                "line_end": s.end_lineno,
-                                "source_file": rel_file,
-                                "is_override": s.is_override,
-                                "has_docstring": s.has_docstring,
-                            }
+                            _enrich_method_sym(s, rel_file, model_label, module_name, resolver_methods)
                             for s in ci.symbols
                             if s.kind == "method"
                         )
+                        for mname, mdata in resolver_methods.items():
+                            method_stacks[(model_label, mname)] = mdata.get("stack", [])
 
                 views_summary, xml_analysed = _build_views_summary(module_name, manifest, kb)
                 structure = _build_structure(module_path, manifest, xml_analysed)
@@ -318,34 +296,70 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     method_symbols=method_symbols,
                     class_infos=all_class_infos,
                     readme=detect_readme(module_path),
+                    method_stacks=method_stacks,
+                    origin=modules_index.get(module_name, {}).get("origin"),
                 )
 
                 weights = {**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}
-                module_result.data.domain_profile = compute_domain_profile(
-                    module_result.data, kb, weights
-                )
+                module_result.data.domain_profile = compute_domain_profile(module_result.data, kb, weights)
 
                 results.add(module_result)
 
     set_kb_metadata(repo_path, version)
 
-    # IR v2 contract: stamp the schema version and the recorded limitations.
+    # IR v3 contract: stamp the schema version and the recorded limitations.
     update_metadata(
-        schema_version=2,
+        schema_version=3,
         limitations=[
             "oca origin folded into third_party (all submodule code labelled third_party)",
             "controllers/wizard/report/data not analysed (see each module's not_analysed)",
+            "module load order is installed-scoped; model nodes carry start-line only",
         ],
     )
 
     # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = AnalyzePresenter().prepare(results, target=formatter.target, metadata=metadata)
+    output = AnalyzePresenter(installed=installed, load_order=load_order).prepare(
+        results, target=formatter.target, metadata=metadata
+    )
     deliver(formatter, output, output_format, output_path)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _enrich_method_sym(
+    s: "SymbolInfo",
+    rel_file: str,
+    model_label: str,
+    module_name: str,
+    resolver_methods: dict,
+) -> dict:
+    """Build method_symbols IR entry, enriching with resolver stack if available."""
+    overrides_ref = None
+    method_stack = resolver_methods.get(s.name, {}).get("stack", [])
+    if method_stack and s.is_override:
+        # upstream reference = root of the resolver stack (original definer)
+        root = method_stack[0]
+        overrides_ref = {
+            "module": root["module"],
+            "origin": normalize_origin(root.get("origin")),
+            "source_file": root.get("source_file"),
+            "source_line": root.get("source_line"),
+        }
+    return {
+        "model": model_label,
+        "kind": "method",
+        "name": s.name,
+        "section": s.section,
+        "line_start": s.lineno,
+        "line_end": s.end_lineno,
+        "source_file": rel_file,
+        "is_override": s.is_override,
+        "has_docstring": s.has_docstring,
+        "overrides": overrides_ref,
+    }
 
 
 def _summarize_class(ci: ClassInfo) -> ClassSummary:

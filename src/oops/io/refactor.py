@@ -352,7 +352,7 @@ def analyse_file(
                     name=stmt.name,
                     kind="method",
                     section=section,
-                    lineno=stmt.lineno,
+                    lineno=stmt.decorator_list[0].lineno if stmt.decorator_list else stmt.lineno,
                     end_lineno=getattr(stmt, "end_lineno", None) or stmt.lineno,
                     has_docstring=has_doc,
                     has_super=has_super,

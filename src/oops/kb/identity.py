@@ -22,6 +22,11 @@ from __future__ import annotations
 from oops.core.compat import Optional
 
 
+def module_id(module: str) -> str:
+    """Return the module node id (the technical name itself)."""
+    return module
+
+
 def model_id(module: str, model: str) -> str:
     """Return the module-qualified model id, e.g. ``project_management:project.project``."""
     return f"{module}:{model}"

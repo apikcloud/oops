@@ -238,6 +238,8 @@ class ClassSummary:
     ancestor_model: Optional[str] = None
     ancestor_module: Optional[str] = None
     ancestor_origin: Optional[str] = None
+    root_module: Optional[str] = None  # MRO root creator (mro[-1]); original Odoo definer
+    root_origin: Optional[str] = None  # raw origin of root creator
     resolved_description: Optional[str] = None
     description_inherited_from: Optional[str] = None  # module name, when inherited
     missing_description: bool = False  # new model w/o own _description
@@ -283,6 +285,10 @@ class ModuleSummary:
     """README capture: {present, format, path, content} — see io.file.detect_readme."""
     domain_profile: "Optional[dict]" = None
     """Domain profile: {domains, pillars, custom_models} — see domain_profile.py."""
+    method_stacks: "dict" = field(default_factory=dict)
+    """Flat {(model, method_name): stack_list} for the IR method stack attachment."""
+    origin: "Optional[str]" = None
+    """Module KB origin (core/enterprise/oca/third_party/custom) from the KB modules table."""
 
 
 class HasStatus(Protocol):

@@ -31,6 +31,7 @@ class Api:
     def __init__(self) -> None:
         self._current = _current_project()
         self._project_path: "str | None" = self._current
+        self._source_roots: "dict" = {}
 
     # --- project selector --------------------------------------------------
     def list_projects(self) -> dict:
@@ -99,14 +100,16 @@ class Api:
         from pathlib import Path  # noqa: PLC0415
 
         from git import Repo  # noqa: PLC0415
-        from oops.commands.project.serve import build_payload  # noqa: PLC0415
+        from oops.commands.project.serve import build_payload, merge_source_roots  # noqa: PLC0415
 
         p = path or self._project_path
         if not p:
             return {"metadata": {"command": "error"}, "error": "no project selected"}
         try:
             repo = Repo(p, search_parent_directories=True)
-            return build_payload(repo, Path(p), show_all=False, names=(), refresh=False)
+            payload = build_payload(repo, Path(p), show_all=False, names=(), refresh=False)
+            self._source_roots = merge_source_roots(payload, Path(p))
+            return payload
         except Exception as exc:
             return {"metadata": {"command": "error"}, "error": str(exc)}
 
@@ -121,6 +124,17 @@ class Api:
         if not path:
             return {"metadata": {"command": "error"}, "error": "no project selected"}
         return run_oops(["release", "show"], cwd=path)
+
+    def read_source(self, file: str, start: int, end: int) -> dict:
+        from oops.commands.project.serve import _build_source_roots, _read_source_slice  # noqa: PLC0415
+
+        p = self._project_path
+        if not p:
+            return {"error": "no project selected"}
+        if not self._source_roots:
+            self._source_roots = _build_source_roots(Path(p))
+        _, payload = _read_source_slice(self._source_roots, file, int(start), int(end))
+        return payload
 
     def project_info(self, path: "str | None" = None) -> dict:
         path = path or self._project_path

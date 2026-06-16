@@ -34,6 +34,7 @@ def test_origins_has_exactly_five_members() -> None:
     ("raw", "expected"),
     [
         ("odoo", ORIGIN_CORE),
+        ("odoo_core", ORIGIN_CORE),
         ("community", ORIGIN_CORE),
         ("themes", ORIGIN_CORE),
         ("enterprise", ORIGIN_ENTERPRISE),

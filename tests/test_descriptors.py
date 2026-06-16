@@ -13,14 +13,16 @@ from oops.output.descriptors import descriptor, kind_of, label_of, load_descript
 def test_registry_is_valid_and_versioned() -> None:
     reg = load_descriptors()
     assert reg["$schema"] == "https://json-schema.org/draft/2020-12/schema"
-    assert reg["x-schema-version"] == 2
-    assert schema_version() == 2
-    assert set(reg["definitions"]) == {"metrics", "loc", "manifest"}
+    assert reg["x-schema-version"] == 3
+    assert schema_version() == 3
+    assert {"metrics", "loc", "manifest", "module_node", "method_stack_layer", "node_totals"}.issubset(
+        set(reg["definitions"])
+    )
 
 
 def test_every_descriptor_has_title_and_kind() -> None:
     reg = load_descriptors()
-    for group in ("metrics", "loc", "manifest"):
+    for group in ("metrics", "loc", "manifest", "module_node", "method_stack_layer", "node_totals"):
         props = reg["definitions"][group]["properties"]
         assert props, f"{group} has no descriptors"
         for key, d in props.items():

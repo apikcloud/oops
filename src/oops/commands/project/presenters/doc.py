@@ -47,4 +47,5 @@ class ProjectDocPresenter(Presenter[Result]):
             "modules": modules,
             "models_by_bare": models_by_bare,
             "index": index,
+            "node_totals": ir.get("node_totals", {}),
         }

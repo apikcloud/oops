@@ -174,6 +174,16 @@ class TestDocModelHelpers:
     def test_none_ref_returns_none(self) -> None:
         assert resolve_ref(None, {}) is None
 
+    def test_module_nodes_indexed_in_build_index(self) -> None:
+        modules = [_module_payload()]
+        index = build_index(modules)
+        assert "pm" in index, "module technical name should be indexed"
+        entry = index["pm"]
+        assert entry["type"] == "module"
+        assert entry["module"] == "pm"
+        assert entry["page"] == "modules/pm.md"
+        assert entry["anchor"] is None
+
     def test_same_named_field_coexists_across_modules(self) -> None:
         m1 = _module_payload()
         m2 = {
@@ -204,7 +214,7 @@ class TestProjectDocPresenter:
     def test_to_machine_resolves_and_joins(self) -> None:
         result = Result()
         result.data = {
-            "ir": {"metadata": {"schema_version": 2}, "warnings": ["w"],
+            "ir": {"metadata": {"schema_version": 3}, "warnings": ["w"],
                    "modules": [_module_payload()]},
             "inventory": {"pm": {"classification": "custom", "loc": {"total": 99}}},
         }
@@ -219,6 +229,20 @@ class TestProjectDocPresenter:
         assert field["compute_ref"]["kind"] == "link"
         assert field["comodel_ref"]["kind"] == "external"
         assert "project.project" in dm["models_by_bare"]
+
+    def test_node_totals_propagated_from_ir(self) -> None:
+        result = Result()
+        node_totals = {"modules": 1, "models": 2, "fields": 3, "methods": 4, "views": 5, "total": 15}
+        result.data = {
+            "ir": {"metadata": {"schema_version": 3}, "warnings": [],
+                   "modules": [_module_payload()], "node_totals": node_totals},
+            "inventory": {},
+        }
+        out = ProjectDocPresenter().prepare(
+            result, target=RenderTarget(audience="machine", verbosity="full")
+        )
+        dm = out.layout
+        assert dm.get("node_totals") == node_totals
 
 
 # ---------------------------------------------------------------------------

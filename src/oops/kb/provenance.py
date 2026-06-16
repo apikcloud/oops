@@ -41,6 +41,7 @@ ORIGINS = frozenset(
 # see module docstring and metadata.limitations).
 _RAW_ORIGIN_MAP = {
     "odoo": ORIGIN_CORE,
+    "odoo_core": ORIGIN_CORE,   # community/odoo/addons tier
     "community": ORIGIN_CORE,
     "enterprise": ORIGIN_ENTERPRISE,
     "themes": ORIGIN_CORE,

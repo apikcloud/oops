@@ -372,7 +372,7 @@ class TestBuildKb:
             return_value=dirs,
         ), patch(
             "oops.commands.misc.build_global.odoo_addons_roots",
-            return_value=[community],
+            side_effect=lambda p: [p],
         ), patch(
             "oops.commands.misc.build_global.scan_tier",
             return_value=Result(

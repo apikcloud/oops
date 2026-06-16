@@ -73,6 +73,17 @@ def build_index(modules: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     """
     index: Dict[str, Dict[str, Any]] = {}
 
+    # Pass 0 — modules as first-class addressable nodes.
+    for mod in modules:
+        name = mod["module"]
+        index[name] = {
+            "type": "module",
+            "module": name,
+            "page": f"modules/{name}.md",
+            "anchor": None,
+            "name": name,
+        }
+
     # Pass 1 — models, so field/method/view nodes can find their owning page.
     model_bare: Dict[str, str] = {}
     for mod in modules:

@@ -664,3 +664,68 @@ class TestXmlEndToEnd:
         origins = {v["xml_id"]: v["origin"] for v in views}
         assert origins.get("base.view_form_primary") == "odoo"
         assert origins.get("mod_a.view_form_ext") == "apik"
+
+
+class TestSourceEndLinePreservedInMerge:
+    """source_end_line from the global KB must survive the project KB merge."""
+
+    def _make_global_kb_with_end_line(self, path: Path) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        write_global_kb(
+            db_path=path,
+            odoo_version="17.0",
+            sources={"odoo": "/odoo/addons"},
+            scan_results=[
+                {
+                    "modules": {"sale": {"origin": "odoo", "depends": ["base"]}},
+                    "symbols": [
+                        {
+                            "model": "sale.order",
+                            "name": "action_confirm",
+                            "kind": "method",
+                            "origin": "odoo",
+                            "module": "sale",
+                            "source_file": "sale/models/sale_order.py",
+                            "source_line": 10,
+                            "source_end_line": 25,
+                            "section": "ACTION",
+                            "has_super": False,
+                        }
+                    ],
+                    "model_origins": [
+                        {
+                            "model": "sale.order",
+                            "module": "sale",
+                            "origin": "odoo",
+                            "role": "create",
+                            "model_type": "model",
+                            "inherit_json": "[]",
+                            "inherits_json": "{}",
+                            "source_file": "sale/models/sale_order.py",
+                            "source_line": 5,
+                            "description": "Sales Order",
+                        }
+                    ],
+                }
+            ],
+        )
+        return path
+
+    def test_source_end_line_preserved_in_project_kb(self, tmp_path: Path) -> None:
+        global_kb = self._make_global_kb_with_end_line(tmp_path / "global.db")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _make_tp_symlinks(repo, "module_a")
+
+        result = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
+        assert result.data is not None
+        db_path: Path = result.data
+
+        with KBReader(db_path) as kb:
+            layers = kb.get_method_layers("sale.order", "action_confirm")
+
+        confirm = next((s for s in layers if s["module"] == "sale"), None)
+        assert confirm is not None, "action_confirm not found in project KB"
+        assert confirm["source_end_line"] == 25, (
+            "source_end_line was lost during global→project KB merge"
+        )

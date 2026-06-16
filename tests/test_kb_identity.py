@@ -7,7 +7,12 @@
 
 from __future__ import annotations
 
-from oops.kb.identity import field_id, method_id, model_id, normalize_source_file
+from oops.kb.identity import field_id, method_id, model_id, module_id, normalize_source_file
+
+
+def test_module_id() -> None:
+    assert module_id("project_management") == "project_management"
+    assert module_id("base") == "base"
 
 
 def test_model_id() -> None:

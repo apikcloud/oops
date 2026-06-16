@@ -5,4 +5,8 @@
 
 """Knowledge Base package: scanner, store, resolver, and shared logging setup."""
 
+from oops.kb.resolver import InheritanceResolver
+
+__all__ = ["InheritanceResolver"]
+
 

@@ -54,4 +54,8 @@
 
   --font: "DM Sans", system-ui, sans-serif;
   --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Code viewer — One Dark */
+  --code-bg: #282c34;
+  --code-text: #abb2bf;
 }
