@@ -446,6 +446,8 @@ def _model_nodes(module: str, pairs: list) -> list:
                 "inherit_origin": normalize_origin(cs.ancestor_origin),
                 "ancestor_model": cs.ancestor_model,
                 "ancestor_module": cs.ancestor_module,
+                "root_module": cs.root_module,
+                "root_origin": normalize_origin(cs.root_origin),
                 "description": cs.resolved_description,
                 "own_description": ci.description,
                 "description_inherited_from": cs.description_inherited_from,

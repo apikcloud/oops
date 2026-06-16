@@ -238,6 +238,8 @@ class ClassSummary:
     ancestor_model: Optional[str] = None
     ancestor_module: Optional[str] = None
     ancestor_origin: Optional[str] = None
+    root_module: Optional[str] = None  # MRO root creator (mro[-1]); original Odoo definer
+    root_origin: Optional[str] = None  # raw origin of root creator
     resolved_description: Optional[str] = None
     description_inherited_from: Optional[str] = None  # module name, when inherited
     missing_description: bool = False  # new model w/o own _description

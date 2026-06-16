@@ -131,6 +131,8 @@ export interface ModelNode {
   model: string;
   status?: string;
   ancestor_module?: string;
+  root_module?: string;
+  root_origin?: string;
   [k: string]: unknown;
 }
 

@@ -305,8 +305,13 @@ def main(  # noqa: C901, PLR0912, PLR0915
                             if upstream:
                                 cs.ancestor_module = upstream["module"]
                                 cs.ancestor_origin = upstream.get("origin", "")
-                            # Root = last MRO layer (original creator)
-                            root = mro[-1] if mro else None
+                            # Root = original creator: chain[0] (earliest-loaded).
+                            # mro[-1] is wrong in multi-inherit C3 (last mixin, not base).
+                            chain = resolved.get("chain", [])
+                            root = chain[0] if chain else (mro[-1] if mro else None)
+                            if root:
+                                cs.root_module = root["module"]
+                                cs.root_origin = root.get("origin", "")
                             if not upstream and root:
                                 cs.ancestor_module = root["module"]
                                 cs.ancestor_origin = root.get("origin", "")

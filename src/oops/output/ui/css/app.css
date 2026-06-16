@@ -458,6 +458,14 @@ tbody tr:hover {
     background: var(--unknown-bg);
     color: var(--unknown-text);
 }
+.badge-core {
+    background: var(--origin-core);
+    color: #fff;
+}
+.badge-enterprise {
+    background: var(--origin-enterprise);
+    color: #fff;
+}
 /* Origin (filled) */
 .badge.core {
     background: var(--origin-core);
