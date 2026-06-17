@@ -9,6 +9,7 @@ import pkgutil
 import click
 import oops.commands as _commands_pkg
 from oops.commands.dashboard import main as dashboard
+from oops.commands.mcp import main as mcp
 
 # Modules inside a group package that are helpers, not commands.
 _SKIP = {"common"}
@@ -39,3 +40,4 @@ for _group_info in pkgutil.iter_modules(_commands_pkg.__path__):
 
 
 main.add_command(dashboard)
+main.add_command(mcp)

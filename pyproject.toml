@@ -110,6 +110,7 @@ source = ["src/oops", ".venv/lib/python*/site-packages/oops"]
 
 [project.optional-dependencies]
 gui = ["pywebview[qt]"]
+mcp = ["mcp[cli]; python_version>='3.10'"]
 dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright", "freezegun"]
 docs = [
     "mkdocs>=1.6; python_version>='3.9'",

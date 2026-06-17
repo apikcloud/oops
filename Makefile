@@ -21,7 +21,7 @@ help:
 	@echo "  make typecheck    Run pyright type checking"
 
 install:
-	uv sync --extra dev
+	uv sync --extra dev --extra gui --extra mcp --active
 
 install-docs:
 	uv sync --extra docs
