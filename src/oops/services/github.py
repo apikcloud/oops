@@ -8,11 +8,11 @@ import subprocess
 import zipfile
 
 import requests
-from oops.core.compat import Optional, Tuple
+from oops.core.compat import List, Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import APIError
 from oops.core.logger import log
-from oops.core.models import WorkflowRunInfo
+from oops.core.models import PullRequest, WorkflowRunInfo
 from oops.utils.net import make_json_get
 
 
@@ -163,3 +163,51 @@ def gh(*args: str) -> subprocess.CompletedProcess:
         raise APIError(f"gh {args[0]} failed (exit {e.returncode})") from e
     except FileNotFoundError as e:
         raise APIError("gh CLI not found. Install it from https://cli.github.com.") from e
+
+
+def _get_upstream(owner: str, repo: str, session: "requests.Session") -> str:
+    """Returns the full_name of the root (source) repository of a fork."""
+
+    r = session.get(f"https://api.github.com/repos/{owner}/{repo}")
+    r.raise_for_status()
+    data = r.json()
+
+    if not data.get("fork"):
+        return data["full_name"]
+
+    return data["source"]["full_name"]
+
+
+def _find_prs_from_fork_branch(
+    fork_owner: str, fork_repo: str, branch: str, session: "requests.Session"
+) -> "Tuple[str, List[dict]]":
+    """Find all open PRs on the upstream repository from a branch of a fork."""
+    upstream = _get_upstream(fork_owner, fork_repo, session)
+
+    r = session.get(
+        f"https://api.github.com/repos/{upstream}/pulls",
+        params={
+            "state": "all",
+            "head": f"{fork_owner}:{branch}",
+        },
+    )
+    r.raise_for_status()
+    return upstream, r.json()
+
+
+def find_pull_requests(owner: str, repo: str, branch: str, token: str) -> "Optional[List[PullRequest]]":
+    session = requests.Session()
+    session.headers.update(
+        {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+    )
+
+    upstream, prs = _find_prs_from_fork_branch(owner, repo, branch, session)
+
+    if not prs:
+        return None
+
+    return [PullRequest.from_dict(upstream, pr) for pr in prs]

@@ -495,12 +495,40 @@ class StatGroup:
 
 
 @dataclass
+class PullRequest:
+    upstream: str
+    number: int
+    state: str
+    title: str
+    url: str
+    head: str
+    base: str
+
+    @classmethod
+    def from_dict(cls, upstream: str, data: dict) -> "PullRequest":
+        return cls(
+            upstream=upstream,
+            number=data["number"],
+            state=data["state"],
+            title=data["title"],
+            url=data["html_url"],
+            head=data["head"]["label"],
+            base=data["base"]["label"],
+        )
+
+
+@dataclass
 class SubmoduleInfo:
     name: str
     url: str
     branch: Optional[str]
     pull_request: bool
     last_commit: Optional[CommitInfo]
+    pull_requests: Optional[list[PullRequest]] = None
+
+    @property
+    def resolved_pr(self) -> Optional[PullRequest]:
+        return self.pull_requests[0] if self.pull_requests else None
 
     def to_dict(self) -> dict:
         return asdict(self)

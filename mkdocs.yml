@@ -200,6 +200,7 @@ nav:
           - Misc: guide/commands/misc.md
           - Odoo: guide/commands/odoo.md
           - Project: guide/commands/project.md
+          - Pull Requests: guide/commands/pr.md
           - Readme: guide/commands/readme.md
           - Release: guide/commands/release.md
           - Requirements: guide/commands/requirements.md
