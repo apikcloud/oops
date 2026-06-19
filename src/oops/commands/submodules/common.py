@@ -14,7 +14,7 @@ from oops.core.compat import TYPE_CHECKING, List
 from oops.core.config import config
 from oops.core.logger import log
 from oops.core.models import Result
-from oops.io.file import check_prefix, desired_path
+from oops.io.file import check_prefix, desired_path, get_symlink_map
 from oops.services.git import is_pull_request
 from oops.utils.net import _parse_url
 
@@ -41,6 +41,30 @@ class CheckPath(Check):
             s.name for s in self.ctx.submodules if not check_prefix(str(s.path), str(config.submodules.current_path))
         ]
         return self._resolve(problems, f"Submodule not under {config.submodules.current_path}" + ": {item}")
+
+
+class CheckName(Check):
+    name = "check_name"
+    label = "Naming convention"
+
+    def _run(self) -> Result[CheckOutcome]:
+        problems = []
+        has_pr = any(is_pull_request(s) for s in self.ctx.submodules)
+        mapping = get_symlink_map(self.ctx.repo_path) if has_pr else {}
+
+        for submodule in self.ctx.submodules:
+            pull_request = is_pull_request(submodule)
+            first_symlink = mapping.get(submodule.path) if pull_request else None
+            preferred_name = desired_path(
+                submodule.url,
+                pull_request=pull_request,
+                suffix=first_symlink,
+            )
+
+            if submodule.name != preferred_name:
+                problems.append(submodule.name)
+
+        return self._resolve(problems, "Incorrect submodule name: {item}")
 
 
 class CheckSymlink(Check):
@@ -152,6 +176,7 @@ class CheckPullRequest(Check):
 
 CHECKS: "list[type[Check]]" = [
     CheckPath,
+    CheckName,
     CheckSymlink,
     CheckBranch,
     CheckUrlScheme,
