@@ -9,6 +9,17 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.22.0] - 2026-06-19
+
+New pull request viewer and submodule name validation.
+
+### ✨ What's new
+
+- **`oops pr show`**: list open pull requests directly from the CLI — browse PRs without leaving your terminal
+- **`oops submodules check`**: submodule names are now validated automatically — catch naming issues before they cause problems
+
+---
+
 ## [0.21.0] - 2026-06-16
 
 New tooling for installation and a deeper view into your Odoo modules.
