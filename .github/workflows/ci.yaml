@@ -75,25 +75,25 @@ jobs:
       - run: gh release create "${{ github.ref_name }}" --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  update-dotfiles:
-    needs: [release]
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: apikcloud/dotfiles
-          token: ${{ secrets.BOT_TOKEN }}
+  # update-dotfiles:
+  #   needs: [release]
+  #   if: github.event_name == 'push'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         repository: apikcloud/dotfiles
+  #         token: ${{ secrets.BOT_TOKEN }}
 
-      - name: Update oops version
-        run: |
-          VERSION="${{ github.ref_name }}"
-          sed -i "s|git+https://github.com/apikcloud/oops.git@.*|git+https://github.com/apikcloud/oops.git@${VERSION}|" .chezmoidata/packages.yaml
+  #     - name: Update oops version
+  #       run: |
+  #         VERSION="${{ github.ref_name }}"
+  #         sed -i "s|git+https://github.com/apikcloud/oops.git@.*|git+https://github.com/apikcloud/oops.git@${VERSION}|" .chezmoidata/packages.yaml
 
-      - name: Commit & push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .chezmoidata/packages.yaml
-          git commit -m "chore: bump oops to ${{ github.ref_name }}"
-          git push
+  #     - name: Commit & push
+  #       run: |
+  #         git config user.name "github-actions[bot]"
+  #         git config user.email "github-actions[bot]@users.noreply.github.com"
+  #         git add .chezmoidata/packages.yaml
+  #         git commit -m "chore: bump oops to ${{ github.ref_name }}"
+  #         git push
