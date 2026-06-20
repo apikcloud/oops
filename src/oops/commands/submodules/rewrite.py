@@ -27,7 +27,13 @@ from oops.core.models import Result, Rows
 from oops.io.file import desired_path, get_symlink_map, rewrite_symlink
 from oops.output.helper import render_and_raise, render_plan
 from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
-from oops.utils.render import colorize, conclude, prompt_choices, prompt_confirm
+from oops.utils.render import colorize, colorize_from, conclude, prompt_choices, prompt_confirm
+
+COLORS = {
+    "skipped": "yellow",
+    "rewrite": "green",
+    "nothing to do": "gray50",
+}
 
 
 @command(name="rewrite", help=__doc__)
@@ -52,9 +58,7 @@ def main(base_dir, force, no_commit, names):  # noqa: C901, PLR0912
             continue
         pull_request = is_pull_request(submodule)
         first_symlink = mapping[submodule.path] if pull_request else None
-        target = desired_path(
-            submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink
-        )
+        target = desired_path(submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink)
         if str(submodule.path) != str(target):
             plan.append([submodule.name, str(submodule.path), str(target), "available"])
         else:
@@ -94,7 +98,7 @@ def main(base_dir, force, no_commit, names):  # noqa: C901, PLR0912
     render_plan(
         "Planned rewrites",
         [("Name", "brand.primary", "left"), ("From", "dim", "left"), ("To", "dim", "left"), ("Action", "dim", "left")],
-        [[name, frm, to, action] for name, frm, to, action in plan],
+        [[name, frm, to, colorize_from(action, COLORS)] for name, frm, to, action in plan],
         counter,
     )
 
@@ -149,9 +153,7 @@ def main(base_dir, force, no_commit, names):  # noqa: C901, PLR0912
         outer.add_message(f"Removed old submodule base dir: {config.submodules.old_paths[0]}")
 
     if not no_commit and repo.index.diff(repo.head.commit):
-        outer.merge(
-            commit_v2(repo, repo_path, [], "submodules_rewrite", skip_hooks=True, already_staged=True)
-        )
+        outer.merge(commit_v2(repo, repo_path, [], "submodules_rewrite", skip_hooks=True, already_staged=True))
     elif no_commit:
         outer.add_warning("Changes staged but not committed (--no-commit).")
 

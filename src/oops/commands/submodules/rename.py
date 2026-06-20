@@ -7,7 +7,7 @@
 Rename submodules to match the <ORG>/<REPO> naming convention.
 
 Computes the canonical name from the submodule URL and renames it if it
-differs. Prompts for confirmation on each change unless --no-prompt is passed.
+differs. Prompts for confirmation on each change unless --force is passed.
 Specific submodules can be targeted by name.
 """
 

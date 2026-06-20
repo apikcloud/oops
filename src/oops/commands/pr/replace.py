@@ -43,4 +43,4 @@ def main(token: str, output_format: str, output_path: Path):
     # If the target (upstream) repository does not exist locally, create it
     # using the Odoo major version as a reference. Then recreate the symlinks.
 
-    raise NotImplementedError()
+    raise NotImplementedError("Not implemented; see TODO")

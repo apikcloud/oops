@@ -9,8 +9,6 @@ Walks through (1) confirming the cleanup, (2) picking a reset target from
 the last 20 commits, and (3) a final confirmation. Then hard-resets HEAD to
 the chosen commit, wipes every configured submodule base directory, and
 re-runs ``git submodule update --init --recursive``.
-
-Aliased as ``oops-i-did-it-again`` for when things have gone sideways.
 """
 
 from __future__ import annotations
