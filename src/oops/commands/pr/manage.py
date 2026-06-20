@@ -6,10 +6,10 @@
 """ """
 
 from oops.commands.base import command
-from oops.core.exceptions import AppAbort, EarlyExit, OopsError
+from oops.core.exceptions import AppAbort, EarlyExit
 from oops.core.models import Result, Rows
 from oops.io.file import desired_path, get_symlink_map
-from oops.output.helper import render, render_plan
+from oops.output.helper import render_and_raise, render_plan
 from oops.services.git import browse_submodules, commit_v2, is_pull_request, require_repository, require_submodules
 from oops.utils.render import colorize, prompt_choices, prompt_confirm
 
@@ -96,6 +96,4 @@ def main():
 
     outer.merge(commit_v2(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True))
 
-    render(result, outer)
-    if not outer.ok:
-        raise OopsError("; ".join(outer.errors))
+    render_and_raise(result, outer)

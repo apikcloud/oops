@@ -16,12 +16,12 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.compat import Optional
-from oops.core.exceptions import AppAbort, EarlyExit, OopsError
+from oops.core.exceptions import AppAbort, EarlyExit
 from oops.core.logger import live_progress, log
 from oops.core.messages import commit_messages
 from oops.core.models import Result, Rows
 from oops.io.file import list_symlinks, relpath
-from oops.output.helper import render
+from oops.output.helper import render_and_raise
 from oops.services.git import require_repository, require_submodules
 from oops.utils.render import colorize, conclude, prompt_confirm, render_panel
 
@@ -118,7 +118,4 @@ def main(ctx, no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = No
     if no_commit:
         outer.add_warning("Don't forget to commit: git commit -m 'chore: remove unused submodules'")
 
-    render(result, outer)
-
-    if not outer.ok:
-        raise OopsError("; ".join(outer.errors))
+    render_and_raise(result, outer)

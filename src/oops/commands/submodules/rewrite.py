@@ -21,11 +21,11 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.core.exceptions import AppAbort, EarlyExit, OopsError
+from oops.core.exceptions import AppAbort, EarlyExit
 from oops.core.logger import live_progress
 from oops.core.models import Result, Rows
 from oops.io.file import desired_path, get_symlink_map, rewrite_symlink
-from oops.output.helper import render, render_plan
+from oops.output.helper import render_and_raise, render_plan
 from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
 from oops.utils.render import colorize, conclude, prompt_choices, prompt_confirm
 
@@ -155,6 +155,4 @@ def main(base_dir, force, no_commit, names):  # noqa: C901, PLR0912
     elif no_commit:
         outer.add_warning("Changes staged but not committed (--no-commit).")
 
-    render(result, outer)
-    if not outer.ok:
-        raise OopsError("; ".join(outer.errors))
+    render_and_raise(result, outer)

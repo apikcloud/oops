@@ -74,6 +74,14 @@ def render(
     formatter.render(output)
 
 
+def render_and_raise(result: Result[Rows], outer: Result) -> None:
+    """Render the result then raise OopsError if outer has errors."""
+    render(result, outer)
+    if not outer.ok:
+        from oops.core.exceptions import OopsError
+        raise OopsError("; ".join(outer.errors))
+
+
 def render_plan(
     title: str,
     columns: list,
