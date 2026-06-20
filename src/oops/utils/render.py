@@ -491,14 +491,14 @@ def make_choices(items: set[str], preselected: set[str]) -> list[questionary.Cho
     return [questionary.Choice(item, checked=(item in preselected)) for item in sorted(items)]
 
 
-def prompt_choices(message: str, items: set[str], preselected: set[str]):
+def prompt_choices(message: str, items: set[str], preselected: set[str]) -> "Optional[set[str]]":
     """Show an interactive checkbox prompt and return the selected values."""
-    return set(
-        questionary.checkbox(
-            message,
-            choices=make_choices(items, preselected),
-        ).ask()
-    )
+    res = questionary.checkbox(
+        message,
+        choices=make_choices(items, preselected),
+    ).ask()
+
+    return set(str(item) for item in res) if res else None
 
 
 def prompt_select(message: str, choices: list[str]) -> str:

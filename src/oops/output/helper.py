@@ -72,3 +72,19 @@ def render(
     output = prepare(result, outer, metadata=metadata)
     formatter = SimpleSummaryConsoleFormatter()
     formatter.render(output)
+
+
+def render_plan(
+    title: str,
+    columns: list,
+    rows: list,
+    metrics: dict | None = None,
+) -> None:
+    """Render a plan table before user confirmation.
+
+    Uses an empty outer so the embedded ConclusionBlock reflects
+    no errors (the plan has not executed yet).
+    """
+    result: Result[Rows] = Result()
+    result.data = Rows(title=title, columns=columns, rows=rows, metrics=metrics or {})
+    render(result, Result())
