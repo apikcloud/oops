@@ -5,12 +5,18 @@
 
 """ """
 
+import os
+import shutil
+from pathlib import Path
+
 from oops.commands.base import command
+from oops.core.config import config
 from oops.core.exceptions import AppAbort, EarlyExit
+from oops.core.logger import live_progress
 from oops.core.models import Result, Rows
-from oops.io.file import desired_path, get_symlink_map
+from oops.io.file import desired_path, get_symlink_map, rewrite_symlink
 from oops.output.helper import render_and_raise, render_plan
-from oops.services.git import browse_submodules, commit_v2, is_pull_request, require_repository, require_submodules
+from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
 from oops.utils.render import colorize, prompt_choices, prompt_confirm
 
 
@@ -33,42 +39,47 @@ def main():
     # Regular submodule marked as a PR
     marked_as_pr = selected - pull_requests
 
-    names = tuple(marked_as_sub.union(marked_as_pr))
+    names = set(marked_as_sub.union(marked_as_pr))
 
     if not names:
         raise EarlyExit()
 
-    # Assume at most one symlink per submodule
     mapping = get_symlink_map(repo_path)
 
-    def get_new_name(submodule, pull_request: bool) -> str:
+    # Planning pass: compute renames + path rewrites without executing
+    actions = []  # (old_name, new_name, old_path, new_path, mark_as_pr)
+    for submodule in submodules:
+        if submodule.name not in names:
+            continue
+        pull_request = submodule.name in marked_as_pr
         first_symlink = mapping.get(submodule.path) if pull_request else None
-        return desired_path(
+        new_name = desired_path(submodule.url, pull_request=pull_request, suffix=first_symlink)
+        new_path = desired_path(
             submodule.url,
+            prefix=str(config.submodules.current_path),
             pull_request=pull_request,
             suffix=first_symlink,
         )
-
-    # Planning pass: compute renames without executing
-    actions = []  # list of (old_name, new_name, mark_as_pr)
-    for _, submodule in browse_submodules(submodules, names):
-        pull_request = submodule.name in marked_as_pr
-        new_name = get_new_name(submodule, pull_request)
         if submodule.name != new_name:
-            actions.append((submodule.name, new_name, pull_request))
+            actions.append((submodule.name, new_name, str(submodule.path), str(new_path), pull_request))
 
     if not actions:
         raise EarlyExit()
 
     promoted = sum(1 for *_, as_pr in actions if as_pr)
     render_plan(
-        "Planned renames",
-        [("From", "dim", "left"), ("To", "brand.primary", "left"), ("Direction", "dim", "right")],
+        "Planned renames + rewrites",
         [
-            [old, new, colorize("→ PR", "green") if as_pr else colorize("→ regular", "yellow")]
-            for old, new, as_pr in actions
+            ("From", "dim", "left"),
+            ("To", "brand.primary", "left"),
+            ("New Path", "dim", "left"),
+            ("Direction", "dim", "right"),
         ],
-        {"renames": len(actions), "promoted": promoted, "demoted": len(actions) - promoted},
+        [
+            [old, new, new_path, colorize("→ PR", "green") if as_pr else colorize("→ regular", "yellow")]
+            for old, new, _, new_path, as_pr in actions
+        ],
+        {"total": len(actions), "promoted": promoted, "demoted": len(actions) - promoted},
     )
 
     if not prompt_confirm("Proceed?", default=True):
@@ -76,24 +87,52 @@ def main():
 
     result: Result[Rows] = Result()
     result.data = Rows(
-        title="Renames",
+        title="Renames + Rewrites",
         columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
         rows=[],
         metrics={"total": len(actions), "success": 0, "failed": 0},
     )
     outer: Result[None] = Result()
 
-    renames = {old: new for old, new, _ in actions}
-    for _, submodule in browse_submodules(submodules, tuple(renames.keys())):
+    moved = []
+    for old_name, new_name, old_path, new_path, _ in actions:
+        sub = next(s for s in submodules if s.name == old_name)
         try:
-            submodule.rename(renames[submodule.name])
-            result.data.rows.append([submodule.name, colorize("renamed", "green")])
+            sub.rename(new_name)
+            if old_path != new_path:
+                sub.move(new_path)
+                moved.append((old_path, new_path))
+            result.data.rows.append([old_name, colorize("renamed + moved", "green")])
             result.data.metrics["success"] += 1
         except Exception as err:
-            outer.add_error(f"{submodule.name}: {err}")
-            result.data.rows.append([submodule.name, colorize("failed", "red")])
+            outer.add_error(f"{old_name}: {err}")
+            result.data.rows.append([old_name, colorize("failed", "red")])
             result.data.metrics["failed"] += 1
 
-    outer.merge(commit_v2(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True))
+    # Rewrite symlinks that referenced moved paths.
+    rewrites = 0
+    with live_progress("Rewriting symlinks..."):
+        for root, dirs, files in os.walk(repo.working_dir):
+            if ".git" in dirs:
+                dirs.remove(".git")
+            for fname in dirs + files:
+                p = Path(root) / fname
+                if p.is_symlink():
+                    for oldp, newp in moved:
+                        if rewrite_symlink(p, oldp, newp):
+                            rewrites += 1
+                            repo.index.add([str(p)])
+                            break
+    outer.add_message(f"Symlinks rewritten: {rewrites}")
+
+    # Remove old base dir if it still exists.
+    if config.submodules.old_paths[0].exists():
+        shutil.rmtree(config.submodules.old_paths[0])
+        repo.index.remove([str(config.submodules.old_paths[0])], r=True, f=True)
+        outer.add_message(f"Removed old submodule base dir: {config.submodules.old_paths[0]}")
+
+    # move() stages .gitmodules; stage it explicitly to also capture rename() changes.
+    repo.index.add([".gitmodules"])
+    outer.merge(commit_v2(repo, repo_path, [], "pr_manage", skip_hooks=True, already_staged=True))
 
     render_and_raise(result, outer)
