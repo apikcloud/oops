@@ -9,26 +9,9 @@ from oops.commands.base import command
 from oops.core.exceptions import AppAbort, EarlyExit, OopsError
 from oops.core.models import Result, Rows
 from oops.io.file import desired_path, get_symlink_map
-from oops.output.helper import render
+from oops.output.helper import render, render_plan
 from oops.services.git import browse_submodules, commit_v2, is_pull_request, require_repository, require_submodules
-from oops.utils.render import colorize, conclude, prompt_choices, prompt_confirm
-
-
-def _show_summary(actions: list) -> None:
-    rows = [
-        [old, new, colorize("→ PR", "green") if as_pr else colorize("→ regular", "yellow")]
-        for old, new, as_pr in actions
-    ]
-    promoted = sum(1 for *_, as_pr in actions if as_pr)
-
-    result: Result[Rows] = Result()
-    result.data = Rows(
-        title="Planned renames",
-        columns=[("From", "dim", "left"), ("To", "brand.primary", "left"), ("Direction", "dim", "right")],
-        rows=rows,
-        metrics={"renames": len(actions), "promoted": promoted, "demoted": len(actions) - promoted},
-    )
-    render(result, Result())
+from oops.utils.render import colorize, prompt_choices, prompt_confirm
 
 
 @command("manage", help=__doc__)
@@ -53,7 +36,6 @@ def main():
     names = tuple(marked_as_sub.union(marked_as_pr))
 
     if not names:
-        conclude(True, "No changes to apply.")
         raise EarlyExit()
 
     # Assume at most one symlink per submodule
@@ -76,23 +58,44 @@ def main():
             actions.append((submodule.name, new_name, pull_request))
 
     if not actions:
-        conclude(True, "No changes to apply.")
         raise EarlyExit()
 
-    _show_summary(actions)
+    promoted = sum(1 for *_, as_pr in actions if as_pr)
+    render_plan(
+        "Planned renames",
+        [("From", "dim", "left"), ("To", "brand.primary", "left"), ("Direction", "dim", "right")],
+        [
+            [old, new, colorize("→ PR", "green") if as_pr else colorize("→ regular", "yellow")]
+            for old, new, as_pr in actions
+        ],
+        {"renames": len(actions), "promoted": promoted, "demoted": len(actions) - promoted},
+    )
 
     if not prompt_confirm("Proceed?", default=True):
         raise AppAbort()
 
-    # Execution pass
-    outer: Result = Result()
+    result: Result[Rows] = Result()
+    result.data = Rows(
+        title="Renames",
+        columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
+        rows=[],
+        metrics={"total": len(actions), "success": 0, "failed": 0},
+    )
+    outer: Result[None] = Result()
+
     renames = {old: new for old, new, _ in actions}
     for _, submodule in browse_submodules(submodules, tuple(renames.keys())):
-        submodule.rename(renames[submodule.name])
+        try:
+            submodule.rename(renames[submodule.name])
+            result.data.rows.append([submodule.name, colorize("renamed", "green")])
+            result.data.metrics["success"] += 1
+        except Exception as err:
+            outer.add_error(f"{submodule.name}: {err}")
+            result.data.rows.append([submodule.name, colorize("failed", "red")])
+            result.data.metrics["failed"] += 1
 
     outer.merge(commit_v2(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True))
 
-    conclude(outer.ok, "Renames committed." if outer.ok else "Commit failed.")
-
+    render(result, outer)
     if not outer.ok:
         raise OopsError("; ".join(outer.errors))

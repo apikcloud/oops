@@ -11,65 +11,111 @@ differs. Prompts for confirmation on each change unless --no-prompt is passed.
 Specific submodules can be targeted by name.
 """
 
+from collections import Counter
+
 import click
 from oops.commands.base import command
+from oops.core.exceptions import AppAbort, EarlyExit, OopsError
+from oops.core.models import Result, Rows
 from oops.io.file import desired_path, get_symlink_map
-from oops.services.git import commit, is_pull_request, require_repository, require_submodules
+from oops.output.helper import render, render_plan
+from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
+from oops.utils.render import colorize, conclude, prompt_choices, prompt_confirm
 
 
 @command("rename", help=__doc__)
-@click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
-@click.option("--prompt/--no-prompt", is_flag=True, default=True, help="Prompt before renaming")
-@click.option("--pull-request", "--pr", "force_pr", is_flag=True, help="Mark submodules as pull request")
+@click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
 @click.argument("names", nargs=-1, required=False)
-def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tuple):
-
+def main(no_commit, force, names):
     repo, repo_path = require_repository()
-    require_submodules(repo)
-
-    # Assume at most one symlink per submodule
+    submodules = require_submodules(repo)
     mapping = get_symlink_map(repo_path)
-    changed = False
 
-    for submodule in repo.submodules:
-        if names and submodule.name not in names:
-            continue
-
-        pull_request = force_pr or is_pull_request(submodule)
+    # First step: list the submodules that can be renamed. If the list is empty, exit.
+    plan = []
+    for submodule in submodules:
+        pull_request = is_pull_request(submodule)
         first_symlink = mapping.get(submodule.path) if pull_request else None
-        new_name = desired_path(
-            submodule.url,
-            pull_request=pull_request,
-            suffix=first_symlink,
-        )
+        new_name = desired_path(submodule.url, pull_request=pull_request, suffix=first_symlink)
+        if submodule.name != new_name:
+            plan.append([submodule.name, new_name, pull_request, "available"])
+        else:
+            plan.append([submodule.name, "", pull_request, "nothing to do"])
 
-        if submodule.name == new_name:
+    available = {item[0] for item in plan if item[-1] == "available"}
+
+    # If a list of names has been provided, the selection is restricted to that list
+    if names:
+        available = available.intersection(set(names))
+
+    if not available:
+        conclude(True, "Nothing to rename.")
+        raise EarlyExit()
+
+    # Selection. --no-prompt selects all non-interactively.
+    if not names and not force:
+        selected = prompt_choices("Select submodule(s) to rename: ", available, available)
+        if not selected:
+            raise AppAbort()
+    else:
+        selected = available
+
+    # We update the plan with the user’s choices
+    for item in plan:
+        if item[0] in selected:
+            item[-1] = "rename"
+        elif item[-1] == "available":
+            item[-1] = "skipped"
+
+    counter = Counter(item[-1] for item in plan)
+
+    if not counter["rename"]:
+        conclude(True, "Nothing to rename.")
+        raise EarlyExit()
+
+    # Presentation of the plan and user approval
+    render_plan(
+        "Planned renames",
+        [("From", "dim", "left"), ("To", "brand.primary", "left"), ("Kind", "dim", "right"), ("Action", "dim", "left")],
+        [
+            [old, new, colorize("PR", "green") if pr else colorize("regular", "yellow"), action]
+            for old, new, pr, action in plan
+        ],
+        counter,
+    )
+
+    if not force and not prompt_confirm("Proceed?", default=True):
+        raise AppAbort()
+
+    result: Result[Rows] = Result()
+    result.data = Rows(
+        title="Renames",
+        columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
+        rows=[],
+        metrics={"total": len(plan), "success": 0, "failed": 0},
+    )
+    outer: Result[None] = Result()
+
+    # Implementation of the plan and results
+    for old, new, _, action in plan:
+        if action == "skipped":
             continue
+        sub = next(s for s in repo.submodules if s.name == old)
+        try:
+            sub.rename(new)
+            result.data.rows.append([old, colorize("renamed", "green")])
+            result.data.metrics["success"] += 1
+        except Exception as err:
+            outer.add_error(f"{old}: {err}")
+            result.data.rows.append([old, colorize("failed", "red")])
+            result.data.metrics["failed"] += 1
 
-        click.echo(f"Renaming '{submodule.name}' -> '{new_name}' (PR={pull_request})")
+    if not no_commit:
+        outer.merge(commit_v2(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True))
+    else:
+        outer.add_warning("Don't forget to commit .gitmodules to share changes with the team.")
 
-        if prompt:
-            ans = click.prompt(f"Apply change for '{submodule.name}'? [Y/n/e]", default="y")
-            if ans in ("n", "no"):
-                continue
-            elif ans == "e":
-                custom = click.prompt("Enter custom name", default=new_name)
-                if custom:
-                    new_name = custom
-
-        if not dry_run:
-            try:
-                submodule.rename(new_name)
-                changed = True
-            except Exception as err:
-                raise click.UsageError(f"Error renaming submodule '{submodule.name}': {err}") from err
-
-    if not changed:
-        click.echo("Nothing to rename." if not dry_run else "Dry run complete — no changes applied.")
-        return
-
-    if not dry_run and not no_commit:
-        commit(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True)
-    elif not dry_run:
-        click.echo("Done. Commit .gitmodules to share changes with the team.")
+    render(result, outer)
+    if not outer.ok:
+        raise OopsError("; ".join(outer.errors))

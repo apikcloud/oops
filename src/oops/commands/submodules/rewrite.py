@@ -15,21 +15,19 @@ from __future__ import annotations
 
 import os
 import shutil
+from collections import Counter
 from pathlib import Path
-from typing import Optional
 
 import click
 from oops.commands.base import command
 from oops.core.config import config
-from oops.core.exceptions import EarlyExit
-from oops.core.logger import log
-from oops.core.messages import commit_messages
-from oops.io.file import (
-    desired_path,
-    get_symlink_map,
-    rewrite_symlink,
-)
-from oops.services.git import is_pull_request, require_repository, require_submodules
+from oops.core.exceptions import AppAbort, EarlyExit, OopsError
+from oops.core.logger import live_progress
+from oops.core.models import Result, Rows
+from oops.io.file import desired_path, get_symlink_map, rewrite_symlink
+from oops.output.helper import render, render_plan
+from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
+from oops.utils.render import colorize, conclude, prompt_choices, prompt_confirm
 
 
 @command(name="rewrite", help=__doc__)
@@ -39,116 +37,124 @@ from oops.services.git import is_pull_request, require_repository, require_submo
     help="Base directory for rewritten paths (default: .third-party)",
 )
 @click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
-@click.option("--dry-run", is_flag=True, help="Show planned changes only")
-@click.option(
-    "--no-commit",
-    is_flag=True,
-    help="Do not commit automatically at the end",
-)
+@click.option("--no-commit", is_flag=True, help="Do not commit automatically at the end")
 @click.argument("names", nargs=-1, required=False)
-def main(base_dir: str, force: bool, dry_run: bool, no_commit: bool, names: "Optional[tuple[str]]" = None):  # noqa: C901, PLR0912, PLR0915, UP045
-
+def main(base_dir, force, no_commit, names):  # noqa: C901, PLR0912
     repo, repo_path = require_repository()
-    require_submodules(repo)
-
-    # FIXME: assume there is only one symlink per submodule for now
+    submodules = require_submodules(repo)
     mapping = get_symlink_map(repo_path)
 
+    # Build plan for ALL submodules with status
     plan = []
-    for submodule in repo.submodules:
-        if names and submodule.name not in names:
+    for submodule in submodules:
+        if not submodule.url or submodule.path not in mapping:
+            plan.append([submodule.name, str(submodule.path), "", "skipped"])
             continue
-        if not submodule.url:
-            click.echo(f"[warn] submodule '{submodule.name}' has no URL, skipping")
-            continue
-
-        # Ensure we have a symlink target for this submodule
-        if submodule.path not in mapping:
-            click.echo(f"[warn] submodule '{submodule.name}' path '{submodule.path}' has no symlink, skipping")
-            continue
-
         pull_request = is_pull_request(submodule)
         first_symlink = mapping[submodule.path] if pull_request else None
-        target = desired_path(submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink)
-
-        if submodule.path != target:
-            plan.append((submodule, target))
-
-    if not plan:
-        click.echo("No submodule needs rewriting.")
-        raise EarlyExit()
-
-    for submodule, new_path in plan:
-        click.echo(f"[plan] {submodule.name}\n  url : {submodule.url}\n  path: {submodule.path} -> {new_path}")
-
-    accepted = []
-    for submodule, new_path in plan:
-        if force:
-            accepted.append((submodule, new_path))
+        target = desired_path(
+            submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink
+        )
+        if str(submodule.path) != str(target):
+            plan.append([submodule.name, str(submodule.path), str(target), "available"])
         else:
-            ans = click.prompt(
-                f"\nApply change for '{submodule.name}' ({submodule.path} -> {new_path})? [Y/n/e]",
-                default="y",
-            )
-            if ans in ("y", "yes"):
-                accepted.append((submodule, new_path))
-            elif ans == "e":
-                custom = click.prompt("Enter custom target path", default=new_path)
-                if custom:
-                    accepted.append((submodule, custom))
-    if not accepted:
-        click.echo("Nothing accepted. Exiting.")
+            plan.append([submodule.name, str(submodule.path), "", "nothing to do"])
+
+    available = {item[0] for item in plan if item[-1] == "available"}
+
+    # If a list of names has been provided, restrict selection to that list
+    if names:
+        available = available.intersection(set(names))
+
+    if not available:
+        conclude(True, "No submodule needs rewriting.")
         raise EarlyExit()
 
-    # Move submodules
+    # Selection. --force selects all non-interactively.
+    if not force:
+        selected = prompt_choices("Select submodule(s) to rewrite: ", available, available)
+        if not selected:
+            raise AppAbort()
+    else:
+        selected = available
+
+    # Update plan with user's choices
+    for item in plan:
+        if item[0] in selected:
+            item[-1] = "rewrite"
+        elif item[-1] == "available":
+            item[-1] = "skipped"
+
+    counter = Counter(item[-1] for item in plan)
+
+    if not counter["rewrite"]:
+        conclude(True, "Nothing accepted.")
+        raise EarlyExit()
+
+    render_plan(
+        "Planned rewrites",
+        [("Name", "brand.primary", "left"), ("From", "dim", "left"), ("To", "dim", "left"), ("Action", "dim", "left")],
+        [[name, frm, to, action] for name, frm, to, action in plan],
+        counter,
+    )
+
+    if not force and not prompt_confirm("Proceed?", default=True):
+        raise AppAbort()
+
+    result: Result[Rows] = Result()
+    result.data = Rows(
+        title="Rewrites",
+        columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
+        rows=[],
+        metrics={"total": len(plan), "success": 0, "failed": 0, "skipped": 0},
+    )
+    outer: Result[None] = Result()
+
+    # Execution: move submodules and record which paths moved.
     moved = []
-    for submodule, new_path in accepted:
-        # capture before move (GitPython mutates it)
-        old_path = str(submodule.path)
-        moved.append((old_path, str(new_path)))
-        if not dry_run:
-            submodule.move(new_path)
+    for name, old_path, target, action in plan:
+        if action != "rewrite":
+            continue
+        sub = next(s for s in repo.submodules if s.name == name)
+        try:
+            sub.move(target)
+            moved.append((old_path, target))
+            result.data.rows.append([name, colorize("moved", "green")])
+            result.data.metrics["success"] += 1
+        except Exception as err:
+            outer.add_error(f"{name}: {err}")
+            result.data.rows.append([name, colorize("failed", "red")])
+            result.data.metrics["failed"] += 1
 
-        log.debug(moved)
-
-    if dry_run:
-        click.echo("\nDry run mode, no changes applied.")
-        for oldp, newp in moved:
-            click.echo(f"[dry-run] {oldp} -> {newp}")
-        raise EarlyExit()
-
-    # Rewrite symlinks
-    # Build a quick lookup for old->new prefixes
+    # Rewrite symlinks that referenced moved paths.
     rewrites = 0
-    for root, dirs, files in os.walk(repo.working_dir):
-        if ".git" in dirs:
-            dirs.remove(".git")
-        for name in dirs + files:
-            p = Path(root) / name
-            if p.is_symlink():
-                for oldp, newp in moved:
-                    log.debug(p, ":", oldp, "->", newp)
-                    if rewrite_symlink(p, oldp, newp):
-                        rewrites += 1
-                        repo.index.add([str(p)])
-                        break
+    with live_progress("Rewriting symlinks..."):
+        for root, dirs, files in os.walk(repo.working_dir):
+            if ".git" in dirs:
+                dirs.remove(".git")
+            for fname in dirs + files:
+                p = Path(root) / fname
+                if p.is_symlink():
+                    for oldp, newp in moved:
+                        if rewrite_symlink(p, oldp, newp):
+                            rewrites += 1
+                            repo.index.add([str(p)])
+                            break
+    outer.add_message(f"Symlinks rewritten: {rewrites}")
 
-    click.echo(f"Symlinks rewritten: {rewrites}")
-
-    # Remove old base dir if it exists
+    # Remove old base dir if it still exists.
     if config.submodules.old_paths[0].exists():
         shutil.rmtree(config.submodules.old_paths[0])
         repo.index.remove([str(config.submodules.old_paths[0])], r=True, f=True)
-        click.echo(f"Removed old submodule base dir: {config.submodules.old_paths[0]}")
+        outer.add_message(f"Removed old submodule base dir: {config.submodules.old_paths[0]}")
 
-    # Auto commit
-    # TODO: add description of changes
-    if not no_commit and not dry_run and repo.index.diff(repo.head.commit):
-        repo.index.commit(
-            commit_messages.submodules_rewrite,
-            skip_hooks=True,
+    if not no_commit and repo.index.diff(repo.head.commit):
+        outer.merge(
+            commit_v2(repo, repo_path, [], "submodules_rewrite", skip_hooks=True, already_staged=True)
         )
+    elif no_commit:
+        outer.add_warning("Changes staged but not committed (--no-commit).")
 
-        click.echo("Changes committed.")
-    else:
-        click.echo("Changes staged but not committed (--no-commit).")
+    render(result, outer)
+    if not outer.ok:
+        raise OopsError("; ".join(outer.errors))
