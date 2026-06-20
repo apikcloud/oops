@@ -21,7 +21,7 @@ from oops.utils.render import colorize, prompt_choices, prompt_confirm
 
 
 @command("manage", help=__doc__)
-def main():
+def main():  # noqa: C901
 
     repo, repo_path = require_repository()
     submodules = require_submodules(repo)
