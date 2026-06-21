@@ -23,7 +23,7 @@ from git import GitCommandError, Repo
 from oops.commands.base import command
 from oops.core.compat import Optional, Tuple
 from oops.core.config import config
-from oops.core.exceptions import AppAbort, OopsError
+from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress
 from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import create_symlink, desired_path, ensure_parent
@@ -32,27 +32,42 @@ from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, read_gitmodules, require_repository
 from oops.services.github import list_remote_addons
 from oops.utils.net import encode_url, parse_repository_url
-from oops.utils.render import colorize, prompt_choices
+from oops.utils.render import colorize
+
+# Kind markers for the plan actions.
+KIND_SUBMODULE = "add-submodule"
+KIND_PR = "add-pr"
+KIND_ADDON = "available"  # selectable by the workflow
 
 
-def _build_plan(selected_paths: list[str]) -> Plan:
-    """Build a Plan from pre-selected addon relative paths."""
-    return Plan(
-        title="Addon symlinks",
-        actions=[
-            PlanAction(
-                label=Path(p).name,
-                new=None,
-                detail=p,
-                kind="selected",
-                data={"rel_path": p},
-            )
-            for p in sorted(selected_paths)
-        ],
+def _build_plan(remote_addons: list[str], pull_request: bool) -> Plan:
+    """Build the plan: a submodule placeholder + every addon as selectable.
+
+    The submodule action carries no final name yet — it is resolved in
+    `on_selected`, once the user's addon selection is known (the first
+    selected addon drives the PR submodule name).
+    """
+    submodule = PlanAction(
+        label="(submodule)",  # placeholder, resolved in on_selected
+        new=None,
+        detail="resolved after selection",
+        kind=KIND_PR if pull_request else KIND_SUBMODULE,
+        data={"is_submodule": True},
     )
+    addons = [
+        PlanAction(
+            label=Path(p).name,
+            new=None,
+            detail=p,
+            kind=KIND_ADDON,
+            data={"rel_path": p},
+        )
+        for p in sorted(remote_addons)
+    ]
+    return Plan(title="Add submodule", actions=[submodule, *addons])
 
 
-def add_submodule_flow(  # noqa: PLR0912, PLR0913
+def add_submodule_flow(  # noqa: PLR0913, C901
     *,
     repo: "Repo",
     repo_path: Path,
@@ -75,58 +90,76 @@ def add_submodule_flow(  # noqa: PLR0912, PLR0913
     except ValueError as exc:
         raise OopsError(str(exc)) from exc
 
-    # PRE-STEP: fetch addon list from GitHub Trees API then determine selection
+    # Fetch addon list from the GitHub Trees API
     with live_progress("Fetching addon list from GitHub…"):
         remote_addons = list_remote_addons(owner, repo_name, branch, token)
 
+    # Pre-restrict via --addons (validation only; selection stays in the workflow)
     if addons:
         requested = {a.strip() for a in addons.split(",") if a.strip()}
         not_found = requested - {Path(p).name for p in remote_addons}
         if not_found:
             raise OopsError(f"Addon(s) not found in repository: {', '.join(sorted(not_found))}")
-        selected_paths = [p for p in remote_addons if Path(p).name in requested]
-    elif force:
-        selected_paths = list(remote_addons)
-    else:
-        available = set(remote_addons)
-        chosen = prompt_choices("Select addon(s) to symlink: ", available, set())
-        if chosen is None:
-            raise AppAbort()
-        selected_paths = list(chosen)
+        remote_addons = [p for p in remote_addons if Path(p).name in requested]
 
-    # Compute submodule name and path (PR suffix = first selected addon, if any)
-    suffix: Optional[str] = Path(selected_paths[0]).name if pull_request and selected_paths else None
-    sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
-    sub_path_str = desired_path(
-        url, prefix=str(config.submodules.current_path), pull_request=pull_request, suffix=suffix
-    )
-    sub_path = repo_path / sub_path_str
+    plan = _build_plan(remote_addons, pull_request)
 
-    # Safety checks before any mutation
-    if sub_path.exists():
-        raise OopsError(f"Destination already exists: {sub_path_str}")
-    git_modules_dir = repo_path / ".git" / "modules" / sub_name
-    if git_modules_dir.exists():
-        raise OopsError(f"Git module directory already exists: {git_modules_dir}")
+    # If addons were given explicitly, pre-select them so the workflow doesn't prompt.
+    if addons:
+        for action in plan.actions:
+            if action.kind == KIND_ADDON:
+                action.kind = "selected"
 
-    plan = _build_plan(selected_paths)
+    # Mutable holder for the resolved submodule identity (filled in on_selected).
+    ctx: dict = {}
 
-    # Submodule is added lazily on the first apply() call — only after confirmation.
-    submodule_ready = [False]
+    def on_selected(plan: Plan) -> None:
+        """Resolve submodule name/path from the selection, then safety-check.
+
+        Runs after selection, before presentation/confirmation, so the user
+        sees the real submodule name and conflicts abort before any mutation.
+        """
+        selected_addons = [a for a in plan.actionable if a.data.get("rel_path")]
+        suffix = Path(selected_addons[0].data["rel_path"]).name if (pull_request and selected_addons) else None
+        sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
+        sub_path_str = desired_path(
+            url,
+            prefix=str(config.submodules.current_path),
+            pull_request=pull_request,
+            suffix=suffix,
+        )
+        sub_path = repo_path / sub_path_str
+
+        # Safety checks — before confirmation, before any mutation.
+        if sub_path.exists():
+            raise OopsError(f"Destination already exists: {sub_path_str}")
+        git_modules_dir = repo_path / ".git" / "modules" / sub_name
+        if git_modules_dir.exists():
+            raise OopsError(f"Git module directory already exists: {git_modules_dir}")
+
+        ctx.update(name=sub_name, path_str=sub_path_str, path=sub_path)
+
+        # Fill the submodule action so the presented plan shows the real name.
+        sub_action = next(a for a in plan.actionable if a.data.get("is_submodule"))
+        sub_action.label = sub_name
+        sub_action.new = branch
+        sub_action.detail = sub_path_str
 
     def apply(action: PlanAction) -> Tuple[str, bool]:
-        if not submodule_ready[0]:
-            ensure_parent(sub_path)
+        if action.data.get("is_submodule"):
+            ensure_parent(ctx["path"])
             try:
-                repo.create_submodule(name=sub_name, path=sub_path_str, url=url, branch=branch)
+                repo.create_submodule(name=ctx["name"], path=ctx["path_str"], url=url, branch=branch)
             except GitCommandError as exc:
                 raise OopsError(f"Failed to add submodule: {exc}") from exc
             gm = read_gitmodules(repo)
-            gm.set_value(f'submodule "{sub_name}"', "branch", branch)
+            gm.set_value(f'submodule "{ctx["name"]}"', "branch", branch)
             gm.write()
-            submodule_ready[0] = True
+            repo.index.add([".gitmodules"])
+            return colorize("added", "green"), True
 
-        addon_dir = sub_path / action.data["rel_path"]
+        # symlink action — submodule already created (it is first in the plan)
+        addon_dir = ctx["path"] / action.data["rel_path"]
         link_name = create_symlink(addon_dir, repo_path)
         if link_name:
             repo.index.add([str(repo_path / link_name)])
@@ -140,17 +173,21 @@ def add_submodule_flow(  # noqa: PLR0912, PLR0913
         outer=outer,
         title="Add submodule",
         force=force,
-        select=False,  # selection already done in the pre-step above
-        empty_message="No addons selected; nothing to do.",
+        select=True,  # the workflow handles addon selection now
+        select_prompt="Select addon(s) to symlink: ",
+        on_selected=on_selected,
+        empty_message="Nothing to do.",
     )
 
+    # Count only symlinks (exclude the submodule action from the link tally).
+    linked = sum(1 for row in (result.data.rows if result.data else []) if "linked" in str(row[1]))
+
     if not no_commit:
-        linked = result.data.metrics.get("success", 0) if result.data else 0
         commit_kwargs = {
-            "name": sub_name,
+            "name": ctx.get("name", ""),
             "url": url,
             "branch": branch,
-            "path": sub_path_str,
+            "path": ctx.get("path_str", ""),
             "symlinks": linked,
         }
         if extra_commit_kwargs:

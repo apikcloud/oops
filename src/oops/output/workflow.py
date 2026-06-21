@@ -4,7 +4,7 @@
 # File: workflow.py — src/oops/output/workflow.py
 
 """
-Shared scenario for mutating commands: select → present → confirm → apply.
+Shared scenario for mutating commands: select → resolve → present → confirm → apply.
 The workflow owns the common interaction flow; the command provides how to
 build the plan and how to apply a single action, and handles its own
 side effects (commit) and final rendering afterwards.
@@ -12,7 +12,7 @@ side effects (commit) and final rendering afterwards.
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Optional
 
 from oops.core.compat import Tuple
 from oops.core.exceptions import AppAbort, EarlyExit
@@ -30,6 +30,12 @@ DEFAULT_STATUS_COLUMNS: list[tuple[str, str, str]] = [
 # Returns (status_label, ok).
 ApplyFn = Callable[["PlanAction"], Tuple[str, bool]]
 
+# Hook called once the selection is known, before presentation/confirmation.
+# Lets a command resolve state derived from the selection (e.g. naming that
+# depends on the first selected item) and run safety checks early. May raise
+# OopsError to abort before the user confirms.
+OnSelectedFn = Callable[["Plan"], None]
+
 
 def run_mutation_workflow(
     *,
@@ -40,6 +46,7 @@ def run_mutation_workflow(
     force: bool = False,
     select: bool = True,
     select_prompt: str = "Select item(s): ",
+    on_selected: "Optional[OnSelectedFn]" = None,
     empty_message: str = "Nothing to do.",
 ) -> Result[Rows]:
     """Run the shared mutation scenario and return the execution result.
@@ -47,9 +54,10 @@ def run_mutation_workflow(
     Steps:
         1. Bail out early if the plan has nothing actionable.
         2. Optionally let the user select a subset (skipped when --force).
-        3. Present the plan.
-        4. Ask for confirmation (skipped when --force).
-        5. Execute each action via `apply`, collecting status + metrics.
+        3. Resolve selection-derived state via `on_selected` (optional).
+        4. Present the plan.
+        5. Ask for confirmation (skipped when --force).
+        6. Execute each action via `apply`, collecting status + metrics.
 
     The workflow does NOT commit and does NOT render the result — the calling
     command does that, so it can run its own side effects between execution
@@ -63,6 +71,9 @@ def run_mutation_workflow(
         force: Skip selection and confirmation prompts.
         select: Whether to offer interactive selection at all.
         select_prompt: Prompt text for the selection step.
+        on_selected: Optional hook run after selection and before presentation.
+            Use it to resolve state that depends on the selection and to run
+            safety checks early (it may raise to abort before confirmation).
         empty_message: Message shown when there is nothing to do.
 
     Returns:
@@ -79,7 +90,7 @@ def run_mutation_workflow(
 
     # 2. Interactive selection (unless --force)
     if select and not force:
-        available = {a.label for a in plan.actionable}
+        available = {a.label for a in plan.actionable if a.kind == "available"}
         selected = prompt_choices(select_prompt, available, available)
         if not selected:
             raise AppAbort()
@@ -89,14 +100,18 @@ def run_mutation_workflow(
             conclude(True, empty_message)
             raise EarlyExit()
 
-    # 3. Present the plan
+    # 3. Resolve selection-derived state (naming, safety checks, ...)
+    if on_selected is not None:
+        on_selected(plan)
+
+    # 4. Present the plan
     render_plan(plan)
 
-    # 4. Confirmation (unless --force)
+    # 5. Confirmation (unless --force)
     if not force and not prompt_confirm("Proceed?", default=True):
         raise AppAbort()
 
-    # 5. Execute
+    # 6. Execute
     result: Result[Rows] = Result(
         Rows(
             title=title,
@@ -105,6 +120,7 @@ def run_mutation_workflow(
             metrics={"total": len(plan.actionable), "success": 0, "failed": 0},
         )
     )
+    assert result.data is not None
     for action in plan.actionable:
         try:
             status, ok = apply(action)
