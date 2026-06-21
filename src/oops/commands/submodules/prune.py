@@ -9,113 +9,87 @@ Remove submodules that are not referenced by any symlink.
 Iterates over all submodules, checks whether any symlink in the repository
 points to the submodule path, and removes those that are unused. Specific
 submodules can be targeted by passing their names as arguments.
+
+When called without arguments, displays an interactive selection menu of
+unused submodules.
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Optional
-from oops.core.exceptions import AppAbort, EarlyExit
+from oops.core.compat import Tuple
 from oops.core.logger import live_progress, log
-from oops.core.messages import commit_messages
-from oops.core.models import Result, Rows
+from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import list_symlinks, relpath
 from oops.output.helper import render_and_raise
-from oops.services.git import require_repository, require_submodules
-from oops.utils.render import colorize, conclude, prompt_confirm, render_panel
+from oops.output.workflow import run_mutation_workflow
+from oops.services.git import commit_v2, require_repository, require_submodules
+from oops.utils.render import colorize
 
 
 def _is_used(repo_path: Path, path: Path, symlinks: list) -> bool:
-
     rel = relpath(repo_path, path)
-    if any(rel in t for t in symlinks):
-        return True
-    return False
+    return any(rel in t for t in symlinks)
+
+
+def _build_plan(submodules, repo_path: Path, symlinks: list) -> Plan:
+    actions = []
+    for sub in submodules:
+        log.info(f"Checking {sub.name}")
+        path = repo_path / Path(sub.path)
+        if not _is_used(repo_path, path, symlinks):
+            actions.append(
+                PlanAction(
+                    label=sub.name,
+                    new=None,
+                    detail=str(sub.path),
+                    kind="available",
+                )
+            )
+    return Plan(title="Unused submodules", actions=actions)
 
 
 @command(name="prune", help=__doc__)
-@click.option(
-    "--no-commit",
-    is_flag=True,
-    help="Do not commit automatically at the end",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show planned changes only",
-)
+@click.option("--no-commit", is_flag=True, help="Do not commit automatically at the end")
+@click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
 @click.argument("names", nargs=-1, required=False)
-@click.pass_context
-def main(ctx, no_commit: bool, dry_run: bool, names: "Optional[tuple[str]]" = None):  # noqa: C901, PLR0912
-
+def main(no_commit: bool, force: bool, names: Tuple[str, ...]):
     repo, repo_path = require_repository()
     submodules = require_submodules(repo)
 
     symlinks = list_symlinks(repo_path)
-    candidates = []
-    unused = []
-
-    result: Result[Rows] = Result()
-    result.data = Rows(
-        columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
-        rows=[],
-        metrics={"total": 0, "planned": 0, "success": 0, "failed": 0, "skipped": 0},
-    )
-
-    outer: Result[None] = Result()
 
     with live_progress("Looking for unused submodules..."):
-        # Check for unused submodules
-        for submodule in submodules:
-            log.info(f"Checking {submodule.name}")
+        plan = _build_plan(submodules, repo_path, symlinks)
 
-            if names and submodule.name not in names:
-                continue
+    if names:
+        plan.restrict_to(set(names))
 
-            path = repo_path / Path(submodule.path)
+    sub_map = {s.name: s for s in submodules}
 
-            if _is_used(repo_path, path, symlinks):
-                result.data.rows.append([submodule.name, "skipped"])
-                result.data.metrics["skipped"] += 1
-                continue
+    def apply(action: PlanAction) -> Tuple[str, bool]:
+        sub_map[action.label].remove(force=True)
+        return colorize("removed", "red"), True
 
-            result.data.metrics["planned"] += 1
-            candidates.append(submodule)
-            unused.append(submodule.name)
-
-    if not unused:
-        conclude(True, "Nothing to do, no unused submodules detected.")
-        raise EarlyExit()
-
-    render_panel(f"{len(unused)} submodules are about to be removed", "\n".join(unused))
-
-    if not prompt_confirm("Proceed?", default=True):
-        raise AppAbort()
-
-    for submodule in candidates:
-        name = submodule.name
-        try:
-            submodule.remove(force=True, dry_run=dry_run)
-            row = [name, colorize("removed", "green")]
-            result.data.metrics["success"] += 1
-        except Exception as error:
-            outer.add_error(str(error))
-            row = [name, colorize("failed", "red")]
-            result.data.metrics["failed"] += 1
-
-        result.data.rows.append(row)
-
-    result.data.rows.sort(key=lambda item: item[0])
-    result.data.metrics["total"] = len(result.data.rows)
+    outer: Result[None] = Result()
+    result = run_mutation_workflow(
+        plan=plan,
+        apply=apply,
+        outer=outer,
+        title="Pruned",
+        force=force,
+        select_prompt="Select submodule(s) to prune: ",
+        empty_message="No unused submodules detected.",
+    )
 
     if not no_commit:
-        try:
-            repo.index.commit(commit_messages.submodules_prune, skip_hooks=True)
-        except Exception as error:
-            outer.add_error(str(error))
-
-    if no_commit:
-        outer.add_warning("Don't forget to commit: git commit -m 'chore: remove unused submodules'")
+        outer.merge(
+            commit_v2(repo, repo_path, [], "submodules_prune", skip_hooks=True, already_staged=True)
+        )
+    else:
+        outer.add_warning("Don't forget to commit to share changes with the team.")
 
     render_and_raise(result, outer)
