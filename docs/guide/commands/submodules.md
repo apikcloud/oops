@@ -185,16 +185,28 @@ oops submodules prune
 
 **Examples:**
 
-Preview renames without applying them:
+Interactively select which submodules to rename (shows the plan before applying):
 
 ```bash
-oops submodules rename --dry-run
+oops submodules rename
 ```
 
-Rename all without interactive confirmation:
+Rename all submodules without prompting:
 
 ```bash
-oops submodules rename --no-prompt
+oops submodules rename --force
+```
+
+Rename specific submodules by name:
+
+```bash
+oops submodules rename OCA/server-ux OCA/server-tools
+```
+
+Rename without committing:
+
+```bash
+oops submodules rename --no-commit
 ```
 
 ---
@@ -266,13 +278,19 @@ oops submodules replace OCA/old-repo https://github.com/OCA/new-repo.git 18.0 --
 
 **Examples:**
 
-Preview path rewrites without applying them:
+Interactively select which submodules to rewrite (shows the plan before applying):
 
 ```bash
-oops submodules rewrite --dry-run
+oops submodules rewrite
 ```
 
 Rewrite all paths non-interactively:
+
+```bash
+oops submodules rewrite --force
+```
+
+Rewrite to a custom base directory without prompting:
 
 ```bash
 oops submodules rewrite --base-dir .third-party --force

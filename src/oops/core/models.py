@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
 from enum import Enum
@@ -22,6 +23,9 @@ UTC = timezone.utc
 
 # Semantic versioning pattern: v1.2.3
 SEMVER_PATTERN = re.compile(r"^v(?P<x>0|[1-9]\d*)\.(?P<y>0|[1-9]\d*)\.(?P<z>0|[1-9]\d*)$")
+
+# Kinds that are NOT executed when iterating a plan.
+_INACTIVE_KINDS = frozenset({"nothing to do", "skip", "skipped"})
 
 
 @dataclass
@@ -532,3 +536,72 @@ class SubmoduleInfo:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+@dataclass
+class PlanAction:
+    """A single planned mutation, before execution.
+
+    Attributes:
+        label: Identifier of the target (e.g. the submodule name).
+        new: The new value the action will produce (new name/path), or None.
+        kind: Lifecycle marker — "available", "selected", "skipped",
+            "nothing to do", or any command-specific verb. Drives both
+            filtering (via Plan.actionable) and presentation (via the presenter).
+        detail: Optional secondary string for display (e.g. a new path).
+        data: Free-form payload the `apply` callback needs at execution time.
+    """
+
+    label: str
+    new: "Optional[str]" = None
+    kind: str = "available"
+    detail: str = ""
+    data: dict = field(default_factory=dict)
+
+    @property
+    def active(self) -> bool:
+        return self.kind not in _INACTIVE_KINDS
+
+
+@dataclass
+class Plan:
+    """A set of planned actions, before execution.
+
+    The plan is built as pure data (no colours, no I/O). Selection,
+    restriction and presentation are applied to it afterwards.
+    """
+
+    title: str
+    actions: "list[PlanAction]" = field(default_factory=list)
+
+    def __iter__(self):
+        return iter(self.actions)
+
+    def __len__(self) -> int:
+        return len(self.actions)
+
+    @property
+    def actionable(self) -> "list[PlanAction]":
+        """Actions that will actually be executed."""
+        return [a for a in self.actions if a.active]
+
+    @property
+    def count(self) -> Counter:
+        """Counter of action kinds, for summary metrics."""
+        return Counter(a.kind for a in self.actions)
+
+    def restrict_to(self, names: "set[str]") -> None:
+        """Mark available actions not in `names` as skipped.
+
+        Used for non-interactive narrowing via CLI arguments.
+        """
+        for action in self.actions:
+            if action.kind == "available" and action.label not in names:
+                action.kind = "skipped"
+
+    def apply_selection(self, selected: "set[str]", verb: str = "selected") -> None:
+        """Mark available actions: `verb` if selected, else skipped."""
+        for action in self.actions:
+            if action.kind != "available":
+                continue
+            action.kind = verb if action.label in selected else "skipped"

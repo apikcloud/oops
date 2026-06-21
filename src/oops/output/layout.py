@@ -116,6 +116,17 @@ class MinimalLayout(Layout):
     errors: Optional[List] = field(default_factory=list)
 
 
+@dataclass
+class OnePanelLayout(Layout):
+    title: str
+    table: TableBlock
+
+    # Optional attributes
+    info: Optional[List] = field(default_factory=list)
+    warnings: Optional[List] = field(default_factory=list)
+    errors: Optional[List] = field(default_factory=list)
+
+
 # helpers
 
 

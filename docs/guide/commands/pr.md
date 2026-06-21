@@ -8,6 +8,23 @@
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.pr.manage
+    :command: main
+    :prog_name: oops pr manage
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Interactively promote or demote submodules between pull-request and regular status:
+
+```bash
+oops pr manage
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.pr.show
     :command: main
     :prog_name: oops pr show

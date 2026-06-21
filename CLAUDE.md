@@ -140,13 +140,66 @@ Classification values are always lowercase: `"custom"` | `"oca"` | `"third-party
 
 ### Key Libraries
 
-| Library | Role |
-|---------|------|
-| Click | CLI framework |
-| GitPython | Git repo operations |
-| libcst | AST-preserving manifest rewriting |
-| fixit | Custom lint rules (py≥3.9 only) |
-| tabulate | Terminal tables |
-| Ruff | Linting + formatting (line-length=100, py37 target) |
-| Pyright | Type checking (basic mode, soft-fail) |
-| MkDocs + mkdocs-material + mike | Documentation site with versioning |
+| Library                         | Role                                                |
+| ------------------------------- | --------------------------------------------------- |
+| Click                           | CLI framework                                       |
+| GitPython                       | Git repo operations                                 |
+| libcst                          | AST-preserving manifest rewriting                   |
+| fixit                           | Custom lint rules (py≥3.9 only)                     |
+| tabulate                        | Terminal tables                                     |
+| Ruff                            | Linting + formatting (line-length=100, py37 target) |
+| Pyright                         | Type checking (basic mode, soft-fail)               |
+| MkDocs + mkdocs-material + mike | Documentation site with versioning                  |
+
+
+# oops stats feature
+
+## Context
+You are helping implement a usage-tracking feature for `oops`, a Python CLI tool
+for Odoo operations (https://github.com/apikcloud/oops).
+
+## Feature spec
+
+### Local collection
+- Append one JSON line per command invocation to `~/.local/share/oops/stats.jsonl`
+- Event schema: `{"ts": "<ISO8601 UTC>", "cmd": "<group> <command>", "ms": <int>, "user": "<unix user>", "error": "<str or null>"}`
+- Implemented as a decorator `@track_usage` applied at the auto-discovery layer (not per-command)
+- Capture happens in a `try/except/finally` block — exceptions must still propagate normally
+- `getpass.getuser()` for user, `time.monotonic()` for duration
+
+### Flush mechanism
+- Triggered at CLI startup if last flush was more than 7 days ago (checked via a `~/.local/share/oops/stats_last_flush` timestamp file)
+- Reads all pending lines from `stats.jsonl`, POSTs them as `{"events": [...]}` to the configured endpoint
+- On success: truncate `stats.jsonl`, update `stats_last_flush`
+- On failure: silent, retry next time — never block the CLI
+
+### Config (via `.oops.yaml` / `~/.oops.yaml`, existing dataclass system)
+```yaml
+stats:
+  enabled: false        # opt-in
+  endpoint: "https://odoo.example.com/oops/stats"
+  token: "secret"       # sent as X-Oops-Token header
+```
+
+### HTTP call
+```python
+requests.post(
+    endpoint,
+    json={"events": events},
+    headers={"X-Oops-Token": token},
+    timeout=5,
+)
+```
+
+### Odoo webhook (separate module `oops_stats`)
+- `http.route('/oops/stats', type='json', auth='none', methods=['POST'])`
+- Validate `X-Oops-Token` against an `ir.config_parameter`
+- Store each event in model `oops.usage.event` (fields: `ts`, `cmd`, `duration_ms`, `user`, `error`)
+- Expose a pivot/graph view grouped by `cmd` and `user`
+
+## Constraints
+- Python >= 3.7 compatibility (no walrus operator, no `zoneinfo`)
+- No new required dependencies: use `urllib.request` if `requests` is not already a dependency, otherwise `requests` is fine
+- `stats` must be a new config section — do not pollute existing config fields
+- All code, comments and docstrings in English
+- Conventional Commits for any git changes (`feat(stats): ...`)

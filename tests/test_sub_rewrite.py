@@ -6,8 +6,7 @@ your command rewrites submodule paths to '.third-party/<owner>/<repo>'.
 No network calls; we only check file transformations & git config.
 
 Assumptions:
-- The CLI entry point 'oops-sub-rewrite' accepts '--force' and '--dry-run' flags,
-  and a '--commit/--no-commit' switch (default commit on).
+- The CLI entry point 'oops-sub-rewrite' accepts '--force' and '--no-commit' flags.
 - It uses GitPython under the hood but can operate on the filesystem with
   an existing .git and .gitmodules.
 
@@ -90,10 +89,6 @@ def test_sub_rewrite_rewrites_paths(tmp_path: Path):
         )
 
         _run(["git", "commit", "-q", "-m", "add submodules"], repo_path)
-
-        pr = runner.invoke(main, ["--dry-run", "--force"])
-
-        assert pr.exit_code == 0, pr.output
 
         pr = runner.invoke(main, ["--force"])
         assert pr.exit_code == 0, pr.output

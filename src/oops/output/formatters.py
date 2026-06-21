@@ -7,13 +7,14 @@ import sys
 from oops.core.compat import Dict, Type
 from oops.core.exceptions import get_error_console
 from oops.output.base import OutputFormatter, RenderTarget, SiteFormatter
-from oops.output.layout import MetricsLayout, MinimalLayout, Output, SimpleSummaryLayout, SummaryLayout
+from oops.output.layout import MetricsLayout, MinimalLayout, OnePanelLayout, Output, SimpleSummaryLayout, SummaryLayout
 from oops.output.serializers import to_json_string
 from oops.utils.render import (
     conclude,
     counter_rule,
     error_section,
     get_console,
+    make_panel,
     make_table,
     metrics_grid,
     metrics_panel,
@@ -150,6 +151,22 @@ class SimpleSummaryConsoleFormatter(RichFormatter):
 
         self.console.print()
         conclude(data.conclusion.status, data.conclusion.message)
+
+
+class StepConsoleFormatter(RichFormatter):
+    def render(self, output: "Output[OnePanelLayout]") -> None:
+
+        data = output.unwrap
+
+        self.console.print()
+
+        table = make_table(title=None, columns=data.table.columns, rows=data.table.rows, expand=True)
+
+        # FIXME: provisional design — revisit and decide later.
+        res = make_panel(title=f"Preview / {data.title}", content=table)
+
+        self.console.print(res)
+        self.console.print()
 
 
 class MetricsConsoleFormatter(RichFormatter):

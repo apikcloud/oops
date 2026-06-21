@@ -20,6 +20,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.style import Style
 from rich.table import Table
+from rich.text import Text
 from rich.theme import Theme
 from tabulate import tabulate
 
@@ -491,12 +492,14 @@ def make_choices(items: set[str], preselected: set[str]) -> list[questionary.Cho
     return [questionary.Choice(item, checked=(item in preselected)) for item in sorted(items)]
 
 
-def prompt_choices(message: str, items: set[str], preselected: set[str]):
+def prompt_choices(message: str, items: set[str], preselected: set[str]) -> "Optional[set[str]]":
     """Show an interactive checkbox prompt and return the selected values."""
-    return questionary.checkbox(
+    res = questionary.checkbox(
         message,
         choices=make_choices(items, preselected),
     ).ask()
+
+    return set(str(item) for item in res) if res else None
 
 
 def prompt_select(message: str, choices: list[str]) -> str:
@@ -528,6 +531,15 @@ def render_panel(title: str, content: str):
     """Print a dim-bordered panel with a title to stderr."""
     console = get_error_console()
     console.print(Panel(content, title=title, border_style="dim"))
+
+
+def make_panel(title: str, content: Any, subtitle: Optional[str] = None):
+    """Print a dim-bordered panel with a title to stderr."""
+
+    # FIXME: provisional design — revisit and decide later.
+    message = Text(title, style="bold black on yellow")
+
+    return Panel(content, title=message, subtitle=subtitle, padding=(1, 2), border_style="dim")
 
 
 def render_healder(ctx) -> None:

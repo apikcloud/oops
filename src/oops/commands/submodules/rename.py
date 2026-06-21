@@ -7,69 +7,83 @@
 Rename submodules to match the <ORG>/<REPO> naming convention.
 
 Computes the canonical name from the submodule URL and renames it if it
-differs. Prompts for confirmation on each change unless --no-prompt is passed.
-Specific submodules can be targeted by name.
+differs. Displays a plan and prompts for confirmation before applying unless
+--force is passed. Specific submodules can be targeted by name.
 """
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Tuple
+from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import desired_path, get_symlink_map
-from oops.services.git import commit, is_pull_request, require_repository, require_submodules
+from oops.output.helper import render_and_raise
+from oops.output.workflow import run_mutation_workflow
+from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
+from oops.utils.render import colorize
+
+
+def _build_plan(submodules, mapping) -> Plan:
+    """Build the rename plan as pure data — no prompts, no colours."""
+    actions = []
+    for submodule in submodules:
+        pull_request = is_pull_request(submodule)
+        first_symlink = mapping.get(submodule.path) if pull_request else None
+        new_name = desired_path(submodule.url, pull_request=pull_request, suffix=first_symlink)
+
+        changed = submodule.name != new_name
+        actions.append(
+            PlanAction(
+                label=submodule.name,
+                new=new_name if changed else None,
+                detail="PR" if pull_request else "regular",
+                kind="available" if changed else "nothing to do",
+                data={"pr": pull_request, "new_name": new_name},
+            )
+        )
+    return Plan(title="Planned renames", actions=actions)
 
 
 @command("rename", help=__doc__)
-@click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
-@click.option("--prompt/--no-prompt", is_flag=True, default=True, help="Prompt before renaming")
-@click.option("--pull-request", "--pr", "force_pr", is_flag=True, help="Mark submodules as pull request")
+@click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
 @click.argument("names", nargs=-1, required=False)
-def main(dry_run: bool, no_commit: bool, prompt: bool, force_pr: bool, names: tuple):
-
+def main(no_commit: bool, force: bool, names: Tuple[str, ...]):
     repo, repo_path = require_repository()
-    require_submodules(repo)
-
-    # Assume at most one symlink per submodule
+    submodules = require_submodules(repo)
     mapping = get_symlink_map(repo_path)
-    changed = False
 
-    for submodule in repo.submodules:
-        if names and submodule.name not in names:
-            continue
+    # 1. Build the plan (pure business logic)
+    plan = _build_plan(submodules, mapping)
 
-        pull_request = force_pr or is_pull_request(submodule)
-        first_symlink = mapping.get(submodule.path) if pull_request else None
-        new_name = desired_path(
-            submodule.url,
-            pull_request=pull_request,
-            suffix=first_symlink,
-        )
+    # 2. Narrow by CLI names if provided
+    if names:
+        plan.restrict_to(set(names))
 
-        if submodule.name == new_name:
-            continue
+    # 3. Define how to execute one action (pure business logic)
+    sub_map = {s.name: s for s in submodules}
 
-        click.echo(f"Renaming '{submodule.name}' -> '{new_name}' (PR={pull_request})")
+    def apply(action: PlanAction) -> Tuple[str, bool]:
+        sub = sub_map[action.label]
+        sub.rename(action.data["new_name"])
+        return colorize("renamed", "green"), True
 
-        if prompt:
-            ans = click.prompt(f"Apply change for '{submodule.name}'? [Y/n/e]", default="y")
-            if ans in ("n", "no"):
-                continue
-            elif ans == "e":
-                custom = click.prompt("Enter custom name", default=new_name)
-                if custom:
-                    new_name = custom
+    # 4. Run the shared scenario (select → present → confirm → apply)
+    outer: Result[None] = Result()
+    result = run_mutation_workflow(
+        plan=plan,
+        apply=apply,
+        outer=outer,
+        title="Renames",
+        force=force,
+        select_prompt="Select submodule(s) to rename: ",
+        empty_message="Nothing to rename.",
+    )
 
-        if not dry_run:
-            try:
-                submodule.rename(new_name)
-                changed = True
-            except Exception as err:
-                raise click.UsageError(f"Error renaming submodule '{submodule.name}': {err}") from err
+    # 5. Command-specific side effect: commit
+    if not no_commit:
+        outer.merge(commit_v2(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True))
+    else:
+        outer.add_warning("Don't forget to commit .gitmodules to share changes with the team.")
 
-    if not changed:
-        click.echo("Nothing to rename." if not dry_run else "Dry run complete — no changes applied.")
-        return
-
-    if not dry_run and not no_commit:
-        commit(repo, repo_path, [".gitmodules"], "submodules_rename", skip_hooks=True)
-    elif not dry_run:
-        click.echo("Done. Commit .gitmodules to share changes with the team.")
+    # 6. Final render (after the commit), non-zero exit on errors
+    render_and_raise(result, outer)

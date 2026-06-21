@@ -19,6 +19,9 @@ class CommitMessages:
     )
     requirements_updated: str = "chore: update requirements.txt"
 
+    # PR management
+    pr_manage: str = "chore(pr): rename and rewrite pull request submodules"
+
     # Submodules
     submodules_rewrite: str = "chore(submodules): rewrite submodule paths to new scheme"
     submodules_prune: str = "chore(submodules): remove unused submodules"
