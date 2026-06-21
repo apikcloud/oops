@@ -199,7 +199,7 @@ def list_remote_addons(
     owner: str,
     repo: str,
     branch: str,
-    token: Optional[str] = None,
+    token: str,
 ) -> List[str]:
     """List addon directory paths in a GitHub repository at a specific branch.
 
