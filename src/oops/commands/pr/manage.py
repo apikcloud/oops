@@ -90,13 +90,18 @@ def main():
     plan = _build_plan(submodules, mapping, selected)
 
     # Execution of one action — records moved paths.
+    sub_map = {s.name: s for s in submodules}
     moved: list[Tuple[str, str]] = []
 
     def apply(action: PlanAction) -> Tuple[str, bool]:
-        sub = next(s for s in repo.submodules if s.name == action.label)
+        sub = sub_map[action.label]
         sub.rename(action.data["new_name"])
         if action.data["old_path"] != action.data["new_path"]:
-            sub.move(action.data["new_path"])
+            try:
+                sub.move(action.data["new_path"])
+            except Exception:
+                sub.rename(action.label)  # undo rename to keep .gitmodules consistent
+                raise
             moved.append((action.data["old_path"], action.data["new_path"]))
         return colorize("renamed + moved", "green"), True
 

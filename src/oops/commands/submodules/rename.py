@@ -60,8 +60,10 @@ def main(no_commit: bool, force: bool, names: Tuple[str, ...]):
         plan.restrict_to(set(names))
 
     # 3. Define how to execute one action (pure business logic)
+    sub_map = {s.name: s for s in submodules}
+
     def apply(action: PlanAction) -> Tuple[str, bool]:
-        sub = next(s for s in repo.submodules if s.name == action.label)
+        sub = sub_map[action.label]
         sub.rename(action.data["new_name"])
         return colorize("renamed", "green"), True
 

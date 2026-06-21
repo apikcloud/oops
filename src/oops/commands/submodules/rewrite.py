@@ -74,10 +74,11 @@ def main(base_dir, force: bool, no_commit: bool, names: Tuple[str, ...]):
         plan.restrict_to(set(names))
 
     # 3. Execution of one action — records moved paths as a side effect
+    sub_map = {s.name: s for s in submodules}
     moved: list[Tuple[str, str]] = []
 
     def apply(action: PlanAction) -> Tuple[str, bool]:
-        sub = next(s for s in repo.submodules if s.name == action.label)
+        sub = sub_map[action.label]
         sub.move(action.data["target"])
         moved.append((action.data["old_path"], action.data["target"]))
         return colorize("moved", "green"), True
