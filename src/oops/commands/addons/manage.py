@@ -10,58 +10,39 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Tuple
 from oops.core.exceptions import AppAbort, NotFoundError
+from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import relpath
 from oops.io.manifest import find_addons_extended
-from oops.services.git import commit, list_available_addons, require_repository, require_submodules
-from oops.utils.render import (
-    colorize,
-    conclude,
-    get_console,
-    make_table,
-    prompt_choices,
-    prompt_confirm,
-    rule,
-)
+from oops.output.helper import render_and_raise
+from oops.output.workflow import run_mutation_workflow
+from oops.services.git import commit_v2, list_available_addons, require_repository, require_submodules
+from oops.utils.render import colorize, prompt_choices
 
 
-def _show_summary(added: set, removed: set) -> None:
-    rows = [[colorize("+ link", "green"), name] for name in sorted(added)] + [
-        [colorize("- unlink", "red"), name] for name in sorted(removed)
-    ]
-    columns = [("Action", "dim", "left"), ("Addon", "brand.primary", "left")]
-    rule("Pending changes")
-    get_console().print(make_table(title=None, columns=columns, rows=rows))
-
-
-def _create_symlinks(repo_path: Path, added: set, available: dict) -> list:
-    # TODO: refactor and move to io/file.py
-    from oops.utils.render import print_warning
-
-    created = []
+def _build_plan(added: set, removed: set, available: dict) -> Plan:
+    """Build addon link/unlink plan as pure data — no prompts, no colours."""
+    actions = []
     for name in sorted(added):
-        link = repo_path / name
-        if link.exists() or link.is_symlink():
-            print_warning(f"{name} — already exists, skipping")
-            continue
-        os.symlink(relpath(repo_path, available[name]), link)
-        created.append(name)
-    return created
-
-
-def _remove_symlinks(repo_path: Path, removed: set) -> list:
-    # TODO: refactor and move to io/file.py
-    from oops.utils.render import print_warning
-
-    unlinked = []
+        actions.append(
+            PlanAction(
+                label=name,
+                kind="promote",
+                detail="link",
+                data={"action": "link", "path": str(available[name])},
+            )
+        )
     for name in sorted(removed):
-        link = repo_path / name
-        if not link.is_symlink():
-            print_warning(f"{name} — not a symlink, skipping")
-            continue
-        link.unlink()
-        unlinked.append(name)
-    return unlinked
+        actions.append(
+            PlanAction(
+                label=name,
+                kind="demote",
+                detail="unlink",
+                data={"action": "unlink"},
+            )
+        )
+    return Plan(title="Addon changes", actions=actions)
 
 
 @command("manage", help=__doc__)
@@ -70,7 +51,7 @@ def _remove_symlinks(repo_path: Path, removed: set) -> list:
     is_flag=True,
     help="If set, symlink changes will not be committed.",
 )
-def main(no_commit: bool):
+def main(no_commit: bool) -> None:
 
     repo, repo_path = require_repository()
     require_submodules(repo)
@@ -81,11 +62,12 @@ def main(no_commit: bool):
     if not available:
         raise NotFoundError("No addons found in any submodule.")
 
-    result = prompt_choices("Select addon(s): ", set(available.keys()), existing)
-    if result is None:
+    # Selection: user chooses the desired active-addon state (desired set, not a diff).
+    result_sel = prompt_choices("Select addon(s): ", set(available.keys()), existing)
+    if result_sel is None:
         raise AppAbort()
 
-    selected = set(result)
+    selected = set(result_sel)
     previously_selected = existing & set(available.keys())
 
     added = selected - previously_selected
@@ -95,23 +77,49 @@ def main(no_commit: bool):
         click.echo("Nothing to do.")
         return
 
-    _show_summary(added, removed)
+    # 1. Build the plan (pure business logic)
+    plan = _build_plan(added, removed, available)
 
-    if not prompt_confirm("\nProceed?", default=True):
-        raise AppAbort()
+    # 2. Define how to execute one action; track results for separate commits.
+    created: list[str] = []
+    unlinked: list[str] = []
 
-    created = _create_symlinks(repo_path, added, available)
-    unlinked = _remove_symlinks(repo_path, removed)
+    def apply(action: PlanAction) -> Tuple[str, bool]:
+        link = repo_path / action.label
+        if action.data["action"] == "link":
+            if link.exists() or link.is_symlink():
+                return colorize("skipped (exists)", "yellow"), False
+            os.symlink(relpath(repo_path, Path(action.data["path"])), link)
+            created.append(action.label)
+            return colorize("linked", "green"), True
+        else:
+            if not link.is_symlink():
+                return colorize("skipped (not symlink)", "yellow"), False
+            link.unlink()
+            unlinked.append(action.label)
+            return colorize("unlinked", "yellow"), True
 
-    total = len(created) + len(unlinked)
-    if not total:
-        click.echo("Nothing to do.")
-        return
+    # 3. Run the shared scenario (present → confirm → apply)
+    outer: Result[None] = Result()
+    result = run_mutation_workflow(
+        plan=plan,
+        apply=apply,
+        outer=outer,
+        title="Applied changes",
+        select=False,
+        empty_message="Nothing to do.",
+    )
 
+    # 4. Command-specific side effects: one commit per change type.
     if not no_commit:
         if created:
-            commit(repo, repo_path, created, "addons_new", skip_hooks=True)
+            outer.merge(commit_v2(repo, repo_path, created, "addons_new", skip_hooks=True))
         if unlinked:
-            commit(repo, repo_path, unlinked, "addons_remove", remove=True, skip_hooks=True)
+            outer.merge(
+                commit_v2(repo, repo_path, unlinked, "addons_remove", remove=True, skip_hooks=True)
+            )
+    elif created or unlinked:
+        outer.add_warning("Don't forget to commit the symlink changes.")
 
-    conclude(True, f"{total} change(s) applied.")
+    # 5. Final render (after commits), non-zero exit on errors
+    render_and_raise(result, outer)
