@@ -8,6 +8,29 @@
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.pr.add
+    :command: main
+    :prog_name: oops pr add
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Add a pull request as a submodule from its URL:
+
+```bash
+oops pr add https://github.com/OCA/mail/pull/4
+```
+
+Pick specific addons non-interactively:
+
+```bash
+oops pr add https://github.com/OCA/mail/pull/4 --addons mail_tracking
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.pr.manage
     :command: main
     :prog_name: oops pr manage

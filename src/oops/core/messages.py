@@ -21,6 +21,14 @@ class CommitMessages:
 
     # PR management
     pr_manage: str = "chore(pr): rename and rewrite pull request submodules"
+    pr_add: str = """chore(pr): add pull-request submodule {name}
+
+    - pr: {pr_url}
+    - url: {url}
+    - branch: {branch}
+    - path: {path}
+    - created symlinks: {symlinks}
+    """
 
     # Submodules
     submodules_rewrite: str = "chore(submodules): rewrite submodule paths to new scheme"

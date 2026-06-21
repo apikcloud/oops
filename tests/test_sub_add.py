@@ -75,7 +75,7 @@ def _invoke(tmp_path, args=None, extra_patches=None):
         patches.update(extra_patches)
     with _apply_patches(patches):
         # --force skips interactive prompts; --addons bypasses prompt_choices
-        result = CliRunner().invoke(main, args or [URL, BRANCH, "-f"])
+        result = CliRunner().invoke(main, args or [URL, BRANCH, "-f", "--token", "tok"])
     return result, patches
 
 
@@ -120,7 +120,7 @@ class TestAddonFetch:
         result, patches = _invoke(tmp_path)
         assert result.exit_code == 0, result.output
         patches["oops.commands.submodules.add.list_remote_addons"].assert_called_once_with(
-            "testowner", "myrepo", BRANCH, None
+            "testowner", "myrepo", BRANCH, "tok"
         )
 
     def test_no_addons_found_proceeds_without_symlinks(self, tmp_path):
@@ -139,7 +139,7 @@ class TestAddonFetch:
 
 class TestAddonsOption:
     def test_addons_option_filters_to_requested(self, tmp_path):
-        result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--addons", "my_addon"])
+        result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--addons", "my_addon", "--token", "tok"])
         assert result.exit_code == 0, result.output
         create = patches["oops.commands.submodules.add.create_symlink"]
         called_names = [c.args[0].name for c in create.call_args_list]
@@ -147,7 +147,7 @@ class TestAddonsOption:
         assert "other_addon" not in called_names
 
     def test_unknown_addon_exits_error(self, tmp_path):
-        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--addons", "nonexistent"])
+        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--addons", "nonexistent", "--token", "tok"])
         assert result.exit_code != 0
         assert "not found" in result.output.lower()
 
@@ -172,12 +172,12 @@ class TestForce:
 
 class TestNoCommit:
     def test_no_commit_skips_commit_v2(self, tmp_path):
-        result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--no-commit"])
+        result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--no-commit", "--token", "tok"])
         assert result.exit_code == 0, result.output
         patches["oops.commands.submodules.add.commit_v2"].assert_not_called()
 
     def test_no_commit_prints_warning(self, tmp_path):
-        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--no-commit"])
+        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--no-commit", "--token", "tok"])
         assert result.exit_code == 0, result.output
         assert "commit" in result.output.lower()
 

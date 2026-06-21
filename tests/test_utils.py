@@ -13,7 +13,7 @@ from oops.utils.helpers import (
     removesuffix,
     str_to_list,
 )
-from oops.utils.net import parse_repository_url
+from oops.utils.net import parse_pull_request_url, parse_repository_url
 from oops.utils.render import format_datetime, human_readable, render_table
 from tabulate import tabulate
 
@@ -363,3 +363,90 @@ def test_materialize_symlink_cleanup_on_failure(tmp_path, monkeypatch):
     # original symlink should still be present
     assert link.exists()
     assert link.is_symlink()
+
+
+# ---------------------------------------------------------------------------
+# parse_pull_request_url
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        ("https://github.com/OCA/mail/pull/4", ("OCA", "mail", 4)),
+        ("https://github.com/odoo/odoo/pull/123", ("odoo", "odoo", 123)),
+        ("https://github.com/my-org/my-repo/pull/999", ("my-org", "my-repo", 999)),
+    ],
+)
+def test_parse_pull_request_url_valid(url, expected):
+    assert parse_pull_request_url(url) == expected
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://gitlab.com/OCA/mail/pull/4",          # wrong host
+        "https://github.com/OCA/mail",                 # repo URL only
+        "https://github.com/OCA/mail/tree/main",       # tree URL
+        "https://github.com/OCA/mail/pull/abc",        # non-numeric
+        "https://github.com/OCA",                      # too short
+    ],
+)
+def test_parse_pull_request_url_invalid(url):
+    with pytest.raises(ValueError):
+        parse_pull_request_url(url)
+
+
+# ---------------------------------------------------------------------------
+# PullRequest.from_dict
+# ---------------------------------------------------------------------------
+
+
+_MISSING = object()
+
+
+def _pr_data(head_repo=_MISSING):
+    """Build a minimal GitHub API PR payload."""
+    if head_repo is _MISSING:
+        repo = {
+            "clone_url": "https://github.com/fork-owner/myrepo.git",
+            "name": "myrepo",
+            "owner": {"login": "fork-owner"},
+        }
+    else:
+        repo = head_repo  # None simulates a deleted fork
+    return {
+        "number": 42,
+        "state": "open",
+        "title": "My PR",
+        "html_url": "https://github.com/OCA/myrepo/pull/42",
+        "head": {
+            "label": "fork-owner:my-branch",
+            "ref": "my-branch",
+            "repo": repo,
+        },
+        "base": {
+            "label": "OCA:16.0",
+            "repo": {"full_name": "OCA/myrepo"},
+        },
+    }
+
+
+def test_pull_request_from_dict_head_fields():
+    from oops.core.models import PullRequest
+
+    pr = PullRequest.from_dict("OCA/myrepo", _pr_data())
+    assert pr.head_repo_url == "https://github.com/fork-owner/myrepo.git"
+    assert pr.head_ref == "my-branch"
+    assert pr.head_owner == "fork-owner"
+    assert pr.head_repo == "myrepo"
+
+
+def test_pull_request_from_dict_null_head_repo():
+    from oops.core.models import PullRequest
+
+    pr = PullRequest.from_dict("OCA/myrepo", _pr_data(head_repo=None))
+    assert pr.head_repo_url is None
+    assert pr.head_ref == "my-branch"
+    assert pr.head_owner is None
+    assert pr.head_repo is None

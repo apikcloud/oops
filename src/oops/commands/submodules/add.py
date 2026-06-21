@@ -19,7 +19,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-from git import GitCommandError
+from git import GitCommandError, Repo
 from oops.commands.base import command
 from oops.core.compat import Optional, Tuple
 from oops.core.config import config
@@ -52,20 +52,10 @@ def _build_plan(selected_paths: list[str]) -> Plan:
     )
 
 
-@command(name="add", help=__doc__)
-@click.option("--addons", help="Comma-separated addon names to symlink (skips interactive prompt)")
-@click.option("--no-commit", is_flag=True, help="Stage changes but do not commit")
-@click.option("-f", "--force", is_flag=True, help="Apply without prompting, symlink all addons")
-@click.option("--pull-request", is_flag=True, help="Treat as a pull-request submodule")
-@click.option(
-    "--token",
-    envvar=["GH_TOKEN", "GITHUB_TOKEN"],
-    help="GitHub token for API access (or set GH_TOKEN / GITHUB_TOKEN).",
-    required=True,
-)
-@click.argument("url")
-@click.argument("branch")
-def main(  # noqa: PLR0912, PLR0913
+def add_submodule_flow(  # noqa: PLR0912, PLR0913
+    *,
+    repo: "Repo",
+    repo_path: Path,
     url: str,
     branch: str,
     addons: Optional[str],
@@ -73,9 +63,10 @@ def main(  # noqa: PLR0912, PLR0913
     force: bool,
     pull_request: bool,
     token: str,
+    commit_message_name: str = "submodule_add",
+    extra_commit_kwargs: Optional[dict] = None,
 ) -> None:
-    repo, repo_path = require_repository()
-
+    """Core add-submodule logic shared by `submodules add` and `pr add`."""
     # Validate URL and normalise scheme
     try:
         _, owner, repo_name = parse_repository_url(url)
@@ -155,22 +146,63 @@ def main(  # noqa: PLR0912, PLR0913
 
     if not no_commit:
         linked = result.data.metrics.get("success", 0) if result.data else 0
+        commit_kwargs = {
+            "name": sub_name,
+            "url": url,
+            "branch": branch,
+            "path": sub_path_str,
+            "symlinks": linked,
+        }
+        if extra_commit_kwargs:
+            commit_kwargs.update(extra_commit_kwargs)
         outer.merge(
             commit_v2(
                 repo,
                 repo_path,
                 [],
-                "submodule_add",
-                name=sub_name,
-                url=url,
-                branch=branch,
-                path=sub_path_str,
-                symlinks=linked,
+                commit_message_name,
                 skip_hooks=True,
                 already_staged=True,
+                **commit_kwargs,
             )
         )
     else:
         outer.add_warning("Changes staged but not committed (--no-commit).")
 
     render_and_raise(result, outer)
+
+
+@command(name="add", help=__doc__)
+@click.option("--addons", help="Comma-separated addon names to symlink (skips interactive prompt)")
+@click.option("--no-commit", is_flag=True, help="Stage changes but do not commit")
+@click.option("-f", "--force", is_flag=True, help="Apply without prompting, symlink all addons")
+@click.option("--pull-request", is_flag=True, help="Treat as a pull-request submodule")
+@click.option(
+    "--token",
+    envvar=["GH_TOKEN", "GITHUB_TOKEN"],
+    help="GitHub token for API access (or set GH_TOKEN / GITHUB_TOKEN).",
+    required=True,
+)
+@click.argument("url")
+@click.argument("branch")
+def main(
+    url: str,
+    branch: str,
+    addons: Optional[str],
+    no_commit: bool,
+    force: bool,
+    pull_request: bool,
+    token: str,
+) -> None:
+    repo, repo_path = require_repository()
+    add_submodule_flow(
+        repo=repo,
+        repo_path=repo_path,
+        url=url,
+        branch=branch,
+        addons=addons,
+        no_commit=no_commit,
+        force=force,
+        pull_request=pull_request,
+        token=token,
+    )

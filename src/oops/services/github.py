@@ -237,6 +237,17 @@ def list_remote_addons(
     return sorted(addon_dirs)
 
 
+def get_pull_request(owner: str, repo: str, number: int, token: str) -> PullRequest:
+    """Fetch a single pull request by number.
+
+    Returns a PullRequest whose head_repo_url / head_ref identify the PR's head
+    (fork) branch, so the caller can add it as a submodule.
+    """
+    url = _get_api_url(owner, repo, f"pulls/{number}")
+    data = make_json_get(url, headers=_get_headers(token))
+    return PullRequest.from_dict(data["base"]["repo"]["full_name"], data)
+
+
 def find_pull_requests(owner: str, repo: str, branch: str, token: str) -> "Optional[List[PullRequest]]":
     session = requests.Session()
     session.headers.update(
