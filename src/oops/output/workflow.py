@@ -105,8 +105,6 @@ def run_mutation_workflow(
             metrics={"total": len(plan.actionable), "success": 0, "failed": 0},
         )
     )
-    assert result.data is not None
-
     for action in plan.actionable:
         try:
             status, ok = apply(action)

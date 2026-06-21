@@ -61,7 +61,6 @@ def _build_plan(submodules, mapping, marked_as_pr: set[str]) -> Plan:
                 detail=str(new_path),
                 kind="promote" if should_be_pr else "demote",
                 data={
-                    "new_name": new_name,
                     "old_path": str(submodule.path),
                     "new_path": str(new_path),
                     "as_pr": should_be_pr,
@@ -95,7 +94,7 @@ def main():
 
     def apply(action: PlanAction) -> Tuple[str, bool]:
         sub = sub_map[action.label]
-        sub.rename(action.data["new_name"])
+        sub.rename(action.new)
         if action.data["old_path"] != action.data["new_path"]:
             try:
                 sub.move(action.data["new_path"])
