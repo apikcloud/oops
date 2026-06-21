@@ -56,7 +56,7 @@ def main(no_commit: bool, force: bool, branch: "str | None", files: tuple) -> No
 
     remote_url = config.sync.remote_url
     resolved_branch = branch or config.sync.branch
-    resolved_files: list[str] = list(files) if files else config.sync.files
+    resolved_files: list[str] = list(files) if files else list(config.sync.files)
 
     if not remote_url:
         raise ConfigError("sync.remote_url is not configured. Set it in ~/.oops.yaml or .oops.yaml.")
