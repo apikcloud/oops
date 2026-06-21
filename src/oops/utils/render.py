@@ -20,6 +20,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.style import Style
 from rich.table import Table
+from rich.text import Text
 from rich.theme import Theme
 from tabulate import tabulate
 
@@ -530,6 +531,15 @@ def render_panel(title: str, content: str):
     """Print a dim-bordered panel with a title to stderr."""
     console = get_error_console()
     console.print(Panel(content, title=title, border_style="dim"))
+
+
+def make_panel(title: str, content: Any, subtitle: Optional[str] = None):
+    """Print a dim-bordered panel with a title to stderr."""
+
+    # FIXME: provisional design — revisit and decide later.
+    message = Text(title, style="bold black on yellow")
+
+    return Panel(content, title=message, subtitle=subtitle, padding=(1, 2), border_style="dim")
 
 
 def render_healder(ctx) -> None:

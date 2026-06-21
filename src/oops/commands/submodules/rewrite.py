@@ -13,27 +13,43 @@ the old path. Prompts for confirmation unless --force is used.
 
 from __future__ import annotations
 
-import os
 import shutil
-from collections import Counter
-from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.compat import Tuple
 from oops.core.config import config
-from oops.core.exceptions import AppAbort, EarlyExit
-from oops.core.logger import live_progress
-from oops.core.models import Result, Rows
-from oops.io.file import desired_path, get_symlink_map, rewrite_symlink
-from oops.output.helper import render_and_raise, render_plan
+from oops.core.models import Plan, PlanAction, Result
+from oops.io.file import desired_path, get_symlink_map, rewrite_symlinks
+from oops.output.helper import render_and_raise
+from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
-from oops.utils.render import colorize, colorize_from, conclude, prompt_choices, prompt_confirm
+from oops.utils.render import colorize
 
-COLORS = {
-    "skipped": "yellow",
-    "rewrite": "green",
-    "nothing to do": "gray50",
-}
+
+def _build_plan(submodules, mapping, base_dir) -> Plan:
+    """Build the rewrite plan as pure data — no prompts, no colours."""
+    actions = []
+    for submodule in submodules:
+        if not submodule.url or submodule.path not in mapping:
+            actions.append(PlanAction(label=submodule.name, detail=str(submodule.path), kind="skipped"))
+            continue
+
+        pull_request = is_pull_request(submodule)
+        first_symlink = mapping[submodule.path] if pull_request else None
+        target = desired_path(submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink)
+
+        changed = str(submodule.path) != str(target)
+        actions.append(
+            PlanAction(
+                label=submodule.name,
+                new=str(target) if changed else None,
+                detail=str(submodule.path),
+                kind="available" if changed else "nothing to do",
+                data={"old_path": str(submodule.path), "target": str(target)},
+            )
+        )
+    return Plan(title="Planned rewrites", actions=actions)
 
 
 @command(name="rewrite", help=__doc__)
@@ -45,116 +61,53 @@ COLORS = {
 @click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
 @click.option("--no-commit", is_flag=True, help="Do not commit automatically at the end")
 @click.argument("names", nargs=-1, required=False)
-def main(base_dir, force, no_commit, names):  # noqa: C901, PLR0912
+def main(base_dir, force: bool, no_commit: bool, names: Tuple[str, ...]):
     repo, repo_path = require_repository()
     submodules = require_submodules(repo)
     mapping = get_symlink_map(repo_path)
 
-    # Build plan for ALL submodules with status
-    plan = []
-    for submodule in submodules:
-        if not submodule.url or submodule.path not in mapping:
-            plan.append([submodule.name, str(submodule.path), "", "skipped"])
-            continue
-        pull_request = is_pull_request(submodule)
-        first_symlink = mapping[submodule.path] if pull_request else None
-        target = desired_path(submodule.url, prefix=base_dir, pull_request=pull_request, suffix=first_symlink)
-        if str(submodule.path) != str(target):
-            plan.append([submodule.name, str(submodule.path), str(target), "available"])
-        else:
-            plan.append([submodule.name, str(submodule.path), "", "nothing to do"])
+    # 1. Build the plan
+    plan = _build_plan(submodules, mapping, base_dir)
 
-    available = {item[0] for item in plan if item[-1] == "available"}
-
-    # If a list of names has been provided, restrict selection to that list
+    # 2. Narrow by CLI names
     if names:
-        available = available.intersection(set(names))
+        plan.restrict_to(set(names))
 
-    if not available:
-        conclude(True, "No submodule needs rewriting.")
-        raise EarlyExit()
+    # 3. Execution of one action — records moved paths as a side effect
+    moved: list[Tuple[str, str]] = []
 
-    # Selection. --force selects all non-interactively.
-    if not force:
-        selected = prompt_choices("Select submodule(s) to rewrite: ", available, available)
-        if not selected:
-            raise AppAbort()
-    else:
-        selected = available
+    def apply(action: PlanAction) -> Tuple[str, bool]:
+        sub = next(s for s in repo.submodules if s.name == action.label)
+        sub.move(action.data["target"])
+        moved.append((action.data["old_path"], action.data["target"]))
+        return colorize("moved", "green"), True
 
-    # Update plan with user's choices
-    for item in plan:
-        if item[0] in selected:
-            item[-1] = "rewrite"
-        elif item[-1] == "available":
-            item[-1] = "skipped"
-
-    counter = Counter(item[-1] for item in plan)
-
-    if not counter["rewrite"]:
-        conclude(True, "Nothing accepted.")
-        raise EarlyExit()
-
-    render_plan(
-        "Planned rewrites",
-        [("Name", "brand.primary", "left"), ("From", "dim", "left"), ("To", "dim", "left"), ("Action", "dim", "left")],
-        [[name, frm, to, colorize_from(action, COLORS)] for name, frm, to, action in plan],
-        counter,
-    )
-
-    if not force and not prompt_confirm("Proceed?", default=True):
-        raise AppAbort()
-
-    result: Result[Rows] = Result()
-    result.data = Rows(
-        title="Rewrites",
-        columns=[("Name", "brand.primary", "left"), ("Status", "dim", "center")],
-        rows=[],
-        metrics={"total": len(plan), "success": 0, "failed": 0, "skipped": 0},
-    )
+    # 4. Run the shared scenario
     outer: Result[None] = Result()
+    result = run_mutation_workflow(
+        plan=plan,
+        apply=apply,
+        outer=outer,
+        title="Rewrites",
+        force=force,
+        select_prompt="Select submodule(s) to rewrite: ",
+        empty_message="No submodule needs rewriting.",
+    )
 
-    # Execution: move submodules and record which paths moved.
-    moved = []
-    for name, old_path, target, action in plan:
-        if action != "rewrite":
-            continue
-        sub = next(s for s in repo.submodules if s.name == name)
-        try:
-            sub.move(target)
-            moved.append((old_path, target))
-            result.data.rows.append([name, colorize("moved", "green")])
-            result.data.metrics["success"] += 1
-        except Exception as err:
-            outer.add_error(f"{name}: {err}")
-            result.data.rows.append([name, colorize("failed", "red")])
-            result.data.metrics["failed"] += 1
-
-    # Rewrite symlinks that referenced moved paths.
-    rewrites = 0
-    with live_progress("Rewriting symlinks..."):
-        for root, dirs, files in os.walk(repo.working_dir):
-            if ".git" in dirs:
-                dirs.remove(".git")
-            for fname in dirs + files:
-                p = Path(root) / fname
-                if p.is_symlink():
-                    for oldp, newp in moved:
-                        if rewrite_symlink(p, oldp, newp):
-                            rewrites += 1
-                            repo.index.add([str(p)])
-                            break
+    # 5. Command-specific side effects: rewrite symlinks + clean old base dir
+    rewrites = rewrite_symlinks(repo, moved)
     outer.add_message(f"Symlinks rewritten: {rewrites}")
 
-    # Remove old base dir if it still exists.
     if config.submodules.old_paths[0].exists():
         shutil.rmtree(config.submodules.old_paths[0])
         repo.index.remove([str(config.submodules.old_paths[0])], r=True, f=True)
         outer.add_message(f"Removed old submodule base dir: {config.submodules.old_paths[0]}")
 
+    # 6. Commit
     if not no_commit and repo.index.diff(repo.head.commit):
         outer.merge(commit_v2(repo, repo_path, [], "submodules_rewrite", skip_hooks=True, already_staged=True))
     elif no_commit:
         outer.add_warning("Changes staged but not committed (--no-commit).")
 
+    # 7. Final render
     render_and_raise(result, outer)

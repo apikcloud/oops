@@ -27,7 +27,7 @@ from typing import NamedTuple
 
 import click
 from git.repo import Repo
-from oops.core.compat import List, Optional, Union
+from oops.core.compat import List, Optional, Tuple, Union
 from oops.core.config import config
 from oops.core.exceptions import ConfigError, OopsError
 from oops.core.logger import log
@@ -613,6 +613,25 @@ def rewrite_symlink(link: Path, old_prefix: str, new_prefix: str) -> bool:
     return False
 
 
+def rewrite_symlinks(repo, moved: list[Tuple[str, str]]) -> int:
+    """Rewrite every symlink that referenced a moved path. Returns count."""
+    rewrites = 0
+
+    for root, dirs, files in os.walk(repo.working_dir):
+        if ".git" in dirs:
+            dirs.remove(".git")
+        for fname in dirs + files:
+            p = Path(root) / fname
+            if not p.is_symlink():
+                continue
+            for oldp, newp in moved:
+                if rewrite_symlink(p, oldp, newp):
+                    rewrites += 1
+                    repo.index.add([str(p)])
+                    break
+    return rewrites
+
+
 def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
     """Replace a symlink pointing to a directory with a physical copy of its target.
 
@@ -890,9 +909,7 @@ def detect_readme(module_path: Path) -> dict:
     if readme_dir.is_dir():
         fragments = [f for f in _OCA_README_FRAGMENTS if (readme_dir / f).is_file()]
         if fragments:
-            content = "\n\n".join(
-                (readme_dir / f).read_text(encoding="utf-8", errors="replace") for f in fragments
-            )
+            content = "\n\n".join((readme_dir / f).read_text(encoding="utf-8", errors="replace") for f in fragments)
             return {
                 "present": True,
                 "format": "rst",
