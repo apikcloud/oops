@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
@@ -17,6 +16,8 @@ BRANCH = "16.0"
 SUB_PATH_STR = ".third-party/testowner/myrepo"
 SUB_NAME = "testowner/myrepo"
 
+REMOTE_ADDONS = ["my_addon", "other_addon"]
+
 
 def _make_config(force_scheme=None, current_path=".third-party"):
     cfg = MagicMock()
@@ -26,31 +27,26 @@ def _make_config(force_scheme=None, current_path=".third-party"):
 
 
 def _make_repo():
-    return MagicMock()
+    repo = MagicMock()
+    repo.index.diff.return_value = [MagicMock()]
+    repo.index.commit.return_value = MagicMock(hexsha="ab" * 8)
+    return repo
 
 
 def _base_patches(tmp_path, mock_repo=None):
     """Return a dict of patches that make the happy path work."""
     if mock_repo is None:
         mock_repo = _make_repo()
-    mock_repo.index.diff.return_value = [MagicMock()]
-    mock_repo.index.commit.return_value = MagicMock(hexsha="ab" * 8)
     return {
         "oops.commands.submodules.add.config": _make_config(),
         "oops.commands.submodules.add.require_repository": MagicMock(return_value=(mock_repo, tmp_path)),
         "oops.commands.submodules.add.read_gitmodules": MagicMock(return_value=MagicMock()),
-        "oops.commands.submodules.add.commit": MagicMock(),
+        "oops.commands.submodules.add.list_remote_addons": MagicMock(return_value=REMOTE_ADDONS),
+        "oops.commands.submodules.add.commit_v2": MagicMock(
+            return_value=MagicMock(messages=[], warnings=[], errors=[])
+        ),
+        "oops.commands.submodules.add.create_symlink": MagicMock(return_value=None),
     }
-
-
-def _invoke(tmp_path, args=None, extra_patches=None):
-    """Invoke `oops submodules add` with standard mocks; return (result, patches)."""
-    patches = _base_patches(tmp_path)
-    if extra_patches:
-        patches.update(extra_patches)
-    with _apply_patches(patches):
-        result = CliRunner().invoke(main, args or [URL, BRANCH, "-y"])
-    return result, patches
 
 
 class _apply_patches:
@@ -62,36 +58,25 @@ class _apply_patches:
 
     def __enter__(self):
         for target, mock in self._patches.items():
-            if isinstance(mock, MagicMock):
-                p = patch(target, mock)
-            else:
-                p = patch(target, mock)
+            p = patch(target, mock)
             p.start()
             self._patcher_stack.append(p)
         return self
 
-    def __exit__(self, *_args):
+    def __exit__(self, *_):
         for p in reversed(self._patcher_stack):
             p.stop()
 
 
-# ---------------------------------------------------------------------------
-# Dry run
-# ---------------------------------------------------------------------------
-
-
-class TestDryRun:
-    def test_dry_run_exits_cleanly(self, tmp_path):
-        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-y", "--dry-run"])
-        assert result.exit_code == 0
-
-    def test_dry_run_prints_warning(self, tmp_path):
-        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-y", "--dry-run"])
-        assert "dry run" in result.output.lower()
-
-    def test_dry_run_does_not_commit(self, tmp_path):
-        _, patches = _invoke(tmp_path, args=[URL, BRANCH, "-y", "--dry-run"])
-        patches["oops.commands.submodules.add.commit"].assert_not_called()
+def _invoke(tmp_path, args=None, extra_patches=None):
+    """Invoke `oops submodules add` with standard mocks; return (result, patches)."""
+    patches = _base_patches(tmp_path)
+    if extra_patches:
+        patches.update(extra_patches)
+    with _apply_patches(patches):
+        # --force skips interactive prompts; --addons bypasses prompt_choices
+        result = CliRunner().invoke(main, args or [URL, BRANCH, "-f"])
+    return result, patches
 
 
 # ---------------------------------------------------------------------------
@@ -126,45 +111,58 @@ class TestGuards:
 
 
 # ---------------------------------------------------------------------------
-# Staging — regression tests for the fix
+# Addon list fetching
 # ---------------------------------------------------------------------------
 
 
-class TestStaging:
-    def test_submodule_dir_not_in_staged_files(self, tmp_path):
-        """Regression: the submodule directory must not be explicitly staged.
-
-        git submodule add already stages it; double-staging with an absolute path
-        that commit() would re-resolve caused path errors before the fix.
-        """
+class TestAddonFetch:
+    def test_list_remote_addons_called_with_correct_args(self, tmp_path):
         result, patches = _invoke(tmp_path)
         assert result.exit_code == 0, result.output
-        commit_mock = patches["oops.commands.submodules.add.commit"]
-        commit_mock.assert_called_once()
-        staged = commit_mock.call_args[0][2]  # third positional arg: files list
-        assert not any(SUB_PATH_STR in p for p in staged)
+        patches["oops.commands.submodules.add.list_remote_addons"].assert_called_once_with(
+            "testowner", "myrepo", BRANCH, None
+        )
 
-    def test_gitmodules_is_staged(self, tmp_path):
-        result, patches = _invoke(tmp_path)
+    def test_no_addons_found_proceeds_without_symlinks(self, tmp_path):
+        result, patches = _invoke(
+            tmp_path,
+            extra_patches={"oops.commands.submodules.add.list_remote_addons": MagicMock(return_value=[])},
+        )
         assert result.exit_code == 0, result.output
-        commit_mock = patches["oops.commands.submodules.add.commit"]
-        staged = commit_mock.call_args[0][2]
-        assert any(".gitmodules" in p for p in staged)
+        patches["oops.commands.submodules.add.create_symlink"].assert_not_called()
 
-    def test_staged_paths_are_absolute(self, tmp_path):
-        """Regression: all paths passed to commit() must be absolute."""
-        result, patches = _invoke(tmp_path)
-        assert result.exit_code == 0, result.output
-        commit_mock = patches["oops.commands.submodules.add.commit"]
-        staged = commit_mock.call_args[0][2]
-        assert all(Path(p).is_absolute() for p in staged), f"Non-absolute path in {staged}"
 
-    def test_commit_called_with_submodule_add_message(self, tmp_path):
-        result, patches = _invoke(tmp_path)
+# ---------------------------------------------------------------------------
+# --addons option
+# ---------------------------------------------------------------------------
+
+
+class TestAddonsOption:
+    def test_addons_option_filters_to_requested(self, tmp_path):
+        result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--addons", "my_addon"])
         assert result.exit_code == 0, result.output
-        commit_mock = patches["oops.commands.submodules.add.commit"]
-        message_name = commit_mock.call_args[0][3]
-        assert message_name == "submodule_add"
+        create = patches["oops.commands.submodules.add.create_symlink"]
+        called_names = [c.args[0].name for c in create.call_args_list]
+        assert "my_addon" in called_names
+        assert "other_addon" not in called_names
+
+    def test_unknown_addon_exits_error(self, tmp_path):
+        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--addons", "nonexistent"])
+        assert result.exit_code != 0
+        assert "not found" in result.output.lower()
+
+
+# ---------------------------------------------------------------------------
+# --force selects all addons
+# ---------------------------------------------------------------------------
+
+
+class TestForce:
+    def test_force_symlinks_all_addons(self, tmp_path):
+        result, patches = _invoke(tmp_path)  # _invoke uses -f by default
+        assert result.exit_code == 0, result.output
+        create = patches["oops.commands.submodules.add.create_symlink"]
+        assert create.call_count == len(REMOTE_ADDONS)
 
 
 # ---------------------------------------------------------------------------
@@ -173,56 +171,34 @@ class TestStaging:
 
 
 class TestNoCommit:
-    def test_no_commit_skips_commit_call(self, tmp_path):
-        result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-y", "--no-commit"])
+    def test_no_commit_skips_commit_v2(self, tmp_path):
+        result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--no-commit"])
         assert result.exit_code == 0, result.output
-        patches["oops.commands.submodules.add.commit"].assert_not_called()
+        patches["oops.commands.submodules.add.commit_v2"].assert_not_called()
 
-    def test_no_commit_stages_via_index_add(self, tmp_path):
-        mock_repo = _make_repo()
-        patches = _base_patches(tmp_path, mock_repo=mock_repo)
-        with _apply_patches(patches):
-            result = CliRunner().invoke(main, [URL, BRANCH, "-y", "--no-commit"])
+    def test_no_commit_prints_warning(self, tmp_path):
+        result, _ = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--no-commit"])
         assert result.exit_code == 0, result.output
-        mock_repo.index.add.assert_called_once()
-
-    def test_no_commit_index_add_uses_absolute_paths(self, tmp_path):
-        mock_repo = _make_repo()
-        patches = _base_patches(tmp_path, mock_repo=mock_repo)
-        with _apply_patches(patches):
-            result = CliRunner().invoke(main, [URL, BRANCH, "-y", "--no-commit"])
-        assert result.exit_code == 0, result.output
-        staged = mock_repo.index.add.call_args[0][0]
-        assert all(Path(p).is_absolute() for p in staged), f"Non-absolute path in {staged}"
+        assert "commit" in result.output.lower()
 
 
 # ---------------------------------------------------------------------------
-# Symlinks
+# Commit args
 # ---------------------------------------------------------------------------
 
 
-class TestSymlinks:
-    def test_symlink_paths_staged_alongside_gitmodules(self, tmp_path):
-        mock_repo = _make_repo()
-        mock_repo.index.diff.return_value = [MagicMock()]
-        mock_repo.index.commit.return_value = MagicMock(hexsha="ab" * 8)
-        commit_mock = MagicMock()
-        patches = {
-            "oops.commands.submodules.add.config": _make_config(),
-            "oops.commands.submodules.add.require_repository": MagicMock(
-                return_value=(mock_repo, tmp_path)
-            ),
-            "oops.commands.submodules.add.read_gitmodules": MagicMock(return_value=MagicMock()),
-            "oops.commands.submodules.add.commit": commit_mock,
-            "oops.commands.submodules.add.find_addon_dirs": MagicMock(
-                return_value=[tmp_path / SUB_PATH_STR / "my_addon"]
-            ),
-            "oops.commands.submodules.add.create_symlink": MagicMock(return_value="my_addon"),
-        }
-        with _apply_patches(patches):
-            result = CliRunner().invoke(main, [URL, BRANCH, "-y", "--auto-symlinks"])
-
+class TestCommit:
+    def test_commit_v2_called_with_submodule_add_message(self, tmp_path):
+        result, patches = _invoke(tmp_path)
         assert result.exit_code == 0, result.output
-        staged = commit_mock.call_args[0][2]
-        assert any("my_addon" in p for p in staged)
-        assert any(".gitmodules" in p for p in staged)
+        commit_mock = patches["oops.commands.submodules.add.commit_v2"]
+        commit_mock.assert_called_once()
+        message_name = commit_mock.call_args[0][3]
+        assert message_name == "submodule_add"
+
+    def test_commit_v2_called_with_already_staged(self, tmp_path):
+        result, patches = _invoke(tmp_path)
+        assert result.exit_code == 0, result.output
+        commit_mock = patches["oops.commands.submodules.add.commit_v2"]
+        kwargs = commit_mock.call_args[1]
+        assert kwargs.get("already_staged") is True

@@ -195,6 +195,48 @@ def _find_prs_from_fork_branch(
     return upstream, r.json()
 
 
+def list_remote_addons(
+    owner: str,
+    repo: str,
+    branch: str,
+    token: Optional[str] = None,
+) -> List[str]:
+    """List addon directory paths in a GitHub repository at a specific branch.
+
+    Uses the Git Trees API (recursive=1) to find every directory that contains
+    a ``__manifest__.py`` or ``__openerp__.py`` file, without cloning the repo.
+
+    Args:
+        owner: Repository owner (user or organisation).
+        repo: Repository name.
+        branch: Branch (or commit SHA) to query.
+        token: GitHub personal access token. Defaults to None (public repos only).
+
+    Returns:
+        Sorted list of relative directory paths (e.g. ``["sale", "account_ext"]``).
+    """
+    headers = _get_headers(token)
+    url = _get_api_url(owner, repo, f"git/trees/{branch}?recursive=1")
+    data = make_json_get(url, headers=headers)
+
+    if data.get("truncated"):
+        log.warning("Repository tree was truncated by the API; some addons may be missing.")
+
+    addon_dirs: set[str] = set()
+    for item in data.get("tree", []):
+        if item.get("type") != "blob":
+            continue
+        path: str = item["path"]
+        filename = path.rsplit("/", 1)[-1]
+        if filename not in ("__manifest__.py", "__openerp__.py"):
+            continue
+        parent = path.rsplit("/", 1)[0] if "/" in path else ""
+        if parent:
+            addon_dirs.add(parent)
+
+    return sorted(addon_dirs)
+
+
 def find_pull_requests(owner: str, repo: str, branch: str, token: str) -> "Optional[List[PullRequest]]":
     session = requests.Session()
     session.headers.update(
