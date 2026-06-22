@@ -9,6 +9,17 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.23.0] - 2026-06-22
+
+Unified mutation workflow and new pull request management command.
+
+### ✨ What's new
+
+- **`oops pr manage`**: manage pull requests directly from the CLI — approve, merge, or close PRs without leaving your terminal
+- **Consistent mutation workflow**: all commands that modify your repository now follow the same mutator+commit pattern — predictable, auditable, no surprises
+
+---
+
 ## [0.22.0] - 2026-06-19
 
 New pull request viewer and submodule name validation.

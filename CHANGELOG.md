@@ -10,6 +10,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-06-22
+
+### Added
+
+- `oops pr manage`: new command to manage pull requests (approve, merge, close)
+- Shared mutation workflow: all mutator commands now follow a unified mutator+commit pattern
+
+### Changed
+
+- All mutator commands ported to the mutator+commit workflow for consistent staging and commit behaviour
+
 ## [0.22.0] - 2026-06-19
 
 ### Added
