@@ -77,7 +77,7 @@ def main(include: Optional[str], exclude: Optional[str], no_commit: bool, force:
 
     def apply(action: PlanAction) -> Tuple[str, bool]:
         materialize_symlink(Path(action.data["path"]), dry_run=False)
-        materialized.append(action.data["path"])
+        materialized.append(action.label)
         return colorize("materialized", "green"), True
 
     # 3. Run the shared scenario (select → present → confirm → apply)
@@ -100,7 +100,7 @@ def main(include: Optional[str], exclude: Optional[str], no_commit: bool, force:
                 repo_path,
                 materialized,
                 "addons_materialize",
-                names=human_readable([Path(p).name for p in materialized], sep="\n"),
+                names=human_readable(materialized, sep="\n"),
                 remove_and_add=True,
             )
         )
