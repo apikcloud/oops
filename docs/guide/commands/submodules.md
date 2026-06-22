@@ -16,22 +16,34 @@
 
 **Examples:**
 
-Add a submodule and create symlinks for all its addons automatically:
+Add a submodule and interactively pick which addons to symlink:
 
 ```bash
-oops submodules add https://github.com/OCA/server-ux.git 18.0 --auto-symlinks
+oops submodules add https://github.com/OCA/server-ux.git 18.0
 ```
 
-Add a submodule and symlink only specific addons:
+Add a submodule and symlink only specific addons (non-interactive):
 
 ```bash
 oops submodules add https://github.com/OCA/server-ux.git 18.0 --addons mass_editing,web_notify
 ```
 
-Preview planned actions without touching the repository:
+Add and symlink all addons without prompting:
 
 ```bash
-oops submodules add https://github.com/OCA/server-ux.git 18.0 --dry-run
+oops submodules add https://github.com/OCA/server-ux.git 18.0 --force
+```
+
+Add as a pull-request submodule:
+
+```bash
+oops submodules add https://github.com/OCA/server-ux.git 18.0 --pull-request
+```
+
+Stage changes without committing:
+
+```bash
+oops submodules add https://github.com/OCA/server-ux.git 18.0 --no-commit
 ```
 
 ---
@@ -45,16 +57,34 @@ oops submodules add https://github.com/OCA/server-ux.git 18.0 --dry-run
 
 **Examples:**
 
-Set a default branch for all submodules missing one:
+Set a default branch for all submodules missing one (branch auto-detected from odoo_version.txt):
 
 ```bash
-oops submodules branch --branch 18.0
+oops submodules branch
 ```
 
-Skip pull-request submodules during the fix:
+Set a specific branch explicitly:
 
 ```bash
-oops submodules branch --branch 18.0 --skip-pr
+oops submodules branch 18.0
+```
+
+Skip pull-request submodules:
+
+```bash
+oops submodules branch 18.0 --skip-pr
+```
+
+Apply without confirmation prompt:
+
+```bash
+oops submodules branch 18.0 --force
+```
+
+Set branch without committing:
+
+```bash
+oops submodules branch 18.0 --no-commit
 ```
 
 ---
@@ -162,16 +192,22 @@ oops submodules init --jobs 8
 
 **Examples:**
 
-Preview which submodules would be removed:
-
-```bash
-oops submodules prune --dry-run
-```
-
-Remove unused submodules and commit:
+Remove unused submodules (interactive confirmation):
 
 ```bash
 oops submodules prune
+```
+
+Apply without confirmation prompt:
+
+```bash
+oops submodules prune --force
+```
+
+Remove without committing:
+
+```bash
+oops submodules prune --no-commit
 ```
 
 ---
@@ -232,10 +268,10 @@ Remove a specific submodule by name:
 oops submodules remove OCA/server-ux
 ```
 
-Preview what would be removed without making changes:
+Apply without confirmation prompt:
 
 ```bash
-oops submodules remove --dry-run
+oops submodules remove OCA/server-ux --force
 ```
 
 Remove without committing:
@@ -255,16 +291,22 @@ oops submodules remove OCA/server-ux --no-commit
 
 **Examples:**
 
-Replace a submodule with a new repository:
+Replace a submodule with a new repository (interactive confirmation):
 
 ```bash
 oops submodules replace OCA/old-repo https://github.com/OCA/new-repo.git 18.0
 ```
 
-Preview the replacement without making changes:
+Apply without confirmation prompt:
 
 ```bash
-oops submodules replace OCA/old-repo https://github.com/OCA/new-repo.git 18.0 --dry-run
+oops submodules replace OCA/old-repo https://github.com/OCA/new-repo.git 18.0 --force
+```
+
+Replace without committing:
+
+```bash
+oops submodules replace OCA/old-repo https://github.com/OCA/new-repo.git 18.0 --no-commit
 ```
 
 ---
@@ -342,8 +384,26 @@ Update a single submodule by name:
 oops submodules update apikcloud/apik-addons
 ```
 
+Apply without confirmation prompt:
+
+```bash
+oops submodules update --force
+```
+
 Skip pull-request submodules:
 
 ```bash
 oops submodules update --skip-pr
+```
+
+Update only pull-request submodules:
+
+```bash
+oops submodules update --only-pr
+```
+
+Update without committing:
+
+```bash
+oops submodules update --no-commit
 ```

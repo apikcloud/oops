@@ -308,16 +308,16 @@ oops addons manage --no-commit
 
 **Examples:**
 
-Preview all symlinks that would be materialized:
-
-```bash
-oops addons materialize --dry-run
-```
-
-Materialize all symlinks at the repository root:
+Materialize all symlinks at the repository root (interactive confirmation):
 
 ```bash
 oops addons materialize
+```
+
+Apply without confirmation prompt:
+
+```bash
+oops addons materialize --force
 ```
 
 Materialize only specific addons:

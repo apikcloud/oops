@@ -28,6 +28,18 @@ Pick specific addons non-interactively:
 oops pr add https://github.com/OCA/mail/pull/4 --addons mail_tracking
 ```
 
+Apply without confirmation prompt (symlink all addons):
+
+```bash
+oops pr add https://github.com/OCA/mail/pull/4 --force
+```
+
+Stage changes without committing:
+
+```bash
+oops pr add https://github.com/OCA/mail/pull/4 --no-commit
+```
+
 ---
 
 ::: mkdocs-click:commands

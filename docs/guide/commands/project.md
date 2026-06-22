@@ -57,6 +57,18 @@ Bootstrap with the community edition:
 oops project convert -v 18 --no-enterprise
 ```
 
+Apply without confirmation prompt:
+
+```bash
+oops project convert -v 19 --force
+```
+
+Stage changes without committing:
+
+```bash
+oops project convert -v 19 --no-commit
+```
+
 ---
 
 ::: mkdocs-click:commands
@@ -212,12 +224,6 @@ Sync files from the configured remote repository with confirmation prompt:
 
 ```bash
 oops project sync
-```
-
-Preview the diff without applying any changes:
-
-```bash
-oops project sync --dry-run
 ```
 
 Apply changes without confirmation:
