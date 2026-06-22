@@ -16,10 +16,22 @@
 
 **Examples:**
 
-Add `mass_editing` and `web_notify` from any tracked submodule:
+Open an interactive picker over all available (not yet linked) addons:
 
 ```bash
-oops addons add mass_editing,web_notify
+oops addons add
+```
+
+Link specific addons by name (no picker):
+
+```bash
+oops addons add mass_editing web_notify
+```
+
+Link specific addons without confirmation prompt:
+
+```bash
+oops addons add mass_editing web_notify --force
 ```
 
 Stage the symlinks without committing:
@@ -239,10 +251,16 @@ Download all addons from a branch:
 oops addons download https://github.com/OCA/server-ux.git 18.0
 ```
 
-Download only specific addons:
+Download specific addons by name (skips interactive picker):
 
 ```bash
-oops addons download https://github.com/OCA/server-ux.git 18.0 --addons mass_editing
+oops addons download https://github.com/OCA/server-ux.git 18.0 mass_editing
+```
+
+Download without committing:
+
+```bash
+oops addons download https://github.com/OCA/server-ux.git 18.0 --no-commit
 ```
 
 ---
@@ -308,16 +326,16 @@ oops addons manage --no-commit
 
 **Examples:**
 
-Preview all symlinks that would be materialized:
-
-```bash
-oops addons materialize --dry-run
-```
-
-Materialize all symlinks at the repository root:
+Materialize all symlinks at the repository root (interactive confirmation):
 
 ```bash
 oops addons materialize
+```
+
+Apply without confirmation prompt:
+
+```bash
+oops addons materialize --force
 ```
 
 Materialize only specific addons:

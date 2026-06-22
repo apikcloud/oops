@@ -8,15 +8,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import MagicMock
 
-from oops.commands.addons.domain_profile import (
-    compute_domain_profile,
-)
+from oops.core.compat import Any
 from oops.core.config import AnalyzeConfig
 from oops.core.models import ClassSummary, ModuleSummary, ViewsSummary
 from oops.kb.build import _resolve_module_apps
+from oops.kb.domain_profile import (
+    compute_domain_profile,
+)
 from oops.kb.domains import domain_label
 from oops.kb.store import KBReader, write_project_kb
 
@@ -82,37 +82,45 @@ class TestResolveModuleApps:
         assert scan["modules"]["sale"]["app"] == "sale"
 
     def test_direct_dependent_gets_app(self):
-        scan = self._scan({
-            "sale": _mod("sale", [], application=1),
-            "sale_management": _mod("sale_management", ["sale"]),
-        })
+        scan = self._scan(
+            {
+                "sale": _mod("sale", [], application=1),
+                "sale_management": _mod("sale_management", ["sale"]),
+            }
+        )
         _resolve_module_apps([scan])
         assert scan["modules"]["sale_management"]["app"] == "sale"
 
     def test_transitive_dependent_gets_app(self):
-        scan = self._scan({
-            "sale": _mod("sale", [], application=1),
-            "sale_extension": _mod("sale_extension", ["sale_management"]),
-            "sale_management": _mod("sale_management", ["sale"]),
-        })
+        scan = self._scan(
+            {
+                "sale": _mod("sale", [], application=1),
+                "sale_extension": _mod("sale_extension", ["sale_management"]),
+                "sale_management": _mod("sale_management", ["sale"]),
+            }
+        )
         _resolve_module_apps([scan])
         assert scan["modules"]["sale_extension"]["app"] == "sale"
 
     def test_base_only_module_gets_none(self):
-        scan = self._scan({
-            "base": _mod("base", []),
-            "my_helper": _mod("my_helper", ["base"]),
-        })
+        scan = self._scan(
+            {
+                "base": _mod("base", []),
+                "my_helper": _mod("my_helper", ["base"]),
+            }
+        )
         _resolve_module_apps([scan])
         assert scan["modules"]["my_helper"]["app"] is None
 
     def test_closest_app_wins_in_chain(self):
         """Module depends on two apps; closest in BFS wins."""
-        scan = self._scan({
-            "sale": _mod("sale", [], application=1),
-            "account": _mod("account", [], application=1),
-            "sale_account": _mod("sale_account", ["sale", "account"]),
-        })
+        scan = self._scan(
+            {
+                "sale": _mod("sale", [], application=1),
+                "account": _mod("account", [], application=1),
+                "sale_account": _mod("sale_account", ["sale", "account"]),
+            }
+        )
         _resolve_module_apps([scan])
         # sale and account are both direct depends — BFS order picks sale first (first in list)
         assert scan["modules"]["sale_account"]["app"] == "sale"
@@ -133,10 +141,13 @@ class TestResolveModuleApps:
 class TestKBReaderHelpers:
     def test_get_module_app(self, tmp_path):
         db_path = tmp_path / "kb.db"
-        _write_kb(db_path, modules={
-            "sale": _mod("sale", [], application=1, app="sale"),
-            "sale_management": _mod("sale_management", ["sale"], app="sale"),
-        })
+        _write_kb(
+            db_path,
+            modules={
+                "sale": _mod("sale", [], application=1, app="sale"),
+                "sale_management": _mod("sale_management", ["sale"], app="sale"),
+            },
+        )
         with KBReader(db_path) as kb:
             assert kb.get_module_app("sale") == "sale"
             assert kb.get_module_app("sale_management") == "sale"
@@ -144,10 +155,13 @@ class TestKBReaderHelpers:
 
     def test_is_application(self, tmp_path):
         db_path = tmp_path / "kb.db"
-        _write_kb(db_path, modules={
-            "sale": _mod("sale", [], application=1),
-            "sale_management": _mod("sale_management", ["sale"]),
-        })
+        _write_kb(
+            db_path,
+            modules={
+                "sale": _mod("sale", [], application=1),
+                "sale_management": _mod("sale_management", ["sale"]),
+            },
+        )
         with KBReader(db_path) as kb:
             assert kb.is_application("sale") is True
             assert kb.is_application("sale_management") is False
@@ -155,18 +169,24 @@ class TestKBReaderHelpers:
 
     def test_get_model_inherits(self, tmp_path):
         db_path = tmp_path / "kb.db"
-        _write_kb(db_path, model_origins=[
-            _origin("my.model", "my_module", inherits_json='{"sale.order": "sale_id"}'),
-        ])
+        _write_kb(
+            db_path,
+            model_origins=[
+                _origin("my.model", "my_module", inherits_json='{"sale.order": "sale_id"}'),
+            ],
+        )
         with KBReader(db_path) as kb:
             parents = kb.get_model_inherits("my.model")
         assert parents == ["sale.order"]
 
     def test_get_model_inherits_empty(self, tmp_path):
         db_path = tmp_path / "kb.db"
-        _write_kb(db_path, model_origins=[
-            _origin("my.model", "my_module"),
-        ])
+        _write_kb(
+            db_path,
+            model_origins=[
+                _origin("my.model", "my_module"),
+            ],
+        )
         with KBReader(db_path) as kb:
             assert kb.get_model_inherits("my.model") == []
 
@@ -208,10 +228,17 @@ class TestDomainLabel:
 # ---------------------------------------------------------------------------
 
 
-def _make_sym(name: str, kind: str, lineno: int = 1, end_lineno: int = 10,
-              is_override: bool = False, kb_entry: dict | None = None,
-              field_type: str | None = None, field_details: dict | None = None,
-              section: str = "BUSINESS METHODS") -> Any:
+def _make_sym(
+    name: str,
+    kind: str,
+    lineno: int = 1,
+    end_lineno: int = 10,
+    is_override: bool = False,
+    kb_entry: dict | None = None,
+    field_type: str | None = None,
+    field_details: dict | None = None,
+    section: str = "BUSINESS METHODS",
+) -> Any:
     """Build a minimal SymbolInfo-like object."""
     sym = MagicMock()
     sym.name = name
@@ -226,8 +253,7 @@ def _make_sym(name: str, kind: str, lineno: int = 1, end_lineno: int = 10,
     return sym
 
 
-def _make_ci(model_name: str | None, inherit: list[str], is_new: bool,
-             symbols: list = None) -> Any:
+def _make_ci(model_name: str | None, inherit: list[str], is_new: bool, symbols: list = None) -> Any:
     """Build a minimal ClassInfo-like object."""
     ci = MagicMock()
     ci.model_name = model_name
@@ -238,8 +264,9 @@ def _make_ci(model_name: str | None, inherit: list[str], is_new: bool,
     return ci
 
 
-def _make_cs(is_new: bool = False, fields_base: int = 0, fields_new: int = 0,
-             fields_inherited: int = 0) -> ClassSummary:
+def _make_cs(
+    is_new: bool = False, fields_base: int = 0, fields_new: int = 0, fields_inherited: int = 0
+) -> ClassSummary:
     return ClassSummary(
         class_name="Test",
         is_new_model=is_new,
@@ -259,14 +286,13 @@ def _make_cs(is_new: bool = False, fields_base: int = 0, fields_new: int = 0,
 
 def _make_summary(classes, class_infos, views_summary=None, loc=None) -> ModuleSummary:
     from oops.core.models import StructureSummary
+
     return ModuleSummary(
         module_name="test_module",
         module_path=Path("/tmp/test_module"),
         manifest={},
         classes=classes,
-        structure=StructureSummary(
-            data={}, demo={}, controllers_py=0, wizard_py=0, report_py=0, static_by_ext={}
-        ),
+        structure=StructureSummary(data={}, demo={}, controllers_py=0, wizard_py=0, report_py=0, static_by_ext={}),
         views_summary=views_summary,
         class_infos=class_infos,
     )
@@ -363,7 +389,8 @@ class TestComputeDomainProfile:
     def test_new_model_with_required_m2o_to_account_move(self, tmp_path):
         db_path = self._make_dual_kb(tmp_path)
         m2o_sym = _make_sym(
-            "move_id", "field",
+            "move_id",
+            "field",
             field_details={"type": "Many2one", "comodel": "account.move", "required": True},
         )
         ci = _make_ci("my.invoice.line", [], is_new=True, symbols=[m2o_sym])
@@ -412,8 +439,12 @@ class TestComputeDomainProfile:
 
     def test_dominant_domain_score_relative_is_one(self, tmp_path):
         db_path = self._make_sale_kb(tmp_path)
-        sym = _make_sym("action_confirm", "method", is_override=True,
-                        kb_entry={"module": "sale", "origin": "odoo", "source_file": "x.py", "source_line": 1})
+        sym = _make_sym(
+            "action_confirm",
+            "method",
+            is_override=True,
+            kb_entry={"module": "sale", "origin": "odoo", "source_file": "x.py", "source_line": 1},
+        )
         ci = _make_ci(None, ["sale.order"], is_new=False, symbols=[sym])
         cs = _make_cs(is_new=False)
 
@@ -445,8 +476,12 @@ class TestComputeDomainProfile:
             modules={"product": _mod("product", [])},  # pillar, not application
             model_origins=[_origin("product.product", "product")],
         )
-        sym = _make_sym("m1", "method", is_override=True,
-                        kb_entry={"module": "product", "origin": "odoo", "source_file": "x.py", "source_line": 1})
+        sym = _make_sym(
+            "m1",
+            "method",
+            is_override=True,
+            kb_entry={"module": "product", "origin": "odoo", "source_file": "x.py", "source_line": 1},
+        )
         ci = _make_ci(None, ["product.product"], is_new=False, symbols=[sym])
         cs = _make_cs(is_new=False)
 
@@ -481,14 +516,30 @@ class TestComputeDomainProfile:
     def test_view_attributed_to_correct_domain(self, tmp_path):
         db_path = self._make_sale_kb(tmp_path)
         vs = ViewsSummary(
-            primary_by_type={}, extensions=1, extensions_by_type={"form": 1},
-            extensions_upstream=1, actions=0, menus=0, unresolved=0,
+            primary_by_type={},
+            extensions=1,
+            extensions_by_type={"form": 1},
+            extensions_upstream=1,
+            actions=0,
+            menus=0,
+            unresolved=0,
             view_list=[
-                {"model": "sale.order", "mode": "extension", "xml_id": "test.view_1",
-                 "view_type": "form", "origin": "apik", "inherit_id": "sale.view_order_form",
-                 "ancestor_module": "sale", "ancestor_origin": "odoo",
-                 "fields_count": 2, "buttons_count": 0, "name": "Test View",
-                 "source_file": "test_module/views/sale.xml", "line_start": 1, "line_end": 10},
+                {
+                    "model": "sale.order",
+                    "mode": "extension",
+                    "xml_id": "test.view_1",
+                    "view_type": "form",
+                    "origin": "apik",
+                    "inherit_id": "sale.view_order_form",
+                    "ancestor_module": "sale",
+                    "ancestor_origin": "odoo",
+                    "fields_count": 2,
+                    "buttons_count": 0,
+                    "name": "Test View",
+                    "source_file": "test_module/views/sale.xml",
+                    "line_start": 1,
+                    "line_end": 10,
+                },
             ],
         )
         summary = _make_summary([], [], views_summary=vs)
@@ -513,6 +564,7 @@ class TestAnalyzeConfig:
 
     def test_partial_override_merged_correctly(self):
         from oops.core.config import Config, _apply
+
         cfg = Config()
         _apply(cfg, {"analyze": {"domain_weights": {"w_loc": 2.0}}})
         # Config._apply replaces the whole dict; consumer should merge with defaults.

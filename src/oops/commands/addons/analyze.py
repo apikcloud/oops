@@ -36,6 +36,7 @@ from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
 from oops.io.refactor import ClassInfo, SymbolInfo, analyse_file
 from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
+from oops.kb.domain_profile import compute_domain_profile
 from oops.kb.provenance import normalize_origin
 from oops.kb.resolver import InheritanceResolver
 from oops.kb.scanner import build_module_field_refs
@@ -54,7 +55,6 @@ from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
 
-from .domain_profile import compute_domain_profile
 from .presenters.analyze import AnalyzePresenter
 
 FORMATTERS: FormatterRegistry = {

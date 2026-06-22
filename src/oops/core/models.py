@@ -507,17 +507,27 @@ class PullRequest:
     url: str
     head: str
     base: str
+    head_repo_url: Optional[str] = None
+    head_ref: Optional[str] = None
+    head_owner: Optional[str] = None
+    head_repo: Optional[str] = None
 
     @classmethod
     def from_dict(cls, upstream: str, data: dict) -> "PullRequest":
+        head = data["head"]
+        head_repo = head.get("repo") or {}
         return cls(
             upstream=upstream,
             number=data["number"],
             state=data["state"],
             title=data["title"],
             url=data["html_url"],
-            head=data["head"]["label"],
+            head=head["label"],
             base=data["base"]["label"],
+            head_repo_url=head_repo.get("clone_url"),
+            head_ref=head.get("ref"),
+            head_owner=(head_repo.get("owner") or {}).get("login"),
+            head_repo=head_repo.get("name"),
         )
 
 

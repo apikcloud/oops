@@ -181,6 +181,24 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
     return canonical_url, normalized_owner, repo
 
 
+def parse_pull_request_url(url: str) -> Tuple[str, str, int]:
+    """Parse a GitHub pull-request URL into (owner, repo, number).
+
+    Example: ``https://github.com/OCA/mail/pull/4`` -> ``("OCA", "mail", 4)``.
+
+    Raises:
+        ValueError: If the host is not github.com or the path is not /OWNER/REPO/pull/N.
+    """
+    parsed = urlparse(url.strip())
+    host = (parsed.netloc or "").split("@")[-1]
+    if host != "github.com":
+        raise ValueError(f"Unsupported host: {host!r}")
+    parts = (parsed.path or "").strip("/").split("/")
+    if len(parts) < 4 or parts[2] != "pull" or not parts[3].isdigit():  # noqa: PLR2004
+        raise ValueError(f"Not a pull-request URL: {url}")
+    return parts[0], parts[1], int(parts[3])
+
+
 def sparse_clone(remote_url: str, tmpdir: Path, files: list, branch: Optional[str] = None) -> None:
     """Clone a remote repository with sparse checkout limited to specific paths.
 

@@ -14,18 +14,29 @@ By default all symlinks found at the repository root are processed.
 Use --include to restrict to a subset, or --exclude to skip specific addons.
 """
 
+from pathlib import Path
+
 import click
-from oops.commands.base import command, render_and_exit
-from oops.core.compat import Optional
-from oops.core.logger import live_progress, log
-from oops.core.models import Result
+from oops.commands.base import command
+from oops.core.compat import Optional, Tuple
+from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import materialize_symlink
-from oops.output.formatters import OutputFormatter, SimpleSummaryConsoleFormatter
+from oops.output.helper import render_and_raise
+from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, require_repository
 from oops.utils.helpers import str_to_list
-from oops.utils.render import human_readable
+from oops.utils.render import colorize, human_readable
 
-from .presenters.materialize import MaterializePresenter
+
+def _build_plan(candidates: list) -> Plan:
+    """Build materialize plan from symlink candidates — pure data, no I/O."""
+    return Plan(
+        title="Addons to materialize",
+        actions=[
+            PlanAction(label=p.name, kind="available", data={"path": str(p)})
+            for p in candidates
+        ],
+    )
 
 
 @command("materialize", help=__doc__)
@@ -41,17 +52,11 @@ from .presenters.materialize import MaterializePresenter
     metavar="ADDONS",
     help="Comma-separated list of addon names to skip.",
 )
-@click.option("--dry-run", is_flag=True, help="Show what would happen, do nothing.")
-@click.option("--no-commit", is_flag=True, help="Do not commit changes")
-@click.pass_context
-def main(ctx, include: Optional[str], exclude: Optional[str], dry_run: bool, no_commit: bool):
+@click.option("--no-commit", is_flag=True, help="Do not commit changes.")
+@click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting.")
+def main(include: Optional[str], exclude: Optional[str], no_commit: bool, force: bool) -> None:
     if include and exclude:
         raise click.UsageError("--include and --exclude are mutually exclusive.")
-
-    formatter: OutputFormatter = SimpleSummaryConsoleFormatter()
-
-    result: Result[dict] = Result()
-    result.data = {"cmd": "Materialize addons", "rows": [], "dry_run": dry_run}
 
     repo, repo_path = require_repository()
 
@@ -64,35 +69,43 @@ def main(ctx, include: Optional[str], exclude: Optional[str], dry_run: bool, no_
         exclude_set = set(str_to_list(exclude))
         candidates = [p for p in candidates if p.name not in exclude_set]
 
-    changes = []
+    # 1. Build the plan (pure business logic)
+    plan = _build_plan(candidates)
 
-    with live_progress("Materializing addons…"):
-        for addon_path in candidates:
-            if dry_run:
-                result.data["rows"].append({"addon": addon_path.name, "action": "planned"})
-                continue
+    # 2. Define how to execute one action; track successes for commit.
+    materialized: list[str] = []
 
-            log.info(f"Materializing {addon_path.name}…")
-            try:
-                materialize_symlink(addon_path, dry_run=False)
-            except Exception as error:
-                result.add_error(f"Failed to materialize {addon_path.name}: {error}")
-                result.data["rows"].append({"addon": addon_path.name, "action": "failed"})
-                continue
+    def apply(action: PlanAction) -> Tuple[str, bool]:
+        materialize_symlink(Path(action.data["path"]), dry_run=False)
+        materialized.append(action.label)
+        return colorize("materialized", "green"), True
 
-            result.data["rows"].append({"addon": addon_path.name, "action": "materialized"})
-            changes.append(addon_path)
+    # 3. Run the shared scenario (select → present → confirm → apply)
+    outer: Result[None] = Result()
+    result = run_mutation_workflow(
+        plan=plan,
+        apply=apply,
+        outer=outer,
+        title="Materialized addons",
+        force=force,
+        select_prompt="Select addon(s) to materialize: ",
+        empty_message="No symlinks found to materialize.",
+    )
 
-    if not no_commit and changes and not dry_run:
-        commit_result = commit_v2(
-            repo,
-            repo_path,
-            [str(path) for path in changes],
-            "addons_materialize",
-            names=human_readable([str(path.name) for path in changes], sep="\n"),
-            remove_and_add=True,
+    # 4. Command-specific side effect: commit
+    if materialized and not no_commit:
+        outer.merge(
+            commit_v2(
+                repo,
+                repo_path,
+                materialized,
+                "addons_materialize",
+                names=human_readable(materialized, sep="\n"),
+                remove_and_add=True,
+            )
         )
-        result.merge(commit_result)
+    elif materialized:
+        outer.add_warning("Don't forget to commit the materialized addons.")
 
-    output = MaterializePresenter().prepare(result, target=formatter.target)
-    render_and_exit(result, formatter, output, "text", None)
+    # 5. Final render (after commit), non-zero exit on errors
+    render_and_raise(result, outer)

@@ -4,170 +4,244 @@
 # File: add.py — oops/commands/submodules/add.py
 
 """
-Add a git submodule and optionally create symlinks for its addons.
+Add a git submodule and create symlinks for selected addons.
 
-Clones the repository as a submodule under the base directory (default:
-.third-party), records the tracked branch, and optionally creates symlinks at
-the repo root for every addon found or for a specific list.
+Queries the target repository via the GitHub Trees API to list its addon
+directories (folders containing __manifest__.py or __openerp__.py), then
+prompts for which addons to symlink at the repo root.
+
+Usage:
+    oops submodules add URL BRANCH [--pull-request] [--addons a,b] [--token TOKEN]
 """
 
+from __future__ import annotations
+
+from pathlib import Path
+
 import click
-from git import GitCommandError
+from git import GitCommandError, Repo
 from oops.commands.base import command
+from oops.core.compat import Optional, Tuple
 from oops.core.config import config
-from oops.core.exceptions import AppAbort, EarlyExit, OopsError
-from oops.io.file import create_symlink, desired_path, ensure_parent, find_addon_dirs
-from oops.services.git import commit, read_gitmodules, require_repository
-from oops.utils.helpers import str_to_list
+from oops.core.exceptions import OopsError
+from oops.core.logger import live_progress
+from oops.core.models import Plan, PlanAction, Result
+from oops.io.file import create_symlink, desired_path, ensure_parent
+from oops.output.helper import render_and_raise
+from oops.output.workflow import run_mutation_workflow
+from oops.services.git import commit_v2, read_gitmodules, require_repository
+from oops.services.github import list_remote_addons
 from oops.utils.net import encode_url, parse_repository_url
-from oops.utils.render import human_readable, print_success, print_warning, render_table
+from oops.utils.render import colorize
+
+# Kind markers for the plan actions.
+KIND_SUBMODULE = "add-submodule"
+KIND_PR = "add-pr"
+KIND_ADDON = "available"  # selectable by the workflow
 
 
-@click.argument("branch")
-@click.argument("url")
-@click.option(
-    "--base-dir",
-    default=lambda: config.submodules.current_path,
-    help="Base dir for submodules (default: .third-party)",
-)
-@click.option(
-    "--auto-symlinks",
-    is_flag=True,
-    help="Auto-create symlinks at repo root for each addon folder detected in the submodule",
-)
-@click.option(
-    "--addons",
-    help="Comma-separated list of addon names for which to create symlinks",
-)
-@click.option(
-    "--no-commit",
-    is_flag=True,
-    help="Stage changes but do not commit automatically",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show planned actions only, make no changes",
-)
-@click.option(
-    "--pull-request",
-    is_flag=True,
-    help="Indicates that the submodule is a pull request (affects naming and path)",
-)
-@click.option(
-    "-y",
-    "--yes",
-    is_flag=True,
-    help="Skip confirmation prompt",
-)
-@command(name="add", help=__doc__)
-def main(  # noqa: PLR0913
+def _build_plan(remote_addons: list[str], pull_request: bool) -> Plan:
+    """Build the plan: a submodule placeholder + every addon as selectable.
+
+    The submodule action carries no final name yet — it is resolved in
+    `on_selected`, once the user's addon selection is known (the first
+    selected addon drives the PR submodule name).
+    """
+    submodule = PlanAction(
+        label="(submodule)",  # placeholder, resolved in on_selected
+        new=None,
+        detail="resolved after selection",
+        kind=KIND_PR if pull_request else KIND_SUBMODULE,
+        data={"is_submodule": True},
+    )
+    addons = [
+        PlanAction(
+            label=Path(p).name,
+            new=None,
+            detail=p,
+            kind=KIND_ADDON,
+            data={"rel_path": p},
+        )
+        for p in sorted(remote_addons)
+    ]
+    return Plan(title="Add submodule", actions=[submodule, *addons])
+
+
+def add_submodule_flow(  # noqa: PLR0913, C901
+    *,
+    repo: "Repo",
+    repo_path: Path,
     url: str,
     branch: str,
-    base_dir: str,
-    addons: str,
-    auto_symlinks: bool,
+    addons: Optional[str],
     no_commit: bool,
-    dry_run: bool,
+    force: bool,
     pull_request: bool,
-    yes: bool,
+    token: str,
+    commit_message_name: str = "submodule_add",
+    extra_commit_kwargs: Optional[dict] = None,
 ) -> None:
-    addons_to_link = str_to_list(addons) if addons else []
-
-    repo, repo_path = require_repository()
-
-    # Validate URL and optionally normalise scheme
+    """Core add-submodule logic shared by `submodules add` and `pr add`."""
+    # Validate URL and normalise scheme
     try:
-        parse_repository_url(url)
+        _, owner, repo_name = parse_repository_url(url)
         if config.submodules.force_scheme:
             url = encode_url(url, config.submodules.force_scheme)
-    except ValueError as e:
-        raise OopsError(str(e)) from e
+    except ValueError as exc:
+        raise OopsError(str(exc)) from exc
 
-    suffix = addons_to_link[0] if addons_to_link and pull_request else None
-    sub_path_str = desired_path(url, prefix=base_dir, pull_request=pull_request, suffix=suffix)
-    sub_path = repo_path / sub_path_str
-    sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
+    # Fetch addon list from the GitHub Trees API
+    with live_progress("Fetching addon list from GitHub…"):
+        remote_addons = list_remote_addons(owner, repo_name, branch, token)
 
-    # Plan summary
-    rows = [
-        ["URL", url],
-        ["Branch", branch],
-        ["Submodule name", sub_name],
-        ["Target path", sub_path_str],
-        ["Auto symlinks", human_readable(auto_symlinks)],
-        ["Addons", addons or ""],
-        ["Commit at the end", human_readable(not no_commit)],
-    ]
-    click.echo(render_table(rows))
+    # Pre-restrict via --addons (validation only; selection stays in the workflow)
+    if addons:
+        requested = {a.strip() for a in addons.split(",") if a.strip()}
+        not_found = requested - {Path(p).name for p in remote_addons}
+        if not_found:
+            raise OopsError(f"Addon(s) not found in repository: {', '.join(sorted(not_found))}")
+        remote_addons = [p for p in remote_addons if Path(p).name in requested]
 
-    if dry_run:
-        print_warning("This is a dry run. No changes will be made.")
-        raise EarlyExit()
+    plan = _build_plan(remote_addons, pull_request)
 
-    if not yes and not click.confirm("Apply changes?", default=True):
-        raise AppAbort()
+    # If addons were given explicitly, pre-select them so the workflow doesn't prompt.
+    if addons:
+        for action in plan.actions:
+            if action.kind == KIND_ADDON:
+                action.kind = "selected"
 
-    # Safety checks before touching anything
-    if sub_path.exists():
-        raise OopsError(f"Destination already exists: {sub_path_str}")
+    # Mutable holder for the resolved submodule identity (filled in on_selected).
+    ctx: dict = {}
 
-    git_modules_path = repo_path / ".git" / "modules" / sub_name
-    if git_modules_path.exists():
-        raise OopsError(f"Git module directory already exists: {git_modules_path}")
+    def on_selected(plan: Plan) -> None:
+        """Resolve submodule name/path from the selection, then safety-check.
 
-    ensure_parent(sub_path)
+        Runs after selection, before presentation/confirmation, so the user
+        sees the real submodule name and conflicts abort before any mutation.
+        """
+        selected_addons = [a for a in plan.actionable if a.data.get("rel_path")]
+        suffix = Path(selected_addons[0].data["rel_path"]).name if (pull_request and selected_addons) else None
+        sub_name = desired_path(url, pull_request=pull_request, suffix=suffix)
+        sub_path_str = desired_path(
+            url,
+            prefix=str(config.submodules.current_path),
+            pull_request=pull_request,
+            suffix=suffix,
+        )
+        sub_path = repo_path / sub_path_str
 
-    # Add submodule
-    click.echo("[add] git submodule add")
-    try:
-        repo.create_submodule(name=sub_name, path=sub_path_str, url=url, branch=branch)
-    except GitCommandError as exc:
-        raise OopsError(f"Failed to add submodule: {exc}") from exc
+        # Safety checks — before confirmation, before any mutation.
+        if sub_path.exists():
+            raise OopsError(f"Destination already exists: {sub_path_str}")
+        git_modules_dir = repo_path / ".git" / "modules" / sub_name
+        if git_modules_dir.exists():
+            raise OopsError(f"Git module directory already exists: {git_modules_dir}")
 
-    # Pin branch in .gitmodules
-    gitmodules = read_gitmodules(repo)
-    click.echo(f"[config] setting branch {branch!r} for {sub_name!r}…")
-    gitmodules.set_value(f'submodule "{sub_name}"', "branch", branch)
+        ctx.update(name=sub_name, path_str=sub_path_str, path=sub_path)
 
-    # Create symlinks
-    staged_files = []
-    created_links = []
+        # Fill the submodule action so the presented plan shows the real name.
+        sub_action = next(a for a in plan.actionable if a.data.get("is_submodule"))
+        sub_action.label = sub_name
+        sub_action.new = branch
+        sub_action.detail = sub_path_str
 
-    if auto_symlinks or addons:
-        click.echo("[scan] detecting addon folders…")
-        addons_found = find_addon_dirs(sub_path, with_pr=pull_request)
-        if not addons_found:
-            click.echo("  no addon folders detected.")
-        else:
-            click.echo(f"  found {len(addons_found)} addon folder(s). Creating symlinks at repo root…")
-            candidates = addons_found if auto_symlinks else [a for a in addons_found if a.name in addons_to_link]
-            for addon_dir in candidates:
-                link_name = create_symlink(addon_dir, repo_path)
-                if link_name:
-                    staged_files.append(link_name)
-                    created_links.append(link_name)
+    link_count = [0]
 
-        if addons:
-            missing = set(addons_to_link) - set(created_links)
-            if missing:
-                print_warning(f"Addons not found: {human_readable(missing)}")
+    def apply(action: PlanAction) -> Tuple[str, bool]:
+        if action.data.get("is_submodule"):
+            ensure_parent(ctx["path"])
+            try:
+                repo.create_submodule(name=ctx["name"], path=ctx["path_str"], url=url, branch=branch)
+            except GitCommandError as exc:
+                raise OopsError(f"Failed to add submodule: {exc}") from exc
+            gm = read_gitmodules(repo)
+            gm.set_value(f'submodule "{ctx["name"]}"', "branch", branch)
+            gm.write()
+            repo.index.add([".gitmodules"])
+            return colorize("added", "green"), True
 
-    staged_files += [".gitmodules"]
+        # symlink action — submodule already created (it is first in the plan)
+        addon_dir = ctx["path"] / action.data["rel_path"]
+        link_name = create_symlink(addon_dir, repo_path)
+        if link_name:
+            repo.index.add([str(repo_path / link_name)])
+            link_count[0] += 1
+            return colorize("linked", "green"), True
+        return colorize("skipped (exists)", "yellow"), False
+
+    outer: Result[None] = Result()
+    result = run_mutation_workflow(
+        plan=plan,
+        apply=apply,
+        outer=outer,
+        title="Add submodule",
+        force=force,
+        select=True,  # the workflow handles addon selection now
+        select_prompt="Select addon(s) to symlink: ",
+        on_selected=on_selected,
+        empty_message="Nothing to do.",
+    )
+
+    linked = link_count[0]
 
     if not no_commit:
-        commit(
-            repo,
-            repo_path,
-            [str(repo_path / f) for f in staged_files],
-            "submodule_add",
-            name=sub_name,
-            url=url,
-            branch=branch,
-            path=sub_path_str,
-            symlinks=human_readable(created_links) if created_links else 0,
+        commit_kwargs = {
+            "name": ctx.get("name", ""),
+            "url": url,
+            "branch": branch,
+            "path": ctx.get("path_str", ""),
+            "symlinks": linked,
+        }
+        if extra_commit_kwargs:
+            commit_kwargs.update(extra_commit_kwargs)
+        outer.merge(
+            commit_v2(
+                repo,
+                repo_path,
+                [],
+                commit_message_name,
+                skip_hooks=True,
+                already_staged=True,
+                **commit_kwargs,
+            )
         )
-        print_success("Submodule added and committed.")
     else:
-        repo.index.add([str(repo_path / f) for f in staged_files])
-        print_warning("Changes staged but not committed (--no-commit).")
+        outer.add_warning("Changes staged but not committed (--no-commit).")
+
+    render_and_raise(result, outer)
+
+
+@command(name="add", help=__doc__)
+@click.option("--addons", help="Comma-separated addon names to symlink (skips interactive prompt)")
+@click.option("--no-commit", is_flag=True, help="Stage changes but do not commit")
+@click.option("-f", "--force", is_flag=True, help="Apply without prompting, symlink all addons")
+@click.option("--pull-request", is_flag=True, help="Treat as a pull-request submodule")
+@click.option(
+    "--token",
+    envvar=["GH_TOKEN", "GITHUB_TOKEN"],
+    help="GitHub token for API access (or set GH_TOKEN / GITHUB_TOKEN).",
+    required=True,
+)
+@click.argument("url")
+@click.argument("branch")
+def main(
+    url: str,
+    branch: str,
+    addons: Optional[str],
+    no_commit: bool,
+    force: bool,
+    pull_request: bool,
+    token: str,
+) -> None:
+    repo, repo_path = require_repository()
+    add_submodule_flow(
+        repo=repo,
+        repo_path=repo_path,
+        url=url,
+        branch=branch,
+        addons=addons,
+        no_commit=no_commit,
+        force=force,
+        pull_request=pull_request,
+        token=token,
+    )

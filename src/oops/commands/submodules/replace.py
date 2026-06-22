@@ -8,108 +8,124 @@ Replace one or more submodules with a new repository.
 
 Removes the named submodules, adds the new repository as a submodule, and
 rewrites any symlinks that pointed to the old paths to point to the new one.
+
+When called without submodule names, displays an interactive selection menu.
 """
 
-import os
-from pathlib import Path
+from __future__ import annotations
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Optional
+from oops.core.compat import Tuple
 from oops.core.config import config
 from oops.core.exceptions import NotFoundError
-from oops.core.logger import log
-from oops.core.messages import commit_messages
-from oops.io.file import desired_path, rewrite_symlink
-from oops.services.git import require_repository, require_submodules
+from oops.core.models import Plan, PlanAction, Result
+from oops.io.file import desired_path, rewrite_symlinks
+from oops.output.helper import render_and_raise
+from oops.output.workflow import run_mutation_workflow
+from oops.services.git import commit_v2, require_repository, require_submodules
 from oops.utils.net import encode_url
+from oops.utils.render import colorize
+
+
+def _build_plan(submodules, new_name: str, branch: str) -> Plan:
+    actions = []
+    for sub in submodules:
+        actions.append(
+            PlanAction(
+                label=sub.name,
+                new=new_name,
+                detail=branch,
+                kind="available",
+            )
+        )
+    return Plan(title="Planned replacements", actions=actions)
 
 
 @command("replace", help=__doc__)
-@click.option("--dry-run", is_flag=True, help="Show planned changes only")
 @click.option("--no-commit", is_flag=True, help="Do not commit changes")
+@click.option("-f", "--force", is_flag=True, help="Apply all changes without prompting")
 @click.argument("names", nargs=-1, required=False)
 @click.argument("url")
 @click.argument("branch")
-def main(  # noqa: C901, PLR0912
-    dry_run: bool,
+def main(
     no_commit: bool,
-    names: "Optional[tuple[str]]" = None,
-    url: "Optional[str]" = None,
-    branch: "Optional[str]" = None,
+    force: bool,
+    names: Tuple[str, ...],
+    url: str,
+    branch: str,
 ):
-
-    repo, _ = require_repository()
-    submodules = require_submodules(repo)
+    repo, repo_path = require_repository()
+    submodules = list(require_submodules(repo))
 
     if names:
-        not_found = [name for name in names if name not in submodules]
+        name_set = {s.name for s in submodules}
+        not_found = [n for n in names if n not in name_set]
         if not_found:
             raise NotFoundError(f"Submodule(s) not found: {', '.join(not_found)}")
 
     new_url = encode_url(url, config.submodules.force_scheme)
-    old_paths = []
+    new_name = desired_path(new_url, pull_request=False)
+    new_path = desired_path(new_url, pull_request=False, prefix=str(config.submodules.current_path))
 
-    if not dry_run:
-        new_name = desired_path(new_url, pull_request=False)
-        new_path = desired_path(new_url, pull_request=False, prefix=str(config.submodules.current_path))
+    plan = _build_plan(submodules, new_name, branch)
 
-        if new_name not in repo.submodules:
-            click.echo(f"Adding new submodule '{new_url}' (branch={branch})")
-            repo.git.submodule(
-                "add",
-                "--name",
-                new_name,
-                "-b",
-                branch,
-                new_url,
-                new_path,
-            )
-        else:
-            click.echo(f"Submodule '{new_name}' already exists, skipping addition.")
-            new_path = repo.submodules[new_name].path
+    if names:
+        plan.restrict_to(set(names))
 
-            if branch != repo.submodules[new_name].branch:
-                click.echo(f"Updating branch of existing submodule '{new_name}' to '{branch}'")
-                repo.git.config(f"submodule.{new_name}.branch", branch)
+    sub_map = {s.name: s for s in submodules}
+    old_paths: list[str] = []
 
-    # Remove old submodules
-    for name in names:
-        submodule = repo.submodules[name]
+    def apply(action: PlanAction) -> Tuple[str, bool]:
+        sub = sub_map[action.label]
+        old_path = str(sub.path)
+        sub.remove(force=True)
+        old_paths.append(old_path)
+        return colorize("removed", "red"), True
 
-        click.echo(f"Remove submodule '{submodule.name}' ('{submodule.url}', branch={branch})")
+    outer: Result[None] = Result()
+    result = run_mutation_workflow(
+        plan=plan,
+        apply=apply,
+        outer=outer,
+        title="Replacements",
+        force=force,
+        select=not names,
+        select_prompt="Select submodule(s) to replace: ",
+        empty_message="Nothing to replace.",
+    )
 
-        if not dry_run:
-            old_path = str(submodule.path)
-            submodule.remove(force=True)
-            old_paths.append(old_path)
+    # Add the new submodule (or update branch if it already exists)
+    if new_name not in repo.submodules:
+        repo.git.submodule("add", "--name", new_name, "-b", branch, new_url, new_path)
+        actual_new_path = new_path
+    else:
+        actual_new_path = str(repo.submodules[new_name].path)
+        if branch != repo.submodules[new_name].branch:
+            repo.git.config(f"submodule.{new_name}.branch", branch)
 
-    # Update symlinks
-    # the strategy is to walk the working directory and rewrite any symlink
-    # that points to an old submodule path to point to the new submodule path
-    rewrites = 0
-    if not dry_run:
-        for root, dirs, files in os.walk(repo.working_dir):
-            if ".git" in dirs:
-                dirs.remove(".git")
-            for name in dirs + files:
-                p = Path(root) / name
-                if p.is_symlink():
-                    for oldp in old_paths:
-                        log.debug(p, ":", oldp, "->", new_path)
-                        if rewrite_symlink(p, oldp, new_path):
-                            rewrites += 1
-                            repo.index.add([str(p)])
-                            break
+    # Rewrite symlinks pointing to removed submodule paths
+    moved = [(old_path, actual_new_path) for old_path in old_paths]
+    rewrites = rewrite_symlinks(repo, moved)
+    outer.add_message(f"Symlinks rewritten: {rewrites}")
 
-        click.echo(f"Rewrote {rewrites} symlink(s)")
-
-    # Finally, commit changes
-    if not no_commit and not dry_run and repo.index.diff(repo.head.commit):
-        click.echo("Committing submodule replacements...")
-        repo.index.commit(
-            commit_messages.submodules_replace.format(
-                description="\n".join(f"- replaced '{name}' with '{new_name}' (branch={branch})" for name in names),
-            ),
-            skip_hooks=True,
+    if not no_commit:
+        removed = [a.label for a in plan.actionable]
+        description = "\n".join(
+            f"- replaced '{n}' with '{new_name}' (branch={branch})" for n in removed
         )
+        outer.merge(
+            commit_v2(
+                repo,
+                repo_path,
+                [],
+                "submodules_replace",
+                description=description,
+                skip_hooks=True,
+                already_staged=True,
+            )
+        )
+    else:
+        outer.add_warning("Don't forget to commit to share changes with the team.")
+
+    render_and_raise(result, outer)

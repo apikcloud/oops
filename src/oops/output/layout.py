@@ -8,14 +8,10 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import timezone
-from typing import TYPE_CHECKING
 
 from oops.core.compat import Generic, L, List, Literal, Optional
 from oops.core.metadata import Metadata
 from oops.core.models import StatGroup
-
-if TYPE_CHECKING:
-    pass
 
 UTC = timezone.utc
 

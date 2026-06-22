@@ -12,6 +12,7 @@ class CommitMessages:
     addons_new: str = "chore: new addons"
     addons_remove: str = "chore: remove addons"
     addons_ignored: str = "chore: ignored addons"
+    addons_download: str = "chore: download addon(s)\n\n{names}"
     addons_materialize: str = "chore: materialize addon(s)\n\n{names}"
     addons_update_table: str = "chore(README): update addons table"
     addons_synchronize: str = (
@@ -21,6 +22,14 @@ class CommitMessages:
 
     # PR management
     pr_manage: str = "chore(pr): rename and rewrite pull request submodules"
+    pr_add: str = """chore(pr): add pull-request submodule {name}
+
+    - pr: {pr_url}
+    - url: {url}
+    - branch: {branch}
+    - path: {path}
+    - created symlinks: {symlinks}
+    """
 
     # Submodules
     submodules_rewrite: str = "chore(submodules): rewrite submodule paths to new scheme"

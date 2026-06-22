@@ -16,11 +16,11 @@ from __future__ import annotations
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable
 
 import click
 from git import Repo
 from oops.commands.base import command
+from oops.core.compat import Iterable
 from oops.core.config import config
 from oops.core.exceptions import AppAbort
 from oops.core.logger import live_progress, log

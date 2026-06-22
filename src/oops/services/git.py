@@ -8,15 +8,11 @@ from __future__ import annotations
 import subprocess
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Generator
-
-if TYPE_CHECKING:
-    from git.util import IterableList
 
 import click
 from git import GitCommandError, InvalidGitRepositoryError, Repo, Submodule
 from git.config import GitConfigParser
-from oops.core.compat import List, Optional, Tuple
+from oops.core.compat import TYPE_CHECKING, Generator, List, Optional, Tuple
 from oops.core.exceptions import OopsError
 from oops.core.messages import commit_messages
 from oops.core.metadata import update_metadata
@@ -27,6 +23,9 @@ from oops.io.manifest import find_addons_extended
 from oops.io.tools import run
 from oops.utils.net import encode_url
 from oops.utils.render import print_success, print_warning
+
+if TYPE_CHECKING:
+    from git.util import IterableList
 
 
 def read_gitmodules(repo: Repo) -> GitConfigParser:

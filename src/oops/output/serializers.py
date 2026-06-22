@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+
+from oops.core.compat import Any
 
 
 def to_json_string(data: Any, **kwargs) -> str:

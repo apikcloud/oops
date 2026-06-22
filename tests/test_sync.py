@@ -9,6 +9,7 @@ import git as gitlib
 import pytest
 from click.testing import CliRunner
 from oops.commands.project.sync import main
+from oops.core.models import Result
 from oops.services.git import commit, show_diff
 from oops.utils.net import sparse_clone
 
@@ -60,36 +61,22 @@ class TestMainGuards:
 
 
 # ---------------------------------------------------------------------------
-# main — dry-run
+# main — no changes / early exit
 # ---------------------------------------------------------------------------
 
 
-class TestMainDryRun:
-    def test_dry_run_no_changes(self, tmp_path):
+class TestMainNoChanges:
+    def test_no_changes_exits_clean(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
-        local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config()), patch(
-            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
+            "oops.commands.project.sync.require_repository", return_value=(mock_repo, tmp_path)
         ), patch("oops.commands.project.sync.fetch_project_files"), patch(
             "oops.commands.project.sync.show_diff", return_value=False
         ):
-            result = runner.invoke(main, ["--dry-run"])
+            result = runner.invoke(main, [])
         assert result.exit_code == 0
         assert "Already up to date" in result.output
-
-    def test_dry_run_with_changes(self, tmp_path):
-        mock_repo = _make_local_repo(tmp_path)
-        local_repo_rv = (mock_repo, tmp_path)
-        runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config()), patch(
-            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
-        ), patch("oops.commands.project.sync.fetch_project_files"), patch(
-            "oops.commands.project.sync.show_diff", return_value=True
-        ):
-            result = runner.invoke(main, ["--dry-run"])
-        assert result.exit_code == 0
-        assert "dry run" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -98,57 +85,71 @@ class TestMainDryRun:
 
 
 class TestMainApply:
-    def test_yes_flag_applies_and_commits(self, tmp_path):
-        mock_repo = _make_local_repo(tmp_path)
-        local_repo_rv = (mock_repo, tmp_path)
+    def _invoke(self, tmp_path, cfg, synced_files=("Makefile",), extra_args=()):
+        """Run sync with all external I/O mocked.
+
+        fetch_project_files side_effect creates synced_files in the real tmpdir
+        so that _build_plan sees the correct existing-files set.
+        run_mutation_workflow and render_and_raise are mocked to avoid terminal
+        rendering in tests.
+        """
+
+        def fake_fetch(_url, _branch, _files, tmpdir):
+            for f in synced_files:
+                (tmpdir / f).write_text("")
+
+        mock_commit = MagicMock(return_value=Result())
         runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), patch(
-            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
-        ), patch("oops.commands.project.sync.fetch_project_files"), patch(
+        with patch("oops.commands.project.sync.config", cfg), patch(
+            "oops.commands.project.sync.require_repository",
+            return_value=(_make_local_repo(tmp_path), tmp_path),
+        ), patch(
+            "oops.commands.project.sync.fetch_project_files", side_effect=fake_fetch
+        ), patch(
             "oops.commands.project.sync.show_diff", return_value=True
         ), patch(
-            "oops.commands.project.sync.copy_project_files", return_value=["Makefile"]
-        ) as mock_copy, patch(
-            "oops.commands.project.sync.commit"
-        ) as mock_commit:
-            result = runner.invoke(main, ["--force"])
+            "oops.commands.project.sync.run_mutation_workflow", return_value=Result()
+        ), patch(
+            "oops.commands.project.sync.render_and_raise"
+        ), patch(
+            "oops.commands.project.sync.commit_v2", mock_commit
+        ):
+            result = runner.invoke(main, ["--force", *extra_args])
+        return result, mock_commit
 
+    def test_force_applies_and_commits(self, tmp_path):
+        result, mock_commit = self._invoke(tmp_path, _make_config(files=["Makefile"]))
         assert result.exit_code == 0
-        mock_copy.assert_called_once()
-        mock_commit.assert_called_once_with(mock_repo, tmp_path, ["Makefile"], "project_sync")
+        mock_commit.assert_called_once()
+        assert mock_commit.call_args[0][2] == ["Makefile"]
+        assert mock_commit.call_args[0][3] == "project_sync"
 
     def test_empty_applied_skips_commit(self, tmp_path):
-        mock_repo = _make_local_repo(tmp_path)
-        local_repo_rv = (mock_repo, tmp_path)
-        runner = CliRunner()
-        with patch("oops.commands.project.sync.config", _make_config(files=["Makefile"])), patch(
-            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
-        ), patch("oops.commands.project.sync.fetch_project_files"), patch(
-            "oops.commands.project.sync.show_diff", return_value=True
-        ), patch(
-            "oops.commands.project.sync.copy_project_files", return_value=[]
-        ), patch(
-            "oops.commands.project.sync.commit"
-        ) as mock_commit:
-            result = runner.invoke(main, ["--force"])
+        # No files in remote → _build_plan has no actionable items → commit skipped.
+        result, mock_commit = self._invoke(
+            tmp_path, _make_config(files=["Makefile"]), synced_files=()
+        )
+        assert result.exit_code == 0
+        mock_commit.assert_not_called()
 
+    def test_no_commit_skips_commit_v2(self, tmp_path):
+        result, mock_commit = self._invoke(
+            tmp_path, _make_config(files=["Makefile"]), extra_args=["--no-commit"]
+        )
         assert result.exit_code == 0
         mock_commit.assert_not_called()
 
     def test_branch_forwarded_to_fetch_project_files(self, tmp_path):
         mock_repo = _make_local_repo(tmp_path)
-        local_repo_rv = (mock_repo, tmp_path)
         runner = CliRunner()
         with patch("oops.commands.project.sync.config", _make_config(branch="main")), patch(
-            "oops.commands.project.sync.require_repository", return_value=local_repo_rv
+            "oops.commands.project.sync.require_repository", return_value=(mock_repo, tmp_path)
         ), patch(
             "oops.commands.project.sync.fetch_project_files"
         ) as mock_fetch, patch(
-            "oops.commands.project.sync.show_diff", return_value=True
-        ), patch(
-            "oops.commands.project.sync.copy_project_files", return_value=["Makefile"]
-        ), patch("oops.commands.project.sync.commit"):
-            runner.invoke(main, ["--force"])
+            "oops.commands.project.sync.show_diff", return_value=False
+        ):
+            runner.invoke(main, [])
 
         _, branch_arg, _, _ = mock_fetch.call_args[0]
         assert branch_arg == "main"
