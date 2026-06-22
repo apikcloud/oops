@@ -9,6 +9,18 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.24.0] - 2026-06-22
+
+New clone shorthand, smarter PR status display, and an MCP server.
+
+### ✨ What's new
+
+- **`oops project clone`**: clone any repository with a shorthand URL — no need to type full URLs anymore
+- **Merged vs. closed PRs**: `oops pr show` now clearly distinguishes between merged and closed pull requests
+- **MCP server**: `oops` now exposes a read-only MCP server over its analysis pipeline — integrate it with your AI tooling
+
+---
+
 ## [0.23.0] - 2026-06-22
 
 Unified mutation workflow and new pull request management command.
