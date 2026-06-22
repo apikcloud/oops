@@ -3215,7 +3215,7 @@
             <td><code><span title="oops.commands.addons.add">add</span></code></td>
             <td>
               <div class="doc-md-description">
-                <p>Create root-level symlinks for specific addons found in any tracked submodule.</p>
+                <p>Create root-level symlinks for addons found in tracked submodules.</p>
               </div>
             </td>
           </tr>
@@ -3240,14 +3240,6 @@
             <td>
               <div class="doc-md-description">
                 <p>Show modified Odoo addons between a base ref and HEAD.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td><code><span title="oops.commands.addons.domain_profile">domain_profile</span></code></td>
-            <td>
-              <div class="doc-md-description">
-                <p>Domain profile computation for the analyze command.</p>
               </div>
             </td>
           </tr>
@@ -3331,11 +3323,12 @@
 
 </div><hr>
 <h3 id="oops-addons-add">oops addons add<a class="headerlink" href="#oops-addons-add" title="Permanent link">¶</a></h3>
-<p>Create root-level symlinks for specific addons found in any tracked submodule.</p>
+<p>Create root-level symlinks for addons found in tracked submodules.</p>
 <p>Searches all submodules for addons matching the provided names and creates
-symlinks at the repository root. Skips addons that are already present.</p>
+symlinks at the repository root. Skips addons that are already present.
+If no names are given, opens an interactive picker over all available addons.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops addons add [OPTIONS] ADDONS_LIST
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops addons add [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3351,7 +3344,13 @@ symlinks at the repository root. Skips addons that are already present.</p>
 <tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
-<td>If set, created symlinks will not be committed.</td>
+<td>Do not commit created symlinks.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply all changes without prompting.</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3363,11 +3362,17 @@ symlinks at the repository root. Skips addons that are already present.</p>
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<p>Add <code>mass_editing</code> and <code>web_notify</code> from any tracked submodule:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>add<span class="w"> </span>mass_editing,web_notify
+<p>Open an interactive picker over all available (not yet linked) addons:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>add
+</span></code></pre></div>
+<p>Link specific addons by name (no picker):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>add<span class="w"> </span>mass_editing<span class="w"> </span>web_notify
+</span></code></pre></div>
+<p>Link specific addons without confirmation prompt:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>add<span class="w"> </span>mass_editing<span class="w"> </span>web_notify<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Stage the symlinks without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>add<span class="w"> </span>sale_management<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>add<span class="w"> </span>sale_management<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-analyze">oops addons analyze<a class="headerlink" href="#oops-addons-analyze" title="Permanent link">¶</a></h3>
@@ -3381,7 +3386,7 @@ and method breakdown, plus counts of declared data files and assets.</p>
 semantics as <code>oops addons refactor</code>) but performs no source rewriting,
 no git operations, and no manifest edits.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops addons analyze [OPTIONS] MODULE_PATHS...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops addons analyze [OPTIONS] MODULE_PATHS...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3427,10 +3432,10 @@ notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Print a text summary of a single module:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery
 </span></code></pre></div>
 <p>Emit JSON for downstream tooling:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.modules[0].models[0]'</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.modules[0].models[0]'</span>
 </span></code></pre></div>
 <h3 id="json-output-ir-v2">JSON output — IR v2<a class="headerlink" href="#json-output-ir-v2" title="Permanent link">¶</a></h3>
 <p>The <code>--format json</code> payload is a clean <strong>intermediate representation</strong> stamped
@@ -3451,9 +3456,9 @@ together by id references rather than nesting:</p>
   non-literal kwarg (variable, f-string, call) sets <code>dynamic: true</code> with <code>null</code>
   values — never guessed.</li>
 </ul>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># group the flat lists back into a per-model view (a renderer projection)</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.modules[0] | {methods, fields, views}'</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># group the flat lists back into a per-model view (a renderer projection)</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.modules[0] | {methods, fields, views}'</span>
 </span></code></pre></div>
 <p>The <code>manifest</code>, <code>metrics</code> and <code>loc</code> blocks carry <strong>raw values only</strong>. Their
 labels, kinds and units live once in the descriptor registry
@@ -3475,39 +3480,39 @@ or <code>inherit_origin</code> for what an entity inherits/overrides).</p>
 <p><code>--format html</code> produces a single portable file with no external dependencies —
 openable over <code>file://</code> and shareable as an attachment.  The page embeds the
 full UI bundle (CSS + JS) and the JSON payload inline.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># write to a path</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>html<span class="w"> </span>--output<span class="w"> </span>/tmp/plant_nursery.html
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># open immediately (default: temp file)</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>html
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># write to a path</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>html<span class="w"> </span>--output<span class="w"> </span>/tmp/plant_nursery.html
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># open immediately (default: temp file)</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--format<span class="w"> </span>html
 </span></code></pre></div>
 <h3 id="domain-profile">Domain profile<a class="headerlink" href="#domain-profile" title="Permanent link">¶</a></h3>
 <p>Each module's JSON payload includes a <code>domain_profile</code> block that quantifies
 how much the module touches each Odoo functional domain (Sales, Accounting,
 Inventory…) and which transversal pillars (product, analytic…) it relies on.</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"domain_profile"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">"domains"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">      </span><span class="p">{</span><span class="nt">"domain"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sale"</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Sales"</span><span class="p">,</span><span class="w"> </span><span class="nt">"weight_raw"</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">       </span><span class="nt">"score_proportional"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.63</span><span class="p">,</span><span class="w"> </span><span class="nt">"score_relative"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">       </span><span class="nt">"indicators"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"models_extended"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"methods_override"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}}</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="p">],</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="nt">"pillars"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">      </span><span class="p">{</span><span class="nt">"domain"</span><span class="p">:</span><span class="w"> </span><span class="s2">"product"</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Product"</span><span class="p">,</span><span class="w"> </span><span class="nt">"weight_raw"</span><span class="p">:</span><span class="w"> </span><span class="mf">4.0</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="p">],</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">    </span><span class="nt">"custom_models"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">"domain_profile"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">"domains"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">      </span><span class="p">{</span><span class="nt">"domain"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sale"</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Sales"</span><span class="p">,</span><span class="w"> </span><span class="nt">"weight_raw"</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">       </span><span class="nt">"score_proportional"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.63</span><span class="p">,</span><span class="w"> </span><span class="nt">"score_relative"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">       </span><span class="nt">"indicators"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"models_extended"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"methods_override"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}}</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="nt">"pillars"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">      </span><span class="p">{</span><span class="nt">"domain"</span><span class="p">:</span><span class="w"> </span><span class="s2">"product"</span><span class="p">,</span><span class="w"> </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Product"</span><span class="p">,</span><span class="w"> </span><span class="nt">"weight_raw"</span><span class="p">:</span><span class="w"> </span><span class="mf">4.0</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="p">}</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">    </span><span class="nt">"custom_models"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>Scoring weights can be tuned via <code>analyze.domain_weights</code> in <code>.oops.yaml</code>.
 See <a href="../../../reference/core/config/"><code>AnalyzeConfig</code></a> for the full weight list
 and <a href="../../../reference/kb/domains/"><code>kb/domains</code></a> for the domain/pillar
 classification tables.</p>
 <p>Analyse several modules in one invocation:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>plant_orders
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>plant_orders
 </span></code></pre></div>
 <p>Force a KB rebuild before analysing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--refresh
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>analyze<span class="w"> </span>plant_nursery<span class="w"> </span>--refresh
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-compare">oops addons compare<a class="headerlink" href="#oops-addons-compare" title="Permanent link">¶</a></h3>
@@ -3515,7 +3520,7 @@ classification tables.</p>
 <p>Prints addons missing locally (prefixed with -) and extra local addons not in
 the list (prefixed with +). With --delete, extra local symlinks are removed.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops addons compare [OPTIONS] ADDONS_LIST
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops addons compare [OPTIONS] ADDONS_LIST
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3550,13 +3555,13 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Check which addons from a list are missing or extra in the repo root:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>compare<span class="w"> </span><span class="s2">"sale,purchase,account"</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>compare<span class="w"> </span><span class="s2">"sale,purchase,account"</span>
 </span></code></pre></div>
 <p>Remove extra local symlinks not in the provided list:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>compare<span class="w"> </span><span class="s2">"sale,purchase"</span><span class="w"> </span>--delete
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>compare<span class="w"> </span><span class="s2">"sale,purchase"</span><span class="w"> </span>--delete
 </span></code></pre></div>
 <p>Compare against a file and skip the commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>compare<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>addons.txt<span class="k">)</span><span class="s2">"</span><span class="w"> </span>--delete<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>compare<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>addons.txt<span class="k">)</span><span class="s2">"</span><span class="w"> </span>--delete<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-diff">oops addons diff<a class="headerlink" href="#oops-addons-diff" title="Permanent link">¶</a></h3>
@@ -3565,7 +3570,7 @@ the list (prefixed with +). With --delete, extra local symlinks are removed.</p>
 is already at the latest tag. The base can be overridden with --tag, --ref,
 or --commits. With --save, writes a migration script file.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops addons diff [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops addons diff [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3618,19 +3623,19 @@ or --commits. With --save, writes a migration script file.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Show modified addons since the latest tag:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff
 </span></code></pre></div>
 <p>Compare against a specific tag:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--tag<span class="w"> </span>v1.2.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--tag<span class="w"> </span>v1.2.0
 </span></code></pre></div>
 <p>Compare against the last 5 commits:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--commits<span class="w"> </span><span class="m">5</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--commits<span class="w"> </span><span class="m">5</span>
 </span></code></pre></div>
 <p>Write the migration script to <code>migrate.sh</code> and commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--save
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--save
 </span></code></pre></div>
 <p>Write the migration script without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--save<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>diff<span class="w"> </span>--save<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-download">oops addons download<a class="headerlink" href="#oops-addons-download" title="Permanent link">¶</a></h3>
@@ -3638,8 +3643,10 @@ or --commits. With --save, writes a migration script file.</p>
 <p>Clones the repository over SSH (depth=1) into a temporary directory,
 discovers addon directories, and copies them into the current project.
 Downloaded addons are added to .gitignore (unless --no-exclude is passed).</p>
+<p>If no addon names are given, opens an interactive picker over all available
+remote addons. Provide names as positional arguments to skip the picker.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>oops addons download [OPTIONS] URL BRANCH
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>oops addons download [OPTIONS] URL BRANCH [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3653,16 +3660,22 @@ Downloaded addons are added to .gitignore (unless --no-exclude is passed).</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--addons</code></td>
-<td>text</td>
-<td>Comma-separated addon names to copy (copies all if omitted).</td>
-<td>None</td>
+<td><code>--no-exclude</code></td>
+<td>boolean</td>
+<td>Do not add downloaded addons to .gitignore.</td>
+<td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--exclude</code> / <code>--no-exclude</code></td>
+<td><code>--no-commit</code></td>
 <td>boolean</td>
-<td>Add downloaded addons to .gitignore.</td>
-<td><code>True</code></td>
+<td>Do not commit downloaded addons.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply all changes without prompting.</td>
+<td><code>False</code></td>
 </tr>
 <tr>
 <td><code>--help</code></td>
@@ -3674,10 +3687,13 @@ Downloaded addons are added to .gitignore (unless --no-exclude is passed).</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Download all addons from a branch:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>download<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>download<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0
 </span></code></pre></div>
-<p>Download only specific addons:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>download<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--addons<span class="w"> </span>mass_editing
+<p>Download specific addons by name (skips interactive picker):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>download<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>mass_editing
+</span></code></pre></div>
+<p>Download without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>download<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-list">oops addons list<a class="headerlink" href="#oops-addons-list" title="Permanent link">¶</a></h3>
@@ -3685,7 +3701,7 @@ Downloaded addons are added to .gitignore (unless --no-exclude is passed).</p>
 <p>Displays a table with addon name, symlink flag, submodule, upstream branch,
 PR flag, version, and author. Output can be formatted as text, JSON, or CSV.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops addons list [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops addons list [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3744,19 +3760,19 @@ PR flag, version, and author. Output can be formatted as text, JSON, or CSV.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Display the addon table:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list
 </span></code></pre></div>
 <p>Export as JSON for scripting:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>--format<span class="w"> </span>json
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>--format<span class="w"> </span>json
 </span></code></pre></div>
 <p>Limit to a single submodule:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>-n<span class="w"> </span>apikcloud/apik-addons
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>-n<span class="w"> </span>apikcloud/apik-addons
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-manage">oops addons manage<a class="headerlink" href="#oops-addons-manage" title="Permanent link">¶</a></h3>
 <p>Interactively link or unlink addons from submodules at the repo root.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops addons manage [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops addons manage [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3785,10 +3801,10 @@ PR flag, version, and author. Output can be formatted as text, JSON, or CSV.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Open the interactive picker to link or unlink addons:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage
 </span></code></pre></div>
 <p>Apply changes without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-materialize">oops addons materialize<a class="headerlink" href="#oops-addons-materialize" title="Permanent link">¶</a></h3>
@@ -3799,7 +3815,7 @@ processed; real directories are skipped.</p>
 <p>By default all symlinks found at the repository root are processed.
 Use --include to restrict to a subset, or --exclude to skip specific addons.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops addons materialize [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops addons materialize [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3825,15 +3841,15 @@ Use --include to restrict to a subset, or --exclude to skip specific addons.</p>
 <td>None</td>
 </tr>
 <tr>
-<td><code>--dry-run</code></td>
+<td><code>--no-commit</code></td>
 <td>boolean</td>
-<td>Show what would happen, do nothing.</td>
+<td>Do not commit changes.</td>
 <td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--no-commit</code></td>
+<td><code>-f</code>, <code>--force</code></td>
 <td>boolean</td>
-<td>Do not commit changes</td>
+<td>Apply all changes without prompting.</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3845,20 +3861,20 @@ Use --include to restrict to a subset, or --exclude to skip specific addons.</p>
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<p>Preview all symlinks that would be materialized:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--dry-run
+<p>Materialize all symlinks at the repository root (interactive confirmation):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize
 </span></code></pre></div>
-<p>Materialize all symlinks at the repository root:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize
+<p>Apply without confirmation prompt:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Materialize only specific addons:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--include<span class="w"> </span>my_addon,other_addon
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--include<span class="w"> </span>my_addon,other_addon
 </span></code></pre></div>
 <p>Materialize all symlinks except specific ones:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--exclude<span class="w"> </span>legacy_addon
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--exclude<span class="w"> </span>legacy_addon
 </span></code></pre></div>
 <p>Materialize without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-refactor">oops addons refactor<a class="headerlink" href="#oops-addons-refactor" title="Permanent link">¶</a></h3>
@@ -3889,7 +3905,7 @@ per module is produced. Use --no-branch to stay on the current branch and
 <li>It never touches non-model Python files, XML, CSV, or <strong>manifest</strong>.py.</li>
 </ul>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops addons refactor [OPTIONS] MODULE_PATHS...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops addons refactor [OPTIONS] MODULE_PATHS...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3953,22 +3969,22 @@ notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Rewrite a single module on a dedicated <code>refactor/doc-&lt;module&gt;</code> branch with one commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module
 </span></code></pre></div>
 <p>Rewrite several modules in one run (one commit per module on <code>refactor/doc-multi</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>other_module
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>other_module
 </span></code></pre></div>
 <p>Preview the changes without writing any file:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Stay on the current branch and skip the commit (edits are staged):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--no-branch<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--no-branch<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <p>Force a project KB rebuild before running:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--refresh
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--refresh
 </span></code></pre></div>
 <p>Use an external KB database (skips the project-KB freshness check and <code>--refresh</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--kb<span class="w"> </span>/path/to/project_kb.db
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--kb<span class="w"> </span>/path/to/project_kb.db
 </span></code></pre></div>
 
 
@@ -3992,7 +4008,7 @@ notice between releases. The same warning is printed at runtime.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 8, 2026 09:22:38 UTC"><span class="timeago" datetime="2026-06-08T09:22:38+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 8, 2026 09:22:38 UTC">2026-06-08</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 22, 2026 08:47:51 UTC"><span class="timeago" datetime="2026-06-22T08:47:51+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 22, 2026 08:47:51 UTC">2026-06-22</span>
   </span>
 
     

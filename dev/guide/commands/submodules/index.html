@@ -3193,7 +3193,7 @@
             <td><code><span title="oops.commands.submodules.add">add</span></code></td>
             <td>
               <div class="doc-md-description">
-                <p>Add a git submodule and optionally create symlinks for its addons.</p>
+                <p>Add a git submodule and create symlinks for selected addons.</p>
               </div>
             </td>
           </tr>
@@ -3225,7 +3225,7 @@
             <td><code><span title="oops.commands.submodules.fix">fix</span></code></td>
             <td>
               <div class="doc-md-description">
-                <p>Fix common submodule issues detected by oops-sub-check.</p>
+                <p>Fix common submodule issues detected by submodules check.</p>
               </div>
             </td>
           </tr>
@@ -3325,10 +3325,12 @@
 
 </div><hr>
 <h3 id="oops-submodules-add">oops submodules add<a class="headerlink" href="#oops-submodules-add" title="Permanent link">¶</a></h3>
-<p>Add a git submodule and optionally create symlinks for its addons.</p>
-<p>Clones the repository as a submodule under the base directory (default:
-.third-party), records the tracked branch, and optionally creates symlinks at
-the repo root for every addon found or for a specific list.</p>
+<p>Add a git submodule and create symlinks for selected addons.</p>
+<p>Queries the target repository via the GitHub Trees API to list its addon
+directories (folders containing <strong>manifest</strong>.py or <strong>openerp</strong>.py), then
+prompts for which addons to symlink at the repo root.</p>
+<p>Usage:
+    oops submodules add URL BRANCH [--pull-request][--addons a,b] [--token TOKEN]</p>
 <p><strong>Usage:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops submodules add [OPTIONS] URL BRANCH
 </span></code></pre></div>
@@ -3344,46 +3346,34 @@ the repo root for every addon found or for a specific list.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>-y</code>, <code>--yes</code></td>
+<td><code>--addons</code></td>
+<td>text</td>
+<td>Comma-separated addon names to symlink (skips interactive prompt)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--no-commit</code></td>
 <td>boolean</td>
-<td>Skip confirmation prompt</td>
+<td>Stage changes but do not commit</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply without prompting, symlink all addons</td>
 <td><code>False</code></td>
 </tr>
 <tr>
 <td><code>--pull-request</code></td>
 <td>boolean</td>
-<td>Indicates that the submodule is a pull request (affects naming and path)</td>
+<td>Treat as a pull-request submodule</td>
 <td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--dry-run</code></td>
-<td>boolean</td>
-<td>Show planned actions only, make no changes</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--no-commit</code></td>
-<td>boolean</td>
-<td>Stage changes but do not commit automatically</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--addons</code></td>
+<td><code>--token</code></td>
 <td>text</td>
-<td>Comma-separated list of addon names for which to create symlinks</td>
-<td>None</td>
-</tr>
-<tr>
-<td><code>--auto-symlinks</code></td>
-<td>boolean</td>
-<td>Auto-create symlinks at repo root for each addon folder detected in the submodule</td>
-<td><code>False</code></td>
-</tr>
-<tr>
-<td><code>--base-dir</code></td>
-<td>text</td>
-<td>Base dir for submodules (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7f2801f480e0&gt;</code></td>
+<td>GitHub token for API access (or set GH_TOKEN / GITHUB_TOKEN).</td>
+<td>_required</td>
 </tr>
 <tr>
 <td><code>--help</code></td>
@@ -3394,22 +3384,32 @@ the repo root for every addon found or for a specific list.</p>
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<p>Add a submodule and create symlinks for all its addons automatically:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>add<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--auto-symlinks
+<p>Add a submodule and interactively pick which addons to symlink:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>add<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0
 </span></code></pre></div>
-<p>Add a submodule and symlink only specific addons:</p>
+<p>Add a submodule and symlink only specific addons (non-interactive):</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>add<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--addons<span class="w"> </span>mass_editing,web_notify
 </span></code></pre></div>
-<p>Preview planned actions without touching the repository:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>add<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--dry-run
+<p>Add and symlink all addons without prompting:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>add<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--force
+</span></code></pre></div>
+<p>Add as a pull-request submodule:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>add<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--pull-request
+</span></code></pre></div>
+<p>Stage changes without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>add<span class="w"> </span>https://github.com/OCA/server-ux.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-branch">oops submodules branch<a class="headerlink" href="#oops-submodules-branch" title="Permanent link">¶</a></h3>
 <p>Detect and fix submodules missing a branch in .gitmodules.</p>
-<p>Iterates over all submodules, finds those without a branch entry, and either
-prompts interactively or applies the default branch provided via --branch.</p>
+<p>Iterates over all submodules, finds those without a branch entry, and sets the
+specified branch (or the project's major Odoo version if not given).</p>
+<p>Usage:
+    oops submodules branch [NAMES...][BRANCH]</p>
+<p>If BRANCH is omitted it is read from the project's odoo_version.txt.
+If NAMES are omitted an interactive selection menu is shown.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops submodules branch [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops submodules branch [OPTIONS] [NAMES]... [BRANCH]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3423,21 +3423,21 @@ prompts interactively or applies the default branch provided via --branch.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--branch</code></td>
-<td>text</td>
-<td>Branch name to set for submodules missing branch in .gitmodules</td>
-<td>None</td>
-</tr>
-<tr>
 <td><code>--skip-pr</code></td>
 <td>boolean</td>
-<td>Do not ask for submodules that look like pull request paths</td>
+<td>Skip submodules that are pull requests</td>
 <td><code>False</code></td>
 </tr>
 <tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
 <td>Do not commit automatically at the end</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply all changes without prompting</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3449,11 +3449,20 @@ prompts interactively or applies the default branch provided via --branch.</p>
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<p>Set a default branch for all submodules missing one:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>branch<span class="w"> </span>--branch<span class="w"> </span><span class="m">18</span>.0
+<p>Set a default branch for all submodules missing one (branch auto-detected from odoo_version.txt):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>branch
 </span></code></pre></div>
-<p>Skip pull-request submodules during the fix:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>branch<span class="w"> </span>--branch<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--skip-pr
+<p>Set a specific branch explicitly:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>branch<span class="w"> </span><span class="m">18</span>.0
+</span></code></pre></div>
+<p>Skip pull-request submodules:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>branch<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--skip-pr
+</span></code></pre></div>
+<p>Apply without confirmation prompt:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>branch<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--force
+</span></code></pre></div>
+<p>Set branch without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>branch<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-check">oops submodules check<a class="headerlink" href="#oops-submodules-check" title="Permanent link">¶</a></h3>
@@ -3463,7 +3472,7 @@ references, unused submodules (no symlink points to them), broken symlinks,
 and pull-request submodules not under the configured PR directory.
 Exits non-zero if any issue is found.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops submodules check [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops submodules check [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3504,7 +3513,7 @@ Exits non-zero if any issue is found.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Run all configured checks and report issues:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>check
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>check
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-clean">oops submodules clean<a class="headerlink" href="#oops-submodules-clean" title="Permanent link">¶</a></h3>
@@ -3514,7 +3523,7 @@ the last 20 commits, and (3) a final confirmation. Then hard-resets HEAD to
 the chosen commit, wipes every configured submodule base directory, and
 re-runs <code>git submodule update --init --recursive</code>.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops submodules clean [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops submodules clean [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3537,20 +3546,20 @@ re-runs <code>git submodule update --init --recursive</code>.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Launch the interactive cleanup (picks a reset target, then wipes and re-inits):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>clean
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>clean
 </span></code></pre></div>
 <p>Same command, via the alias:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops-i-did-it-again
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops-i-did-it-again
 </span></code></pre></div>
 <p>This command is fully interactive. Cancel any prompt to abort without changes.</p>
 <hr>
 <h3 id="oops-submodules-fix">oops submodules fix<a class="headerlink" href="#oops-submodules-fix" title="Permanent link">¶</a></h3>
-<p>Fix common submodule issues detected by oops-sub-check.</p>
+<p>Fix common submodule issues detected by submodules check.</p>
 <p>Normalises submodule URLs to the configured scheme (e.g. SSH).
 Deprecated repository replacements are reported but not applied
-automatically — use <code>oops-sub-replace</code> for those.</p>
+automatically — use <code>oops submodules replace</code> for those.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops submodules fix [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops submodules fix [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3564,15 +3573,15 @@ automatically — use <code>oops-sub-replace</code> for those.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--dry-run</code></td>
-<td>boolean</td>
-<td>Show planned changes only.</td>
-<td><code>False</code></td>
-</tr>
-<tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
 <td>Do not commit automatically at the end.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply all changes without prompting.</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3585,13 +3594,13 @@ automatically — use <code>oops-sub-replace</code> for those.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Preview what would be fixed without applying changes:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>fix<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>fix<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Fix issues and commit the result:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>fix
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>fix
 </span></code></pre></div>
 <p>Fix without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>fix<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>fix<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-init">oops submodules init<a class="headerlink" href="#oops-submodules-init" title="Permanent link">¶</a></h3>
@@ -3600,7 +3609,7 @@ automatically — use <code>oops-sub-replace</code> for those.</p>
 any unregistered submodules and checking out the recorded commits in
 parallel across N worker jobs.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops submodules init [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>oops submodules init [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3629,10 +3638,10 @@ parallel across N worker jobs.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Initialize all submodules with the default 4 parallel jobs:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>init
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>init
 </span></code></pre></div>
 <p>Speed up initialization on a large project:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>init<span class="w"> </span>--jobs<span class="w"> </span><span class="m">8</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>init<span class="w"> </span>--jobs<span class="w"> </span><span class="m">8</span>
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-prune">oops submodules prune<a class="headerlink" href="#oops-submodules-prune" title="Permanent link">¶</a></h3>
@@ -3640,8 +3649,10 @@ parallel across N worker jobs.</p>
 <p>Iterates over all submodules, checks whether any symlink in the repository
 points to the submodule path, and removes those that are unused. Specific
 submodules can be targeted by passing their names as arguments.</p>
+<p>When called without arguments, displays an interactive selection menu of
+unused submodules.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops submodules prune [OPTIONS] [NAMES]...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops submodules prune [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3661,9 +3672,9 @@ submodules can be targeted by passing their names as arguments.</p>
 <td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--dry-run</code></td>
+<td><code>-f</code>, <code>--force</code></td>
 <td>boolean</td>
-<td>Show planned changes only</td>
+<td>Apply all changes without prompting</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3675,11 +3686,14 @@ submodules can be targeted by passing their names as arguments.</p>
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<p>Preview which submodules would be removed:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>prune<span class="w"> </span>--dry-run
+<p>Remove unused submodules (interactive confirmation):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>prune
 </span></code></pre></div>
-<p>Remove unused submodules and commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>prune
+<p>Apply without confirmation prompt:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>prune<span class="w"> </span>--force
+</span></code></pre></div>
+<p>Remove without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>prune<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-rename">oops submodules rename<a class="headerlink" href="#oops-submodules-rename" title="Permanent link">¶</a></h3>
@@ -3688,7 +3702,7 @@ submodules can be targeted by passing their names as arguments.</p>
 differs. Displays a plan and prompts for confirmation before applying unless
 --force is passed. Specific submodules can be targeted by name.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>oops submodules rename [OPTIONS] [NAMES]...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops submodules rename [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3723,27 +3737,26 @@ differs. Displays a plan and prompts for confirmation before applying unless
 </table>
 <p><strong>Examples:</strong></p>
 <p>Interactively select which submodules to rename (shows the plan before applying):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename
 </span></code></pre></div>
 <p>Rename all submodules without prompting:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Rename specific submodules by name:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename<span class="w"> </span>OCA/server-ux<span class="w"> </span>OCA/server-tools
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename<span class="w"> </span>OCA/server-ux<span class="w"> </span>OCA/server-tools
 </span></code></pre></div>
 <p>Rename without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rename<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-remove">oops submodules remove<a class="headerlink" href="#oops-submodules-remove" title="Permanent link">¶</a></h3>
 <p>Remove one or more submodules and their associated symlinks.</p>
-<p>When called without arguments, displays an indexed menu of all submodules.
-Enter the index numbers (comma-separated) to select which to remove.
+<p>When called without arguments, displays an interactive selection menu.
 Submodule names can also be passed directly as arguments.</p>
 <p>Associated symlinks pointing into the removed submodule paths are removed
-automatically. Prompts for confirmation before applying any changes.</p>
+automatically. Displays a plan and prompts for confirmation before applying.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>oops submodules remove [OPTIONS] [NAMES]...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops submodules remove [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3757,21 +3770,15 @@ automatically. Prompts for confirmation before applying any changes.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--dry-run</code></td>
-<td>boolean</td>
-<td>Show planned changes only</td>
-<td><code>False</code></td>
-</tr>
-<tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
 <td>Do not commit changes</td>
 <td><code>False</code></td>
 </tr>
 <tr>
-<td><code>--force</code></td>
+<td><code>-f</code>, <code>--force</code></td>
 <td>boolean</td>
-<td>Skip confirmation prompt</td>
+<td>Apply all changes without prompting</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3784,24 +3791,25 @@ automatically. Prompts for confirmation before applying any changes.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Select submodules to remove from an interactive indexed menu:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove
 </span></code></pre></div>
 <p>Remove a specific submodule by name:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove<span class="w"> </span>OCA/server-ux
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove<span class="w"> </span>OCA/server-ux
 </span></code></pre></div>
-<p>Preview what would be removed without making changes:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove<span class="w"> </span>--dry-run
+<p>Apply without confirmation prompt:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove<span class="w"> </span>OCA/server-ux<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Remove without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove<span class="w"> </span>OCA/server-ux<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>remove<span class="w"> </span>OCA/server-ux<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-replace">oops submodules replace<a class="headerlink" href="#oops-submodules-replace" title="Permanent link">¶</a></h3>
 <p>Replace one or more submodules with a new repository.</p>
 <p>Removes the named submodules, adds the new repository as a submodule, and
 rewrites any symlinks that pointed to the old paths to point to the new one.</p>
+<p>When called without submodule names, displays an interactive selection menu.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops submodules replace [OPTIONS] [NAMES]... URL BRANCH
+<div class="language-text highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops submodules replace [OPTIONS] [NAMES]... URL BRANCH
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3815,15 +3823,15 @@ rewrites any symlinks that pointed to the old paths to point to the new one.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--dry-run</code></td>
-<td>boolean</td>
-<td>Show planned changes only</td>
-<td><code>False</code></td>
-</tr>
-<tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
 <td>Do not commit changes</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply all changes without prompting</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3835,11 +3843,14 @@ rewrites any symlinks that pointed to the old paths to point to the new one.</p>
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<p>Replace a submodule with a new repository:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0
+<p>Replace a submodule with a new repository (interactive confirmation):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0
 </span></code></pre></div>
-<p>Preview the replacement without making changes:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--dry-run
+<p>Apply without confirmation prompt:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--force
+</span></code></pre></div>
+<p>Replace without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>replace<span class="w"> </span>OCA/old-repo<span class="w"> </span>https://github.com/OCA/new-repo.git<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-rewrite">oops submodules rewrite<a class="headerlink" href="#oops-submodules-rewrite" title="Permanent link">¶</a></h3>
@@ -3848,7 +3859,7 @@ rewrites any symlinks that pointed to the old paths to point to the new one.</p>
 .third-party), moves the submodule, and rewrites all symlinks that referenced
 the old path. Prompts for confirmation unless --force is used.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops submodules rewrite [OPTIONS] [NAMES]...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>oops submodules rewrite [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3865,7 +3876,7 @@ the old path. Prompts for confirmation unless --force is used.</p>
 <td><code>--base-dir</code></td>
 <td>text</td>
 <td>Base directory for rewritten paths (default: .third-party)</td>
-<td><code>&lt;function &lt;lambda&gt; at 0x7f2801e3c0e0&gt;</code></td>
+<td><code>&lt;function &lt;lambda&gt; at 0x7f3fe7ae2200&gt;</code></td>
 </tr>
 <tr>
 <td><code>-f</code>, <code>--force</code></td>
@@ -3889,13 +3900,13 @@ the old path. Prompts for confirmation unless --force is used.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Interactively select which submodules to rewrite (shows the plan before applying):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rewrite
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rewrite
 </span></code></pre></div>
 <p>Rewrite all paths non-interactively:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rewrite<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rewrite<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Rewrite to a custom base directory without prompting:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rewrite<span class="w"> </span>--base-dir<span class="w"> </span>.third-party<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>rewrite<span class="w"> </span>--base-dir<span class="w"> </span>.third-party<span class="w"> </span>--force
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-show">oops submodules show<a class="headerlink" href="#oops-submodules-show" title="Permanent link">¶</a></h3>
@@ -3904,7 +3915,7 @@ the old path. Prompts for confirmation unless --force is used.</p>
 commit age, and SHA for each submodule. Filter to PR-only submodules
 with --pull-request.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops submodules show [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>oops submodules show [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3945,19 +3956,21 @@ with --pull-request.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Show all submodules with their last commit info:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>show
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>show
 </span></code></pre></div>
 <p>Show only pull-request submodules:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>show<span class="w"> </span>--pull-request
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>show<span class="w"> </span>--pull-request
 </span></code></pre></div>
 <hr>
 <h3 id="oops-submodules-update">oops submodules update<a class="headerlink" href="#oops-submodules-update" title="Permanent link">¶</a></h3>
 <p>Fetch and pull submodules to their latest upstream commit.</p>
 <p>For each submodule with a configured branch, fetches from origin, checks out
 the branch, and pulls the latest commits. Specific submodules can be targeted
-by name; PR submodules can be skipped with --skip-pr.</p>
+by name; PR submodules can be filtered with --skip-pr or --only-pr.</p>
+<p>When called without arguments or PR filters, displays an interactive selection
+menu.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>oops submodules update [OPTIONS] [NAMES]...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>oops submodules update [OPTIONS] [NAMES]...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3971,15 +3984,15 @@ by name; PR submodules can be skipped with --skip-pr.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--dry-run</code></td>
-<td>boolean</td>
-<td>Show planned changes only</td>
-<td><code>False</code></td>
-</tr>
-<tr>
 <td><code>--no-commit</code></td>
 <td>boolean</td>
 <td>Do not commit changes</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply all changes without prompting</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -3991,7 +4004,7 @@ by name; PR submodules can be skipped with --skip-pr.</p>
 <tr>
 <td><code>--only-pr</code></td>
 <td>boolean</td>
-<td>Skip submodules that are not pull requests</td>
+<td>Only update submodules that are pull requests</td>
 <td><code>False</code></td>
 </tr>
 <tr>
@@ -4004,13 +4017,22 @@ by name; PR submodules can be skipped with --skip-pr.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Update all submodules to their latest upstream commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-50-1"><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update
 </span></code></pre></div>
 <p>Update a single submodule by name:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update<span class="w"> </span>apikcloud/apik-addons
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-51-1"><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update<span class="w"> </span>apikcloud/apik-addons
+</span></code></pre></div>
+<p>Apply without confirmation prompt:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-52-1"><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Skip pull-request submodules:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update<span class="w"> </span>--skip-pr
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-53-1"><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update<span class="w"> </span>--skip-pr
+</span></code></pre></div>
+<p>Update only pull-request submodules:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-54-1"><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update<span class="w"> </span>--only-pr
+</span></code></pre></div>
+<p>Update without committing:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-55-1"><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>oops<span class="w"> </span>submodules<span class="w"> </span>update<span class="w"> </span>--no-commit
 </span></code></pre></div>
 
 
@@ -4034,7 +4056,7 @@ by name; PR submodules can be skipped with --skip-pr.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 21, 2026 10:32:56 UTC"><span class="timeago" datetime="2026-06-21T10:32:56+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 21, 2026 10:32:56 UTC">2026-06-21</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 22, 2026 08:47:51 UTC"><span class="timeago" datetime="2026-06-22T08:47:51+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 22, 2026 08:47:51 UTC">2026-06-22</span>
   </span>
 
     
