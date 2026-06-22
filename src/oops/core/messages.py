@@ -12,6 +12,7 @@ class CommitMessages:
     addons_new: str = "chore: new addons"
     addons_remove: str = "chore: remove addons"
     addons_ignored: str = "chore: ignored addons"
+    addons_download: str = "chore: download addon(s)\n\n{names}"
     addons_materialize: str = "chore: materialize addon(s)\n\n{names}"
     addons_update_table: str = "chore(README): update addons table"
     addons_synchronize: str = (

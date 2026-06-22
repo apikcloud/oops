@@ -251,10 +251,16 @@ Download all addons from a branch:
 oops addons download https://github.com/OCA/server-ux.git 18.0
 ```
 
-Download only specific addons:
+Download specific addons by name (skips interactive picker):
 
 ```bash
-oops addons download https://github.com/OCA/server-ux.git 18.0 --addons mass_editing
+oops addons download https://github.com/OCA/server-ux.git 18.0 mass_editing
+```
+
+Download without committing:
+
+```bash
+oops addons download https://github.com/OCA/server-ux.git 18.0 --no-commit
 ```
 
 ---
