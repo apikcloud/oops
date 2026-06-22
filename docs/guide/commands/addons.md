@@ -16,10 +16,22 @@
 
 **Examples:**
 
-Add `mass_editing` and `web_notify` from any tracked submodule:
+Open an interactive picker over all available (not yet linked) addons:
 
 ```bash
-oops addons add mass_editing,web_notify
+oops addons add
+```
+
+Link specific addons by name (no picker):
+
+```bash
+oops addons add mass_editing web_notify
+```
+
+Link specific addons without confirmation prompt:
+
+```bash
+oops addons add mass_editing web_notify --force
 ```
 
 Stage the symlinks without committing:
