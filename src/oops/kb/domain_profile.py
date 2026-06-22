@@ -15,8 +15,7 @@ Public entry point:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
-
+from oops.core.compat import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from oops.kb.domains import EXCLUDED_TECHNICAL_MODULES, PILLAR_MODULES, domain_label
 
 if TYPE_CHECKING:
@@ -142,7 +141,7 @@ def _resolve_new_model_domain(ci: Any, kb: "KBReader") -> Tuple[str, Optional[st
 # ---------------------------------------------------------------------------
 
 
-def compute_domain_profile(
+def compute_domain_profile(  # noqa: C901
     summary: "ModuleSummary",
     kb: "KBReader",
     weights: Dict[str, float],
@@ -204,7 +203,7 @@ def compute_domain_profile(
                 ind["models_extended"] += 1
 
         # fields
-        ind["fields_new"] += (cs.fields_base if is_new else cs.fields_new)
+        ind["fields_new"] += cs.fields_base if is_new else cs.fields_new
         ind["fields_override"] += cs.fields_inherited
 
         # methods
@@ -247,9 +246,7 @@ def compute_domain_profile(
 
     # LOC normalisation: divide each anchor's raw loc by max across all anchors.
     max_loc = max(d["loc"] for d in anchors.values()) or 1
-    loc_normalized: Dict[str, float] = {
-        a: d["loc"] / max_loc for a, d in anchors.items()
-    }
+    loc_normalized: Dict[str, float] = {a: d["loc"] / max_loc for a, d in anchors.items()}
 
     # Scoring
     def _weight_raw(a: str) -> float:

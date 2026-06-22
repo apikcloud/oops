@@ -16,9 +16,8 @@ Sections:
 import ast
 import json
 from pathlib import Path
-from typing import Set
 
-from oops.core.compat import Any, Dict, Iterable, List, Optional, Tuple, Union
+from oops.core.compat import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 from oops.core.config import config
 from oops.core.logger import log
 from oops.core.models import Result
@@ -326,12 +325,7 @@ def _unparse(node: ast.AST) -> Optional[str]:
 
 def _translation_wrapped(node: ast.expr) -> Optional[ast.expr]:
     """If ``node`` is a ``_("literal")`` translation call, return its first arg."""
-    if (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "_"
-        and len(node.args) >= 1
-    ):
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_" and len(node.args) >= 1:
         return node.args[0]
     return None
 
@@ -689,9 +683,20 @@ def _make_attrs_json(stmt: ast.stmt) -> Optional[str]:
         return None
     attrs: Dict[str, Any] = {}
     for key in (
-        "type", "label", "help", "required", "readonly", "store",
-        "comodel", "inverse_name", "relation", "compute", "related",
-        "default", "selection", "dynamic",
+        "type",
+        "label",
+        "help",
+        "required",
+        "readonly",
+        "store",
+        "comodel",
+        "inverse_name",
+        "relation",
+        "compute",
+        "related",
+        "default",
+        "selection",
+        "dynamic",
     ):
         if details.get(key) is not None:
             attrs[key] = details[key]

@@ -12,10 +12,9 @@ docstring skeletons. Pure file-I/O — no git, no CLI."""
 import ast
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Union
 
 import libcst as cst
-from oops.core.compat import Any, Dict, List, Optional, Tuple
+from oops.core.compat import Any, Dict, List, Optional, Tuple, Union
 from oops.core.logger import log
 from oops.kb.resolve import (
     format_source_line,

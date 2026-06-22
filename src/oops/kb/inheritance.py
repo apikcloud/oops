@@ -9,15 +9,28 @@ build_class_chain  → ordered class list per _name
 compute_mro        → C3 MRO
 merge_fields       → attribute-level field merge
 """
+
 from __future__ import annotations
 
 import json
-from typing import Any
+
+from oops.core.compat import Any
 
 _MERGE_ATTRS = [
-    "string", "required", "readonly", "compute", "related",
-    "selection", "default", "help", "store", "comodel",
-    "inverse_name", "relation", "depends", "domain",
+    "string",
+    "required",
+    "readonly",
+    "compute",
+    "related",
+    "selection",
+    "default",
+    "help",
+    "store",
+    "comodel",
+    "inverse_name",
+    "relation",
+    "depends",
+    "domain",
 ]
 
 
@@ -44,10 +57,12 @@ def build_class_chain(
             r["load_index"] = load_order.get(r["module"], (None, None))[1]
         r["inherit"] = json.loads(r["inherit_json"])
         r["inherits"] = json.loads(r["inherits_json"])
-    records.sort(key=lambda r: (
-        r["load_index"] if r["load_index"] is not None else 10 ** 9,
-        r["import_index"] if r["import_index"] is not None else 10 ** 9,
-    ))
+    records.sort(
+        key=lambda r: (
+            r["load_index"] if r["load_index"] is not None else 10**9,
+            r["import_index"] if r["import_index"] is not None else 10**9,
+        )
+    )
     return records
 
 
@@ -162,7 +177,7 @@ def _dyn_load_idx(module: str, load_order: dict[str, Any] | None, stored: Any) -
     """Resolve the effective load index for sorting, preferring dynamic load_order."""
     if load_order:
         entry = load_order.get(module)
-        return entry[1] if entry is not None else 10 ** 9
+        return entry[1] if entry is not None else 10**9
     return stored or 0
 
 
@@ -214,10 +229,12 @@ def merge_methods(
             continue
 
         # Sort most-derived first, using dynamic load_order when available.
-        layers.sort(key=lambda r: (
-            -_dyn_load_idx(r["module"], load_order, r["load_index"]),
-            -(r["import_index"] or 0),
-        ))
+        layers.sort(
+            key=lambda r: (
+                -_dyn_load_idx(r["module"], load_order, r["load_index"]),
+                -(r["import_index"] or 0),
+            )
+        )
 
         # Walk top→down computing reachability and is_override.
         # Layer N is reachable iff every layer 0..N-1 called super().
@@ -226,17 +243,17 @@ def merge_methods(
         stack: list[dict[str, Any]] = []
         reachable = True
         for i, layer in enumerate(layers):
-            is_root = (i == n - 1)
+            is_root = i == n - 1
             entry = {
-                "module":          layer["module"],
-                "origin":          layer["origin"],
-                "source_file":     layer["source_file"],
-                "source_line":     layer["source_line"],
+                "module": layer["module"],
+                "origin": layer["origin"],
+                "source_file": layer["source_file"],
+                "source_line": layer["source_line"],
                 "source_end_line": layer["source_end_line"],
-                "section":         layer["section"],
-                "has_super":       bool(layer["has_super"]) if layer["has_super"] is not None else None,
-                "reachable":       reachable,
-                "is_override":     not is_root and layer["has_super"] is not None and not layer["has_super"],
+                "section": layer["section"],
+                "has_super": bool(layer["has_super"]) if layer["has_super"] is not None else None,
+                "reachable": reachable,
+                "is_override": not is_root and layer["has_super"] is not None and not layer["has_super"],
             }
             stack.append(entry)
             # If this layer does not forward via super(), subsequent layers are unreachable.
@@ -283,10 +300,12 @@ def merge_fields(
     for fname in field_names:
         attrs_per_layer = reader.get_field_attrs(model, fname)
         # Most-derived (highest load_index) first, using dynamic load_order when available.
-        attrs_per_layer.sort(key=lambda r: (
-            -_dyn_load_idx(r["module"], load_order, r["load_index"]),
-            -(r["import_index"] or 0),
-        ))
+        attrs_per_layer.sort(
+            key=lambda r: (
+                -_dyn_load_idx(r["module"], load_order, r["load_index"]),
+                -(r["import_index"] or 0),
+            )
+        )
 
         merged_attrs: dict[str, Any] = {}
         sources: dict[str, Any] = {}

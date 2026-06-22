@@ -7,9 +7,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Literal
 
-from oops.core.compat import Generic, Optional, TypeVar
+from oops.core.compat import Generic, Literal, Optional, TypeVar
 from oops.core.metadata import Metadata
 from oops.core.models import HasStatus, Result
 from oops.output.layout import Layout, Output
@@ -18,10 +17,14 @@ D = TypeVar("D")  # data type for the simple case
 T = TypeVar("T", bound=HasStatus)  # anything with ok/warnings/errors
 
 
+Audience = Literal["human", "machine"]
+Verbosity = Literal["full", "summary"]
+
+
 @dataclass
 class RenderTarget:
-    audience: Literal["human", "machine"]
-    verbosity: Literal["full", "summary"] = "full"
+    audience: Audience
+    verbosity: Verbosity = "full"
 
 
 class OutputFormatter(ABC):

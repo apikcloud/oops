@@ -82,11 +82,11 @@ node wins (``ManifestKeyOrder``). The inner fix is applied cleanly on the next
 """
 
 import re
-from typing import Any, List, Optional, Tuple  # noqa: UP035
 
 import libcst as cst
 import libcst.matchers as m
 from fixit import LintRule
+from oops.core.compat import Any, List, Optional, Tuple  # noqa: UP035
 from oops.core.config import ManifestConfig
 from oops.rules._helpers import (
     VERSION_PATTERN,

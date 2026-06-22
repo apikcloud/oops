@@ -31,9 +31,9 @@ import ast
 import subprocess
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union  # noqa: UP035
 
 import libcst as cst
+from oops.core.compat import Any, List, Optional, Sequence, Tuple, Union  # noqa: UP035
 from oops.core.config import ManifestConfig
 
 # ---------------------------------------------------------------------------
@@ -202,6 +202,7 @@ def _find_manifest_rel(addon_dir: Path, repo_root: Path) -> Optional[str]:
     """Return the repo-relative path to the manifest inside *addon_dir*, or None."""
     try:
         from oops.core.config import config as _cfg  # noqa: PLC0415
+
         names = _cfg.manifest_names
     except Exception:
         names = ["__manifest__.py", "__openerp__.py"]
@@ -216,6 +217,7 @@ def _addon_root_of(path: Path, repo_root: Path) -> Optional[Path]:
     """Walk *path* upward until a directory that contains a manifest is found."""
     try:
         from oops.core.config import config as _cfg  # noqa: PLC0415
+
         names = _cfg.manifest_names
     except Exception:
         names = ["__manifest__.py", "__openerp__.py"]

@@ -23,11 +23,10 @@ import shutil
 from collections.abc import Generator
 from os import PathLike
 from pathlib import Path
-from typing import NamedTuple
 
 import click
 from git.repo import Repo
-from oops.core.compat import List, Optional, Tuple, Union
+from oops.core.compat import List, NamedTuple, Optional, Tuple, Union
 from oops.core.config import config
 from oops.core.exceptions import ConfigError, OopsError
 from oops.core.logger import log

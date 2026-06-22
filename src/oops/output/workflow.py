@@ -12,9 +12,7 @@ side effects (commit) and final rendering afterwards.
 
 from __future__ import annotations
 
-from typing import Callable, Optional
-
-from oops.core.compat import Tuple
+from oops.core.compat import Callable, Optional, Tuple
 from oops.core.exceptions import AppAbort, EarlyExit
 from oops.core.models import Plan, PlanAction, Result, Rows
 from oops.output.helper import render_plan
@@ -28,7 +26,7 @@ DEFAULT_STATUS_COLUMNS: list[tuple[str, str, str]] = [
 
 # Signature of the per-action executor supplied by each command.
 # Returns (status_label, ok).
-ApplyFn = Callable[["PlanAction"], Tuple[str, bool]]
+ApplyFn = Callable[[PlanAction], Tuple[str, bool]]
 
 # Hook called once the selection is known, before presentation/confirmation.
 # Lets a command resolve state derived from the selection (e.g. naming that
