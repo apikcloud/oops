@@ -418,6 +418,7 @@ def _pr_data(head_repo=_MISSING):
     return {
         "number": 42,
         "state": "open",
+        "merged_at": None,
         "title": "My PR",
         "html_url": "https://github.com/OCA/myrepo/pull/42",
         "head": {

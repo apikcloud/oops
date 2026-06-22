@@ -85,3 +85,38 @@ Save JSON output to a file:
 ```bash
 oops pr show --format json --output-path prs.json
 ```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.pr.explore
+    :command: main
+    :prog_name: oops pr explore
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+List OCA migration PRs for the current project's Odoo version:
+
+```bash
+oops pr explore OCA/account
+```
+
+List all open PRs (disable the default filter):
+
+```bash
+oops pr explore OCA/account --filter ""
+```
+
+Filter by an arbitrary title substring as JSON:
+
+```bash
+oops pr explore OCA/account --filter sale --format json
+```
+
+Target a specific Odoo version explicitly (outside a project):
+
+```bash
+oops pr explore OCA/account --version 17.0
+```

@@ -248,6 +248,34 @@ def get_pull_request(owner: str, repo: str, number: int, token: str) -> PullRequ
     return PullRequest.from_dict(data["base"]["repo"]["full_name"], data)
 
 
+def list_pull_requests(
+    owner: str, repo: str, token: "Optional[str]" = None, state: str = "open"
+) -> "List[PullRequest]":
+    """List pull requests for a repository, following pagination.
+
+    Args:
+        owner: Repository owner (user or organisation).
+        repo: Repository name.
+        token: GitHub personal access token, or None for public repos.
+        state: One of "open", "closed", "all".
+
+    Returns:
+        All pull requests across every page of the list endpoint.
+    """
+    upstream = f"{owner}/{repo}"
+    headers = _get_headers(token)
+    url: "Optional[str]" = _get_api_url(owner, repo, f"pulls?state={state}&per_page=100")
+
+    prs: "List[PullRequest]" = []
+    while url:
+        r = requests.get(url, headers=headers, timeout=config.default_timeout)
+        r.raise_for_status()
+        prs.extend(PullRequest.from_dict(upstream, item) for item in r.json())
+        url = r.links.get("next", {}).get("url")
+
+    return prs
+
+
 def find_pull_requests(owner: str, repo: str, branch: str, token: str) -> "Optional[List[PullRequest]]":
     session = requests.Session()
     session.headers.update(

@@ -511,11 +511,13 @@ class PullRequest:
     head_ref: Optional[str] = None
     head_owner: Optional[str] = None
     head_repo: Optional[str] = None
+    author: Optional[str] = None
 
     @classmethod
     def from_dict(cls, upstream: str, data: dict) -> "PullRequest":
         head = data["head"]
         head_repo = head.get("repo") or {}
+        user = data.get("user") or {}
 
         # labels = ", ".join([item["name"] for item in data.get("labels", []) if item["default"]])
         state = "merged" if bool(data["merged_at"]) else data["state"]
@@ -532,6 +534,7 @@ class PullRequest:
             head_ref=head.get("ref"),
             head_owner=(head_repo.get("owner") or {}).get("login"),
             head_repo=head_repo.get("name"),
+            author=user.get("login"),
         )
 
 
