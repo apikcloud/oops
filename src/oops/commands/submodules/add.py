@@ -145,6 +145,8 @@ def add_submodule_flow(  # noqa: PLR0913, C901
         sub_action.new = branch
         sub_action.detail = sub_path_str
 
+    link_count = [0]
+
     def apply(action: PlanAction) -> Tuple[str, bool]:
         if action.data.get("is_submodule"):
             ensure_parent(ctx["path"])
@@ -163,6 +165,7 @@ def add_submodule_flow(  # noqa: PLR0913, C901
         link_name = create_symlink(addon_dir, repo_path)
         if link_name:
             repo.index.add([str(repo_path / link_name)])
+            link_count[0] += 1
             return colorize("linked", "green"), True
         return colorize("skipped (exists)", "yellow"), False
 
@@ -179,8 +182,7 @@ def add_submodule_flow(  # noqa: PLR0913, C901
         empty_message="Nothing to do.",
     )
 
-    # Count only symlinks (exclude the submodule action from the link tally).
-    linked = sum(1 for row in (result.data.rows if result.data else []) if "linked" in str(row[1]))
+    linked = link_count[0]
 
     if not no_commit:
         commit_kwargs = {

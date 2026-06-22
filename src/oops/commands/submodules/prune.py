@@ -81,6 +81,7 @@ def main(no_commit: bool, force: bool, names: Tuple[str, ...]):
         outer=outer,
         title="Pruned",
         force=force,
+        select=not names,
         select_prompt="Select submodule(s) to prune: ",
         empty_message="No unused submodules detected.",
     )

@@ -90,6 +90,7 @@ def main(
         outer=outer,
         title="Replacements",
         force=force,
+        select=not names,
         select_prompt="Select submodule(s) to replace: ",
         empty_message="Nothing to replace.",
     )

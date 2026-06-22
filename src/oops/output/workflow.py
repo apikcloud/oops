@@ -91,10 +91,11 @@ def run_mutation_workflow(
     # 2. Interactive selection (unless --force)
     if select and not force:
         available = {a.label for a in plan.actionable if a.kind == "available"}
-        selected = prompt_choices(select_prompt, available, available)
-        if not selected:
-            raise AppAbort()
-        plan.apply_selection(selected)
+        if available:
+            selected = prompt_choices(select_prompt, available, available)
+            if not selected:
+                raise AppAbort()
+            plan.apply_selection(selected)
 
         if not plan.actionable:
             conclude(True, empty_message)

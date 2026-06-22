@@ -16,6 +16,7 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.compat import Optional, Tuple
+from oops.core.exceptions import NotFoundError
 from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import relpath
 from oops.io.manifest import find_addons_extended
@@ -56,6 +57,11 @@ def main(names: Tuple[str, ...], no_commit: bool, force: bool) -> None:
 
     # 1. Build the plan (pure business logic)
     plan = _build_plan(requested, available, existing)
+
+    if requested is not None:
+        not_found = {a.label for a in plan.actions if a.kind == "skipped"}
+        if not_found:
+            raise NotFoundError(f"Addon(s) not found in any submodule: {', '.join(sorted(not_found))}")
 
     # 2. Define how to execute one action
     created: list[str] = []

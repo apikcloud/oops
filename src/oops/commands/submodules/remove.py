@@ -90,6 +90,7 @@ def main(no_commit: bool, force: bool, names: Tuple[str, ...]):
         outer=outer,
         title="Removals",
         force=force,
+        select=not names,
         select_prompt="Select submodule(s) to remove: ",
         empty_message="Nothing to remove.",
     )
