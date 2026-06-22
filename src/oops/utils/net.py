@@ -199,6 +199,72 @@ def parse_pull_request_url(url: str) -> Tuple[str, str, int]:
     return parts[0], parts[1], int(parts[3])
 
 
+def resolve_clone_target(
+    repo: str,
+    working_dir: str,
+    default_owner: Optional[str] = None,
+    force_scheme: Optional[str] = None,
+) -> Tuple[str, Path]:
+    """Resolve a clone URL and destination path from a repo slug and a working directory.
+
+    Args:
+        repo: Repository reference — full URL, ``owner/repo``, or bare repo name.
+        working_dir: Base directory into which the repository will be cloned.
+            Tilde and relative components are expanded and resolved.
+        default_owner: GitHub org or user used to expand a bare repo name.
+        force_scheme: URL scheme to enforce (``"ssh"`` or ``"https"``). If ``None``
+            or empty, the URL is left as resolved.
+
+    Returns:
+        Tuple of ``(clone_url, target_path)`` where ``target_path`` is
+        ``<working_dir>/<repo_name>`` as an absolute :class:`~pathlib.Path`.
+
+    Raises:
+        ValueError: If the slug cannot be resolved or is not a valid GitHub URL.
+    """
+    full_url = resolve_repository_url(repo, default_owner=default_owner)
+    _, _, repo_name = parse_repository_url(full_url)
+    clone_url = encode_url(full_url, force_scheme) if force_scheme else full_url
+    target = Path(working_dir).expanduser().resolve() / repo_name
+    return clone_url, target
+
+
+def resolve_repository_url(slug: str, default_owner: Optional[str] = None) -> str:
+    """Expand a repository slug into a full URL parseable by ``_parse_url``.
+
+    Accepted forms:
+
+    - Full URL (any scheme supported by ``_parse_url``) — returned unchanged.
+    - ``owner/repo`` shorthand → ``https://github.com/owner/repo``.
+    - Bare ``repo`` name → ``https://github.com/{default_owner}/repo``.
+
+    Args:
+        slug: Repository reference — full URL, owner/repo, or bare repo name.
+        default_owner: GitHub org or user used to expand a bare repo name.
+            Typically ``config.github.owner``.
+
+    Returns:
+        A URL string that can be passed to ``parse_repository_url`` or
+        ``encode_url``.
+
+    Raises:
+        ValueError: If ``slug`` is a bare repo name and ``default_owner`` is None.
+    """
+    stripped = slug.strip()
+    if "://" in stripped or stripped.startswith("git@"):
+        return stripped
+    parts = stripped.split("/")
+    if len(parts) == 1:
+        if not default_owner:
+            raise ValueError(
+                f"Cannot expand bare repo name {slug!r}: github.owner is not set in config"
+            )
+        return f"https://github.com/{default_owner}/{parts[0]}"
+    if len(parts) == 2:  # noqa: PLR2004
+        return f"https://github.com/{parts[0]}/{parts[1]}"
+    return stripped
+
+
 def sparse_clone(remote_url: str, tmpdir: Path, files: list, branch: Optional[str] = None) -> None:
     """Clone a remote repository with sparse checkout limited to specific paths.
 

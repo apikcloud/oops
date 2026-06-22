@@ -8,6 +8,50 @@
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.project.clone
+    :command: main
+    :prog_name: oops project clone
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+The repository is cloned into `working_dir/<repo>` as defined in config.
+Submodules inside the cloned repository are initialised automatically.
+
+Clone a repository using its full URL:
+
+```bash
+oops project clone https://github.com/apikcloud/myproject
+```
+
+Clone using an `<org>/<repo>` shorthand:
+
+```bash
+oops project clone apikcloud/myproject
+```
+
+Clone using a bare repo name (requires `github.owner` in config):
+
+```bash
+oops project clone myproject
+```
+
+Clone a specific branch:
+
+```bash
+oops project clone apikcloud/myproject -b 17.0
+```
+
+Clone with more parallel jobs for submodule initialisation:
+
+```bash
+oops project clone apikcloud/myproject --jobs 8
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.project.check
     :command: main
     :prog_name: oops project check
