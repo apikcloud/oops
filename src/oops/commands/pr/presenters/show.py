@@ -23,7 +23,7 @@ COLOR_STATUS = {
     "cancel": "red",
     "merged": "yellow",
     "open": "green",
-    "closed": "red",
+    "closed": "yellow",
 }
 
 

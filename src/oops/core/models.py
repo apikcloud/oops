@@ -516,10 +516,14 @@ class PullRequest:
     def from_dict(cls, upstream: str, data: dict) -> "PullRequest":
         head = data["head"]
         head_repo = head.get("repo") or {}
+
+        # labels = ", ".join([item["name"] for item in data.get("labels", []) if item["default"]])
+        state = "merged" if bool(data["merged_at"]) else data["state"]
+
         return cls(
             upstream=upstream,
             number=data["number"],
-            state=data["state"],
+            state=state,
             title=data["title"],
             url=data["html_url"],
             head=head["label"],
