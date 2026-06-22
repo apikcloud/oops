@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
-from oops.commands.addons.domain_profile import (
+from oops.kb.domain_profile import (
     compute_domain_profile,
 )
 from oops.core.config import AnalyzeConfig

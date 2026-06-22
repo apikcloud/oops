@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: domain_profile.py — oops/commands/addons/domain_profile.py
+# File: domain_profile.py — oops/kb/domain_profile.py
 
 """Domain profile computation for the analyze command.
 

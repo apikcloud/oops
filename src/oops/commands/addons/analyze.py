@@ -54,7 +54,7 @@ from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
 
-from .domain_profile import compute_domain_profile
+from oops.kb.domain_profile import compute_domain_profile
 from .presenters.analyze import AnalyzePresenter
 
 FORMATTERS: FormatterRegistry = {
