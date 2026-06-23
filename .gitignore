@@ -170,11 +170,17 @@ cython_debug/
 # Oops KB cache (project-level, must not be committed)
 .oops-cache/
 
+.ai-factory.json
 .codegraph/
 .claude/
+.mcp.json
+skills-lock.json
+.agents/
+.ai-factory/
 graphify-out/
 node_modules/
 thoughts/
 CLAUDE.md
 AGENT.md
+AGENTS.md
 ROADMAP.md
