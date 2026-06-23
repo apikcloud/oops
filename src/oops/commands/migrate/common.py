@@ -97,7 +97,7 @@ class ModuleState:
     origin: Origin
     depends_on: list[str] = field(default_factory=list)
     upstream_available: Optional[bool] = None  # None = not probed
-    upstream_prs: list[str] = field(default_factory=list)
+    upstream_prs: list[dict] = field(default_factory=list)
 
 
 @dataclass

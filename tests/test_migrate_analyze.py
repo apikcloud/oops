@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 from click.testing import CliRunner
-
 from oops.commands.migrate.analyze import main
 from oops.commands.migrate.common import (
     ModuleState,
@@ -22,7 +21,6 @@ from oops.commands.migrate.common import (
     save_state,
 )
 from oops.utils.net import website_to_github_repo
-
 
 # ---------------------------------------------------------------------------
 # website_to_github_repo
