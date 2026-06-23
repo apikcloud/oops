@@ -237,6 +237,106 @@ def list_remote_addons(
     return sorted(addon_dirs)
 
 
+_GRAPHQL_URL = "https://api.github.com/graphql"
+
+
+def _graphql_query(query: str, token: str) -> dict:
+    """POST a GraphQL query to the GitHub API. Raises APIError on auth errors."""
+    r = requests.post(
+        _GRAPHQL_URL,
+        json={"query": query},
+        headers={"Authorization": f"bearer {token}", "Content-Type": "application/json"},
+        timeout=config.default_timeout,
+    )
+    if r.status_code == 401:
+        raise APIError("GitHub token invalid or expired (GraphQL 401).")
+    r.raise_for_status()
+    payload = r.json()
+    if "errors" in payload:
+        log.warning(f"GraphQL partial errors: {payload['errors']}")
+    return payload.get("data") or {}
+
+
+def check_upstream_graphql(
+    modules_by_repo: "dict[str, List[str]]",
+    to_version: str,
+    token: str,
+) -> "dict[str, bool]":
+    """Check manifest existence for every module in a single GraphQL query.
+
+    modules_by_repo: {"OCA/bank-payment": ["account_payment_mode", ...], ...}
+    Returns {"account_payment_mode": True/False, ...}.
+    Modules whose repo fetch fails are absent from the returned dict (left as not-probed).
+    """
+    valid = {k: v for k, v in modules_by_repo.items() if "/" in k and v}
+    if not valid:
+        return {}
+
+    repo_aliases: "List[tuple]" = []
+    parts: "List[str]" = []
+
+    for i, (repo_key, module_names) in enumerate(valid.items()):
+        owner, repo_name = repo_key.split("/", 1)
+        alias = f"r{i}"
+        repo_aliases.append((alias, repo_key))
+        mod_fields = "\n    ".join(
+            f'{mod}: object(expression: "{to_version}:{mod}/__manifest__.py") {{ oid }}'
+            for mod in module_names
+        )
+        parts.append(f'{alias}: repository(owner: "{owner}", name: "{repo_name}") {{\n    {mod_fields}\n  }}')
+
+    data = _graphql_query("query {\n  " + "\n  ".join(parts) + "\n}", token)
+
+    result: "dict[str, bool]" = {}
+    for alias, repo_key in repo_aliases:
+        repo_data = data.get(alias) or {}
+        for mod in valid[repo_key]:
+            result[mod] = bool(repo_data.get(mod))
+    return result
+
+
+def search_prs_graphql(
+    absent_by_repo: "dict[str, List[str]]",
+    to_version: str,
+    token: str,
+) -> "dict[str, List[dict]]":
+    """Search open PRs for absent modules in a single GraphQL query.
+
+    absent_by_repo: {"OCA/bank-payment": ["account_payment_partner", ...], ...}
+    Returns {"account_payment_partner": [{"number": N, "url": ..., "title": ...}], ...}.
+    """
+    valid = {k: v for k, v in absent_by_repo.items() if "/" in k and v}
+    if not valid:
+        return {}
+
+    aliases: "List[tuple]" = []
+    parts: "List[str]" = []
+    idx = 0
+
+    for repo_key, module_names in valid.items():
+        owner, repo_name = repo_key.split("/", 1)
+        for mod in module_names:
+            alias = f"s{idx}"
+            aliases.append((alias, mod))
+            q = f"repo:{owner}/{repo_name} is:pr is:open base:{to_version} {mod} in:title"
+            parts.append(
+                f'{alias}: search(query: "{q}", type: ISSUE, first: 5) {{\n'
+                f'    nodes {{ ... on PullRequest {{ number url title }} }}\n  }}'
+            )
+            idx += 1
+
+    data = _graphql_query("query {\n  " + "\n  ".join(parts) + "\n}", token)
+
+    result: "dict[str, List[dict]]" = {}
+    for alias, mod in aliases:
+        nodes = (data.get(alias) or {}).get("nodes") or []
+        result[mod] = [
+            {"number": n["number"], "url": n["url"], "title": n["title"]}
+            for n in nodes if n and "number" in n
+        ]
+    return result
+
+
 def search_upstream_prs(
     owner: str,
     repo: str,
