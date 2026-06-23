@@ -326,9 +326,10 @@ class TestEmptyResult:
 
 
 def _parse_json_output(output: str) -> dict:
-    """Strip any spinner prefix before the JSON object."""
+    """Strip any spinner prefix and trailing text around the JSON object."""
     idx = output.index("{")
-    return json.loads(output[idx:])
+    obj, _ = json.JSONDecoder().raw_decode(output, idx)
+    return obj
 
 
 class TestJsonFormat:

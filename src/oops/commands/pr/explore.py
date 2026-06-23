@@ -111,7 +111,7 @@ def main(
     with live_progress("Fetching pull requests..."):
         prs = list_pull_requests(owner, repo_name, token=token, state=state)
 
-        if effective_filter:
+        if effective_filter is not None:
             prs = [pr for pr in prs if effective_filter.lower() in pr.title.lower()]
 
         prs.sort(key=lambda pr: pr.number, reverse=True)
@@ -119,7 +119,7 @@ def main(
 
         if not prs:
             msg = f"No pull requests found in {owner}/{repo_name}"
-            if effective_filter:
+            if effective_filter is not None:
                 msg += f" matching {effective_filter!r}"
             result.add_warning(msg + ".")
 
