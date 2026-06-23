@@ -25,9 +25,11 @@ PR_URL_STR = "https://github.com/OCA/mail/pull/42"
 PR_SUB_NAME = "PRs/fork-user/mail/mail_tracking"
 PR_SUB_PATH = ".third-party/PRs/fork-user/mail/mail_tracking"
 
-# Expected upstream after replace (returned by desired_path mock)
 UPSTREAM_NAME = "OCA/mail"
 UPSTREAM_PATH = ".third-party/OCA/mail"
+
+# list_remote_addons returns addon paths; test uses a known addon name.
+REMOTE_ADDONS = ["mail_tracking", "mail_activity_board"]
 
 
 # ---------------------------------------------------------------------------
@@ -92,9 +94,7 @@ def _make_config():
 
 
 def _desired_path_side_effect(url, pull_request=False, prefix=None, suffix=None):
-    if prefix:
-        return UPSTREAM_PATH
-    return UPSTREAM_NAME
+    return UPSTREAM_PATH if prefix else UPSTREAM_NAME
 
 
 # ---------------------------------------------------------------------------
@@ -102,10 +102,12 @@ def _desired_path_side_effect(url, pull_request=False, prefix=None, suffix=None)
 # ---------------------------------------------------------------------------
 
 
-def _base_patches(tmp_path, sub=None, pr=None, mock_repo=None):
+def _base_patches(tmp_path, sub=None, pr=None, mock_repo=None, remote_addons=None):
     sub = sub or _make_sub()
     pr = pr or _make_pr()
     mock_repo = mock_repo or _make_repo()
+    if remote_addons is None:
+        remote_addons = REMOTE_ADDONS
     return {
         "oops.commands.pr.replace.require_repository": MagicMock(
             return_value=(mock_repo, tmp_path)
@@ -117,6 +119,7 @@ def _base_patches(tmp_path, sub=None, pr=None, mock_repo=None):
             return_value=("https://github.com/fork-user/mail", "fork-user", "mail")
         ),
         "oops.commands.pr.replace.find_pull_requests": MagicMock(return_value=[pr]),
+        "oops.commands.pr.replace.list_remote_addons": MagicMock(return_value=remote_addons),
         "oops.commands.pr.replace.rewrite_symlinks": MagicMock(return_value=1),
         "oops.commands.pr.replace.commit_v2": MagicMock(
             return_value=MagicMock(messages=[], warnings=[], errors=[])
@@ -143,8 +146,10 @@ def _apply_patches(patches):
             p.stop()
 
 
-def _invoke(tmp_path, args=None, extra_patches=None, sub=None, pr=None, mock_repo=None):
-    patches = _base_patches(tmp_path, sub=sub, pr=pr, mock_repo=mock_repo)
+def _invoke(tmp_path, args=None, extra_patches=None, sub=None, pr=None, mock_repo=None,
+            remote_addons=None):
+    patches = _base_patches(tmp_path, sub=sub, pr=pr, mock_repo=mock_repo,
+                            remote_addons=remote_addons)
     if extra_patches:
         patches.update(extra_patches)
     with _apply_patches(patches):
@@ -179,41 +184,36 @@ class TestNoPRSubmodules:
 
 
 class TestNoResolvedPRs:
-    def test_exits_nonzero_when_find_returns_none(self, tmp_path):
+    def test_exits_zero_when_find_returns_none(self, tmp_path):
+        # All subs unresolved → plan all blocked → nothing actionable → EarlyExit (0)
         result, _ = _invoke(
             tmp_path,
             extra_patches={"oops.commands.pr.replace.find_pull_requests": MagicMock(return_value=None)},
         )
-        assert result.exit_code != 0
+        assert result.exit_code == 0
 
-    def test_exits_nonzero_when_find_returns_empty(self, tmp_path):
+    def test_exits_zero_when_find_returns_empty(self, tmp_path):
         result, _ = _invoke(
             tmp_path,
             extra_patches={"oops.commands.pr.replace.find_pull_requests": MagicMock(return_value=[])},
         )
-        assert result.exit_code != 0
-
-    def test_mentions_no_resolved(self, tmp_path):
-        result, _ = _invoke(
-            tmp_path,
-            extra_patches={"oops.commands.pr.replace.find_pull_requests": MagicMock(return_value=None)},
-        )
-        assert "resolved" in result.output.lower()
+        assert result.exit_code == 0
 
 
 # ---------------------------------------------------------------------------
-# Master branch guard
+# Master branch guard — now per-sub blocked, not a fatal OopsError
 # ---------------------------------------------------------------------------
 
 
 class TestMasterBaseBranch:
-    def test_exits_nonzero(self, tmp_path):
+    def test_exits_zero_master_blocked(self, tmp_path):
+        # master → sub becomes blocked → nothing actionable → EarlyExit (0)
         result, _ = _invoke(tmp_path, pr=_make_pr(base="OCA:master"))
-        assert result.exit_code != 0
+        assert result.exit_code == 0
 
-    def test_mentions_master(self, tmp_path):
+    def test_nothing_to_replace_message(self, tmp_path):
         result, _ = _invoke(tmp_path, pr=_make_pr(base="OCA:master"))
-        assert "master" in result.output.lower()
+        assert "nothing to replace" in result.output.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -222,8 +222,15 @@ class TestMasterBaseBranch:
 
 
 class TestBranchOverride:
+    def test_exits_zero_with_override(self, tmp_path):
+        result, _ = _invoke(
+            tmp_path,
+            args=["-f", "--token", "tok", "--branch", "17.0"],
+            pr=_make_pr(base="OCA:master"),
+        )
+        assert result.exit_code == 0, result.output
+
     def test_commit_v2_called_with_override_branch(self, tmp_path):
-        # Normally master-base would fail; with --branch override it should succeed
         result, patches = _invoke(
             tmp_path,
             args=["-f", "--token", "tok", "--branch", "17.0"],
@@ -231,14 +238,6 @@ class TestBranchOverride:
         )
         assert result.exit_code == 0, result.output
         patches["oops.commands.pr.replace.commit_v2"].assert_called_once()
-
-    def test_no_master_error_with_override(self, tmp_path):
-        result, _ = _invoke(
-            tmp_path,
-            args=["-f", "--token", "tok", "--branch", "17.0"],
-            pr=_make_pr(base="OCA:master"),
-        )
-        assert "master" not in result.output.lower() or result.exit_code == 0
 
 
 # ---------------------------------------------------------------------------
@@ -279,6 +278,11 @@ class TestHappyPath:
         repo_mock = patches["oops.commands.pr.replace.require_repository"].return_value[0]
         repo_mock.git.submodule.assert_called()
 
+    def test_list_remote_addons_called(self, tmp_path):
+        result, patches = _invoke(tmp_path)
+        assert result.exit_code == 0, result.output
+        patches["oops.commands.pr.replace.list_remote_addons"].assert_called_once()
+
 
 # ---------------------------------------------------------------------------
 # --no-commit
@@ -297,13 +301,12 @@ class TestNoCommit:
 
 
 # ---------------------------------------------------------------------------
-# Upstream submodule already exists — addons present
+# Upstream submodule already exists — addons fully on disk
 # ---------------------------------------------------------------------------
 
 
 class TestUpstreamAlreadyExists:
     def _make_upstream_repo(self, tmp_path):
-        """Repo where UPSTREAM_NAME is already registered, with addon dirs present."""
         return _make_repo(sub_paths={UPSTREAM_NAME: UPSTREAM_PATH})
 
     def test_exits_zero(self, tmp_path):
@@ -315,7 +318,6 @@ class TestUpstreamAlreadyExists:
         mock_repo = self._make_upstream_repo(tmp_path)
         result, _ = _invoke(tmp_path, mock_repo=mock_repo)
         assert result.exit_code == 0, result.output
-        # "add" must not be called; "update --init" is expected
         add_calls = [c for c in mock_repo.git.submodule.call_args_list if c[0][0] == "add"]
         assert add_calls == []
 
@@ -325,29 +327,40 @@ class TestUpstreamAlreadyExists:
         assert result.exit_code == 0, result.output
         mock_repo.git.submodule.assert_called_with("update", "--init", UPSTREAM_PATH)
 
-    def test_git_config_not_called_when_addons_present(self, tmp_path):
-        mock_repo = self._make_upstream_repo(tmp_path)
-        result, _ = _invoke(tmp_path, mock_repo=mock_repo)
-        assert result.exit_code == 0, result.output
-        # pr_addon_names is [] (no symlinks in tmp_path) → nothing missing → no config call
-        mock_repo.git.config.assert_not_called()
-
-
-class TestUpstreamExistsMissingAddons:
-    def _setup(self, tmp_path):
-        """Create a symlink so pr_addon_names=['mail_tracking']; upstream path absent → missing."""
+    def test_list_remote_addons_not_called_when_all_on_disk(self, tmp_path):
+        """When upstream exists and all addons are present on disk, no API call needed."""
+        # Create addon dir so on_disk=[addon], off_disk=[] → no API call.
         pr_sub_abs = tmp_path / PR_SUB_PATH / "mail_tracking"
         pr_sub_abs.mkdir(parents=True)
         symlink = tmp_path / "mail_tracking"
         symlink.symlink_to(pr_sub_abs)
-        # Upstream registered but .third-party/OCA/mail/mail_tracking doesn't exist
+        upstream_addon = tmp_path / UPSTREAM_PATH / "mail_tracking"
+        upstream_addon.mkdir(parents=True)
+        mock_repo = self._make_upstream_repo(tmp_path)
+        result, patches = _invoke(tmp_path, mock_repo=mock_repo)
+        assert result.exit_code == 0, result.output
+        patches["oops.commands.pr.replace.list_remote_addons"].assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Upstream exists but addon missing from disk → API probe
+# ---------------------------------------------------------------------------
+
+
+class TestUpstreamExistsMissingAddons:
+    def _setup(self, tmp_path):
+        """Create a symlink from PR sub; upstream registered but addon dir absent."""
+        pr_sub_abs = tmp_path / PR_SUB_PATH / "mail_tracking"
+        pr_sub_abs.mkdir(parents=True)
+        symlink = tmp_path / "mail_tracking"
+        symlink.symlink_to(pr_sub_abs)
         return _make_repo(sub_paths={UPSTREAM_NAME: UPSTREAM_PATH})
 
-    def test_git_config_called_to_update_branch(self, tmp_path):
+    def test_list_remote_addons_called_when_addon_missing_from_disk(self, tmp_path):
         mock_repo = self._setup(tmp_path)
-        result, _ = _invoke(tmp_path, mock_repo=mock_repo)
+        result, patches = _invoke(tmp_path, mock_repo=mock_repo)
         assert result.exit_code == 0, result.output
-        mock_repo.git.config.assert_called()
+        patches["oops.commands.pr.replace.list_remote_addons"].assert_called_once()
 
     def test_git_submodule_add_not_called(self, tmp_path):
         mock_repo = self._setup(tmp_path)
@@ -355,6 +368,23 @@ class TestUpstreamExistsMissingAddons:
         assert result.exit_code == 0, result.output
         add_calls = [c for c in mock_repo.git.submodule.call_args_list if c[0][0] == "add"]
         assert add_calls == []
+
+    def test_exits_zero_addon_present_upstream(self, tmp_path):
+        """Addon missing from disk but present upstream → needs_content_update → still exits 0."""
+        mock_repo = self._setup(tmp_path)
+        result, _ = _invoke(tmp_path, mock_repo=mock_repo, remote_addons=["mail_tracking"])
+        assert result.exit_code == 0, result.output
+
+    def test_git_update_remote_called_when_needs_content_update(self, tmp_path):
+        """When addon present upstream but not on disk, update --remote must be called."""
+        mock_repo = self._setup(tmp_path)
+        result, _ = _invoke(tmp_path, mock_repo=mock_repo, remote_addons=["mail_tracking"])
+        assert result.exit_code == 0, result.output
+        remote_calls = [
+            c for c in mock_repo.git.submodule.call_args_list
+            if len(c[0]) >= 2 and c[0][0] == "update" and c[0][1] == "--remote"
+        ]
+        assert remote_calls, "expected 'git submodule update --remote' when content update needed"
 
 
 # ---------------------------------------------------------------------------
@@ -384,3 +414,35 @@ class TestSubmoduleInit:
         assert init_calls, "expected 'git submodule update --init' even when upstream already exists"
 
 
+# ---------------------------------------------------------------------------
+# Blocked rows — verify apply() is never called for blocked subs
+# ---------------------------------------------------------------------------
+
+
+class TestBlockedRows:
+    def test_blocked_sub_not_applied(self, tmp_path):
+        """A sub that resolves to 'master' branch must be blocked, not executed."""
+        sub = _make_sub()
+        result, _ = _invoke(tmp_path, pr=_make_pr(base="OCA:master"), sub=sub)
+        # blocked → nothing actionable → EarlyExit (0), remove must NOT be called
+        sub.remove.assert_not_called()
+
+    def test_all_blocked_exits_zero(self, tmp_path):
+        result, _ = _invoke(tmp_path, pr=_make_pr(base="OCA:master"))
+        assert result.exit_code == 0
+
+    def test_list_remote_addons_not_called_returns_empty(self, tmp_path):
+        """When upstream API call fails, sub is blocked and apply() not called."""
+        sub = _make_sub()
+        result, patches = _invoke(
+            tmp_path,
+            sub=sub,
+            extra_patches={
+                "oops.commands.pr.replace.list_remote_addons": MagicMock(
+                    side_effect=Exception("API unavailable")
+                )
+            },
+        )
+        # blocked → EarlyExit (0), sub not removed
+        assert result.exit_code == 0
+        sub.remove.assert_not_called()
