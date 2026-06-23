@@ -25,7 +25,7 @@ UTC = timezone.utc
 SEMVER_PATTERN = re.compile(r"^v(?P<x>0|[1-9]\d*)\.(?P<y>0|[1-9]\d*)\.(?P<z>0|[1-9]\d*)$")
 
 # Kinds that are NOT executed when iterating a plan.
-_INACTIVE_KINDS = frozenset({"nothing to do", "skip", "skipped"})
+_INACTIVE_KINDS = frozenset({"nothing to do", "skip", "skipped", "step", "blocked"})
 
 
 @dataclass
