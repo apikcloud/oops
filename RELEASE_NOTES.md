@@ -9,6 +9,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.26.0] - 2026-06-23
+
+New command to clean up PR submodules after a PR is merged.
+
+### ✨ What's new
+
+- **`oops pr replace`**: once a PR is merged, run this to swap the PR fork submodule for the canonical upstream — symlinks are rewritten automatically, no manual cleanup needed
+
+---
+
 ## [0.25.0] - 2026-06-23
 
 New PR exploration command and two reliability fixes.

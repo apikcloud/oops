@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2026-06-23
+
+### Added
+
+- `oops pr replace`: new command to swap a PR fork submodule for its canonical upstream — removes the PR sub, adds/reuses the upstream sub, and rewrites root symlinks in one step
+
 ## [0.25.0] - 2026-06-23
 
 ### Added
