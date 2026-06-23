@@ -873,6 +873,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#oops-pr-explore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops pr explore
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2917,6 +2928,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#oops-pr-explore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops pr explore
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2974,6 +2996,14 @@
             <td>
               <div class="doc-md-description">
                 <p>Add a pull-request submodule from a PR URL.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.pr.explore">explore</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>List pull requests from a GitHub repository.</p>
               </div>
             </td>
           </tr>
@@ -3184,6 +3214,74 @@ the moved path.</p>
 <p>Save JSON output to a file:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops<span class="w"> </span>pr<span class="w"> </span>show<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>--output-path<span class="w"> </span>prs.json
 </span></code></pre></div>
+<hr>
+<h3 id="oops-pr-explore">oops pr explore<a class="headerlink" href="#oops-pr-explore" title="Permanent link">¶</a></h3>
+<p>List pull requests from a GitHub repository.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops pr explore [OPTIONS] REPO
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--filter</code></td>
+<td>text</td>
+<td>Filter PRs by case-insensitive title substring. Defaults to [<odoo major="" version=""></odoo>][MIG] inside a project. Pass '' to disable.</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--version</code></td>
+<td>text</td>
+<td>Odoo major version (e.g. 17.0). Sets the filter to [VERSION][MIG]. Overridden by --filter.</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--state</code></td>
+<td>choice (<code>open</code> | <code>closed</code> | <code>all</code>)</td>
+<td>PR state to list.</td>
+<td><code>open</code></td>
+</tr>
+<tr>
+<td><code>--token</code></td>
+<td>text</td>
+<td>GitHub token (or envvar GH_TOKEN / GITHUB_TOKEN). Optional for public repos.</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--format</code></td>
+<td>choice (<code>text</code> | <code>json</code>)</td>
+<td>Output format.</td>
+<td><code>text</code></td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<p>List OCA migration PRs for the current project's Odoo version:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops<span class="w"> </span>pr<span class="w"> </span>explore<span class="w"> </span>OCA/account
+</span></code></pre></div>
+<p>List all open PRs (disable the default filter):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops<span class="w"> </span>pr<span class="w"> </span>explore<span class="w"> </span>OCA/account<span class="w"> </span>--filter<span class="w"> </span><span class="s2">""</span>
+</span></code></pre></div>
+<p>Filter by an arbitrary title substring as JSON:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops<span class="w"> </span>pr<span class="w"> </span>explore<span class="w"> </span>OCA/account<span class="w"> </span>--filter<span class="w"> </span>sale<span class="w"> </span>--format<span class="w"> </span>json
+</span></code></pre></div>
+<p>Target a specific Odoo version explicitly (outside a project):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops<span class="w"> </span>pr<span class="w"> </span>explore<span class="w"> </span>OCA/account<span class="w"> </span>--version<span class="w"> </span><span class="m">17</span>.0
+</span></code></pre></div>
 
 
 
@@ -3206,7 +3304,7 @@ the moved path.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 22, 2026 08:47:51 UTC"><span class="timeago" datetime="2026-06-22T08:47:51+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 22, 2026 08:47:51 UTC">2026-06-22</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 22, 2026 15:50:12 UTC"><span class="timeago" datetime="2026-06-22T15:50:12+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 22, 2026 15:50:12 UTC">2026-06-22</span>
   </span>
 
     
