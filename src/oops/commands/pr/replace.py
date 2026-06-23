@@ -26,7 +26,7 @@ from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.models import Plan, PlanAction, Result, SubmoduleInfo
 from oops.io.file import desired_path, ensure_parent, rewrite_symlinks
-from oops.output.helper import render_and_raise
+from oops.output.helper import render_and_raise, render_plan
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
 from oops.services.github import find_pull_requests, list_remote_addons
@@ -253,10 +253,10 @@ def main(token: str, branch_override: "Optional[str]", no_commit: bool, force: b
 
     plan = _build_plan(verdicts, unresolved)
 
-    # Nothing actionable at all? Surface why (blocked rows carry reasons).
+    # Nothing actionable at all? Render the plan (blocked rows carry reasons) then abort.
     if not any(a.kind == "available" for a in plan.actions):
-        # Still render the plan so the user sees the blocked reasons.
-        log.debug("No actionable replacement; all subs blocked or unresolved.")
+        render_plan(plan)
+        raise OopsError("Nothing to replace — all PR submodules are blocked or unresolved.")
 
     sub_map = {sub.name: sub for sub, _ in enriched}
     existing_sub_paths = {s.name: str(s.path) for s in repo.submodules}

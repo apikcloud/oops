@@ -184,20 +184,21 @@ class TestNoPRSubmodules:
 
 
 class TestNoResolvedPRs:
-    def test_exits_zero_when_find_returns_none(self, tmp_path):
-        # All subs unresolved → plan all blocked → nothing actionable → EarlyExit (0)
+    def test_exits_one_when_find_returns_none(self, tmp_path):
+        # All subs unresolved → plan all blocked → OopsError (exit 1)
         result, _ = _invoke(
             tmp_path,
             extra_patches={"oops.commands.pr.replace.find_pull_requests": MagicMock(return_value=None)},
         )
-        assert result.exit_code == 0
+        assert result.exit_code == 1
 
-    def test_exits_zero_when_find_returns_empty(self, tmp_path):
+    def test_exits_one_when_find_returns_empty(self, tmp_path):
+        # All subs unresolved → plan all blocked → OopsError (exit 1)
         result, _ = _invoke(
             tmp_path,
             extra_patches={"oops.commands.pr.replace.find_pull_requests": MagicMock(return_value=[])},
         )
-        assert result.exit_code == 0
+        assert result.exit_code == 1
 
 
 # ---------------------------------------------------------------------------
@@ -206,10 +207,10 @@ class TestNoResolvedPRs:
 
 
 class TestMasterBaseBranch:
-    def test_exits_zero_master_blocked(self, tmp_path):
-        # master → sub becomes blocked → nothing actionable → EarlyExit (0)
+    def test_exits_one_master_blocked(self, tmp_path):
+        # master → sub becomes blocked → nothing actionable → OopsError (exit 1)
         result, _ = _invoke(tmp_path, pr=_make_pr(base="OCA:master"))
-        assert result.exit_code == 0
+        assert result.exit_code == 1
 
     def test_nothing_to_replace_message(self, tmp_path):
         result, _ = _invoke(tmp_path, pr=_make_pr(base="OCA:master"))
@@ -427,9 +428,9 @@ class TestBlockedRows:
         # blocked → nothing actionable → EarlyExit (0), remove must NOT be called
         sub.remove.assert_not_called()
 
-    def test_all_blocked_exits_zero(self, tmp_path):
+    def test_all_blocked_exits_one(self, tmp_path):
         result, _ = _invoke(tmp_path, pr=_make_pr(base="OCA:master"))
-        assert result.exit_code == 0
+        assert result.exit_code == 1
 
     def test_list_remote_addons_not_called_returns_empty(self, tmp_path):
         """When upstream API call fails, sub is blocked and apply() not called."""
@@ -443,6 +444,6 @@ class TestBlockedRows:
                 )
             },
         )
-        # blocked → EarlyExit (0), sub not removed
-        assert result.exit_code == 0
+        # blocked → OopsError (exit 1), sub not removed
+        assert result.exit_code == 1
         sub.remove.assert_not_called()
