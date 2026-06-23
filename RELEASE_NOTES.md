@@ -9,6 +9,21 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.25.0] - 2026-06-23
+
+New PR exploration command and two reliability fixes.
+
+### ✨ What's new
+
+- **`oops pr explore`**: browse pull requests from any GitHub repository — not just your current project
+
+### 🐛 Fixes
+
+- **`oops pr`**: fixed a crash that could occur when PR output contained unexpected trailing data
+- **`oops submodules`**: fixed an error when removing a submodule whose path was not tracked in the index
+
+---
+
 ## [0.24.0] - 2026-06-22
 
 New clone shorthand, smarter PR status display, and an MCP server.
