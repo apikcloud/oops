@@ -89,6 +89,35 @@ oops pr show --format json --output-path prs.json
 ---
 
 ::: mkdocs-click:commands
+    :module: oops.commands.pr.replace
+    :command: main
+    :prog_name: oops pr replace
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Replace all PR submodules with their upstream (interactive selection):
+
+```bash
+oops pr replace --token $GITHUB_TOKEN
+```
+
+Apply without confirmation and skip the commit step:
+
+```bash
+oops pr replace --token $GITHUB_TOKEN --force --no-commit
+```
+
+Override the target branch (useful when the PR base is `master`):
+
+```bash
+oops pr replace --token $GITHUB_TOKEN --branch 17.0
+```
+
+---
+
+::: mkdocs-click:commands
     :module: oops.commands.pr.explore
     :command: main
     :prog_name: oops pr explore
