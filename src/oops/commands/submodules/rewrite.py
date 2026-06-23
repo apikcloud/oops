@@ -16,6 +16,7 @@ from __future__ import annotations
 import shutil
 
 import click
+from git.exc import GitCommandError
 from oops.commands.base import command
 from oops.core.compat import Tuple
 from oops.core.config import config
@@ -101,7 +102,10 @@ def main(base_dir, force: bool, no_commit: bool, names: Tuple[str, ...]):
 
     if config.submodules.old_paths[0].exists():
         shutil.rmtree(config.submodules.old_paths[0])
-        repo.index.remove([str(config.submodules.old_paths[0])], r=True, f=True)
+        try:
+            repo.index.remove([str(config.submodules.old_paths[0])], r=True, f=True)
+        except GitCommandError:
+            pass  # path not in index — filesystem removal is sufficient
         outer.add_message(f"Removed old submodule base dir: {config.submodules.old_paths[0]}")
 
     # 6. Commit
