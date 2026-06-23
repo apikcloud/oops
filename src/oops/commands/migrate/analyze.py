@@ -145,16 +145,40 @@ def main(ctx, source_ref, from_version, to_version, probe_upstream, token, outpu
 
 
 def _probe_modules(modules: dict, to_version: str, token: str | None) -> None:
-    """Probe OCA and third-party modules against their upstream repo. Mutates in place."""
-    from oops.services.github import check_upstream_module
+    """Probe OCA and third-party modules against their upstream repo. Mutates in place.
+
+    Fetches each unique repo's addon list exactly once (cached), then checks
+    individual modules against it. Only searches PRs for absent modules.
+    On fetch failure the module's upstream_available stays None (not probed).
+    """
+    from oops.services.github import list_remote_addons, search_upstream_prs
+
+    # One list_remote_addons call per unique (owner/repo, branch) pair.
+    # None = fetch failed; set[str] = addon names present on target branch.
+    repo_cache: dict[str, set[str] | None] = {}
 
     for ms in modules.values():
         if ms.origin.kind not in ("oca", "third-party") or not ms.origin.repo:
             continue
-        try:
-            owner, repo_name = ms.origin.repo.split("/", 1)
-        except ValueError:
+        repo_key = ms.origin.repo
+        if repo_key in repo_cache:
             continue
-        probe = check_upstream_module(owner, repo_name, ms.name, to_version, token)
-        ms.upstream_available = probe["available"]
-        ms.upstream_prs = probe["prs"]
+        try:
+            owner, repo_name = repo_key.split("/", 1)
+            repo_cache[repo_key] = set(list_remote_addons(owner, repo_name, to_version, token or ""))
+        except Exception:
+            repo_cache[repo_key] = None  # fetch failed → leave as "not probed"
+
+    for ms in modules.values():
+        if ms.origin.kind not in ("oca", "third-party") or not ms.origin.repo:
+            continue
+        addon_set = repo_cache.get(ms.origin.repo)
+        if addon_set is None:
+            continue  # fetch failed → upstream_available stays None
+        ms.upstream_available = ms.name in addon_set
+        if not ms.upstream_available:
+            try:
+                owner, repo_name = ms.origin.repo.split("/", 1)
+                ms.upstream_prs = search_upstream_prs(owner, repo_name, ms.name, to_version, token)
+            except Exception:
+                pass
