@@ -315,7 +315,15 @@ class TestUpstreamAlreadyExists:
         mock_repo = self._make_upstream_repo(tmp_path)
         result, _ = _invoke(tmp_path, mock_repo=mock_repo)
         assert result.exit_code == 0, result.output
-        mock_repo.git.submodule.assert_not_called()
+        # "add" must not be called; "update --init" is expected
+        add_calls = [c for c in mock_repo.git.submodule.call_args_list if c[0][0] == "add"]
+        assert add_calls == []
+
+    def test_git_submodule_update_init_called(self, tmp_path):
+        mock_repo = self._make_upstream_repo(tmp_path)
+        result, _ = _invoke(tmp_path, mock_repo=mock_repo)
+        assert result.exit_code == 0, result.output
+        mock_repo.git.submodule.assert_called_with("update", "--init", UPSTREAM_PATH)
 
     def test_git_config_not_called_when_addons_present(self, tmp_path):
         mock_repo = self._make_upstream_repo(tmp_path)
@@ -345,6 +353,34 @@ class TestUpstreamExistsMissingAddons:
         mock_repo = self._setup(tmp_path)
         result, _ = _invoke(tmp_path, mock_repo=mock_repo)
         assert result.exit_code == 0, result.output
-        mock_repo.git.submodule.assert_not_called()
+        add_calls = [c for c in mock_repo.git.submodule.call_args_list if c[0][0] == "add"]
+        assert add_calls == []
+
+
+# ---------------------------------------------------------------------------
+# Submodule init
+# ---------------------------------------------------------------------------
+
+
+class TestSubmoduleInit:
+    def test_update_init_called_for_new_upstream(self, tmp_path):
+        result, patches = _invoke(tmp_path)
+        assert result.exit_code == 0, result.output
+        repo_mock = patches["oops.commands.pr.replace.require_repository"].return_value[0]
+        init_calls = [
+            c for c in repo_mock.git.submodule.call_args_list
+            if len(c[0]) >= 2 and c[0][0] == "update" and c[0][1] == "--init"
+        ]
+        assert init_calls, "expected at least one 'git submodule update --init' call"
+
+    def test_update_init_called_for_existing_upstream(self, tmp_path):
+        mock_repo = _make_repo(sub_paths={UPSTREAM_NAME: UPSTREAM_PATH})
+        result, _ = _invoke(tmp_path, mock_repo=mock_repo)
+        assert result.exit_code == 0, result.output
+        init_calls = [
+            c for c in mock_repo.git.submodule.call_args_list
+            if len(c[0]) >= 2 and c[0][0] == "update" and c[0][1] == "--init"
+        ]
+        assert init_calls, "expected 'git submodule update --init' even when upstream already exists"
 
 

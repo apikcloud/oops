@@ -33,6 +33,7 @@ KIND_COLORS = {
     "demote": "yellow",
     "skipped": "yellow",
     "nothing to do": "gray50",
+    "step": "dim",
 }
 
 
