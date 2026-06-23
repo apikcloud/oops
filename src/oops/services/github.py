@@ -257,22 +257,24 @@ def check_upstream_module(
     except Exception:
         pass
 
-    try:
-        search_url = "https://api.github.com/search/issues"
-        q = f"repo:{owner}/{repo} is:pr base:{target_version} {module_name} in:title"
-        r = requests.get(
-            search_url,
-            params={"q": q, "per_page": 10},
-            headers=_get_headers(token),
-            timeout=config.default_timeout,
-        )
-        if r.status_code == 200:
-            result["prs"] = [
-                {"number": item["number"], "url": item["html_url"], "title": item["title"]}
-                for item in r.json().get("items", [])
-            ]
-    except Exception:
-        pass
+    # Only search for open PRs when the module is NOT found on the target branch.
+    if not result["available"]:
+        try:
+            search_url = "https://api.github.com/search/issues"
+            q = f"repo:{owner}/{repo} is:pr is:open base:{target_version} {module_name} in:title"
+            r = requests.get(
+                search_url,
+                params={"q": q, "per_page": 10},
+                headers=_get_headers(token),
+                timeout=config.default_timeout,
+            )
+            if r.status_code == 200:
+                result["prs"] = [
+                    {"number": item["number"], "url": item["html_url"], "title": item["title"]}
+                    for item in r.json().get("items", [])
+                ]
+        except Exception:
+            pass
 
     return result
 

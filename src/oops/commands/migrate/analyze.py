@@ -4,14 +4,13 @@
 """
 Observe the repository at the source ref and write state.yml.
 
-Deterministic and regenerable: lists every module and its origin
-(local / submodule / oca / core) plus the dependency graph computed from
-manifests. Never edited by hand — this is the machine-owned ground truth
-the plan is seeded from.
+Deterministic and regenerable: lists every module at the repo root and its
+classification (custom / oca / third-party) plus the dependency graph from
+manifests. Never edited by hand — this is the machine-owned ground truth the
+plan is seeded from.
 
-With --probe-upstream, also checks (via the GitHub API) whether a target
-version appears to exist upstream for OCA/submodule modules. This step is
-opt-in because it is slow, network-dependent and may be stale.
+By default also checks (via the GitHub API) whether a target version appears to
+exist upstream for OCA and third-party modules. Disable with --no-probe-upstream.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
-from oops.core.models import Result
+from oops.core.models import AddonInfo, Result
 from oops.io.file import enrich_addon, find_addons
 from oops.output.formatters import FormatterRegistry, JsonFormatter, OutputFormatter, SimpleSummaryConsoleFormatter
 from oops.services.git import list_submodules, require_repository
@@ -51,10 +50,14 @@ FORMATTERS: FormatterRegistry = {
 @click.option("--source-ref", default=None, help="Label for this snapshot (default: current branch/HEAD).")
 @click.option("--from", "from_version", default=None, help="Source Odoo version (e.g. 18.0).")
 @click.option("--to", "to_version", default=None, help="Target Odoo version (e.g. 19.0).")
-@click.option("--probe-upstream", is_flag=True, help="Check upstream availability via GitHub (slow, opt-in).")
+@click.option(
+    "--probe-upstream/--no-probe-upstream",
+    default=True,
+    help="Check upstream availability via GitHub API (default: on). Disable with --no-probe-upstream.",
+)
 @click.option(
     "--token", default=None, envvar=["GH_TOKEN", "GITHUB_TOKEN"],
-    help="GitHub token (required for --probe-upstream on private repos; raises rate limits).",
+    help="GitHub token (raises rate limits and enables private repos).",
 )
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
 @click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
@@ -86,7 +89,15 @@ def main(ctx, source_ref, from_version, to_version, probe_upstream, token, outpu
     modules: dict[str, ModuleState] = {}
 
     with live_progress(f"Analysing repository at {source_ref}…"):
-        for addon in find_addons(repo_path):
+        # Dedup by resolved path, preferring root symlinks (mirrors list.py).
+        seen: dict[str, AddonInfo] = {}
+        for addon in find_addons(repo_path, shallow=True):
+            if addon.path not in seen or addon.symlinked:
+                seen[addon.path] = addon
+
+        for addon in seen.values():
+            if not addon.root:
+                continue
             sub_meta = sub_meta_by_relpath.get(addon.rel_path, {})
             enrich_addon(addon, sub_meta)
             kind, repo_slug = classify_origin(addon)
@@ -103,12 +114,7 @@ def main(ctx, source_ref, from_version, to_version, probe_upstream, token, outpu
 
     if probe_upstream:
         log.info("Probing upstream availability…")
-        _probe_oca_modules(modules, to_version, token)
-
-    all_dep_names = {dep for ms in modules.values() for dep in ms.depends_on}
-    for dep in sorted(all_dep_names):
-        if dep not in modules:
-            modules[dep] = ModuleState(name=dep, origin=Origin(kind="core"))
+        _probe_modules(modules, to_version, token)
 
     state = State(
         version=2,
@@ -128,10 +134,9 @@ def main(ctx, source_ref, from_version, to_version, probe_upstream, token, outpu
         "modules": modules,
         "metrics": {
             "total": len(modules),
-            "local": sum(1 for m in modules.values() if m.origin.kind == "local"),
+            "custom": sum(1 for m in modules.values() if m.origin.kind == "custom"),
             "oca": sum(1 for m in modules.values() if m.origin.kind == "oca"),
-            "submodule": sum(1 for m in modules.values() if m.origin.kind == "submodule"),
-            "core": sum(1 for m in modules.values() if m.origin.kind == "core"),
+            "third_party": sum(1 for m in modules.values() if m.origin.kind == "third-party"),
         },
     }
 
@@ -139,12 +144,12 @@ def main(ctx, source_ref, from_version, to_version, probe_upstream, token, outpu
     render_and_exit(result, formatter, output, output_format, output_path)
 
 
-def _probe_oca_modules(modules: dict, to_version: str, token: str | None) -> None:
-    """Probe each OCA module against its upstream repo. Mutates modules in place."""
+def _probe_modules(modules: dict, to_version: str, token: str | None) -> None:
+    """Probe OCA and third-party modules against their upstream repo. Mutates in place."""
     from oops.services.github import check_upstream_module
 
     for ms in modules.values():
-        if ms.origin.kind != "oca" or not ms.origin.repo:
+        if ms.origin.kind not in ("oca", "third-party") or not ms.origin.repo:
             continue
         try:
             owner, repo_name = ms.origin.repo.split("/", 1)
@@ -152,4 +157,4 @@ def _probe_oca_modules(modules: dict, to_version: str, token: str | None) -> Non
             continue
         probe = check_upstream_module(owner, repo_name, ms.name, to_version, token)
         ms.upstream_available = probe["available"]
-        ms.upstream_prs = [pr["url"] for pr in probe["prs"]]
+        ms.upstream_prs = probe["prs"]

@@ -12,7 +12,7 @@ from oops.output.layout import (
     TableBlock,
 )
 
-ORIGIN_ICON = {"local": "●", "oca": "◎", "submodule": "○", "core": "·"}
+ORIGIN_ICON = {"custom": "●", "oca": "◎", "third-party": "○"}
 
 
 class AnalyzePresenter(SimplePresenter[dict]):
@@ -32,7 +32,6 @@ class AnalyzePresenter(SimplePresenter[dict]):
                 "✓" if ms.upstream_available else ("?" if ms.upstream_available is None else "✗"),
             ]
             for name, ms in sorted(modules.items())
-            if ms.origin.kind != "core"
         ]
 
         table = TableBlock(
@@ -50,17 +49,16 @@ class AnalyzePresenter(SimplePresenter[dict]):
         panel = MetricsPanelBlock(
             title="Metrics",
             values=[
-                ["local", str(metrics["local"])],
+                ["custom", str(metrics["custom"])],
                 ["oca", str(metrics["oca"])],
-                ["submodule", str(metrics["submodule"])],
-                ["core deps", str(metrics["core"])],
+                ["third-party", str(metrics["third_party"])],
             ],
         )
 
         conclusion_msg = (
             f"state.yml written — {metrics['total']} modules "
-            f"({metrics['local']} local, {metrics['oca']} OCA, "
-            f"{metrics['submodule']} submodule, {metrics['core']} core deps)"
+            f"({metrics['custom']} custom, {metrics['oca']} OCA, "
+            f"{metrics['third_party']} third-party)"
         )
 
         return SimpleSummaryLayout(

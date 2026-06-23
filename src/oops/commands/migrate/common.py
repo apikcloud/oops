@@ -29,7 +29,7 @@ UTC = timezone.utc
 
 # Action vocabulary — unambiguous on purpose (avoid update/upgrade).
 Action = Literal["pull", "port", "drop", "keep"]
-OriginKind = Literal["local", "submodule", "oca", "core"]
+OriginKind = Literal["custom", "third-party", "oca"]
 
 
 # ---------------------------------------------------------------------------
@@ -53,30 +53,26 @@ def artifact_path(repo_path: Path, name: Path) -> Path:
 def classify_origin(addon: "AddonInfo") -> "tuple[OriginKind, Optional[str]]":
     """Map an enriched AddonInfo to (OriginKind, repo_slug).
 
+    Uses addon.classification directly (custom | oca | third-party).
     repo_slug is "owner/repo" (e.g. "OCA/server-tools") or None.
     Must be called AFTER enrich_addon().
     """
     from oops.utils.net import website_to_github_repo
 
-    if addon.classification == "oca" and addon.submodule:
-        return ("oca", addon.submodule)
+    kind: OriginKind = addon.classification or "third-party"
+
+    if kind == "custom":
+        return ("custom", None)
+
+    # For oca and third-party: derive repo from submodule name or website URL.
+    if addon.submodule:
+        return (kind, addon.submodule)
 
     pair = website_to_github_repo(getattr(addon, "website", None))
-    if pair and pair[0].upper() == "OCA":
-        return ("oca", f"{pair[0]}/{pair[1]}")
-
-    if addon.classification == "oca":
-        return ("oca", None)
-
-    if addon.classification == "custom":
-        return ("local", None)
-
-    if addon.submodule:
-        return ("submodule", addon.submodule)
-
     if pair:
-        return ("submodule", f"{pair[0]}/{pair[1]}")
-    return ("submodule", None)
+        return (kind, f"{pair[0]}/{pair[1]}")
+
+    return (kind, None)
 
 
 # ---------------------------------------------------------------------------

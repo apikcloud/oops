@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -70,16 +69,16 @@ class TestClassifyOrigin:
     def test_oca_via_website_no_submodule(self):
         addon = self._make_addon("third-party", website="https://github.com/OCA/multi-company")
         kind, slug = classify_origin(addon)
-        assert kind == "oca"
+        assert kind == "third-party"
         assert slug == "OCA/multi-company"
 
     def test_local_custom(self):
         addon = self._make_addon("custom")
-        assert classify_origin(addon) == ("local", None)
+        assert classify_origin(addon) == ("custom", None)
 
     def test_third_party_submodule(self):
         addon = self._make_addon("third-party", submodule="some-vendor/some-repo")
-        assert classify_origin(addon) == ("submodule", "some-vendor/some-repo")
+        assert classify_origin(addon) == ("third-party", "some-vendor/some-repo")
 
 
 # ---------------------------------------------------------------------------
@@ -96,12 +95,12 @@ def test_save_load_state_roundtrip(tmp_path):
         modules={
             "my_module": ModuleState(
                 name="my_module",
-                origin=Origin(kind="local"),
+                origin=Origin(kind="custom"),
                 depends_on=["base"],
             ),
-            "base": ModuleState(
-                name="base",
-                origin=Origin(kind="core"),
+            "oca_mod": ModuleState(
+                name="oca_mod",
+                origin=Origin(kind="oca", repo="OCA/server-tools"),
             ),
         },
     )
@@ -111,8 +110,8 @@ def test_save_load_state_roundtrip(tmp_path):
     loaded = load_state(path)
     assert loaded.from_version == "18.0"
     assert loaded.to_version == "19.0"
-    assert loaded.modules["my_module"].origin.kind == "local"
-    assert loaded.modules["base"].origin.kind == "core"
+    assert loaded.modules["my_module"].origin.kind == "custom"
+    assert loaded.modules["oca_mod"].origin.kind == "oca"
 
 
 # ---------------------------------------------------------------------------
@@ -141,10 +140,10 @@ def _mock_repo(repo_path):
 
 def test_analyze_writes_state(tmp_path):
     _make_addon_dir(tmp_path, "custom_sale", author="Acme")
-    _make_addon_dir(tmp_path, "oca_partner", website="https://github.com/OCA/partner-contact")
+    _make_addon_dir(tmp_path, "oca_partner", author="Odoo Community Association (OCA)", website="https://github.com/OCA/partner-contact")
 
     with _mock_repo(tmp_path):
-        result = CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0"])
+        result = CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--no-probe-upstream"])
 
     assert result.exit_code == 0, result.output
     state_file = tmp_path / ".oops" / "migrate" / "state.yml"
@@ -157,12 +156,12 @@ def test_analyze_writes_state(tmp_path):
     assert "oca_partner" in data["modules"]
     assert data["modules"]["oca_partner"]["origin"]["kind"] == "oca"
     assert data["modules"]["oca_partner"]["origin"]["repo"] == "OCA/partner-contact"
-    assert data["modules"]["base"]["origin"]["kind"] == "core"
+    assert data["modules"]["custom_sale"]["origin"]["kind"] == "custom"
 
 
 def test_analyze_requires_to_version(tmp_path):
     with _mock_repo(tmp_path):
-        result = CliRunner().invoke(main, ["--from", "18.0"])
+        result = CliRunner().invoke(main, ["--from", "18.0", "--no-probe-upstream"])
     assert result.exit_code == 1
     assert "to" in result.output.lower() or "version" in result.output.lower()
 
@@ -171,7 +170,7 @@ def test_analyze_detects_from_version_from_branch(tmp_path):
     """When --from is omitted, from_version is derived from branch name."""
     _make_addon_dir(tmp_path, "my_mod")
     with _mock_repo(tmp_path):
-        result = CliRunner().invoke(main, ["--to", "19.0"])
+        result = CliRunner().invoke(main, ["--to", "19.0", "--no-probe-upstream"])
     assert result.exit_code == 0, result.output
     state_file = tmp_path / ".oops" / "migrate" / "state.yml"
     data = yaml.safe_load(state_file.read_text())
@@ -181,10 +180,36 @@ def test_analyze_detects_from_version_from_branch(tmp_path):
 def test_analyze_json_format(tmp_path):
     _make_addon_dir(tmp_path, "my_mod")
     with _mock_repo(tmp_path):
-        result = CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--format", "json"])
+        result = CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--no-probe-upstream", "--format", "json"])
     assert result.exit_code == 0, result.output
     import json
     json_start = result.output.index("{")
     data = json.loads(result.output[json_start:])
     assert "metrics" in data
     assert "modules" in data
+
+
+def test_analyze_probe_upstream_default_on(tmp_path):
+    """--probe-upstream is on by default; check_upstream_module is called for oca modules."""
+    _make_addon_dir(tmp_path, "oca_mod", author="Odoo Community Association (OCA)", website="https://github.com/OCA/server-tools")
+
+    with _mock_repo(tmp_path):
+        with patch(
+            "oops.commands.migrate.analyze._probe_modules",
+        ) as mock_probe:
+            CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0"])
+
+    mock_probe.assert_called_once()
+
+
+def test_analyze_no_probe_upstream_skips_probe(tmp_path):
+    """--no-probe-upstream prevents any API calls."""
+    _make_addon_dir(tmp_path, "oca_mod", author="Odoo Community Association (OCA)")
+
+    with _mock_repo(tmp_path):
+        with patch(
+            "oops.commands.migrate.analyze._probe_modules",
+        ) as mock_probe:
+            CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--no-probe-upstream"])
+
+    mock_probe.assert_not_called()
