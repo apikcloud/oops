@@ -22,6 +22,7 @@ class CommitMessages:
 
     # PR management
     pr_manage: str = "chore(pr): rename and rewrite pull request submodules"
+    pr_replace: str = "chore(pr): replace pull-request submodule(s) with upstream\n\n{description}"
     pr_add: str = """chore(pr): add pull-request submodule {name}
 
     - pr: {pr_url}
