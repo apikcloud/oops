@@ -237,6 +237,46 @@ def list_remote_addons(
     return sorted(addon_dirs)
 
 
+def check_upstream_module(
+    owner: str,
+    repo: str,
+    module_name: str,
+    target_version: str,
+    token: Optional[str] = None,
+) -> dict:
+    """Check if module_name exists on target_version branch of owner/repo and find open PRs.
+
+    Returns {"available": bool, "prs": [{"number": int, "url": str, "title": str}]}.
+    Never raises — network/auth errors return available=False and prs=[].
+    """
+    result: dict = {"available": False, "prs": []}
+
+    try:
+        addon_dirs = list_remote_addons(owner, repo, target_version, token or "")
+        result["available"] = module_name in addon_dirs
+    except Exception:
+        pass
+
+    try:
+        search_url = "https://api.github.com/search/issues"
+        q = f"repo:{owner}/{repo} is:pr base:{target_version} {module_name} in:title"
+        r = requests.get(
+            search_url,
+            params={"q": q, "per_page": 10},
+            headers=_get_headers(token),
+            timeout=config.default_timeout,
+        )
+        if r.status_code == 200:
+            result["prs"] = [
+                {"number": item["number"], "url": item["html_url"], "title": item["title"]}
+                for item in r.json().get("items", [])
+            ]
+    except Exception:
+        pass
+
+    return result
+
+
 def get_pull_request(owner: str, repo: str, number: int, token: str) -> PullRequest:
     """Fetch a single pull request by number.
 

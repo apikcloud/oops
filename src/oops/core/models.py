@@ -171,6 +171,7 @@ class AddonInfo:
     summary: str
     external_dependencies: "Dict[str, List[str]]"
     installable: bool
+    website: Optional[str] = None
     # Git-state fields — None until enrich_addon() is called
     submodule: Optional[str] = None  # submodule name (e.g. "OCA/server-tools"), "" if not in one
     branch: Optional[str] = None  # upstream branch tracked by the submodule
@@ -217,6 +218,7 @@ class AddonInfo:
             summary=manifest.get("summary", ""),
             external_dependencies=manifest.get("external_dependencies", {}),
             installable=manifest.get("installable", True),
+            website=manifest.get("website"),
         )
 
 
