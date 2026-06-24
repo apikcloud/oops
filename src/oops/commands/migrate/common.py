@@ -147,12 +147,40 @@ class Plan:
 
 
 def load_plan(path: Path) -> Plan:
-    """Parse plan.yml into a Plan.
-
-    TODO: implement YAML → Plan with schema validation. For now this is the
-    single source of truth apply() reads from.
-    """
-    raise NotImplementedError("load_plan: YAML parsing + validation")
+    """Parse plan.yml → Plan."""
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    modules: dict[str, ModulePlan] = {}
+    for name, raw in data.get("modules", {}).items():
+        if raw is None:
+            raw = {}
+        origin: Optional[Origin] = None
+        if raw.get("origin"):
+            o = raw["origin"]
+            origin = Origin(
+                kind=o["kind"],
+                repo=o.get("repo"),
+                ref=o.get("ref"),
+            )
+        modules[name] = ModulePlan(
+            name=raw.get("name", name),
+            action=raw.get("action"),
+            origin=origin,
+            depends_on=raw.get("depends_on", []),
+            group=raw.get("group"),
+            tools=raw.get("tools"),
+            merge_with=raw.get("merge_with"),
+            rename=raw.get("rename"),
+            priority=raw.get("priority"),
+            reason=raw.get("reason"),
+            review=raw.get("review", False),
+        )
+    return Plan(
+        version=data["version"],
+        migration=data.get("migration", {}),
+        defaults=data.get("defaults", {}),
+        groups=data.get("groups", {}),
+        modules=modules,
+    )
 
 
 def save_state(path: Path, state: State) -> None:
@@ -193,9 +221,59 @@ def load_state(path: Path) -> State:
 
 
 def save_plan(path: Path, plan: Plan) -> None:
-    """Serialize Plan → plan.yml, preserving human edits.
+    """Serialize Plan → plan.yml (PyYAML; YAML comments not preserved)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-    TODO: round-trip preserving comments/order (ruamel.yaml), so re-seeding
-    never destroys the human's formatting or intent.
-    """
-    raise NotImplementedError("save_plan")
+    def _module_dict(mp: ModulePlan) -> dict:
+        d: dict = {"action": mp.action}
+        if mp.origin:
+            od: dict = {"kind": mp.origin.kind}
+            if mp.origin.repo:
+                od["repo"] = mp.origin.repo
+            if mp.origin.ref:
+                od["ref"] = mp.origin.ref
+            d["origin"] = od
+        if mp.depends_on:
+            d["depends_on"] = mp.depends_on
+        for key in ("group", "tools", "merge_with", "rename", "priority", "reason"):
+            val = getattr(mp, key)
+            if val is not None:
+                d[key] = val
+        if mp.review:
+            d["review"] = True
+        return d
+
+    data: dict = {
+        "version": plan.version,
+        "migration": plan.migration,
+    }
+    if plan.defaults:
+        data["defaults"] = plan.defaults
+    if plan.groups:
+        data["groups"] = plan.groups
+    data["modules"] = {name: _module_dict(mp) for name, mp in plan.modules.items()}
+
+    path.write_text(
+        yaml.safe_dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
+def _guess_action(ms: ModuleState) -> Action:
+    """Guess the migration action from a module's observed state."""
+    if ms.origin.kind == "custom":
+        return "port"
+    if ms.upstream_available is True:
+        return "pull"
+    return "port"
+
+
+def _needs_review(ms: ModuleState, action: Action) -> bool:
+    """True when the guessed action is uncertain and a human must confirm."""
+    if ms.origin.kind == "custom":
+        return False
+    if ms.upstream_available is None:
+        return True
+    if ms.upstream_available is False and ms.upstream_prs:
+        return True
+    return False

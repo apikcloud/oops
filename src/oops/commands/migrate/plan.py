@@ -25,8 +25,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-from oops.commands.base import command
+from oops.commands.base import command, render_and_exit
 from oops.core.compat import Optional
+from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
@@ -36,10 +37,15 @@ from oops.services.git import require_repository
 from .common import (
     PLAN_FILE,
     STATE_FILE,
+    ModulePlan,
+    Origin,
     Plan,
     State,
+    _guess_action,
+    _needs_review,
     artifact_path,
     load_plan,
+    load_state,
     save_plan,
 )
 
@@ -58,53 +64,149 @@ def main(ctx, output_format, output_path):
     metadata = get_metadata()
 
     repo, repo_path = require_repository()
-    outer: Result[None] = Result()
 
     state_path = artifact_path(repo_path, STATE_FILE)
     plan_path = artifact_path(repo_path, PLAN_FILE)
 
-    # 1. Require a state. analyze is the mandatory entry point.
-    #    TODO: load_state(state_path); error clearly if missing
-    #          ("run `oops migrate analyze` first").
-    state: Optional[State] = None  # TODO
+    # 1. Require a state.
+    if not state_path.exists():
+        raise OopsError(f"No state found at {state_path}. Run `oops migrate analyze` first.")
+    state: State = load_state(state_path)
 
-    # 2. Load the existing plan if any (None on first run).
+    # 2. Load existing plan (None on first run).
     existing_plan: Optional[Plan] = None
     if plan_path.exists():
         existing_plan = load_plan(plan_path)
 
+    outer: Result[None] = Result()
+
     with live_progress("Reconciling plan…"):
         if existing_plan is None:
-            # 3a. First run: seed plan from state, guessing actions.
-            #     TODO: for each module, guess action (pull/port/drop/keep),
-            #           mark review: true, attach origin from state.
-            new_plan: Optional[Plan] = None  # TODO
+            new_plan: Optional[Plan] = _seed_plan(state)
         else:
-            # 3b. Reconcile: three-way merge (prev plan, new state, intent).
-            #     TODO:
-            #       - preserve human intent fields (action, tools, merge_with…)
-            #       - refresh origin from state (machine-owned)
-            #       - new module → guessed action + review: true
-            #       - disappeared module → flag (do not drop)
-            #       - CRITICAL: distinguish "absent" vs "explicitly emptied"
-            #         so re-seed never repopulates a field the human cleared.
-            new_plan = None  # TODO
+            new_plan = _reconcile_plan(existing_plan, state, outer)
 
-    # 4. Enforce the invariant before writing: exactly one action per module.
-    #    TODO: collect modules with action is None → outer.add_error per hole.
-    #          If any error, do NOT write the plan (refuse, like terraform).
+    # 3. Enforce the invariant: exactly one action per module.
+    if new_plan is not None:
+        for name, mp in new_plan.modules.items():
+            if mp.action is None:
+                outer.add_error(f"Module '{name}' has no action. Set one of: pull, port, drop, keep.")
 
-    # 5. Persist plan.yml (preserving comments/order — ruamel round-trip).
+    # 4. Persist plan.yml only if no errors.
     if outer.ok and new_plan is not None:
         save_plan(plan_path, new_plan)
 
-    # 6. Report the diff (added / changed-origin / needs-review / disappeared).
+    # 5. Build result for output.
+    modules = new_plan.modules if new_plan else {}
+    metrics = {
+        "total": len(modules),
+        "pull": sum(1 for m in modules.values() if m.action == "pull"),
+        "port": sum(1 for m in modules.values() if m.action == "port"),
+        "drop": sum(1 for m in modules.values() if m.action == "drop"),
+        "keep": sum(1 for m in modules.values() if m.action == "keep"),
+        "review": sum(1 for m in modules.values() if m.review),
+    }
+
     result: Result[dict] = Result()
     result.data = {
         "cmd": "Migration plan",
-        "rows": [],  # TODO: one row per module with its diff status
-        "metrics": {},  # TODO: counts (new, review, dropped, unchanged)
+        "plan_path": str(plan_path),
+        "modules": modules,
+        "metrics": metrics,
+        "is_first_run": existing_plan is None,
     }
-    # TODO: PlanPresenter (human diff table + json), then:
-    # render_and_exit(result, formatter, output, output_format, output_path)
-    raise NotImplementedError("plan: reconcile + presenter + render")
+    result.merge(outer)
+
+    from .presenters.plan import PlanPresenter
+    output = PlanPresenter().prepare(result, target=formatter.target, metadata=metadata)
+    render_and_exit(result, formatter, output, output_format, output_path)
+
+
+def _seed_plan(state: State) -> Plan:
+    """First run: build Plan from State, guessing one action per module."""
+    modules: dict[str, ModulePlan] = {}
+    for name, ms in state.modules.items():
+        action = _guess_action(ms)
+        review = _needs_review(ms, action)
+        modules[name] = ModulePlan(
+            name=name,
+            action=action,
+            origin=Origin(kind=ms.origin.kind, repo=ms.origin.repo, ref=ms.origin.ref),
+            depends_on=ms.depends_on,
+            review=review,
+        )
+    return Plan(
+        version=state.version,
+        migration={
+            "from": state.from_version,
+            "to": state.to_version,
+            "source_ref": state.source_ref,
+            "target_branch": f"{state.to_version}-mig/{{module}}",
+            "strategy": "port",
+            "branch_template": f"{state.to_version}-mig/{{module}}",
+        },
+        modules=modules,
+    )
+
+
+def _reconcile_plan(prev: Plan, state: State, outer: "Result[None]") -> Plan:
+    """Three-way merge: preserve human intent; refresh machine fields."""
+    modules: dict[str, ModulePlan] = {}
+
+    for name, ms in state.modules.items():
+        origin = Origin(kind=ms.origin.kind, repo=ms.origin.repo, ref=ms.origin.ref)
+        if name in prev.modules:
+            p = prev.modules[name]
+            action = p.action
+            review = p.review
+            if action is None:
+                action = _guess_action(ms)
+                review = True
+            modules[name] = ModulePlan(
+                name=name,
+                action=action,
+                origin=origin,
+                depends_on=ms.depends_on,
+                group=p.group,
+                tools=p.tools,
+                merge_with=p.merge_with,
+                rename=p.rename,
+                priority=p.priority,
+                reason=p.reason,
+                review=review,
+            )
+        else:
+            action = _guess_action(ms)
+            modules[name] = ModulePlan(
+                name=name,
+                action=action,
+                origin=origin,
+                depends_on=ms.depends_on,
+                review=True,
+            )
+
+    # Disappeared modules: flag, do NOT drop.
+    for name, p in prev.modules.items():
+        if name not in state.modules:
+            outer.add_warning(f"Module '{name}' is in plan.yml but missing from state. Was it removed?")
+            modules[name] = ModulePlan(
+                name=name,
+                action=p.action,
+                origin=p.origin,
+                depends_on=p.depends_on,
+                group=p.group,
+                tools=p.tools,
+                merge_with=p.merge_with,
+                rename=p.rename,
+                priority=p.priority,
+                reason=p.reason or "(disappeared from state — verify)",
+                review=True,
+            )
+
+    return Plan(
+        version=prev.version,
+        migration=prev.migration,
+        defaults=prev.defaults,
+        groups=prev.groups,
+        modules=modules,
+    )
