@@ -17,6 +17,11 @@ interface MigrateMetrics {
   not_probed: number; target_deps_fetched: number;
 }
 interface MigrateEffort { to_pull: number; in_pr: number; to_port: number; not_probed: number; }
+interface MigrateParams {
+  from_version?: string;
+  to_version?: string;
+  [k: string]: unknown;
+}
 interface MigratePayload {
   source_ref: string;
   state_path: string;
@@ -24,7 +29,7 @@ interface MigratePayload {
   effort: MigrateEffort;
   modules: Record<string, MigrateModule>;
   warnings?: string[];
-  metadata: Payload["metadata"];
+  metadata: Payload["metadata"] & { parameters?: MigrateParams };
 }
 
 type RichModule = MigrateModule & { _name: string; _depCount: number; _upstreamKey: number; };
@@ -44,7 +49,7 @@ function upstreamCell(m: RichModule): HTMLElement {
   if (upstream_available === true) {
     return el("span", { class: "upstream ok" }, "✓");
   }
-  if (upstream_prs.length > 0) {
+  if (upstream_prs?.length > 0) {
     return el("a", { class: "upstream pr", href: upstream_prs[0].url, target: "_blank" }, "~ PR");
   }
   return el("span", { class: "upstream danger" }, "✗");
@@ -54,7 +59,7 @@ function upstreamSortKey(m: MigrateModule): number {
   if (m.origin.kind === "custom") return 4;
   if (m.upstream_available === null) return 3;
   if (m.upstream_available === true) return 0;
-  if (m.upstream_prs.length > 0) return 1;
+  if (m.upstream_prs?.length > 0) return 1;
   return 2;
 }
 
@@ -66,7 +71,7 @@ export function viewMigrateAnalyze(root: HTMLElement, payload: Payload, _source:
   const allModules: RichModule[] = Object.entries(p.modules).map(([name, m]) => ({
     ...m,
     _name: name,
-    _depCount: m.depends_on.length,
+    _depCount: (m.depends_on ?? []).length,
     _upstreamKey: upstreamSortKey(m),
   }));
 
@@ -81,8 +86,19 @@ export function viewMigrateAnalyze(root: HTMLElement, payload: Payload, _source:
   if (metaBar) root.append(metaBar);
 
   // --- Page header ---
+  const params = p.metadata?.parameters;
+  const fromVer = params?.from_version ?? "?";
+  const toVer   = params?.to_version   ?? "?";
+  const versionIndicator = el("div", { class: "migration-indicator" }, [
+    el("span", { class: "migration-version from" }, fromVer),
+    el("span", { class: "migration-arrow" }, "→"),
+    el("span", { class: "migration-version to" }, toVer),
+  ]);
   root.append(el("div", { class: "page-header" }, [
-    el("h1", {}, "Migration analysis"),
+    el("div", { class: "page-header-row" }, [
+      el("h1", {}, "Migration analysis"),
+      versionIndicator,
+    ]),
     el("p", { class: "page-subtitle" }, `${metrics.total} modules · ${metrics.custom} custom · ${metrics.oca} OCA · ${metrics.third_party} third-party`),
   ]));
 
@@ -114,7 +130,7 @@ export function viewMigrateAnalyze(root: HTMLElement, payload: Payload, _source:
   const donutLegend = el("div", { class: "legend" });
 
   root.append(el("div", { class: "charts-row" }, [
-    el("div", { class: "chart-card" }, [effortCard]),
+    effortCard,
     el("div", { class: "chart-card" }, [
       el("h3", {}, "Effort breakdown"),
       donutContainer,
@@ -243,7 +259,7 @@ export function viewMigrateAnalyze(root: HTMLElement, payload: Payload, _source:
       if (!query) return true;
       return (
         m._name.toLowerCase().includes(query) ||
-        (m.origin.repo ?? "").toLowerCase().includes(query)
+        (m.origin?.repo ?? "").toLowerCase().includes(query)
       );
     });
 
