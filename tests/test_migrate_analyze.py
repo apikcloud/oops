@@ -211,3 +211,25 @@ def test_analyze_no_probe_upstream_skips_probe(tmp_path):
             CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--no-probe-upstream"])
 
     mock_probe.assert_not_called()
+
+
+def test_analyze_html_format(tmp_path):
+    _make_addon_dir(tmp_path, "my_mod")
+    out = tmp_path / "report.html"
+    with _mock_repo(tmp_path):
+        result = CliRunner().invoke(
+            main,
+            ["--from", "18.0", "--to", "19.0", "--no-probe-upstream", "--format", "html", "--output-path", str(out)],
+        )
+    assert result.exit_code == 0, result.output
+    assert out.exists() and out.stat().st_size > 0
+    content = out.read_text()
+    assert "window.OOPS" in content
+    assert '"migrate analyze"' in content
+
+
+def test_analyze_unknown_format_rejected(tmp_path):
+    _make_addon_dir(tmp_path, "my_mod")
+    with _mock_repo(tmp_path):
+        result = CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--format", "bogus"])
+    assert result.exit_code != 0

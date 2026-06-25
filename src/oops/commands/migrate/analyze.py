@@ -34,6 +34,7 @@ from oops.output.formatters import (
     JsonFormatter,
     OutputFormatter,
     SimpleSummaryConsoleFormatter,
+    SpaReportFormatter,
 )
 from oops.services.git import list_submodules, require_repository
 from oops.services.github import fetch_manifest_deps_rest
@@ -52,6 +53,7 @@ from .presenters.analyze import AnalyzePresenter
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
     "json": JsonFormatter,
+    "html": SpaReportFormatter,
 }
 
 
@@ -91,7 +93,7 @@ FORMATTERS: FormatterRegistry = {
 @click.option(
     "--format",
     "output_format",
-    type=click.Choice(["text", "json"]),
+    type=click.Choice(["text", "json", "html"]),
     default="text",
     show_default=True,
 )

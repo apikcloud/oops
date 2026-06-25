@@ -483,6 +483,10 @@ tbody tr:hover {
     background: var(--origin-third_party);
     color: #fff;
 }
+.badge.third-party {
+    background: var(--origin-third_party);
+    color: #fff;
+}
 .badge.custom {
     background: var(--origin-custom);
     color: #fff;
@@ -2038,4 +2042,26 @@ footer {
     border-radius: var(--radius);
     color: #8a1f17;
     margin-top: 1rem;
+}
+
+/* Upstream status cells (migrate analyze) */
+.upstream {
+    font-family: var(--mono);
+    font-weight: 600;
+}
+.upstream.ok {
+    color: var(--ok);
+}
+.upstream.danger {
+    color: var(--danger);
+}
+.upstream.pr {
+    color: var(--warning);
+    text-decoration: none;
+}
+.upstream.pr:hover {
+    text-decoration: underline;
+}
+.upstream.dim {
+    color: var(--text-muted);
 }
