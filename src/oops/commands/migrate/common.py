@@ -272,7 +272,7 @@ class ModulePlan:
     def effective_tools(self) -> list[str]:
         if self.resolved_tools is not None:
             return self.resolved_tools
-        return STRATEGIES.get(self.effective_strategy, [])
+        return list(STRATEGIES.get(self.effective_strategy, []))
 
 
 @dataclass
@@ -396,7 +396,7 @@ def resolve_tools(mp: ModulePlan, defaults: dict) -> list[str]:
     if mp.tools is not None:
         return mp.tools  # explicit (may be [])
     strategy_name = mp.strategy or defaults.get(mp.action, {}).get("strategy") or DEFAULT_STRATEGY
-    return STRATEGIES.get(strategy_name, [])
+    return list(STRATEGIES.get(strategy_name, []))
 
 
 # ---------------------------------------------------------------------------
@@ -565,7 +565,7 @@ def save_plan(path: Path, plan: MigrationPlan) -> None:
             d["descendant_count"] = mp.descendant_count
         if mp.resolved_branch:
             d["resolved_branch"] = mp.resolved_branch
-        if mp.resolved_tools is not None:
+        if mp.tools is not None:
             d["resolved_tools"] = mp.resolved_tools
 
         return d
