@@ -17,7 +17,6 @@ ACTION_COLOR: dict[str, str] = {
     "pull": "green",
     "port": "yellow",
     "drop": "red",
-    "keep": "dim",
 }
 
 
@@ -65,7 +64,6 @@ class PlanPresenter(SimplePresenter[dict]):
                 ["pull", f"[green]{metrics['pull']}[/]"],
                 ["port", f"[yellow]{metrics['port']}[/]"],
                 ["drop", f"[red]{metrics['drop']}[/]"],
-                ["keep", f"[dim]{metrics['keep']}[/]"],
                 ["", ""],
                 ["review", f"[yellow]{metrics['review']}[/]"],
             ],
