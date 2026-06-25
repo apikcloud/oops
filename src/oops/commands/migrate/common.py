@@ -324,9 +324,11 @@ def build_graph(
         ms = states.get(name)
         raw_deps = effective_depends_on(mp, ms)
         # Keep only deps that are in the plan and not dropped/core.
-        filtered = [
-            d for d in raw_deps if d in plan_names and d not in ODOO_CORE_MODULES and modules[d].action != "drop"
-        ]
+        filtered = list(
+            dict.fromkeys(
+                d for d in raw_deps if d in plan_names and d not in ODOO_CORE_MODULES and modules[d].action != "drop"
+            )
+        )
         graph[name] = filtered
     return graph
 

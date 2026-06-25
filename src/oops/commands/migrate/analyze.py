@@ -157,7 +157,7 @@ def main(
             modules[addon.technical_name] = ModuleState(
                 name=addon.technical_name,
                 origin=Origin(kind=kind, repo=repo_slug, ref=addon.branch or None),
-                depends_on=addon.depends,
+                depends_on=list(dict.fromkeys(addon.depends)),
                 # target_depends_on: None until the probe fills it in.
             )
 
