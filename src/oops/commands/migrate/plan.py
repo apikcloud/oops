@@ -178,10 +178,11 @@ def _seed_plan(state: State) -> MigrationPlan:
     for name, ms in state.modules.items():
         action = _guess_action(ms)
         review = _needs_review(ms, action)
+        pr_url = ms.upstream_prs[0]["url"] if ms.upstream_prs else None
         modules[name] = ModulePlan(
             name=name,
             action=action,
-            origin=Origin(kind=ms.origin.kind, repo=ms.origin.repo, ref=ms.origin.ref),
+            origin=Origin(kind=ms.origin.kind, repo=ms.origin.repo, ref=ms.origin.ref, pr=pr_url),
             depends_on=ms.depends_on,
             review=review,
         )
@@ -220,7 +221,8 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
 
     # Modules present in the new state.
     for name, ms in state.modules.items():
-        origin = Origin(kind=ms.origin.kind, repo=ms.origin.repo, ref=ms.origin.ref)
+        pr_url = ms.upstream_prs[0]["url"] if ms.upstream_prs else None
+        origin = Origin(kind=ms.origin.kind, repo=ms.origin.repo, ref=ms.origin.ref, pr=pr_url)
         if name in prev.modules:
             p = prev.modules[name]
             action = p.action

@@ -416,7 +416,7 @@ def _guess_action(ms: ModuleState) -> Action:
     """
     if ms.origin.kind == "custom":
         return "port"
-    if ms.upstream_available is True:
+    if ms.upstream_available is True or ms.upstream_prs:
         return "pull"
     return "port"
 
@@ -548,6 +548,7 @@ def save_plan(path: Path, plan: MigrationPlan) -> None:
                 od["repo"] = mp.origin.repo
             if mp.origin.ref:
                 od["ref"] = mp.origin.ref
+            if mp.origin.pr:
                 od["pr"] = mp.origin.pr
             d["origin"] = od
         if mp.depends_on:

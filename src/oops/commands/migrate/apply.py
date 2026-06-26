@@ -582,6 +582,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_
     # 8b. Execute pull modules (batch on pull_branch).
     if work_pull:
         pull_mps = [(plan.modules[n], pull_branch) for n in work_pull]
+
         with live_progress(f"Applying {len(work_pull)} pull module(s) on {pull_branch!r}…"):
             try:
                 batch_results = _apply_pull_batch(pull_mps, repo, wt_path, dest_branch, pull_branch, dry_run)
