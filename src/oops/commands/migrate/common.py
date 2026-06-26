@@ -187,6 +187,7 @@ class Origin:
     kind: OriginKind
     repo: Optional[str] = None
     ref: Optional[str] = None
+    pr: Optional[str] = None  # PR URL → oops pr add; absent → oops submodule add
 
 
 @dataclass
@@ -446,7 +447,7 @@ def load_plan(path: Path) -> MigrationPlan:
         origin: Optional[Origin] = None
         if raw.get("origin"):
             o = raw["origin"]
-            origin = Origin(kind=o["kind"], repo=o.get("repo"), ref=o.get("ref"))
+            origin = Origin(kind=o["kind"], repo=o.get("repo"), ref=o.get("ref"), pr=o.get("pr"))
 
         # Preserve the absent-vs-empty distinction on `tools`.
         tools: Optional[list[str]]
@@ -547,6 +548,7 @@ def save_plan(path: Path, plan: MigrationPlan) -> None:
                 od["repo"] = mp.origin.repo
             if mp.origin.ref:
                 od["ref"] = mp.origin.ref
+                od["pr"] = mp.origin.pr
             d["origin"] = od
         if mp.depends_on:
             d["depends_on"] = mp.depends_on
@@ -586,3 +588,41 @@ def save_plan(path: Path, plan: MigrationPlan) -> None:
         yaml.safe_dump(out, default_flow_style=False, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
+
+
+def get_dest_branch(migration: dict) -> str:
+    """Return the destination branch name (base for all migration branches).
+
+    Reads `dest_branch` first (explicit, preferred), then falls back to
+    `target_branch` for plans that haven't been updated yet.
+    Never returns a value that contains '{' — that would be a template, not a branch.
+    """
+    raw = migration.get("dest_branch") or migration.get("target_branch", "main")
+    if "{" in raw:
+        # target_branch contains a template — that's branch_template, not dest.
+        # Fall back to a safe default.
+        return "main"
+    return raw
+
+
+def get_worktree_path(migration: dict, repo_path: "Path") -> "Path":
+    """Return the worktree path from the plan, or a sensible default.
+
+    Default: sibling of repo_path, named <project>-migrate-<to_version>
+    where to_version has dots replaced by dashes to avoid path confusion.
+    """
+    raw = migration.get("worktree_path")
+    if raw:
+        return Path(raw).expanduser()
+    project = repo_path.name
+    to = migration.get("to", "XX").replace(".", "-")  # "19.0" → "19-0"
+    return repo_path.parent / f"{project}-migrate-{to}"
+
+
+def get_pull_branch(migration: dict) -> str:
+    """Return the pull aggregation branch name."""
+    raw = migration.get("pull_branch")
+    if raw:
+        return raw
+    to = migration.get("to", "XX")
+    return f"mig/{to}/pull"

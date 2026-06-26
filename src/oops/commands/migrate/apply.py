@@ -6,24 +6,25 @@
 """
 Execute the migration plan: create branches and run mechanical tooling.
 
-A workshop preparer, NOT an automatic migrator. For each module in
-topological dependency order it:
-  - creates the target branch from source_ref,
-  - dispatches on action:
-      port → runs the resolved tool chain (odoo-module-migrator, pre-commit…),
-      pull → records as ready (upstream handles the migration),
-      drop → records as dropped (no branch, no tooling),
-  - for rename / merge_with: executes the mechanical part (branch + directory
-    rename) then lays a template commit with a human checklist,
-  - records the result in status.yml after each module (resumable on failure).
+A workshop preparer, NOT an automatic migrator. Operates exclusively in
+the git worktree created by `oops migrate prepare` — the source branch in
+the main repository is never touched.
 
-Idempotent: modules already recorded as done in status.yml are skipped unless
---force is passed. Use --only to target specific modules.
+For each module in topological order:
+  port → create branch from dest base, extract module via git archive,
+         commit initial state, run tool chain, commit result.
+  pull → aggregated on a single branch (pull_branch from plan.migration):
+         oops submodule add OR oops pr add, depending on origin.pr.
+  drop → no branch, no tooling, recorded as done.
+
+Idempotent via status.yml. --force re-runs done modules. --only targets
+specific modules. --pull-only / --port-only filters by action.
 """
 
 from __future__ import annotations
 
 import subprocess
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,6 +52,9 @@ from .common import (
     ModulePlan,
     artifact_path,
     build_graph,
+    get_dest_branch,
+    get_pull_branch,
+    get_worktree_path,
     load_plan,
     resolve_branch,
     resolve_tools,
@@ -64,7 +68,7 @@ FORMATTERS: FormatterRegistry = {
 }
 
 # ---------------------------------------------------------------------------
-# Status journal dataclasses (status.yml — machine-owned)
+# Status journal (status.yml — machine-owned)
 # ---------------------------------------------------------------------------
 
 ModuleStatus = str  # "done" | "skipped" | "failed" | "pending"
@@ -72,7 +76,7 @@ ModuleStatus = str  # "done" | "skipped" | "failed" | "pending"
 
 @dataclass
 class ModuleRecord:
-    """Execution record for one module in status.yml."""
+    """Execution record for one module."""
 
     name: str
     action: str
@@ -80,12 +84,12 @@ class ModuleRecord:
     status: ModuleStatus
     tools_run: list[str] = field(default_factory=list)
     error: Optional[str] = None
-    applied_at: Optional[str] = None  # ISO 8601
+    applied_at: Optional[str] = None
 
 
 @dataclass
 class ApplyStatus:
-    """status.yml — idempotency journal for apply."""
+    """status.yml — idempotency journal."""
 
     version: int
     plan_source_ref: str
@@ -93,6 +97,10 @@ class ApplyStatus:
     to_version: str
     modules: dict[str, ModuleRecord] = field(default_factory=dict)
     started_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    # Set by prepare:
+    prepared: bool = False
+    worktree_path: Optional[str] = None
+    dest_branch: Optional[str] = None
 
 
 def _load_status(path: Path) -> Optional[ApplyStatus]:
@@ -107,6 +115,9 @@ def _load_status(path: Path) -> Optional[ApplyStatus]:
         to_version=data["to_version"],
         modules=modules,
         started_at=data.get("started_at", ""),
+        prepared=data.get("prepared", False),
+        worktree_path=data.get("worktree_path"),
+        dest_branch=data.get("dest_branch"),
     )
 
 
@@ -120,35 +131,19 @@ def _save_status(path: Path, status: ApplyStatus) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Topological sort
+# Topological sort (Kahn's algorithm)
 # ---------------------------------------------------------------------------
 
 
 def _topo_sort(graph: dict[str, list[str]]) -> list[str]:
-    """Return module names in topological order (dependencies first).
-
-    Uses Kahn's algorithm. Raises OopsError on cycles (should not happen
-    in a well-formed Odoo dependency graph, but better to surface it than
-    silently produce a wrong order).
-    """
     from collections import deque
 
-    in_degree = {n: 0 for n in graph}
-    for deps in graph.values():
-        for d in deps:
-            if d in in_degree:
-                in_degree[d] += 1
-
-    # Reverse: we want dependencies FIRST, so nodes with no in-edges go first.
-    # Re-map: in_degree here counts "how many modules this one depends on"
-    # We need the reverse: sort so that modules with no dependencies come first.
     in_degree = {n: 0 for n in graph}
     for node, deps in graph.items():
         for d in set(deps):
             if d in in_degree:
-                in_degree[node] += 1  # node depends on d → node's in-degree++
+                in_degree[node] += 1
 
-    # Nodes with no deps first.
     queue: deque[str] = deque(sorted(n for n, deg in in_degree.items() if deg == 0))
     order: list[str] = []
 
@@ -163,183 +158,279 @@ def _topo_sort(graph: dict[str, list[str]]) -> list[str]:
 
     if len(order) != len(graph):
         cycle_nodes = set(graph) - set(order)
-        raise OopsError(f"Dependency cycle detected among: {', '.join(sorted(cycle_nodes))}")
+        raise OopsError(f"Dependency cycle detected: {', '.join(sorted(cycle_nodes))}")
     return order
 
 
 # ---------------------------------------------------------------------------
-# Validation
+# Pre-flight validation
 # ---------------------------------------------------------------------------
 
 
 def _validate_plan(plan: MigrationPlan, outer: "Result[None]") -> None:
-    """Pre-flight checks before touching git. Adds errors to outer."""
     names = set(plan.modules.keys())
-
     for name, mp in plan.modules.items():
-        # Invariant: exactly one action.
         if mp.action is None:
-            outer.add_error(f"Module '{name}' has no action — run `oops migrate plan` first.")
-        # merge_with target must exist in the plan.
+            outer.add_error(f"'{name}' has no action — run `oops migrate plan` first.")
         if mp.merge_with:
             target = mp.merge_with.get("into")
             if target and target not in names:
-                outer.add_error(f"Module '{name}': merge_with target '{target}' not in plan.")
-        # rename target must not collide with an existing module.
+                outer.add_error(f"'{name}': merge_with target '{target}' not in plan.")
         if mp.rename and mp.rename in names and mp.rename != name:
-            outer.add_error(f"Module '{name}': rename target '{mp.rename}' already exists in plan.")
+            outer.add_error(f"'{name}': rename target '{mp.rename}' already exists.")
 
 
 # ---------------------------------------------------------------------------
-# Per-module execution
+# Worktree git helpers
 # ---------------------------------------------------------------------------
+
+
+def _wt_run(cmd: list[str], cwd: Path, check: bool = True) -> subprocess.CompletedProcess:
+    """Run a git command in the worktree directory."""
+    log.debug(f"$ {' '.join(cmd)}  (cwd={cwd})")
+    return subprocess.run(cmd, cwd=cwd, check=check, capture_output=True, text=True)
+
+
+def _wt_branch_exists(wt_path: Path, branch: str) -> bool:
+    r = _wt_run(["git", "branch", "--list", branch], wt_path, check=False)
+    return bool(r.stdout.strip())
+
+
+def _wt_current_branch(wt_path: Path) -> str:
+    return _wt_run(["git", "branch", "--show-current"], wt_path).stdout.strip()
+
+
+def _wt_checkout(wt_path: Path, branch: str, create_from: Optional[str] = None) -> None:
+    """Checkout branch in worktree, optionally creating it from create_from."""
+    if create_from:
+        _wt_run(["git", "checkout", "-b", branch, create_from], wt_path)
+    else:
+        _wt_run(["git", "checkout", branch], wt_path)
+
+
+def _extract_module(
+    repo,
+    source_ref: str,
+    module_name: str,
+    wt_path: Path,
+) -> None:
+    """Extract module directory from source_ref into the worktree via git archive.
+
+    Uses: git archive <source_ref> <module>/ | tar -x -C <wt_path>
+    This copies the file tree at source_ref without touching the working
+    directory of the main repository.
+    """
+    archive = subprocess.run(
+        ["git", "archive", source_ref, f"{module_name}/"],
+        cwd=repo.working_dir,
+        capture_output=True,
+        check=True,
+    )
+    subprocess.run(
+        ["tar", "-x", "-C", str(wt_path)],
+        input=archive.stdout,
+        check=True,
+        capture_output=True,
+    )
+
+
+def _wt_commit(wt_path: Path, message: str, add_path: Optional[str] = None) -> None:
+    if add_path:
+        _wt_run(["git", "add", add_path], wt_path)
+    else:
+        _wt_run(["git", "add", "-A"], wt_path)
+    _wt_run(["git", "commit", "-m", message], wt_path)
+
+
+def _wt_commit_template(wt_path: Path, subject: str, checklist: list[str]) -> None:
+    body = "\n".join(f"  [ ] {item}" for item in checklist)
+    message = f"{subject}\n\n{body}\n"
+    _wt_run(["git", "commit", "--allow-empty", "-m", message], wt_path)
 
 
 def _run_tools(tools: list[str], cwd: Path) -> list[str]:
-    """Run each tool command in the module directory. Returns list of run tools.
-
-    Raises subprocess.CalledProcessError on first failure.
-    """
+    """Run tool commands in module directory. Returns list of tools run."""
     run = []
     for tool_cmd in tools:
-        log.debug(f"Running: {tool_cmd} (cwd={cwd})")
-        subprocess.run(
-            tool_cmd,
-            shell=True,
-            check=True,
-            cwd=cwd,
-        )
+        log.debug(f"Tool: {tool_cmd}")
+        subprocess.run(tool_cmd, shell=True, check=True, cwd=cwd)
         run.append(tool_cmd)
     return run
+
+
+# ---------------------------------------------------------------------------
+# Per-action executors
+# ---------------------------------------------------------------------------
 
 
 def _apply_port(
     mp: ModulePlan,
     repo,
-    repo_path: Path,
+    wt_path: Path,
+    dest_branch: str,
     source_ref: str,
     branch: str,
+    plan_defaults: dict,
     dry_run: bool,
 ) -> list[str]:
-    """Create branch + run tool chain for a port module.
-
-    Returns the list of tools actually run.
+    """Port workflow:
+    1. Create branch from dest base.
+    2. Extract module via git archive.
+    3. Commit initial state.
+    4. Run tool chain.
+    5. Commit tooling result.
+    6. Handle rename / merge_with.
     """
-    module_path = repo_path / mp.name
+    module_path = wt_path / mp.name
+    tools = resolve_tools(mp, plan_defaults)
 
-    if not dry_run:
-        # Create branch from source_ref if it doesn't exist.
-        existing = [b.name for b in repo.branches]
-        if branch not in existing:
-            log.debug(f"Creating branch {branch!r} from {source_ref!r}")
-            repo.git.checkout("-b", branch, source_ref)
-        else:
-            log.debug(f"Branch {branch!r} already exists, checking out")
-            repo.git.checkout(branch)
+    if dry_run:
+        log.info(f"[dry-run] {mp.name}: branch={branch!r}, extract from {source_ref!r}, tools={tools}")
+        return tools
 
-        tools = resolve_tools(mp, {})
-        if tools and module_path.exists():
-            return _run_tools(tools, cwd=module_path)
-        elif tools:
-            log.warning(f"{mp.name}: module directory not found at {module_path}, skipping tools.")
+    # 1. Create branch from destination base.
+    if _wt_branch_exists(wt_path, branch):
+        _wt_checkout(wt_path, branch)
+        log.debug(f"{mp.name}: branch {branch!r} already exists, checking out")
     else:
-        tools = resolve_tools(mp, {})
-        log.info(f"[dry-run] would create branch {branch!r} and run: {tools}")
+        _wt_checkout(wt_path, branch, create_from=dest_branch)
 
-    return resolve_tools(mp, {})
+    # 2. Extract module from source ref.
+    _extract_module(repo, source_ref, mp.name, wt_path)
+
+    # 3. Commit initial state.
+    _wt_commit(
+        wt_path,
+        f"[mig] {mp.name}: initial state from {source_ref}",
+        add_path=mp.name,
+    )
+
+    # 4. Run tool chain.
+    tools_run: list[str] = []
+    if tools and module_path.exists():
+        tools_run = _run_tools(tools, cwd=module_path)
+        # 5. Commit tooling result.
+        _wt_run(["git", "add", "-A"], wt_path)
+        r = _wt_run(["git", "diff", "--cached", "--quiet"], wt_path, check=False)
+        if r.returncode != 0:  # staged changes exist
+            _wt_commit(
+                wt_path,
+                f"[mig] {mp.name}: mechanical tooling",
+            )
+    elif tools:
+        log.warning(f"{mp.name}: module dir not found at {module_path}, skipping tools")
+
+    # 6. rename / merge_with template commits.
+    if mp.rename:
+        _apply_rename(mp, wt_path, dry_run=False)
+    if mp.merge_with:
+        _apply_merge_with(mp, wt_path, dry_run=False)
+
+    # Return to dest base for the next module.
+    _wt_checkout(wt_path, dest_branch)
+
+    return tools_run
 
 
-def _apply_pull(
-    mp: ModulePlan,
+def _apply_pull_batch(
+    pull_modules: "list[tuple[ModulePlan, str]]",
     repo,
-    source_ref: str,
-    branch: str,
+    wt_path: Path,
+    dest_branch: str,
+    pull_branch: str,
     dry_run: bool,
-) -> None:
-    """For pull modules: create branch, no tooling needed.
+) -> "list[tuple[str, str, list[str], Optional[str]]]":
+    """Aggregated pull workflow — all pull modules on one branch.
 
-    The actual migration content comes from upstream; the branch is a
-    placeholder that `status` can observe.
+    Returns list of (name, status, tools_run, error).
+    Delegates to oops submodule add / oops pr add via their service functions.
     """
-    if not dry_run:
-        existing = [b.name for b in repo.branches]
-        if branch not in existing:
-            log.debug(f"Creating tracking branch {branch!r} from {source_ref!r}")
-            repo.git.checkout("-b", branch, source_ref)
-        else:
-            log.debug(f"Branch {branch!r} already exists")
-            repo.git.checkout(branch)
-        repo.git.checkout(repo.active_branch.name)  # return to previous branch
+    if dry_run:
+        for mp, _ in pull_modules:
+            pr = mp.origin.pr if mp.origin else None
+            cmd = "oops pr add" if pr else "oops submodule add"
+            log.info(f"[dry-run] {mp.name}: {cmd} on {pull_branch!r}")
+        return [(mp.name, "done", [], None) for mp, _ in pull_modules]
+
+    # Create or checkout the pull branch.
+    if _wt_branch_exists(wt_path, pull_branch):
+        _wt_checkout(wt_path, pull_branch)
     else:
-        log.info(f"[dry-run] would create tracking branch {branch!r}")
+        _wt_checkout(wt_path, pull_branch, create_from=dest_branch)
+
+    results = []
+    for mp, branch in pull_modules:
+        try:
+            if mp.origin and mp.origin.pr:
+                # oops pr add <pr_url> — delegates to the pr add service.
+                # TODO: import and call oops.commands.pr.add.add_submodule_flow
+                # with pr_url=mp.origin.pr, repo=wt_repo, repo_path=wt_path
+                log.info(f"{mp.name}: oops pr add {mp.origin.pr}")
+                raise NotImplementedError("oops pr add integration — fill in")
+            else:
+                # oops submodule add <url> <branch>
+                # TODO: import and call oops.commands.submodules.add.add_submodule_flow
+                # with url=mp.origin.repo, branch=mp.origin.ref, repo=wt_repo
+                url = f"https://github.com/{mp.origin.repo}.git" if mp.origin and mp.origin.repo else ""
+                ref = (mp.origin.ref if mp.origin else None) or "main"
+                log.info(f"{mp.name}: oops submodule add {url} {ref}")
+                raise NotImplementedError("oops submodule add integration — fill in")
+            results.append((mp.name, "done", [], None))
+        except NotImplementedError as exc:
+            results.append((mp.name, "failed", [], str(exc)))
+        except Exception as exc:  # noqa: BLE001
+            results.append((mp.name, "failed", [], str(exc)))
+
+    # Return to dest base.
+    _wt_checkout(wt_path, dest_branch)
+    return results
 
 
-def _apply_rename(
-    mp: ModulePlan,
-    repo,
-    repo_path: Path,
-    branch: str,
-    dry_run: bool,
-) -> None:
-    """Mechanical rename: move the module directory, then lay a template commit."""
+def _apply_rename(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
     new_name = mp.rename
-    old_path = repo_path / mp.name
-    new_path = repo_path / new_name
+    old_path = wt_path / mp.name
+    new_path = wt_path / new_name
 
-    if not dry_run:
-        if old_path.exists() and not new_path.exists():
-            log.debug(f"Renaming {mp.name} → {new_name}")
-            old_path.rename(new_path)
-            repo.index.add([str(new_path)])
-            repo.index.remove([str(old_path)], r=True, f=True)
+    if dry_run:
+        log.info(f"[dry-run] rename {mp.name!r} → {new_name!r}")
+        return
 
-        _commit_template(
-            repo,
-            subject=f"[mig] rename {mp.name} → {new_name} (checklist)",
-            checklist=[
-                f"Update all `_inherit` references from '{mp.name}' to '{new_name}'",
-                "Update XML IDs in data files",
-                "Update ir.model.access references",
-                "Search for string occurrences of the old name",
-                "Run tests",
-            ],
-        )
-    else:
-        log.info(f"[dry-run] would rename {mp.name!r} → {new_name!r}")
+    if old_path.exists() and not new_path.exists():
+        old_path.rename(new_path)
+        _wt_run(["git", "add", "-A"], wt_path)
+
+    _wt_commit_template(
+        wt_path,
+        subject=f"[mig] rename {mp.name} → {new_name} (checklist)",
+        checklist=[
+            f"Update all `_inherit` references from '{mp.name}' to '{new_name}'",
+            "Update XML IDs in data files",
+            "Update ir.model.access references",
+            "Search for string occurrences of the old name",
+            "Run tests",
+        ],
+    )
 
 
-def _apply_merge_with(
-    mp: ModulePlan,
-    repo,
-    repo_path: Path,
-    branch: str,
-    dry_run: bool,
-) -> None:
-    """Mechanical merge_with: create branch, lay a template commit."""
+def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
     target = mp.merge_with.get("into", "?")
 
-    if not dry_run:
-        _commit_template(
-            repo,
-            subject=f"[mig] merge {mp.name} into {target} (checklist)",
-            checklist=[
-                f"Move models from '{mp.name}' into '{target}'",
-                f"Move views and data files into '{target}'",
-                f"Update all cross-references to use '{target}'",
-                f"Remove '{mp.name}' module directory",
-                "Add migration script for moved records",
-                "Run tests",
-            ],
-        )
-    else:
-        log.info(f"[dry-run] would lay merge_with template: {mp.name!r} → {target!r}")
+    if dry_run:
+        log.info(f"[dry-run] merge_with {mp.name!r} → {target!r}")
+        return
 
-
-def _commit_template(repo, subject: str, checklist: list[str]) -> None:
-    """Create an empty commit with a structured checklist message."""
-    body = "\n".join(f"  [ ] {item}" for item in checklist)
-    message = f"{subject}\n\n{body}\n"
-    repo.index.commit(message)
+    _wt_commit_template(
+        wt_path,
+        subject=f"[mig] merge {mp.name} into {target} (checklist)",
+        checklist=[
+            f"Move models from '{mp.name}' into '{target}'",
+            f"Move views and data files into '{target}'",
+            f"Update all cross-references to use '{target}'",
+            f"Remove '{mp.name}' module directory",
+            "Add migration script for moved records",
+            "Run tests",
+        ],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -348,96 +439,92 @@ def _commit_template(repo, subject: str, checklist: list[str]) -> None:
 
 
 @command(name="apply", help=__doc__)
-@click.option(
-    "--only",
-    default=None,
-    help="Comma-separated module names to apply (default: all).",
-)
-@click.option(
-    "-f",
-    "--force",
-    is_flag=True,
-    help="Re-apply modules already marked done in status.yml.",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    help="Show what would happen without touching git.",
-)
-@click.option(
-    "--format",
-    "output_format",
-    type=click.Choice(["text", "json"]),
-    default="text",
-    show_default=True,
-)
-@click.option(
-    "--output-path",
-    "output_path",
-    type=click.Path(dir_okay=False, path_type=Path),
-    default=None,
-)
+@click.option("--only", default=None, help="Comma-separated module names.")
+@click.option("-f", "--force", is_flag=True, help="Re-apply already-done modules.")
+@click.option("--pull-only", is_flag=True, help="Process pull modules only.")
+@click.option("--port-only", is_flag=True, help="Process port modules only.")
+@click.option("--dry-run", is_flag=True, help="Show what would happen, no git changes.")
+@click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
+@click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
 @click.pass_context
-def main(ctx, only, force, dry_run, output_format, output_path):
+def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_path):
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
 
     repo, repo_path = require_repository()
-
     plan_path = artifact_path(repo_path, PLAN_FILE)
     status_path = artifact_path(repo_path, STATUS_FILE)
 
     # 1. Load plan.
     if not plan_path.exists():
-        raise OopsError(f"No plan found at {plan_path}. Run `oops migrate plan` first.")
+        raise OopsError(f"No plan at {plan_path}. Run `oops migrate plan` first.")
     plan: MigrationPlan = load_plan(plan_path)
-    log.info(f"Loaded plan: {len(plan.modules)} module(s)")
 
-    # 2. Validate before touching git.
+    # 2. Validate plan.
     outer: Result[None] = Result()
     _validate_plan(plan, outer)
     if not outer.ok:
         raise OopsError("Plan validation failed:\n" + "\n".join(f"  {e}" for e in outer.errors))
 
-    # 3. Load or init status.yml.
+    # 3. Load status — verify prepare was done.
     migration = plan.migration
-    apply_status = _load_status(status_path) or ApplyStatus(
-        version=plan.version,
-        plan_source_ref=migration.get("source_ref", ""),
-        from_version=migration.get("from", ""),
-        to_version=migration.get("to", ""),
+    apply_status = _load_status(status_path)
+    if not dry_run and (apply_status is None or not apply_status.prepared):
+        raise OopsError("Worktree not prepared. Run `oops migrate prepare --destination-ref <ref>` first.")
+
+    # 4. Resolve worktree.
+    wt_path = (
+        Path(apply_status.worktree_path)
+        if (apply_status and apply_status.worktree_path)
+        else get_worktree_path(migration, repo_path)
     )
+    dest_branch = apply_status.dest_branch if apply_status and apply_status.dest_branch else get_dest_branch(migration)
+    pull_branch = get_pull_branch(migration)
+    source_ref = migration.get("source_ref", "HEAD")
 
-    # 4. Compute execution order — topological sort on the filtered graph.
-    #    The graph uses post-intent names (rename/merge_with applied) so we
-    #    sort on what will exist, not what currently exists.
+    if not dry_run and not wt_path.exists():
+        raise OopsError(f"Worktree not found at {wt_path}. Re-run `oops migrate prepare`.")
+
+    # 5. Init status if needed.
+    if apply_status is None:
+        apply_status = ApplyStatus(
+            version=plan.version,
+            plan_source_ref=source_ref,
+            from_version=migration.get("from", ""),
+            to_version=migration.get("to", ""),
+        )
+
+    # 6. Topological order.
     graph = build_graph(plan.modules, {})
-    try:
-        ordered = _topo_sort(graph)
-    except OopsError as exc:
-        raise OopsError(str(exc)) from exc
+    ordered = _topo_sort(graph)
 
-    # 5. Filter the work set.
+    # 7. Build work set with filters.
     only_set = {m.strip() for m in only.split(",")} if only else None
 
-    work: list[str] = []
+    work_port: list[str] = []
+    work_pull: list[str] = []
+
     for name in ordered:
+        mp = plan.modules[name]
         if only_set and name not in only_set:
             continue
         rec = apply_status.modules.get(name)
         if rec and rec.status == "done" and not force:
-            log.debug(f"{name}: already done, skipping (use --force to re-run)")
             continue
-        work.append(name)
+        if mp.action == "port" and not pull_only:
+            work_port.append(name)
+        elif mp.action == "pull" and not port_only:
+            work_pull.append(name)
+        elif mp.action == "drop" and not pull_only and not port_only:
+            work_port.append(name)  # drops are lightweight, go with port pass
 
-    if not work:
+    if not work_port and not work_pull:
         raise OopsError("Nothing to apply — all selected modules are already done.")
 
-    # 6. Execute.
-    source_ref = migration.get("source_ref", "HEAD")
-
     rows: list[list] = []
-    for name in work:
+
+    # 8a. Execute port + drop modules (sequential, topological order).
+    for name in work_port:
         mp = plan.modules[name]
         branch = mp.resolved_branch or resolve_branch(mp, plan.migration, plan.groups)
         tools_run: list[str] = []
@@ -447,22 +534,19 @@ def main(ctx, only, force, dry_run, output_format, output_path):
         with live_progress(f"Applying {name} ({mp.action})…"):
             try:
                 if mp.action == "port":
-                    tools_run = _apply_port(mp, repo, repo_path, source_ref, branch, dry_run)
-                    if mp.rename:
-                        _apply_rename(mp, repo, repo_path, branch, dry_run)
-                    if mp.merge_with:
-                        _apply_merge_with(mp, repo, repo_path, branch, dry_run)
-                    status = "done"
-
-                elif mp.action == "pull":
-                    _apply_pull(mp, repo, source_ref, branch, dry_run)
-                    status = "done"
-
+                    tools_run = _apply_port(
+                        mp,
+                        repo,
+                        wt_path,
+                        dest_branch,
+                        source_ref,
+                        branch,
+                        plan.defaults,
+                        dry_run,
+                    )
                 elif mp.action == "drop":
-                    # Nothing to execute — record as done.
                     log.debug(f"{name}: drop — no branch, no tooling")
-                    status = "done"
-
+                status = "done"
             except subprocess.CalledProcessError as exc:
                 error = f"Tool failed: {exc.cmd} (exit {exc.returncode})"
                 outer.add_error(f"{name}: {error}")
@@ -472,7 +556,6 @@ def main(ctx, only, force, dry_run, output_format, output_path):
                 outer.add_error(f"{name}: {error}")
                 status = "failed"
 
-        # Record immediately — journal is resumable on failure.
         apply_status.modules[name] = ModuleRecord(
             name=name,
             action=mp.action or "",
@@ -491,16 +574,39 @@ def main(ctx, only, force, dry_run, output_format, output_path):
                 mp.action or "",
                 branch if mp.action != "drop" else "—",
                 status,
-                ", ".join(tools_run) if tools_run else "—",
+                ", ".join(tools_run) or "—",
                 error or "—",
             ]
         )
 
-    # 7. Report.
-    from collections import Counter
+    # 8b. Execute pull modules (batch on pull_branch).
+    if work_pull:
+        pull_mps = [(plan.modules[n], pull_branch) for n in work_pull]
+        with live_progress(f"Applying {len(work_pull)} pull module(s) on {pull_branch!r}…"):
+            try:
+                batch_results = _apply_pull_batch(pull_mps, repo, wt_path, dest_branch, pull_branch, dry_run)
+            except Exception as exc:  # noqa: BLE001
+                batch_results = [(mp.name, "failed", [], str(exc)) for mp, _ in pull_mps]
 
+        for name, status, tools_run, error in batch_results:
+            if error:
+                outer.add_error(f"{name}: {error}")
+            apply_status.modules[name] = ModuleRecord(
+                name=name,
+                action="pull",
+                branch=pull_branch,
+                status=status,
+                tools_run=tools_run,
+                error=error,
+                applied_at=datetime.now(UTC).isoformat() if not dry_run else None,
+            )
+            rows.append([name, "pull", pull_branch, status, "—", error or "—"])
+
+        if not dry_run:
+            _save_status(status_path, apply_status)
+
+    # 9. Report.
     counts = Counter(r[3] for r in rows)
-
     result: Result[dict] = Result()
     result.data = {
         "cmd": f"Migration apply {migration.get('from')} → {migration.get('to')}",
