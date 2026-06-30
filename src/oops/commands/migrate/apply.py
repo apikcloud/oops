@@ -358,7 +358,10 @@ def _apply_pull_batch(
 
     # Create or checkout the pull branch.
     if _wt_branch_exists(wt_path, pull_branch):
-        _wt_checkout(wt_path, pull_branch)
+        if _wt_current_branch(wt_path) != pull_branch:
+            # Clean stray untracked dirs (e.g. leftover submodule dirs from a prior interrupted run).
+            _wt_run(["git", "clean", "-fd"], wt_path, check=False)
+            _wt_checkout(wt_path, pull_branch)
     else:
         _wt_checkout(wt_path, pull_branch, create_from=dest_branch)
 
@@ -402,8 +405,13 @@ def _apply_pull_batch(
         log.warning(f"{mp.name}: oops pr add not yet integrated (PR: {pr_url})")
         results.append((mp.name, "failed", [], "oops pr add integration pending"))
 
-    # Return to dest base.
-    _wt_checkout(wt_path, dest_branch)
+    # Return to dest base — best-effort; failure must not corrupt module statuses.
+    try:
+        if _wt_current_branch(wt_path) != dest_branch:
+            _wt_checkout(wt_path, dest_branch)
+    except subprocess.CalledProcessError as exc:
+        log.warning(f"Could not return worktree to {dest_branch!r}: {exc.stderr.strip()}")
+
     return results
 
 
@@ -573,7 +581,8 @@ def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_
                     log.debug(f"{name}: drop — no branch, no tooling")
                 status = "done"
             except subprocess.CalledProcessError as exc:
-                error = f"Tool failed: {exc.cmd} (exit {exc.returncode})"
+                stderr = (exc.stderr or "").strip()
+                error = f"Tool failed: {exc.cmd} (exit {exc.returncode})" + (f"\n{stderr}" if stderr else "")
                 outer.add_error(f"{name}: {error}")
                 status = "failed"
             except Exception as exc:  # noqa: BLE001
