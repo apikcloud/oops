@@ -318,7 +318,7 @@ def search_prs_graphql(
         for mod in module_names:
             alias = f"s{idx}"
             aliases.append((alias, mod))
-            q = f"repo:{owner}/{repo_name} is:pr is:open base:{to_version} {mod} in:title"
+            q = f"repo:{owner}/{repo_name} is:pr base:{to_version} {mod} in:title"
             parts.append(
                 f'{alias}: search(query: "{q}", type: ISSUE, first: 5) {{\n'
                 f"    nodes {{ ... on PullRequest {{ number url title }} }}\n  }}"
