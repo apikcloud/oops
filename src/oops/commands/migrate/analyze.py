@@ -153,7 +153,7 @@ def main(
                 continue
             sub_meta = sub_meta_by_relpath.get(addon.rel_path, {})
             enrich_addon(addon, sub_meta)
-            kind, repo_slug = classify_origin(addon)
+            kind, repo_slug = classify_origin(addon, sub_url=sub_meta.get("url"))
             modules[addon.technical_name] = ModuleState(
                 name=addon.technical_name,
                 origin=Origin(kind=kind, repo=repo_slug, ref=addon.branch or None),

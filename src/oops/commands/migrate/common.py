@@ -101,12 +101,19 @@ def artifact_path(repo_path: Path, name: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def classify_origin(addon: "AddonInfo") -> "tuple[OriginKind, Optional[str]]":
+def classify_origin(
+    addon: "AddonInfo",
+    sub_url: "Optional[str]" = None,
+) -> "tuple[OriginKind, Optional[str]]":
     """Map an enriched AddonInfo to (OriginKind, repo_slug).
 
     Uses addon.classification directly (custom | oca | third-party).
     repo_slug is "owner/repo" (e.g. "OCA/server-tools") or None.
     Must be called AFTER enrich_addon().
+
+    sub_url: canonical HTTPS URL of the submodule remote (from sub_meta["url"]).
+    Used as a last resort when neither the submodule name nor the manifest
+    website yields a valid owner/repo slug.
     """
     from oops.utils.net import website_to_github_repo
 
@@ -115,12 +122,21 @@ def classify_origin(addon: "AddonInfo") -> "tuple[OriginKind, Optional[str]]":
     if kind == "custom":
         return ("custom", None)
 
-    if addon.submodule:
+    # Submodule name is only usable when it already carries the owner prefix.
+    if addon.submodule and "/" in addon.submodule:
         return (kind, addon.submodule)
 
+    # Manifest website URL.
     pair = website_to_github_repo(getattr(addon, "website", None))
     if pair:
         return (kind, f"{pair[0]}/{pair[1]}")
+
+    # Submodule remote URL — reliable fallback for third-party modules whose
+    # manifest website is absent or not a GitHub URL.
+    if sub_url:
+        pair = website_to_github_repo(sub_url)
+        if pair:
+            return (kind, f"{pair[0]}/{pair[1]}")
 
     return (kind, None)
 

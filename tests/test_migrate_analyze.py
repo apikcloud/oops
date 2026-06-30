@@ -78,6 +78,26 @@ class TestClassifyOrigin:
         addon = self._make_addon("third-party", submodule="some-vendor/some-repo")
         assert classify_origin(addon) == ("third-party", "some-vendor/some-repo")
 
+    def test_submodule_name_without_slash_falls_through_to_sub_url(self):
+        # Submodule named "edi" (no slash) — not usable as owner/repo.
+        # Falls back to the submodule's remote URL.
+        addon = self._make_addon("third-party", submodule="edi", website=None)
+        kind, slug = classify_origin(addon, sub_url="https://github.com/OCA/edi")
+        assert kind == "third-party"
+        assert slug == "OCA/edi"
+
+    def test_sub_url_fallback_when_no_submodule_and_no_website(self):
+        addon = self._make_addon("oca", submodule="", website=None)
+        kind, slug = classify_origin(addon, sub_url="https://github.com/OCA/account-financial-tools")
+        assert kind == "oca"
+        assert slug == "OCA/account-financial-tools"
+
+    def test_no_repo_found_returns_none(self):
+        addon = self._make_addon("third-party", submodule="", website=None)
+        kind, slug = classify_origin(addon)
+        assert kind == "third-party"
+        assert slug is None
+
 
 # ---------------------------------------------------------------------------
 # save_state / load_state round-trip
