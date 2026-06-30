@@ -242,6 +242,7 @@ _GRAPHQL_URL = "https://api.github.com/graphql"
 
 def _graphql_query(query: str, token: str) -> dict:
     """POST a GraphQL query to the GitHub API. Raises APIError on auth errors."""
+
     r = requests.post(
         _GRAPHQL_URL,
         json={"query": query},
@@ -349,7 +350,7 @@ def search_upstream_prs(
     """
     try:
         search_url = "https://api.github.com/search/issues"
-        q = f"repo:{owner}/{repo} is:pr is:open base:{target_version} {module_name} in:title"
+        q = f"repo:{owner}/{repo} is:pr base:{target_version} {module_name} in:title"
         r = requests.get(
             search_url,
             params={"q": q, "per_page": 10},
