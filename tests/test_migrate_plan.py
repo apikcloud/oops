@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 import yaml
 from click.testing import CliRunner
 from oops.commands.migrate.common import (
+    MigrationPlan,
     ModulePlan,
     ModuleState,
     Origin,
@@ -24,7 +25,7 @@ from oops.commands.migrate.common import (
     save_plan,
     save_state,
 )
-from oops.commands.migrate.plan import main
+from oops.commands.migrate.plan import _enrich_ghost_modules, _insert_ghost_modules, main
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -289,3 +290,214 @@ def test_plan_format_json(tmp_path):
     payload = json.loads(result.output[json_start:])
     assert "modules" in payload
     assert "metrics" in payload
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — _insert_ghost_modules
+# ---------------------------------------------------------------------------
+
+
+def _make_plan_with_pull(extra_modules=None) -> MigrationPlan:
+    modules = {
+        "oca_partner": ModulePlan(
+            name="oca_partner",
+            action="pull",
+            origin=Origin(kind="oca", repo="OCA/partner-contact"),
+        ),
+    }
+    if extra_modules:
+        modules.update(extra_modules)
+    return MigrationPlan(version=2, migration={}, modules=modules)
+
+
+def _make_state_with_deps(target_depends_on) -> State:
+    return State(
+        version=2,
+        source_ref="18.0",
+        from_version="18.0",
+        to_version="19.0",
+        modules={
+            "oca_partner": ModuleState(
+                name="oca_partner",
+                origin=Origin(kind="oca", repo="OCA/partner-contact"),
+                target_depends_on=target_depends_on,
+            )
+        },
+    )
+
+
+class TestInsertGhostModules:
+    def test_kb_builtin_skipped(self):
+        plan = _make_plan_with_pull()
+        state = _make_state_with_deps(["base", "mail"])
+        from oops.core.models import Result
+
+        outer = Result()
+        result = _insert_ghost_modules(plan, state, {"base": {}, "mail": {}}, outer)
+        assert result == {}
+        assert "base" not in plan.modules
+        assert "mail" not in plan.modules
+
+    def test_unknown_dep_becomes_ghost(self):
+        plan = _make_plan_with_pull()
+        state = _make_state_with_deps(["new_dep"])
+        from oops.core.models import Result
+
+        outer = Result()
+        result = _insert_ghost_modules(plan, state, {}, outer)
+        assert "new_dep" in result
+        assert result["new_dep"] == "oca_partner"
+        ghost = plan.modules["new_dep"]
+        assert ghost.action is None
+        assert ghost.origin.kind == "new"
+        assert ghost.review is True
+
+    def test_already_in_plan_skipped(self):
+        existing = ModulePlan(name="existing_dep", action="port", origin=Origin(kind="custom"))
+        plan = _make_plan_with_pull({"existing_dep": existing})
+        state = _make_state_with_deps(["existing_dep"])
+        from oops.core.models import Result
+
+        outer = Result()
+        result = _insert_ghost_modules(plan, state, {}, outer)
+        assert result == {}
+
+    def test_no_target_depends_skipped(self):
+        plan = _make_plan_with_pull()
+        state = _make_state_with_deps(None)
+        from oops.core.models import Result
+
+        outer = Result()
+        result = _insert_ghost_modules(plan, state, {}, outer)
+        assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — _enrich_ghost_modules
+# ---------------------------------------------------------------------------
+
+
+class TestEnrichGhostModules:
+    def _make_plan_with_ghost(self, ghost_name="ghost_mod"):
+        return MigrationPlan(
+            version=2,
+            migration={},
+            modules={
+                "oca_parent": ModulePlan(
+                    name="oca_parent",
+                    action="pull",
+                    origin=Origin(kind="oca", repo="OCA/some-repo"),
+                ),
+                ghost_name: ModulePlan(
+                    name=ghost_name,
+                    action=None,
+                    origin=Origin(kind="new"),
+                    review=True,
+                ),
+            },
+        )
+
+    def test_resolved_becomes_pull(self):
+        plan = self._make_plan_with_ghost()
+        ghost_parents = {"ghost_mod": "oca_parent"}
+        from oops.core.models import Result
+
+        outer = Result()
+        with patch(
+            "oops.commands.migrate.plan.check_upstream_graphql",
+            return_value={"ghost_mod": True},
+        ):
+            _enrich_ghost_modules(plan, ghost_parents, "19.0", "fake-token", outer)
+
+        mp = plan.modules["ghost_mod"]
+        assert mp.action == "pull"
+        assert mp.origin.repo == "OCA/some-repo"
+        assert mp.origin.ref == "19.0"
+        assert mp.review is True
+        assert not outer.warnings
+
+    def test_unresolved_warns(self):
+        plan = self._make_plan_with_ghost()
+        ghost_parents = {"ghost_mod": "oca_parent"}
+        from oops.core.models import Result
+
+        outer = Result()
+        with patch(
+            "oops.commands.migrate.plan.check_upstream_graphql",
+            return_value={"ghost_mod": False},
+        ):
+            _enrich_ghost_modules(plan, ghost_parents, "19.0", "fake-token", outer)
+
+        mp = plan.modules["ghost_mod"]
+        assert mp.action is None
+        assert outer.warnings
+
+    def test_no_token_no_network_warns(self):
+        plan = self._make_plan_with_ghost()
+        ghost_parents = {"ghost_mod": "oca_parent"}
+        from oops.core.models import Result
+
+        outer = Result()
+        with patch("oops.commands.migrate.plan.check_upstream_graphql") as mock_gql:
+            _enrich_ghost_modules(plan, ghost_parents, "19.0", None, outer)
+            mock_gql.assert_not_called()
+
+        assert plan.modules["ghost_mod"].action is None
+        assert outer.warnings
+
+    def test_graphql_exception_warns(self):
+        plan = self._make_plan_with_ghost()
+        ghost_parents = {"ghost_mod": "oca_parent"}
+        from oops.core.models import Result
+
+        outer = Result()
+        with patch(
+            "oops.commands.migrate.plan.check_upstream_graphql",
+            side_effect=RuntimeError("network fail"),
+        ):
+            _enrich_ghost_modules(plan, ghost_parents, "19.0", "fake-token", outer)
+
+        assert plan.modules["ghost_mod"].action is None
+        assert outer.warnings
+
+
+# ---------------------------------------------------------------------------
+# Integration test — ghost enrichment end-to-end
+# ---------------------------------------------------------------------------
+
+
+def test_plan_ghost_enrichment_integration(tmp_path):
+    """builtin skipped, resolved → pull, unresolvable → warning + no action."""
+    modules = {
+        "oca_partner": ModuleState(
+            name="oca_partner",
+            origin=Origin(kind="oca", repo="OCA/partner-contact"),
+            depends_on=[],
+            upstream_available=True,
+            target_depends_on=["base", "sibling_mod", "unknown_mod"],
+        ),
+    }
+    _write_state(tmp_path, modules=modules)
+
+    with _mock_repo(tmp_path):
+        with patch("oops.commands.migrate.plan.load_odoo_kb", return_value={"base": {}}):
+            with patch(
+                "oops.commands.migrate.plan.check_upstream_graphql",
+                return_value={"sibling_mod": True, "unknown_mod": False},
+            ):
+                result = CliRunner().invoke(main, ["--token", "fake-token"])
+
+    assert result.exit_code == 0, result.output
+
+    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    data = yaml.safe_load(plan_path.read_text())
+
+    # base is an Odoo builtin — not in plan at all
+    assert "base" not in data["modules"]
+    # sibling_mod resolved to pull via parent repo
+    assert data["modules"]["sibling_mod"]["action"] == "pull"
+    assert data["modules"]["sibling_mod"]["origin"]["repo"] == "OCA/partner-contact"
+    # unknown_mod unresolved → no action (warns)
+    assert data["modules"]["unknown_mod"].get("action") is None
+    # warning about unknown_mod is in output
+    assert "unknown_mod" in result.output

@@ -34,7 +34,7 @@ import click
 from oops.commands.base import command, render_and_exit
 from oops.core.compat import Optional
 from oops.core.exceptions import OopsError
-from oops.core.logger import live_progress
+from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
 from oops.output.formatters import (
@@ -44,9 +44,10 @@ from oops.output.formatters import (
     SimpleSummaryConsoleFormatter,
 )
 from oops.services.git import require_repository
+from oops.services.github import check_upstream_graphql
+from oops.services.kb import load_odoo_kb
 
 from .common import (
-    ODOO_CORE_MODULES,
     PLAN_FILE,
     STATE_FILE,
     MigrationPlan,
@@ -86,8 +87,14 @@ FORMATTERS: FormatterRegistry = {
     type=click.Path(dir_okay=False, path_type=Path),
     default=None,
 )
+@click.option(
+    "--token",
+    default=None,
+    envvar=["GH_TOKEN", "GITHUB_TOKEN"],
+    help="GitHub token — enables looking up new deps in their parent repo.",
+)
 @click.pass_context
-def main(ctx, output_format, output_path):
+def main(ctx, output_format, output_path, token):
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
 
@@ -116,10 +123,11 @@ def main(ctx, output_format, output_path):
             new_plan = _reconcile_plan(existing_plan, state, outer)
 
         # 4. Detect ghost modules: deps required by pull targets that are
-        #    neither in the plan nor in Odoo core. Insert them with
-        #    action=None + review=True so the invariant check forces
-        #    the human to assign them an action.
-        _insert_ghost_modules(new_plan, state, outer)
+        #    not in the plan and not Odoo builtins (per the global KB).
+        #    Enrich resolved ghosts via their parent repo (requires token).
+        kb_modules = load_odoo_kb(state.to_version)
+        ghost_parents = _insert_ghost_modules(new_plan, state, kb_modules, outer)
+        _enrich_ghost_modules(new_plan, ghost_parents, state.to_version, token, outer)
 
         # 5. Compute the dependency graph and enrich all machine fields.
         _enrich_machine_fields(new_plan, state)
@@ -127,7 +135,7 @@ def main(ctx, output_format, output_path):
     # 6. Enforce the invariant: exactly one action per module, or refuse.
     for name, mp in new_plan.modules.items():
         if mp.action is None:
-            outer.add_error(f"Module '{name}' has no action — set one of: pull, port, drop.")
+            outer.add_warning(f"Module '{name}' has no action — set one of: pull, port, drop.")
 
     # 7. Persist plan.yml only when there are no errors.
     if outer.ok:
@@ -303,19 +311,23 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
 # ---------------------------------------------------------------------------
 
 
-def _insert_ghost_modules(plan: MigrationPlan, state: State, outer: "Result[None]") -> None:
-    """Detect dependencies required by pull targets that are missing from the plan.
+def _insert_ghost_modules(
+    plan: MigrationPlan,
+    state: State,
+    kb_modules: dict,
+    outer: "Result[None]",
+) -> "dict[str, str]":
+    """Detect deps required by pull targets but missing from the plan.
 
-    For pull modules, the relevant deps are the TARGET manifest deps
-    (state.target_depends_on). A dep is a ghost if it is:
-      - not already in the plan,
-      - not an Odoo core module,
-      - not in state (i.e. not a module we already observe locally).
+    A dep present in the global KB is an Odoo builtin (the global KB holds only
+    community + enterprise modules) — it is provided by the target install and
+    needs no migration action, so it is skipped entirely.
 
-    Ghost modules are inserted with origin.kind="new", action=None, review=True.
-    This triggers the invariant check and forces the human to assign an action.
+    Remaining ghosts are inserted with action=None + review=True. Returns a
+    mapping ghost_name -> parent_name for the enrichment step.
     """
     plan_names = set(plan.modules.keys())
+    ghost_parents: dict[str, str] = {}
 
     for name, mp in list(plan.modules.items()):
         if mp.action != "pull":
@@ -324,22 +336,79 @@ def _insert_ghost_modules(plan: MigrationPlan, state: State, outer: "Result[None
         if ms is None or ms.target_depends_on is None:
             continue
         for dep in ms.target_depends_on:
-            if dep in plan_names or dep in ODOO_CORE_MODULES:
+            if dep in plan_names or dep in kb_modules:
                 continue
-            # New dependency required by the target version — not in our plan.
-            outer.add_warning(
-                f"Module '{dep}' is required by '{name}' in the target version "
-                "but is not in the plan. It has been added as a ghost — "
-                "assign it an action (pull / port / drop)."
-            )
             plan.modules[dep] = ModulePlan(
                 name=dep,
-                action=None,  # triggers invariant refusal
+                action=None,
                 origin=Origin(kind="new"),
                 review=True,
                 reason=f"required by '{name}' in target manifest",
             )
-            plan_names.add(dep)  # avoid duplicate insertion
+            plan_names.add(dep)
+            ghost_parents[dep] = name
+
+    return ghost_parents
+
+
+def _enrich_ghost_modules(
+    plan: MigrationPlan,
+    ghost_parents: "dict[str, str]",
+    to_version: str,
+    token: "Optional[str]",
+    outer: "Result[None]",
+) -> None:
+    """Resolve ghosts (non-builtin new deps) against their parent's repo.
+
+    A ghost found in its parent's repo at the target version ships with that
+    repo: set action=pull and fill origin. Unresolved ghosts get a warning and
+    keep action=None so the invariant forces a human decision.
+
+    Source 2 is network-backed and only runs with a token; without one, every
+    ghost is treated as unresolved.
+    """
+    if not ghost_parents:
+        return
+
+    ghosts_by_repo: dict[str, list[str]] = {}
+    parent_of: dict[str, ModulePlan] = {}
+    for ghost, parent_name in ghost_parents.items():
+        parent = plan.modules.get(parent_name)
+        if not (parent and parent.origin and parent.origin.repo and token):
+            continue
+        ghosts_by_repo.setdefault(parent.origin.repo, []).append(ghost)
+        parent_of[ghost] = parent
+
+    available: dict[str, bool] = {}
+    if ghosts_by_repo:
+        try:
+            assert token is not None
+            available = check_upstream_graphql(ghosts_by_repo, to_version, token)
+        except Exception as exc:  # noqa: BLE001
+            log.warning(f"Ghost repo lookup failed ({exc}); ghosts left unresolved.")
+            available = {}
+
+    for ghost, parent_name in ghost_parents.items():
+        if available.get(ghost):
+            parent = parent_of[ghost]
+            mp = plan.modules[ghost]
+            mp.action = "pull"
+            if parent.origin:
+                mp.origin = Origin(
+                    kind=parent.origin.kind,
+                    repo=parent.origin.repo,
+                    ref=to_version,
+                )
+                mp.reason = f"required by '{parent_name}'; found in {parent.origin.repo}"
+            mp.review = True
+        else:
+            p = plan.modules.get(parent_name)
+            repo = p.origin.repo if (p and p.origin) else None
+            outer.add_warning(
+                f"Module '{ghost}' (required by '{parent_name}') not found in the "
+                f"global KB or in {repo or 'its parent repo'} — assign an action "
+                "(pull / port / drop)."
+            )
 
 
 # ---------------------------------------------------------------------------

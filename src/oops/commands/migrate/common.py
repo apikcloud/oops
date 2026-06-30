@@ -78,56 +78,6 @@ DEFAULT_STRATEGY = "standard"
 CRITICAL_THRESHOLD = 5
 HIGH_THRESHOLD = 2
 
-# Odoo built-in module names that appear in depends_on but are NOT part of a
-# migration plan. Used to filter the dependency graph so we don't generate
-# ghost entries for `base`, `mail`, etc. This list covers the most common
-# ones; extend as needed.
-ODOO_CORE_MODULES: frozenset[str] = frozenset(
-    {
-        "base",
-        "mail",
-        "web",
-        "account",
-        "sale",
-        "purchase",
-        "stock",
-        "mrp",
-        "project",
-        "hr",
-        "hr_expense",
-        "hr_payroll",
-        "maintenance",
-        "fleet",
-        "point_of_sale",
-        "website",
-        "ecommerce",
-        "crm",
-        "calendar",
-        "contacts",
-        "discuss",
-        "digest",
-        "note",
-        "survey",
-        "sign",
-        "spreadsheet",
-        "documents",
-        "approvals",
-        "barcode",
-        "quality",
-        "repair",
-        "helpdesk",
-        "field_service",
-        "planning",
-        "subscription",
-        "rental",
-        "events",
-        "members",
-        "lunch",
-        "timesheet",
-        "studio",
-    }
-)
-
 # ---------------------------------------------------------------------------
 # Artifact locations
 # ---------------------------------------------------------------------------
@@ -328,7 +278,7 @@ def build_graph(
         # Keep only deps that are in the plan and not dropped/core.
         filtered = list(
             dict.fromkeys(
-                d for d in raw_deps if d in plan_names and d not in ODOO_CORE_MODULES and modules[d].action != "drop"
+                d for d in raw_deps if d in plan_names and modules[d].action != "drop"
             )
         )
         graph[name] = filtered
