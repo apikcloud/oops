@@ -413,6 +413,10 @@ def _apply_pull_batch(
             results += [(n, "failed", [], str(exc)) for n in missing]
 
     for mp in prs:
+        if (wt_path / mp.name).exists():
+            log.debug(f"{mp.name}: addon already present, marking done")
+            results.append((mp.name, "done", [], None))
+            continue
         pr_url = mp.origin.pr if mp.origin else None
         # TODO: integrate oops pr add flow
         log.warning(f"{mp.name}: oops pr add not yet integrated (PR: {pr_url})")
