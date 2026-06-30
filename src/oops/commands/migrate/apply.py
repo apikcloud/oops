@@ -373,6 +373,14 @@ def _apply_pull_batch(
     wt_repo = Repo(wt_path)
     results = []
 
+    # Remove stale .gitmodules.lock left by an interrupted previous run.
+    # Git refuses all submodule operations while this lock exists, causing
+    # every module in the batch to fail with "Lock already existed".
+    gitmodules_lock = wt_path / ".gitmodules.lock"
+    if gitmodules_lock.exists():
+        log.warning("Removing stale .gitmodules.lock from interrupted previous run.")
+        gitmodules_lock.unlink()
+
     modules = [mp for mp, _ in pull_modules]
     prs = [mp for mp in modules if mp.pr or (mp.origin and mp.origin.pr)]
     subs = [mp for mp in modules if not mp.pr and (not mp.origin or not mp.origin.pr)]
@@ -413,6 +421,9 @@ def _apply_pull_batch(
             )
             results += [(n, "done", [], None) for n in missing]
         except Exception as exc:  # noqa: BLE001
+            # Clean up any lock left by the failed operation so later repos can proceed.
+            if gitmodules_lock.exists():
+                gitmodules_lock.unlink()
             results += [(n, "failed", [], str(exc)) for n in missing]
 
     for mp in prs:
@@ -452,6 +463,8 @@ def _apply_pull_batch(
             )
             results.append((mp.name, "done", [], None))
         except Exception as exc:  # noqa: BLE001
+            if gitmodules_lock.exists():
+                gitmodules_lock.unlink()
             results.append((mp.name, "failed", [], str(exc)))
 
     # Return to dest base — best-effort; failure must not corrupt module statuses.
