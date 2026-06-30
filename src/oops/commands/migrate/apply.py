@@ -338,6 +338,7 @@ def _apply_pull_batch(
     wt_path: Path,
     dest_branch: str,
     pull_branch: str,
+    to_version: str,
     dry_run: bool,
 ) -> "list[tuple[str, str, list[str], Optional[str]]]":
     """Aggregated pull workflow — all pull modules on one branch.
@@ -352,34 +353,54 @@ def _apply_pull_batch(
             log.info(f"[dry-run] {mp.name}: {cmd} on {pull_branch!r}")
         return [(mp.name, "done", [], None) for mp, _ in pull_modules]
 
+    from git import Repo
+    from oops.commands.submodules.add import add_submodule_flow
+
     # Create or checkout the pull branch.
     if _wt_branch_exists(wt_path, pull_branch):
         _wt_checkout(wt_path, pull_branch)
     else:
         _wt_checkout(wt_path, pull_branch, create_from=dest_branch)
 
+    wt_repo = Repo(wt_path)
     results = []
-    for mp, branch in pull_modules:
+
+    modules = [mp for mp, _ in pull_modules]
+    prs = [mp for mp in modules if mp.origin and mp.origin.pr]
+    subs = [mp for mp in modules if mp.origin and not mp.origin.pr]
+
+    # Group by (repo_slug, ref) so each upstream repo is added once with
+    # all its addons in a single call.
+    repo_groups: dict[tuple[str, str], list[str]] = {}
+    for mp in subs:
+        if not mp.origin:
+            continue
+        repo_slug = mp.origin.repo or ""
+        ref = mp.origin.ref or to_version
+        repo_groups.setdefault((repo_slug, ref), []).append(mp.name)
+
+    for (repo_slug, ref), addons in repo_groups.items():
         try:
-            if mp.origin and mp.origin.pr:
-                # oops pr add <pr_url> — delegates to the pr add service.
-                # TODO: import and call oops.commands.pr.add.add_submodule_flow
-                # with pr_url=mp.origin.pr, repo=wt_repo, repo_path=wt_path
-                log.info(f"{mp.name}: oops pr add {mp.origin.pr}")
-                raise NotImplementedError("oops pr add integration — fill in")
-            else:
-                # oops submodule add <url> <branch>
-                # TODO: import and call oops.commands.submodules.add.add_submodule_flow
-                # with url=mp.origin.repo, branch=mp.origin.ref, repo=wt_repo
-                url = f"https://github.com/{mp.origin.repo}.git" if mp.origin and mp.origin.repo else ""
-                ref = (mp.origin.ref if mp.origin else None) or "main"
-                log.info(f"{mp.name}: oops submodule add {url} {ref}")
-                raise NotImplementedError("oops submodule add integration — fill in")
-            results.append((mp.name, "done", [], None))
-        except NotImplementedError as exc:
-            results.append((mp.name, "failed", [], str(exc)))
+            add_submodule_flow(
+                repo=wt_repo,
+                repo_path=wt_path,
+                url=f"https://github.com/{repo_slug}.git",
+                branch=ref,
+                addons=",".join(addons),
+                no_commit=False,
+                force=True,
+                pull_request=False,
+                token="",
+            )
+            results += [(name, "done", [], None) for name in addons]
         except Exception as exc:  # noqa: BLE001
-            results.append((mp.name, "failed", [], str(exc)))
+            results += [(name, "failed", [], str(exc)) for name in addons]
+
+    for mp in prs:
+        pr_url = mp.origin.pr if mp.origin else None
+        # TODO: integrate oops pr add flow
+        log.warning(f"{mp.name}: oops pr add not yet integrated (PR: {pr_url})")
+        results.append((mp.name, "failed", [], "oops pr add integration pending"))
 
     # Return to dest base.
     _wt_checkout(wt_path, dest_branch)
@@ -388,6 +409,8 @@ def _apply_pull_batch(
 
 def _apply_rename(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
     new_name = mp.rename
+    if not new_name:
+        return
     old_path = wt_path / mp.name
     new_path = wt_path / new_name
 
@@ -413,6 +436,8 @@ def _apply_rename(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 
 
 def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
+    if not mp.merge_with:
+        return
     target = mp.merge_with.get("into", "?")
 
     if dry_run:
@@ -585,7 +610,9 @@ def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_
 
         with live_progress(f"Applying {len(work_pull)} pull module(s) on {pull_branch!r}…"):
             try:
-                batch_results = _apply_pull_batch(pull_mps, repo, wt_path, dest_branch, pull_branch, dry_run)
+                batch_results = _apply_pull_batch(
+                    pull_mps, repo, wt_path, dest_branch, pull_branch, migration.get("to", ""), dry_run
+                )
             except Exception as exc:  # noqa: BLE001
                 batch_results = [(mp.name, "failed", [], str(exc)) for mp, _ in pull_mps]
 
