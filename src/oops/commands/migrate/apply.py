@@ -46,6 +46,8 @@ from oops.output.formatters import (
 from oops.core.config import config
 from oops.io.file import desired_path
 from oops.services.git import require_repository
+from oops.services.github import get_pull_request
+from oops.utils.net import parse_pull_request_url
 
 from .common import (
     PLAN_FILE,
@@ -342,6 +344,7 @@ def _apply_pull_batch(
     pull_branch: str,
     to_version: str,
     dry_run: bool,
+    token: str = "",
 ) -> "list[tuple[str, str, list[str], Optional[str]]]":
     """Aggregated pull workflow — all pull modules on one branch.
 
@@ -413,14 +416,42 @@ def _apply_pull_batch(
             results += [(n, "failed", [], str(exc)) for n in missing]
 
     for mp in prs:
-        if (wt_path / mp.name).exists():
+        pr_sub_path = None
+        if mp.origin and mp.origin.repo:
+            pr_sub_path = wt_path / desired_path(
+                f"https://github.com/{mp.origin.repo}.git",
+                prefix=str(config.submodules.current_path),
+                pull_request=True,
+            )
+        if (wt_path / mp.name).exists() or (pr_sub_path is not None and (pr_sub_path / mp.name).exists()):
             log.debug(f"{mp.name}: addon already present, marking done")
             results.append((mp.name, "done", [], None))
             continue
         pr_url = mp.origin.pr if mp.origin else None
-        # TODO: integrate oops pr add flow
-        log.warning(f"{mp.name}: oops pr add not yet integrated (PR: {pr_url})")
-        results.append((mp.name, "failed", [], "oops pr add integration pending"))
+        if not pr_url:
+            results.append((mp.name, "failed", [], "no PR URL in origin"))
+            continue
+        try:
+            pr_owner, pr_repo_name, pr_number = parse_pull_request_url(pr_url)
+            pr = get_pull_request(pr_owner, pr_repo_name, pr_number, token)
+            if not pr.head_repo_url or not pr.head_ref:
+                raise OopsError(f"PR #{pr_number} head repository is unavailable (fork deleted?)")
+            add_submodule_flow(
+                repo=wt_repo,
+                repo_path=wt_path,
+                url=pr.head_repo_url,
+                branch=pr.head_ref,
+                addons=mp.name,
+                no_commit=False,
+                force=True,
+                pull_request=True,
+                token=token,
+                commit_message_name="pr_add",
+                extra_commit_kwargs={"pr_url": pr_url},
+            )
+            results.append((mp.name, "done", [], None))
+        except Exception as exc:  # noqa: BLE001
+            results.append((mp.name, "failed", [], str(exc)))
 
     # Return to dest base — best-effort; failure must not corrupt module statuses.
     try:
@@ -496,8 +527,9 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 @click.option("--dry-run", is_flag=True, help="Show what would happen, no git changes.")
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
 @click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
+@click.option("--token", envvar=["GH_TOKEN", "GITHUB_TOKEN"], default="", help="GitHub token for PR modules.")
 @click.pass_context
-def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_path):
+def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_path, token):
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
 
@@ -637,7 +669,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_
         with live_progress(f"Applying {len(work_pull)} pull module(s) on {pull_branch!r}…"):
             try:
                 batch_results = _apply_pull_batch(
-                    pull_mps, repo, wt_path, dest_branch, pull_branch, migration.get("to", ""), dry_run
+                    pull_mps, repo, wt_path, dest_branch, pull_branch, migration.get("to", ""), dry_run, token
                 )
             except Exception as exc:  # noqa: BLE001
                 batch_results = [(mp.name, "failed", [], str(exc)) for mp, _ in pull_mps]
