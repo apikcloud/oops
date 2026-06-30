@@ -43,6 +43,8 @@ from oops.output.formatters import (
     OutputFormatter,
     SimpleSummaryConsoleFormatter,
 )
+from oops.core.config import config
+from oops.io.file import desired_path
 from oops.services.git import require_repository
 
 from .common import (
@@ -383,21 +385,32 @@ def _apply_pull_batch(
         repo_groups.setdefault((repo_slug, ref), []).append(mp.name)
 
     for (repo_slug, ref), addons in repo_groups.items():
+        url = f"https://github.com/{repo_slug}.git"
+        sub_path = wt_path / desired_path(url, prefix=str(config.submodules.current_path))
+
+        # Per-addon presence check: symlink at worktree root OR dir inside submodule.
+        present = [n for n in addons if (wt_path / n).exists() or (sub_path / n).exists()]
+        missing = [n for n in addons if n not in present]
+
+        results += [(n, "done", [], None) for n in present]
+        if not missing:
+            continue
+
         try:
             add_submodule_flow(
                 repo=wt_repo,
                 repo_path=wt_path,
-                url=f"https://github.com/{repo_slug}.git",
+                url=url,
                 branch=ref,
-                addons=",".join(addons),
+                addons=",".join(missing),
                 no_commit=False,
                 force=True,
                 pull_request=False,
                 token="",
             )
-            results += [(name, "done", [], None) for name in addons]
+            results += [(n, "done", [], None) for n in missing]
         except Exception as exc:  # noqa: BLE001
-            results += [(name, "failed", [], str(exc)) for name in addons]
+            results += [(n, "failed", [], str(exc)) for n in missing]
 
     for mp in prs:
         pr_url = mp.origin.pr if mp.origin else None
