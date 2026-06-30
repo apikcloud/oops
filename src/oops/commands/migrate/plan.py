@@ -256,6 +256,7 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
                 reason=p.reason,
                 review=review,
                 pr=p.pr,
+                repo=p.repo,
             )
         else:
             # New module in state, not yet in the plan.
@@ -295,6 +296,7 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
                 reason=p.reason or "(disappeared from state — verify)",
                 review=True,
                 pr=p.pr,
+                repo=p.repo,
             )
 
     return MigrationPlan(
@@ -374,9 +376,10 @@ def _enrich_ghost_modules(
     parent_of: dict[str, ModulePlan] = {}
     for ghost, parent_name in ghost_parents.items():
         parent = plan.modules.get(parent_name)
-        if not (parent and parent.origin and parent.origin.repo and token):
+        repo = (parent.repo if parent else None) or (parent.origin.repo if (parent and parent.origin) else None)
+        if not (parent and repo and token):
             continue
-        ghosts_by_repo.setdefault(parent.origin.repo, []).append(ghost)
+        ghosts_by_repo.setdefault(repo, []).append(ghost)
         parent_of[ghost] = parent
 
     available: dict[str, bool] = {}
@@ -403,7 +406,7 @@ def _enrich_ghost_modules(
             mp.review = True
         else:
             p = plan.modules.get(parent_name)
-            repo = p.origin.repo if (p and p.origin) else None
+            repo = (p.repo if p else None) or (p.origin.repo if (p and p.origin) else None)
             outer.add_warning(
                 f"Module '{ghost}' (required by '{parent_name}') not found in the "
                 f"global KB or in {repo or 'its parent repo'} — assign an action "

@@ -381,10 +381,10 @@ def _apply_pull_batch(
     # all its addons in a single call.
     repo_groups: dict[tuple[str, str], list[str]] = {}
     for mp in subs:
-        if not mp.origin:
+        repo_slug = mp.repo or (mp.origin.repo if mp.origin else "") or ""
+        ref = (mp.origin.ref if mp.origin else None) or to_version
+        if not repo_slug:
             continue
-        repo_slug = mp.origin.repo or ""
-        ref = mp.origin.ref or to_version
         repo_groups.setdefault((repo_slug, ref), []).append(mp.name)
 
     for (repo_slug, ref), addons in repo_groups.items():
@@ -417,9 +417,10 @@ def _apply_pull_batch(
 
     for mp in prs:
         pr_sub_path = None
-        if mp.origin and mp.origin.repo:
+        effective_repo = mp.repo or (mp.origin.repo if mp.origin else None)
+        if effective_repo:
             pr_sub_path = wt_path / desired_path(
-                f"https://github.com/{mp.origin.repo}.git",
+                f"https://github.com/{effective_repo}.git",
                 prefix=str(config.submodules.current_path),
                 pull_request=True,
             )
