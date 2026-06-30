@@ -226,7 +226,7 @@ class ModulePlan:
     """One module's intent in the migration plan.
 
     Human-owned fields: action, level, strategy, group, tools, merge_with,
-        rename, priority, reason, review.
+        rename, priority, reason, review, pr.
     Machine fields (refreshed on every `plan` run, never hand-edited):
         origin, depends_on, calculated_priority, descendant_count,
         resolved_branch, resolved_tools.
@@ -251,6 +251,7 @@ class ModulePlan:
     priority: Optional[str] = None  # human override (e.g. "anytime")
     reason: Optional[str] = None  # for drop, or ghost modules
     review: bool = False
+    pr: Optional[str] = None  # manual PR URL override; takes precedence over origin.pr in apply
 
     # ---- machine fields (set by plan, never written by human) ----
     origin: Optional[Origin] = None
@@ -470,6 +471,7 @@ def load_plan(path: Path) -> MigrationPlan:
             priority=raw.get("priority"),
             reason=raw.get("reason"),
             review=raw.get("review", False),
+            pr=raw.get("pr"),
             calculated_priority=raw.get("calculated_priority"),
             descendant_count=raw.get("descendant_count", 0),
             resolved_branch=raw.get("resolved_branch"),
@@ -553,7 +555,7 @@ def save_plan(path: Path, plan: MigrationPlan) -> None:
             d["origin"] = od
         if mp.depends_on:
             d["depends_on"] = mp.depends_on
-        for key in ("group", "merge_with", "rename", "priority", "reason"):
+        for key in ("group", "merge_with", "rename", "priority", "reason", "pr"):
             val = getattr(mp, key)
             if val is not None:
                 d[key] = val

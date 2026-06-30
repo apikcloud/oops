@@ -247,6 +247,7 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
                 priority=p.priority,
                 reason=p.reason,
                 review=review,
+                pr=p.pr,
             )
         else:
             # New module in state, not yet in the plan.
@@ -285,6 +286,7 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
                 priority=p.priority,
                 reason=p.reason or "(disappeared from state — verify)",
                 review=True,
+                pr=p.pr,
             )
 
     return MigrationPlan(

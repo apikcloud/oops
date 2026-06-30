@@ -89,8 +89,9 @@ class TestGuessAction:
     def test_oca_absent_no_pr_port(self):
         assert _guess_action(self._ms("oca", upstream_available=False)) == "port"
 
-    def test_oca_absent_with_pr_still_port(self):
-        assert _guess_action(self._ms("oca", upstream_available=False, upstream_prs=["url"])) == "port"
+    def test_oca_absent_with_pr_pull(self):
+        # PR exists → treat as pull (not yet merged, review=True flags it)
+        assert _guess_action(self._ms("oca", upstream_available=False, upstream_prs=["url"])) == "pull"
 
     def test_oca_not_probed_port(self):
         assert _guess_action(self._ms("oca", upstream_available=None)) == "port"
@@ -180,8 +181,30 @@ def test_save_plan_omits_none_fields(tmp_path):
     save_plan(path, plan)
     raw = yaml.safe_load(path.read_text())
     assert "review" not in raw["modules"]["x"]
-    for key in ("group", "tools", "merge_with", "rename", "priority", "reason"):
+    for key in ("group", "tools", "merge_with", "rename", "priority", "reason", "pr"):
         assert key not in raw["modules"]["x"]
+
+
+def test_manual_pr_roundtrip(tmp_path):
+    plan = Plan(
+        version=2,
+        migration={},
+        modules={
+            "oca_mod": ModulePlan(
+                name="oca_mod",
+                action="pull",
+                origin=Origin(kind="oca", repo="OCA/bank-payment"),
+                pr="https://github.com/OCA/bank-payment/pull/42",
+            ),
+        },
+    )
+    path = tmp_path / "plan.yml"
+    save_plan(path, plan)
+    raw = yaml.safe_load(path.read_text())
+    assert raw["modules"]["oca_mod"]["pr"] == "https://github.com/OCA/bank-payment/pull/42"
+
+    loaded = load_plan(path)
+    assert loaded.modules["oca_mod"].pr == "https://github.com/OCA/bank-payment/pull/42"
 
 
 # ---------------------------------------------------------------------------

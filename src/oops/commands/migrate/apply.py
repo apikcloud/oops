@@ -33,18 +33,18 @@ import click
 import yaml
 from oops.commands.base import command, render_and_exit
 from oops.core.compat import Optional
+from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
+from oops.io.file import desired_path
 from oops.output.formatters import (
     FormatterRegistry,
     JsonFormatter,
     OutputFormatter,
     SimpleSummaryConsoleFormatter,
 )
-from oops.core.config import config
-from oops.io.file import desired_path
 from oops.services.git import require_repository
 from oops.services.github import get_pull_request
 from oops.utils.net import parse_pull_request_url
@@ -353,7 +353,7 @@ def _apply_pull_batch(
     """
     if dry_run:
         for mp, _ in pull_modules:
-            pr = mp.origin.pr if mp.origin else None
+            pr = mp.pr or (mp.origin.pr if mp.origin else None)
             cmd = "oops pr add" if pr else "oops submodule add"
             log.info(f"[dry-run] {mp.name}: {cmd} on {pull_branch!r}")
         return [(mp.name, "done", [], None) for mp, _ in pull_modules]
@@ -374,8 +374,8 @@ def _apply_pull_batch(
     results = []
 
     modules = [mp for mp, _ in pull_modules]
-    prs = [mp for mp in modules if mp.origin and mp.origin.pr]
-    subs = [mp for mp in modules if mp.origin and not mp.origin.pr]
+    prs = [mp for mp in modules if mp.pr or (mp.origin and mp.origin.pr)]
+    subs = [mp for mp in modules if not mp.pr and (not mp.origin or not mp.origin.pr)]
 
     # Group by (repo_slug, ref) so each upstream repo is added once with
     # all its addons in a single call.
@@ -427,7 +427,7 @@ def _apply_pull_batch(
             log.debug(f"{mp.name}: addon already present, marking done")
             results.append((mp.name, "done", [], None))
             continue
-        pr_url = mp.origin.pr if mp.origin else None
+        pr_url = mp.pr or (mp.origin.pr if mp.origin else None)
         if not pr_url:
             results.append((mp.name, "failed", [], "no PR URL in origin"))
             continue
