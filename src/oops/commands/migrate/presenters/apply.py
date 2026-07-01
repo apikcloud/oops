@@ -39,12 +39,17 @@ def _counts(result: "Result[dict]") -> "tuple[bool, str, Counter]":
     counts = Counter(row[3] for row in rows)  # row[3] = status
     all_ok = result.ok and not counts["failed"]
 
+    merged_branch = data.get("merged_branch")
     if dry_run:
         msg = f"Dry run — {len(rows)} module(s) would be processed"
     elif counts["failed"]:
         msg = f"{counts['failed']} module(s) failed"
+    elif counts["done"] and merged_branch:
+        msg = f"{counts['done']} module(s) applied, {merged_branch!r} merged"
     elif counts["done"]:
         msg = f"{counts['done']} module(s) applied successfully"
+    elif merged_branch:
+        msg = f"Merged {merged_branch!r} onto dest_branch"
     else:
         msg = "Nothing applied"
 

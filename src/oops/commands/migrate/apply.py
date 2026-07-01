@@ -549,10 +549,17 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 @click.option("--pull-only", is_flag=True, help="Process pull modules only.")
 @click.option("--port-only", is_flag=True, help="Process port modules only.")
 @click.option("--dry-run", is_flag=True, help="Show what would happen, no git changes.")
+@click.option(
+    "--merge", "do_merge", is_flag=True,
+    help="After successful pull-only apply, fast-forward-merge pull_branch onto dest_branch.",
+)
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
 @click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
 @click.pass_context
-def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_path):
+def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_format, output_path):
+    if do_merge and not pull_only:
+        raise click.UsageError("--merge requires --pull-only.")
+
     token: str = (ctx.obj or {}).get("token", "")
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
@@ -624,7 +631,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_
         elif mp.action == "drop" and not pull_only and not port_only:
             work_port.append(name)  # drops are lightweight, go with port pass
 
-    if not work_port and not work_pull:
+    if not work_port and not work_pull and not do_merge:
         raise OopsError("Nothing to apply — all selected modules are already done.")
 
     rows: list[list] = []
@@ -715,6 +722,28 @@ def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_
         if not dry_run:
             _save_status(status_path, apply_status)
 
+    # 8c. Fast-forward merge pull_branch onto dest_branch (--merge --pull-only).
+    merged_branch: Optional[str] = None
+    if do_merge and pull_only:
+        if dry_run:
+            log.info(f"[dry-run] would FF-merge {pull_branch!r} onto {dest_branch!r}")
+        elif outer.ok:
+            if _wt_branch_exists(wt_path, pull_branch):
+                with live_progress(f"Merging {pull_branch!r} → {dest_branch!r} (ff-only)…"):
+                    try:
+                        _wt_checkout(wt_path, dest_branch)
+                        _wt_run(["git", "merge", "--ff-only", pull_branch], wt_path)
+                        log.info(f"Fast-forward merged {pull_branch!r} onto {dest_branch!r}")
+                        merged_branch = pull_branch
+                    except subprocess.CalledProcessError as exc:
+                        stderr = (exc.stderr or "").strip()
+                        outer.add_error(
+                            f"FF merge failed: {' '.join(exc.cmd)} (exit {exc.returncode})"
+                            + (f"\n{stderr}" if stderr else "")
+                        )
+            else:
+                outer.add_error(f"pull_branch {pull_branch!r} not found in worktree — nothing to merge.")
+
     # 9. Report.
     counts = Counter(r[3] for r in rows)
     result: Result[dict] = Result()
@@ -722,6 +751,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_
         "cmd": f"Migration apply {migration.get('from')} → {migration.get('to')}",
         "dry_run": dry_run,
         "rows": rows,
+        "merged_branch": merged_branch,
         "metrics": {
             "total": len(rows),
             "done": counts["done"],
