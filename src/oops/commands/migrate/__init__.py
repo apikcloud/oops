@@ -7,7 +7,7 @@ import click
 @click.option(
     "--token",
     envvar=["GH_TOKEN", "GITHUB_TOKEN"],
-    default="",
+    required=True,
     help="GitHub token — required for upstream probing and PR operations.",
 )
 @click.pass_context
