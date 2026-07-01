@@ -53,15 +53,18 @@ from oops.utils.net import parse_pull_request_url
 
 from .common import (
     PLAN_FILE,
+    STATE_FILE,
     STATUS_FILE,
     MigrationPlan,
     ModulePlan,
+    State,
     artifact_path,
     build_graph,
     get_dest_branch,
     get_pull_branch,
     get_worktree_path,
     load_plan,
+    load_state,
     resolve_branch,
     resolve_tools,
 )
@@ -313,7 +316,7 @@ def _apply_port(
 
     if dry_run:
         log.info(f"[dry-run] {mp.name}: branch={branch!r}, extract from {source_ref!r}, tools={tools}")
-        result.data = tools
+        result.data = []
         return result
 
     # 1. Create branch from destination base.
@@ -639,10 +642,15 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
     metadata = get_metadata()
 
     repo, repo_path = require_repository()
+    state_path = artifact_path(repo_path, STATE_FILE)
     plan_path = artifact_path(repo_path, PLAN_FILE)
     status_path = artifact_path(repo_path, STATUS_FILE)
 
-    # 1. Load plan.
+    # 1. Load state and plan.
+    if not state_path.exists():
+        raise OopsError(f"No state found at {state_path}. Run `oops migrate analyze` first.")
+    state: State = load_state(state_path)
+
     if not plan_path.exists():
         raise OopsError(f"No plan at {plan_path}. Run `oops migrate plan` first.")
     plan: MigrationPlan = load_plan(plan_path)
@@ -682,7 +690,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
         )
 
     # 6. Topological order.
-    graph = build_graph(plan.modules, {})
+    graph = build_graph(plan.modules, state.modules)
     ordered = _topo_sort(graph)
 
     # 7. Build work set with filters.
