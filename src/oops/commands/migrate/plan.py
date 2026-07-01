@@ -296,7 +296,8 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
 
     migration = dict(prev.migration)
     migration.setdefault("dest_branch", get_dest_branch(prev.migration))
-    migration.pop("target_branch", None)
+    migration.pop("target_branch", None)  # legacy template key, superseded by dest_branch
+    migration.pop("strategy", None)  # dead key — never read, removed from seed
 
     return MigrationPlan(
         version=prev.version,

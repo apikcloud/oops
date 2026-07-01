@@ -627,7 +627,7 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
 @click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
 @click.pass_context
-def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_format, output_path):
+def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_format, output_path):  # noqa: C901
     if do_merge and not pull_only:
         raise click.UsageError("--merge requires --pull-only.")
 

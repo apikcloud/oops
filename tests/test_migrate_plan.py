@@ -335,6 +335,39 @@ def test_plan_reconcile_backfills_dest_branch(tmp_path):
     mig = data["migration"]
     assert mig["dest_branch"] == "main"
     assert "target_branch" not in mig
+    assert "strategy" not in mig
+
+
+def test_plan_reconcile_drops_strategy(tmp_path):
+    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+
+    old_plan = {
+        "version": 2,
+        "migration": {
+            "from": "18.0",
+            "to": "19.0",
+            "source_ref": "18.0",
+            "target_branch": "mig/19.0/{module}",
+            "strategy": "standard",
+            "branch_template": "mig/19.0/{module}",
+        },
+        "modules": {
+            "custom_sale": {"action": "port", "origin": {"kind": "custom"}},
+            "oca_partner": {"action": "pull", "origin": {"kind": "oca", "repo": "OCA/partner-contact"}},
+        },
+    }
+    plan_path.write_text(yaml.safe_dump(old_plan))
+    _write_state(tmp_path)
+
+    with _mock_repo(tmp_path):
+        result = CliRunner().invoke(main, [])
+    assert result.exit_code == 0, result.output
+
+    mig = yaml.safe_load(plan_path.read_text())["migration"]
+    assert "strategy" not in mig
+    assert "target_branch" not in mig
+    assert mig["dest_branch"] == "main"
 
 
 def test_plan_reconcile_preserves_explicit_dest_branch(tmp_path):

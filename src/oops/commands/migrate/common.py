@@ -490,7 +490,7 @@ def load_state(path: Path) -> State:
     )
 
 
-def save_plan(path: Path, plan: MigrationPlan) -> None:
+def save_plan(path: Path, plan: MigrationPlan) -> None:  # noqa: C901
     """Serialize MigrationPlan → plan.yml.
 
     Human fields are written as-is. Machine fields (calculated_priority,

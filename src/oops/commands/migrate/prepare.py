@@ -46,7 +46,7 @@ SENTINEL_PREFIX = "[migrate] prepare"
     "--destination-ref",
     "dest_ref",
     default=None,
-    help="Commit/tag to reset destination branch to (e.g. a 19.0 Odoo tag). If omitted, destination branch is used as-is.",
+    help="Commit/tag to reset destination branch to (e.g. a 19.0 Odoo tag). If omitted, dest branch is used as-is.",
 )
 @click.option(
     "--destination-branch",
