@@ -23,6 +23,7 @@ specific modules. --pull-only / --port-only filters by action.
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from collections import Counter
 from dataclasses import asdict, dataclass, field
@@ -267,6 +268,23 @@ def _run_tools(tools: list[str], cwd: Path) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+class _MigratorLogCapture(logging.Handler):
+    """Captures odoo-module-migrator log records without emitting to console."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
+
+    def to_markdown(self, module: str, from_v: str, to_v: str) -> str:
+        lines = [f"# Migration: {module} ({from_v} → {to_v})\n"]
+        for r in self.records:
+            lines.append(f"- **{r.levelname}** {r.getMessage()}")
+        return "\n".join(lines) + "\n"
+
+
 def _apply_port(
     mp: ModulePlan,
     repo,
@@ -314,34 +332,47 @@ def _apply_port(
         add_path=mp.name,
     )
 
-    # 4. odoo-module-migrator via Python API.
+    # 4. odoo-module-migrator via Python API — logs captured, nothing printed.
     migrator_ran = False
+    if from_version and to_version:
+        try:
+            from odoo_module_migrate.migration import Migration
 
-    try:
-        from odoo_module_migrate.log import setup_logger
-        from odoo_module_migrate.migration import Migration
+            capture = _MigratorLogCapture()
+            migrator_logger = logging.getLogger("odoo_module_migrate")
+            old_level = migrator_logger.level
+            old_propagate = migrator_logger.propagate
+            migrator_logger.setLevel(logging.INFO)
+            migrator_logger.addHandler(capture)
+            migrator_logger.propagate = False
+            try:
+                m = Migration(
+                    relative_directory_path=str(wt_path),
+                    init_version_name=from_version,
+                    target_version_name=to_version,
+                    module_names=[mp.name],
+                    format_patch=False,
+                    commit_enabled=False,
+                    pre_commit=False,
+                    remove_migration_folder=True,
+                )
+                m.run()
+            finally:
+                migrator_logger.removeHandler(capture)
+                migrator_logger.setLevel(old_level)
+                migrator_logger.propagate = old_propagate
 
-        setup_logger("INFO", False)
-
-        m = Migration(
-            relative_directory_path=str(wt_path),
-            init_version_name=from_version,
-            target_version_name=to_version,
-            module_names=[mp.name],
-            format_patch=False,
-            commit_enabled=False,
-            pre_commit=False,
-            remove_migration_folder=True,
-        )
-        m.run()
-        migrator_ran = True
-        log.debug(f"{mp.name}: odoo-module-migrator (API) done")
-    except ImportError:
-        result.add_warning("odoo_module_migrate not installed")
-        migrator_ran = True
-    except Exception as exc:  # noqa: BLE001
-        result.add_warning(f"odoo-module-migrator failed: {exc}; continuing with remaining tools")
-        migrator_ran = True
+            migration_md = module_path / "MIGRATION.md"
+            migration_md.write_text(
+                capture.to_markdown(mp.name, from_version, to_version),
+                encoding="utf-8",
+            )
+            migrator_ran = True
+            log.debug(f"{mp.name}: odoo-module-migrator done, log → MIGRATION.md")
+        except ImportError:
+            result.add_warning("odoo_module_migrate not installed; falling back to subprocess")
+        except Exception as exc:  # noqa: BLE001
+            result.add_warning(f"odoo-module-migrator failed: {exc}; continuing with remaining tools")
 
     # 5. Run remaining tool chain (skip migrator if API already ran).
     effective_tools = [t for t in tools if not (migrator_ran and t == "odoo-module-migrator")]

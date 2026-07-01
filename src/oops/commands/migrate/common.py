@@ -60,8 +60,8 @@ STRATEGIES: dict[str, list[str]] = {
     # Full mechanical pass: migrator + formatters + type hints.
     "standard": [
         "odoo-module-migrator",
-        "pre-commit run --all-files",
-        "pyupgrade --py310-plus **/*.py",
+        # "pre-commit run --all-files",
+        # "pyupgrade --py310-plus **/*.py",
     ],
     # Migrator only — for modules with known fragile pre-commit setup.
     "minimal": [
