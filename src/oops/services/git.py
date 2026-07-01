@@ -422,9 +422,9 @@ def browse_submodules(submodules: List[Submodule], names: Tuple[str]) -> "Genera
     yield from enumerate(selected, 1)
 
 
-def reset_branch(repo: Repo, repo_path: Path, version: str) -> Result:
+def reset_branch(repo: Repo, repo_path: Path, version: str) -> "Result[None]":
 
-    result: Result[list] = Result()
+    result: Result[None] = Result()
 
     # 1. List the files to keep (changelog, readme — case-insensitive)
     keep = [
@@ -468,9 +468,9 @@ def reset_branch(repo: Repo, repo_path: Path, version: str) -> Result:
         result.add_error(str(exc))
         return result
 
-    commit = repo.git.commit("-m", message, no_verify=True)
+    commit = repo.index.commit(message)
 
-    result.add_message(f"Commit {commit} — {message}")
+    result.add_message(f"Commit {commit.hexsha[:8]} — {message}")
 
     return result
 

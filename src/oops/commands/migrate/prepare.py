@@ -128,12 +128,11 @@ def main(ctx, dest_ref, dest_branch_override, force):
             repo.git.worktree("add", str(worktree_path), dest_branch)
             log.debug(f"Worktree created at {worktree_path}")
 
-            repo_worktree = Repo(worktree_path)
+    repo_worktree = Repo(worktree_path)
 
     # --- Step 3: reset target branch ---
-    with live_progress("Reseting target branch..."):
-        commit_result = reset_branch(repo_worktree, worktree_path, to_version)
-        print(commit_result)
+    with live_progress("Resetting target branch…"):
+        reset_branch(repo_worktree, worktree_path, to_version)
         log.debug(f"Sentinel: {sentinel!r}")
 
     # --- Step 4: project sync in the worktree ---
