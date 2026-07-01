@@ -39,12 +39,13 @@ def _base_patches(tmp_path, mock_repo=None):
         mock_repo = _make_repo()
     return {
         "oops.commands.submodules.add.config": _make_config(),
+        "oops.services.submodule.config": _make_config(),
         "oops.commands.submodules.add.require_repository": MagicMock(return_value=(mock_repo, tmp_path)),
         "oops.commands.submodules.add.list_remote_addons": MagicMock(return_value=REMOTE_ADDONS),
         "oops.commands.submodules.add.commit_v2": MagicMock(
             return_value=MagicMock(messages=[], warnings=[], errors=[])
         ),
-        "oops.commands.submodules.add.create_symlink": MagicMock(return_value=None),
+        "oops.services.submodule.create_symlink": MagicMock(return_value=None),
     }
 
 
@@ -128,7 +129,7 @@ class TestAddonFetch:
             extra_patches={"oops.commands.submodules.add.list_remote_addons": MagicMock(return_value=[])},
         )
         assert result.exit_code == 0, result.output
-        patches["oops.commands.submodules.add.create_symlink"].assert_not_called()
+        patches["oops.services.submodule.create_symlink"].assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +141,7 @@ class TestAddonsOption:
     def test_addons_option_filters_to_requested(self, tmp_path):
         result, patches = _invoke(tmp_path, args=[URL, BRANCH, "-f", "--addons", "my_addon", "--token", "tok"])
         assert result.exit_code == 0, result.output
-        create = patches["oops.commands.submodules.add.create_symlink"]
+        create = patches["oops.services.submodule.create_symlink"]
         called_names = [c.args[0].name for c in create.call_args_list]
         assert "my_addon" in called_names
         assert "other_addon" not in called_names
@@ -160,7 +161,7 @@ class TestForce:
     def test_force_symlinks_all_addons(self, tmp_path):
         result, patches = _invoke(tmp_path)  # _invoke uses -f by default
         assert result.exit_code == 0, result.output
-        create = patches["oops.commands.submodules.add.create_symlink"]
+        create = patches["oops.services.submodule.create_symlink"]
         assert create.call_count == len(REMOTE_ADDONS)
 
 

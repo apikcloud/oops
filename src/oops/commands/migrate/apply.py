@@ -336,7 +336,7 @@ def _apply_port(
     return tools_run
 
 
-def _apply_pull_batch(
+def _apply_pull_batch(  # noqa: C901
     pull_modules: "list[tuple[ModulePlan, str]]",
     repo,
     wt_path: Path,
@@ -359,7 +359,7 @@ def _apply_pull_batch(
         return [(mp.name, "done", [], None) for mp, _ in pull_modules]
 
     from git import Repo
-    from oops.commands.submodules.add import add_submodule_flow
+    from oops.services.submodule import add_submodule
 
     # Create or checkout the pull branch.
     if _wt_branch_exists(wt_path, pull_branch):
@@ -395,7 +395,9 @@ def _apply_pull_batch(
             continue
         repo_groups.setdefault((repo_slug, ref), []).append(mp.name)
 
-    for (repo_slug, ref), addons in repo_groups.items():
+    for index, ((repo_slug, ref), addons) in enumerate(repo_groups.items()):
+        log.info(f"Adding submodule {index}/{len(repo_groups)}: {', '.join(addons)}")
+
         url = f"https://github.com/{repo_slug}.git"
         sub_path = wt_path / desired_path(url, prefix=str(config.submodules.current_path))
 
@@ -408,25 +410,30 @@ def _apply_pull_batch(
             continue
 
         try:
-            add_submodule_flow(
+            res = add_submodule(
                 repo=wt_repo,
                 repo_path=wt_path,
                 url=url,
                 branch=ref,
                 addons=",".join(missing),
                 no_commit=False,
-                force=True,
                 pull_request=False,
                 token=token,
             )
-            results += [(n, "done", [], None) for n in missing]
+            if res.ok:
+                results += [(n, "done", [], None) for n in missing]
+            else:
+                err = "; ".join(res.errors)
+                results += [(n, "failed", [], err) for n in missing]
         except Exception as exc:  # noqa: BLE001
             # Clean up any lock left by the failed operation so later repos can proceed.
             if gitmodules_lock.exists():
                 gitmodules_lock.unlink()
             results += [(n, "failed", [], str(exc)) for n in missing]
 
-    for mp in prs:
+    for index, mp in enumerate(prs):
+        log.info(f"Adding PR {index}/{len(prs)}: {mp.name}")
+
         pr_sub_path = None
         effective_repo = mp.repo or (mp.origin.repo if mp.origin else None)
         if effective_repo:
@@ -448,20 +455,23 @@ def _apply_pull_batch(
             pr = get_pull_request(pr_owner, pr_repo_name, pr_number, token)
             if not pr.head_repo_url or not pr.head_ref:
                 raise OopsError(f"PR #{pr_number} head repository is unavailable (fork deleted?)")
-            add_submodule_flow(
+            res = add_submodule(
                 repo=wt_repo,
                 repo_path=wt_path,
                 url=pr.head_repo_url,
                 branch=pr.head_ref,
                 addons=mp.name,
                 no_commit=False,
-                force=True,
                 pull_request=True,
                 token=token,
                 commit_message_name="pr_add",
                 extra_commit_kwargs={"pr_url": pr_url},
             )
-            results.append((mp.name, "done", [], None))
+            if res.ok:
+                results.append((mp.name, "done", [], None))
+            else:
+                err = "; ".join(res.errors)
+                results.append((mp.name, "failed", [], err))
         except Exception as exc:  # noqa: BLE001
             if gitmodules_lock.exists():
                 gitmodules_lock.unlink()

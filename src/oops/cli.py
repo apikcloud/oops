@@ -28,7 +28,7 @@ for _group_info in pkgutil.iter_modules(_commands_pkg.__path__):
     _group_pkg = importlib.import_module(f"oops.commands.{_group_info.name}")
 
     # If the package defines its own group command, use it (enables group-level options).
-    if hasattr(_group_pkg, "main") and isinstance(getattr(_group_pkg, "main"), click.Group):
+    if hasattr(_group_pkg, "main") and isinstance(_group_pkg.main, click.Group):
         _grp = _group_pkg.main
         _grp.name = _group_info.name
     else:
