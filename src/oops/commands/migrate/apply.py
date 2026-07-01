@@ -276,21 +276,26 @@ def _apply_port(
     branch: str,
     plan_defaults: dict,
     dry_run: bool,
-) -> list[str]:
+    from_version: str,
+    to_version: str,
+) -> "Result[list[str]]":
     """Port workflow:
     1. Create branch from dest base.
     2. Extract module via git archive.
     3. Commit initial state.
-    4. Run tool chain.
-    5. Commit tooling result.
-    6. Handle rename / merge_with.
+    4. Run odoo-module-migrator via Python API (falls back to subprocess on ImportError).
+    5. Run remaining tool chain.
+    6. Commit tooling result.
+    7. Handle rename / merge_with.
     """
+    result: Result[list[str]] = Result()
     module_path = wt_path / mp.name
     tools = resolve_tools(mp, plan_defaults)
 
     if dry_run:
         log.info(f"[dry-run] {mp.name}: branch={branch!r}, extract from {source_ref!r}, tools={tools}")
-        return tools
+        result.data = tools
+        return result
 
     # 1. Create branch from destination base.
     if _wt_branch_exists(wt_path, branch):
@@ -305,26 +310,58 @@ def _apply_port(
     # 3. Commit initial state.
     _wt_commit(
         wt_path,
-        f"[mig] {mp.name}: initial state from {source_ref}",
+        f"chore: add {mp.name} from {source_ref}",
         add_path=mp.name,
     )
 
-    # 4. Run tool chain.
-    tools_run: list[str] = []
-    if tools and module_path.exists():
-        tools_run = _run_tools(tools, cwd=module_path)
-        # 5. Commit tooling result.
+    # 4. odoo-module-migrator via Python API.
+    migrator_ran = False
+
+    try:
+        from odoo_module_migrate.log import setup_logger
+        from odoo_module_migrate.migration import Migration
+
+        setup_logger("INFO", False)
+
+        m = Migration(
+            relative_directory_path=str(wt_path),
+            init_version_name=from_version,
+            target_version_name=to_version,
+            module_names=[mp.name],
+            format_patch=False,
+            commit_enabled=False,
+            pre_commit=False,
+            remove_migration_folder=True,
+        )
+        m.run()
+        migrator_ran = True
+        log.debug(f"{mp.name}: odoo-module-migrator (API) done")
+    except ImportError:
+        result.add_warning("odoo_module_migrate not installed")
+        migrator_ran = True
+    except Exception as exc:  # noqa: BLE001
+        result.add_warning(f"odoo-module-migrator failed: {exc}; continuing with remaining tools")
+        migrator_ran = True
+
+    # 5. Run remaining tool chain (skip migrator if API already ran).
+    effective_tools = [t for t in tools if not (migrator_ran and t == "odoo-module-migrator")]
+    tools_run: list[str] = ["odoo-module-migrator"] if migrator_ran else []
+    if effective_tools and module_path.exists():
+        tools_run += _run_tools(effective_tools, cwd=module_path)
+    elif effective_tools:
+        log.warning(f"{mp.name}: module dir not found at {module_path}, skipping tools")
+
+    # 6. Commit tooling result.
+    if tools_run:
         _wt_run(["git", "add", "-A"], wt_path)
         r = _wt_run(["git", "diff", "--cached", "--quiet"], wt_path, check=False)
         if r.returncode != 0:  # staged changes exist
             _wt_commit(
                 wt_path,
-                f"[mig] {mp.name}: mechanical tooling",
+                f"mig({mp.name}): mechanical tooling",
             )
-    elif tools:
-        log.warning(f"{mp.name}: module dir not found at {module_path}, skipping tools")
 
-    # 6. rename / merge_with template commits.
+    # 7. rename / merge_with template commits.
     if mp.rename:
         _apply_rename(mp, wt_path, dry_run=False)
     if mp.merge_with:
@@ -333,7 +370,8 @@ def _apply_port(
     # Return to dest base for the next module.
     _wt_checkout(wt_path, dest_branch)
 
-    return tools_run
+    result.data = tools_run
+    return result
 
 
 def _apply_pull_batch(  # noqa: C901
@@ -395,7 +433,7 @@ def _apply_pull_batch(  # noqa: C901
             continue
         repo_groups.setdefault((repo_slug, ref), []).append(mp.name)
 
-    for index, ((repo_slug, ref), addons) in enumerate(repo_groups.items()):
+    for index, ((repo_slug, ref), addons) in enumerate(repo_groups.items(), start=1):
         log.info(f"Adding submodule {index}/{len(repo_groups)}: {', '.join(addons)}")
 
         url = f"https://github.com/{repo_slug}.git"
@@ -431,7 +469,7 @@ def _apply_pull_batch(  # noqa: C901
                 gitmodules_lock.unlink()
             results += [(n, "failed", [], str(exc)) for n in missing]
 
-    for index, mp in enumerate(prs):
+    for index, mp in enumerate(prs, start=1):
         log.info(f"Adding PR {index}/{len(prs)}: {mp.name}")
 
         pr_sub_path = None
@@ -550,7 +588,9 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 @click.option("--port-only", is_flag=True, help="Process port modules only.")
 @click.option("--dry-run", is_flag=True, help="Show what would happen, no git changes.")
 @click.option(
-    "--merge", "do_merge", is_flag=True,
+    "--merge",
+    "do_merge",
+    is_flag=True,
     help="After successful pull-only apply, fast-forward-merge pull_branch onto dest_branch.",
 )
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
@@ -647,7 +687,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
         with live_progress(f"Applying {name} ({mp.action})…"):
             try:
                 if mp.action == "port":
-                    tools_run = _apply_port(
+                    port_result = _apply_port(
                         mp,
                         repo,
                         wt_path,
@@ -656,7 +696,12 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
                         branch,
                         plan.defaults,
                         dry_run,
+                        from_version=migration.get("from", ""),
+                        to_version=migration.get("to", ""),
                     )
+                    tools_run = port_result.data or []
+                    for w in port_result.warnings:
+                        outer.add_warning(f"{name}: {w}")
                 elif mp.action == "drop":
                     log.debug(f"{name}: drop — no branch, no tooling")
                 status = "done"
