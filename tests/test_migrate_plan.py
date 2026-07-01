@@ -485,7 +485,7 @@ def test_plan_ghost_enrichment_integration(tmp_path):
                 "oops.commands.migrate.plan.check_upstream_graphql",
                 return_value={"sibling_mod": True, "unknown_mod": False},
             ):
-                result = CliRunner().invoke(main, ["--token", "fake-token"])
+                result = CliRunner().invoke(main, [], obj={"token": "fake-token"})
 
     assert result.exit_code == 0, result.output
 

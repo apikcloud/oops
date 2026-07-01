@@ -85,12 +85,6 @@ FORMATTERS: FormatterRegistry = {
     ),
 )
 @click.option(
-    "--token",
-    default=None,
-    envvar=["GH_TOKEN", "GITHUB_TOKEN"],
-    help="GitHub token (raises rate limits, enables private repos).",
-)
-@click.option(
     "--format",
     "output_format",
     type=click.Choice(["text", "json", "html"]),
@@ -110,10 +104,10 @@ def main(
     from_version,
     to_version,
     probe_upstream,
-    token,
     output_format,
     output_path,
 ):
+    token: str = (ctx.obj or {}).get("token", "")
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
     repo, repo_path = require_repository()

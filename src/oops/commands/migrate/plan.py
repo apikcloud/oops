@@ -87,14 +87,9 @@ FORMATTERS: FormatterRegistry = {
     type=click.Path(dir_okay=False, path_type=Path),
     default=None,
 )
-@click.option(
-    "--token",
-    default=None,
-    envvar=["GH_TOKEN", "GITHUB_TOKEN"],
-    help="GitHub token — enables looking up new deps in their parent repo.",
-)
 @click.pass_context
-def main(ctx, output_format, output_path, token):
+def main(ctx, output_format, output_path):
+    token: Optional[str] = (ctx.obj or {}).get("token") or None
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
 

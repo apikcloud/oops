@@ -541,9 +541,9 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 @click.option("--dry-run", is_flag=True, help="Show what would happen, no git changes.")
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
 @click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
-@click.option("--token", envvar=["GH_TOKEN", "GITHUB_TOKEN"], default="", help="GitHub token for PR modules.")
 @click.pass_context
-def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_path, token):
+def main(ctx, only, force, pull_only, port_only, dry_run, output_format, output_path):
+    token: str = (ctx.obj or {}).get("token", "")
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
 
