@@ -45,8 +45,8 @@ SENTINEL_PREFIX = "[migrate] prepare"
 @click.option(
     "--destination-ref",
     "dest_ref",
-    required=True,
-    help="Commit/tag to reset destination branch to (e.g. a 19.0 Odoo tag).",
+    default=None,
+    help="Commit/tag to reset destination branch to (e.g. a 19.0 Odoo tag). If omitted, destination branch is used as-is.",
 )
 @click.option(
     "--destination-branch",
@@ -81,7 +81,7 @@ def main(ctx, dest_ref, dest_branch_override, force):
             [
                 f"Source branch     : [brand.primary]{source_ref}[/]",
                 f"Destination branch: {dest_branch}",
-                f"Reset to ref      : {dest_ref}",
+                f"Reset to ref      : {dest_ref or '(none — branch used as-is)'}",
                 f"Worktree path     : {worktree_path}",
             ]
         ),
@@ -106,16 +106,24 @@ def main(ctx, dest_ref, dest_branch_override, force):
         conclude(True, f"Already prepared — worktree: {apply_status.worktree_path}")
         return
 
-    # --- Step 1: reset or create destination branch at dest_ref ---
-    with live_progress(f"Resetting '{dest_branch}' to {dest_ref!r}…"):
+    # --- Step 1: create or reset destination branch ---
+    # --destination-ref is optional: if given, branch is reset to that ref;
+    # if omitted, branch is created from HEAD when missing, left as-is when present.
+    with live_progress(f"Setting up '{dest_branch}'…"):
         existing = [b.name for b in repo.branches]
-        if dest_branch in existing:
-            # Force-reset to dest_ref without checking out.
-            repo.git.branch("-f", dest_branch, dest_ref)
-            log.debug(f"Branch '{dest_branch}' reset to {dest_ref!r}")
+        if dest_ref is not None:
+            if dest_branch in existing:
+                repo.git.branch("-f", dest_branch, dest_ref)
+                log.debug(f"Branch '{dest_branch}' reset to {dest_ref!r}")
+            else:
+                repo.git.branch(dest_branch, dest_ref)
+                log.debug(f"Branch '{dest_branch}' created at {dest_ref!r}")
         else:
-            repo.git.branch(dest_branch, dest_ref)
-            log.debug(f"Branch '{dest_branch}' created at {dest_ref!r}")
+            if dest_branch not in existing:
+                repo.git.branch(dest_branch)
+                log.debug(f"Branch '{dest_branch}' created from HEAD")
+            else:
+                log.debug(f"Branch '{dest_branch}' exists — used as-is")
 
     # --- Step 2: create or verify the worktree ---
     # dest_branch must not be checked out in the main repo for worktree add.
