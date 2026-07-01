@@ -60,17 +60,13 @@ class CommitMessages:
     manifest_update: str = "chore: update manifest(s)"
     refactor_per_module: str = "refactor({module}): add sections and docstrings\n\n{description}"
 
-    def render(self, name: str, **kwargs) -> str:
-        message = getattr(self, name, None)
-        if message is None:
-            raise ValueError(f"Unknown commit message name: {name}")
-        if kwargs:
-            try:
-                message = message.format(**kwargs)
-            except KeyError as exc:
-                raise ValueError(f"Missing placeholder for commit message: {exc}") from exc
-
-        return message
+    def render(self, key: str, **kwargs) -> str:
+        if key not in self.__dataclass_fields__:
+            raise ValueError(f"Unknown commit message: {key!r}")
+        try:
+            return getattr(self, key).format(**kwargs)
+        except KeyError as exc:
+            raise ValueError(f"Missing placeholder {exc} for commit message {key!r}") from exc
 
 
 commit_messages = CommitMessages()
