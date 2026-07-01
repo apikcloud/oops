@@ -9,6 +9,20 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.27.0] - 2026-07-01
+
+A new `oops migrate` command suite to help move third-party modules toward upstream. 🎉
+
+### ✨ What's new
+
+- **`oops migrate analyze`**: see at a glance how much effort it'll take to migrate each third-party module — upstream PR status, effort scoring, and a shareable HTML report
+- **`oops migrate plan`**: generate a step-by-step migration plan for your modules, with automatic detection of "ghost" modules and their target dependencies
+- **`oops migrate prepare`**: get your migration branch ready before applying a plan
+- **`oops migrate apply`**: run the plan — pulls modules, adds submodules, and opens/tracks the right pull requests automatically
+- Upstream pull request search now also finds closed PRs, not just open ones
+
+---
+
 ## [0.26.0] - 2026-06-23
 
 New command to clean up PR submodules after a PR is merged.

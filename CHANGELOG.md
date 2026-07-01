@@ -10,6 +10,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-07-01
+
+### Added
+
+- `oops migrate analyze`: new command to assess third-party module migration effort — reports upstream PR status, effort metrics, and an HTML output report
+- `oops migrate plan`: new command to generate a dependency-aware migration plan; detects ghost modules and resolves target dependencies
+- `oops migrate prepare`: new command to prepare the migration branch (reset/checkout) ahead of applying a plan
+- `oops migrate apply`: new command to execute a migration plan — pulls modules, adds submodules, and integrates the `oops pr add` flow for PR-based modules
+- GitHub upstream PR search now includes closed pull requests, not just open ones
+
+### Documentation
+
+- `oops migrate` command reference page, docstrings, and experimental markers added
+
 ## [0.26.0] - 2026-06-23
 
 ### Added
