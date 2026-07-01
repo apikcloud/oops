@@ -292,6 +292,80 @@ def test_plan_format_json(tmp_path):
     assert "metrics" in payload
 
 
+def test_plan_seed_migration_keys(tmp_path):
+    _write_state(tmp_path, from_v="18.0", to_v="19.0")
+    with _mock_repo(tmp_path):
+        result = CliRunner().invoke(main, [])
+    assert result.exit_code == 0, result.output
+    data = yaml.safe_load((tmp_path / ".oops" / "migrate" / "plan.yml").read_text())
+    mig = data["migration"]
+    assert mig["dest_branch"] == "main"
+    assert mig["branch_template"] == "mig/19.0/{module}"
+    assert "target_branch" not in mig
+    assert "strategy" not in mig
+
+
+def test_plan_reconcile_backfills_dest_branch(tmp_path):
+    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write an old-style plan with target_branch template and no dest_branch.
+    old_plan = {
+        "version": 2,
+        "migration": {
+            "from": "18.0",
+            "to": "19.0",
+            "source_ref": "18.0",
+            "target_branch": "mig/19.0/{module}",
+            "branch_template": "mig/19.0/{module}",
+        },
+        "modules": {
+            "custom_sale": {"action": "port", "origin": {"kind": "custom"}},
+            "oca_partner": {"action": "pull", "origin": {"kind": "oca", "repo": "OCA/partner-contact"}},
+        },
+    }
+    plan_path.write_text(yaml.safe_dump(old_plan))
+    _write_state(tmp_path)
+
+    with _mock_repo(tmp_path):
+        result = CliRunner().invoke(main, [])
+    assert result.exit_code == 0, result.output
+
+    data = yaml.safe_load(plan_path.read_text())
+    mig = data["migration"]
+    assert mig["dest_branch"] == "main"
+    assert "target_branch" not in mig
+
+
+def test_plan_reconcile_preserves_explicit_dest_branch(tmp_path):
+    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+
+    old_plan = {
+        "version": 2,
+        "migration": {
+            "from": "18.0",
+            "to": "19.0",
+            "source_ref": "18.0",
+            "dest_branch": "18.0",
+            "branch_template": "mig/19.0/{module}",
+        },
+        "modules": {
+            "custom_sale": {"action": "port", "origin": {"kind": "custom"}},
+            "oca_partner": {"action": "pull", "origin": {"kind": "oca", "repo": "OCA/partner-contact"}},
+        },
+    }
+    plan_path.write_text(yaml.safe_dump(old_plan))
+    _write_state(tmp_path)
+
+    with _mock_repo(tmp_path):
+        result = CliRunner().invoke(main, [])
+    assert result.exit_code == 0, result.output
+
+    data = yaml.safe_load(plan_path.read_text())
+    assert data["migration"]["dest_branch"] == "18.0"
+
+
 # ---------------------------------------------------------------------------
 # Unit tests — _insert_ghost_modules
 # ---------------------------------------------------------------------------

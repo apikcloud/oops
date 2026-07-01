@@ -249,7 +249,7 @@ class MigrationPlan:
     """plan.yml — the only hand-edited, versioned artifact."""
 
     version: int
-    migration: dict  # from/to/source_ref/target_branch/strategy/branch_template
+    migration: dict  # from/to/source_ref/dest_branch/branch_template
     defaults: dict = field(default_factory=dict)
     groups: dict = field(default_factory=dict)
     modules: dict[str, ModulePlan] = field(default_factory=dict)

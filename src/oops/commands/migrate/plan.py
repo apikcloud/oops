@@ -60,6 +60,7 @@ from .common import (
     build_graph,
     calculate_priority,
     compute_descendant_counts,
+    get_dest_branch,
     load_plan,
     load_state,
     resolve_branch,
@@ -195,8 +196,7 @@ def _seed_plan(state: State) -> MigrationPlan:
             "from": state.from_version,
             "to": state.to_version,
             "source_ref": state.source_ref,
-            "target_branch": f"{state.to_version}-mig/{{module}}",
-            "strategy": "standard",
+            "dest_branch": "main",
             "branch_template": f"mig/{state.to_version}/{{module}}",
         },
         modules=modules,
@@ -294,9 +294,13 @@ def _reconcile_plan(prev: MigrationPlan, state: State, outer: "Result[None]") ->
                 repo=p.repo,
             )
 
+    migration = dict(prev.migration)
+    migration.setdefault("dest_branch", get_dest_branch(prev.migration))
+    migration.pop("target_branch", None)
+
     return MigrationPlan(
         version=prev.version,
-        migration=prev.migration,
+        migration=migration,
         defaults=prev.defaults,
         groups=prev.groups,
         modules=modules,
