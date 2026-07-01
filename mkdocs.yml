@@ -197,6 +197,7 @@ nav:
           - Addons: guide/commands/addons.md
           - Depends: guide/commands/depends.md
           - Manifest: guide/commands/manifest.md
+          - Migrate: guide/commands/migrate.md
           - Misc: guide/commands/misc.md
           - Odoo: guide/commands/odoo.md
           - Project: guide/commands/project.md

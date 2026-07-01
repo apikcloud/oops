@@ -47,6 +47,7 @@ from oops.output.formatters import (
     SimpleSummaryConsoleFormatter,
 )
 from oops.services.git import require_repository
+from oops.utils.render import warn_experimental
 from oops.services.github import get_pull_request
 from oops.utils.net import parse_pull_request_url
 
@@ -628,6 +629,8 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 @click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
 @click.pass_context
 def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_format, output_path):  # noqa: C901
+    """Execute the migration plan in the worktree."""
+    warn_experimental()
     if do_merge and not pull_only:
         raise click.UsageError("--merge requires --pull-only.")
 

@@ -26,7 +26,7 @@ from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.messages import commit_messages
 from oops.services.git import find_commit, require_repository, reset_branch, worktree_exists
-from oops.utils.render import conclude, render_panel
+from oops.utils.render import conclude, render_panel, warn_experimental
 
 from .apply import ApplyStatus, _load_status, _save_status
 from .common import (
@@ -61,6 +61,8 @@ SENTINEL_PREFIX = "[migrate] prepare"
 )
 @click.pass_context
 def main(ctx, dest_ref, dest_branch_override, force):
+    """Prepare the migration worktree and destination branch."""
+    warn_experimental()
     repo, repo_path = require_repository()
 
     plan_path = artifact_path(repo_path, PLAN_FILE)

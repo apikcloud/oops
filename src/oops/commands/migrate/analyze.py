@@ -23,6 +23,7 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command, render_and_exit
+from oops.utils.render import warn_experimental
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
@@ -107,6 +108,8 @@ def main(
     output_format,
     output_path,
 ):
+    """Snapshot the repository and write state.yml."""
+    warn_experimental()
     token: str = (ctx.obj or {}).get("token", "")
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()

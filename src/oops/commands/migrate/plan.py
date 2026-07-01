@@ -32,6 +32,7 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command, render_and_exit
+from oops.utils.render import warn_experimental
 from oops.core.compat import Optional
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
@@ -90,6 +91,8 @@ FORMATTERS: FormatterRegistry = {
 )
 @click.pass_context
 def main(ctx, output_format, output_path):
+    """Seed or reconcile plan.yml from the current state."""
+    warn_experimental()
     token: Optional[str] = (ctx.obj or {}).get("token") or None
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
