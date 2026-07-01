@@ -1,11 +1,12 @@
 import type { Payload } from "./types";
 import type { Source } from "./source";
-import { viewList }    from "./views/list";
-import { viewServe }   from "./views/serve";
-import { viewAnalyze } from "./views/analyze";
-import { viewDepends } from "./views/depends";
-import { viewRelease } from "./views/release";
-import { viewChecks }  from "./views/checks";
+import { viewList }           from "./views/list";
+import { viewServe }          from "./views/serve";
+import { viewAnalyze }        from "./views/analyze";
+import { viewDepends }        from "./views/depends";
+import { viewRelease }        from "./views/release";
+import { viewChecks }         from "./views/checks";
+import { viewMigrateAnalyze } from "./views/migrate_analyze";
 
 export type View = (root: HTMLElement, payload: Payload, source: Source) => void;
 
@@ -19,6 +20,7 @@ const VIEWS: Record<string, View> = {
   "checks":         viewChecks,
   "project check":  viewChecks,
   "requirements check": viewChecks,
+  "migrate analyze": viewMigrateAnalyze,
 };
 
 function viewUnknown(root: HTMLElement, payload: Payload): void {

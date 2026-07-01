@@ -287,5 +287,5 @@ class TestCommit:
         mock_repo = _make_local_repo(tmp_path)
         mock_repo.index.diff.return_value = [MagicMock()]
 
-        with pytest.raises(ValueError, match="Unknown commit message name"):
+        with pytest.raises(ValueError, match="Unknown commit message"):
             commit(mock_repo, tmp_path, ["Makefile"], "nonexistent_key")

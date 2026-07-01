@@ -21,6 +21,8 @@
   --accent: var(--apik-accent);
   --warning: #b5832b;
   --warning-bg: #f6ecd6;
+  --ok: #5f8a6a;
+  --danger: #b3503f;
 
   /* Classification badges (soft) */
   --oca: #4f828f;        --oca-text: #2c5a64;        --oca-bg: #e1edef;

@@ -237,6 +237,136 @@ def list_remote_addons(
     return sorted(addon_dirs)
 
 
+_GRAPHQL_URL = "https://api.github.com/graphql"
+
+
+def _graphql_query(query: str, token: str) -> dict:
+    """POST a GraphQL query to the GitHub API. Raises APIError on auth errors."""
+
+    r = requests.post(
+        _GRAPHQL_URL,
+        json={"query": query},
+        headers={"Authorization": f"bearer {token}", "Content-Type": "application/json"},
+        timeout=config.default_timeout,
+    )
+    if r.status_code == 401:
+        raise APIError("GitHub token invalid or expired (GraphQL 401).")
+    r.raise_for_status()
+    payload = r.json()
+    if "errors" in payload:
+        log.warning(f"GraphQL partial errors: {payload['errors']}")
+    return payload.get("data") or {}
+
+
+def check_upstream_graphql(
+    modules_by_repo: "dict[str, List[str]]",
+    to_version: str,
+    token: str,
+) -> "dict[str, bool]":
+    """Check manifest existence for every module in a single GraphQL query.
+
+    modules_by_repo: {"OCA/bank-payment": ["account_payment_mode", ...], ...}
+    Returns {"account_payment_mode": True/False, ...}.
+    Modules whose repo fetch fails are absent from the returned dict (left as not-probed).
+    """
+    valid = {k: v for k, v in modules_by_repo.items() if "/" in k and v}
+    if not valid:
+        return {}
+
+    repo_aliases: "List[tuple]" = []
+    parts: "List[str]" = []
+
+    for i, (repo_key, module_names) in enumerate(valid.items()):
+        owner, repo_name = repo_key.split("/", 1)
+        alias = f"r{i}"
+        repo_aliases.append((alias, repo_key))
+        mod_fields = "\n    ".join(
+            f'{mod}: object(expression: "{to_version}:{mod}/__manifest__.py") {{ oid }}' for mod in module_names
+        )
+        parts.append(f'{alias}: repository(owner: "{owner}", name: "{repo_name}") {{\n    {mod_fields}\n  }}')
+
+    data = _graphql_query("query {\n  " + "\n  ".join(parts) + "\n}", token)
+
+    result: "dict[str, bool]" = {}
+    for alias, repo_key in repo_aliases:
+        repo_data = data.get(alias) or {}
+        for mod in valid[repo_key]:
+            result[mod] = bool(repo_data.get(mod))
+    return result
+
+
+def search_prs_graphql(
+    absent_by_repo: "dict[str, List[str]]",
+    to_version: str,
+    token: str,
+) -> "dict[str, List[dict]]":
+    """Search open PRs for absent modules in a single GraphQL query.
+
+    absent_by_repo: {"OCA/bank-payment": ["account_payment_partner", ...], ...}
+    Returns {"account_payment_partner": [{"number": N, "url": ..., "title": ...}], ...}.
+    """
+    valid = {k: v for k, v in absent_by_repo.items() if "/" in k and v}
+    if not valid:
+        return {}
+
+    aliases: "List[tuple]" = []
+    parts: "List[str]" = []
+    idx = 0
+
+    for repo_key, module_names in valid.items():
+        owner, repo_name = repo_key.split("/", 1)
+        for mod in module_names:
+            alias = f"s{idx}"
+            aliases.append((alias, mod))
+            q = f"repo:{owner}/{repo_name} is:pr base:{to_version} {mod} in:title"
+            parts.append(
+                f'{alias}: search(query: "{q}", type: ISSUE, first: 5) {{\n'
+                f"    nodes {{ ... on PullRequest {{ number url title }} }}\n  }}"
+            )
+            idx += 1
+
+    data = _graphql_query("query {\n  " + "\n  ".join(parts) + "\n}", token)
+
+    result: "dict[str, List[dict]]" = {}
+    for alias, mod in aliases:
+        nodes = (data.get(alias) or {}).get("nodes") or []
+        result[mod] = [
+            {"number": n["number"], "url": n["url"], "title": n["title"]} for n in nodes if n and "number" in n
+        ]
+    return result
+
+
+def search_upstream_prs(
+    owner: str,
+    repo: str,
+    module_name: str,
+    target_version: str,
+    token: Optional[str] = None,
+) -> "List[dict]":
+    """Search for open PRs targeting target_version that mention module_name in the title.
+
+    Returns a list of {"number": int, "url": str, "title": str}.
+    Never raises — returns [] on any error.
+    """
+    try:
+        search_url = "https://api.github.com/search/issues"
+        q = f"repo:{owner}/{repo} is:pr base:{target_version} {module_name} in:title"
+        r = requests.get(
+            search_url,
+            params={"q": q, "per_page": 10},
+            headers=_get_headers(token),
+            timeout=config.default_timeout,
+        )
+        if r.status_code == 200:
+            return [
+                {"number": item["number"], "url": item["html_url"], "title": item["title"]}
+                for item in r.json().get("items", [])
+            ]
+    except Exception:
+        pass
+    return []
+
+
 def get_pull_request(owner: str, repo: str, number: int, token: str) -> PullRequest:
     """Fetch a single pull request by number.
 
@@ -292,3 +422,133 @@ def find_pull_requests(owner: str, repo: str, branch: str, token: str) -> "Optio
         return None
 
     return [PullRequest.from_dict(upstream, pr) for pr in prs]
+
+
+# ---------------------------------------------------------------------------
+# Functions to add to oops/services/github.py
+# Insert after search_prs_graphql (around line 340).
+# ---------------------------------------------------------------------------
+
+
+def fetch_target_deps_graphql(
+    available_by_repo: "dict[str, List[str]]",
+    to_version: str,
+    token: str,
+) -> "dict[str, List[str]]":
+    """Fetch the `depends` list from each module's target manifest via GraphQL.
+
+    Reads the content of ``__manifest__.py`` on the target branch for every
+    module confirmed available upstream. Uses a single GraphQL query per batch
+    (one alias per module), pulling the blob text directly.
+
+    available_by_repo: {"OCA/bank-payment": ["account_payment_mode", ...], ...}
+    Returns {"account_payment_mode": ["account", "base", ...], ...}.
+
+    Modules whose manifest cannot be read are absent from the returned dict —
+    the caller leaves their target_depends_on as None.
+    """
+    valid = {k: v for k, v in available_by_repo.items() if "/" in k and v}
+    if not valid:
+        return {}
+
+    aliases: "List[tuple]" = []  # [(alias, module_name), ...]
+    parts: "List[str]" = []
+    idx = 0
+
+    for repo_key, module_names in valid.items():
+        owner, repo_name = repo_key.split("/", 1)
+        for mod in module_names:
+            alias = f"m{idx}"
+            aliases.append((alias, mod))
+            # expression = "<branch>:<path>" — returns a blob object with a
+            # `text` field containing the raw file content.
+            expr = f"{to_version}:{mod}/__manifest__.py"
+            parts.append(
+                f'{alias}: repository(owner: "{owner}", name: "{repo_name}") {{\n'
+                f'    object(expression: "{expr}") {{\n'
+                f"      ... on Blob {{ text }}\n"
+                f"    }}\n"
+                f"  }}"
+            )
+            idx += 1
+
+    data = _graphql_query("query {\n  " + "\n  ".join(parts) + "\n}", token)
+
+    result: "dict[str, List[str]]" = {}
+    for alias, mod in aliases:
+        repo_data = data.get(alias) or {}
+        obj = repo_data.get("object") or {}
+        text = obj.get("text")
+        if not text:
+            continue
+        deps = _parse_manifest_depends(text)
+        if deps is not None:
+            result[mod] = deps
+
+    return result
+
+
+def fetch_manifest_deps_rest(
+    owner: str,
+    repo: str,
+    module_name: str,
+    to_version: str,
+    token: "Optional[str]" = None,
+) -> "List[str]":
+    """Fetch the `depends` list from a module's target manifest via the REST API.
+
+    Uses the Contents API to read ``__manifest__.py`` on the target branch.
+    The file content is returned base64-encoded; we decode and parse it.
+
+    Returns the list of declared dependencies, or raises on any fetch/parse
+    failure (the caller catches and leaves target_depends_on as None).
+    """
+    import base64
+
+    url = _get_api_url(owner, repo, f"contents/{module_name}/__manifest__.py")
+    data = make_json_get(
+        url,
+        headers={**_get_headers(token), "Accept": "application/vnd.github.raw+json"},
+        params={"ref": to_version},
+    )
+
+    # The raw+json Accept header returns the file content directly as text in
+    # some GitHub API versions; otherwise it is base64-encoded in data["content"].
+    if isinstance(data, str):
+        text = data
+    else:
+        encoded = data.get("content", "")
+        text = base64.b64decode(encoded).decode("utf-8")
+
+    deps = _parse_manifest_depends(text)
+    if deps is None:
+        raise APIError(f"Could not parse `depends` from {module_name}/__manifest__.py ({owner}/{repo}@{to_version})")
+    return deps
+
+
+def _parse_manifest_depends(manifest_text: str) -> "Optional[List[str]]":
+    """Extract the `depends` list from the text of an Odoo ``__manifest__.py``.
+
+    Uses a regex rather than eval() — safe for untrusted content.
+    Matches the common pattern::
+
+        'depends': ['a', 'b', "c"],
+
+    Returns the list of dependency strings, or None if the pattern is not found.
+    """
+    import re
+
+    # Match: 'depends' (or "depends") : [ ... ] — possibly multi-line.
+    # Captures everything between the brackets.
+    m = re.search(
+        r"""["']depends["']\s*:\s*\[([^\]]*)\]""",
+        manifest_text,
+        re.DOTALL,
+    )
+    if not m:
+        return None
+
+    raw = m.group(1)
+    # Extract individual quoted strings.
+    deps = re.findall(r"""["']([^"']+)["']""", raw)
+    return deps

@@ -483,6 +483,10 @@ tbody tr:hover {
     background: var(--origin-third_party);
     color: #fff;
 }
+.badge.third-party {
+    background: var(--origin-third_party);
+    color: #fff;
+}
 .badge.custom {
     background: var(--origin-custom);
     color: #fff;
@@ -2039,3 +2043,48 @@ footer {
     color: #8a1f17;
     margin-top: 1rem;
 }
+
+/* Upstream status cells (migrate analyze) */
+.upstream {
+    font-family: var(--mono);
+    font-weight: 600;
+}
+.upstream.ok {
+    color: var(--ok);
+}
+.upstream.danger {
+    color: var(--danger);
+}
+.upstream.pr {
+    color: var(--warning);
+    text-decoration: none;
+}
+.upstream.pr:hover {
+    text-decoration: underline;
+}
+.upstream.dim {
+    color: var(--text-muted);
+}
+
+/* Migration version indicator (migrate analyze header) */
+.page-header-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.migration-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--surface-2, #f3f4f6);
+    border: 1px solid var(--border, #e2e4e9);
+    border-radius: var(--radius);
+    padding: 0.3rem 0.7rem;
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+.migration-version.from { color: var(--text-muted); }
+.migration-version.to   { color: var(--ok); }
+.migration-arrow        { color: var(--text-muted); font-weight: 400; }

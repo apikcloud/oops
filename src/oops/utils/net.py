@@ -181,6 +181,17 @@ def parse_repository_url(url: str) -> Tuple[str, str, str]:
     return canonical_url, normalized_owner, repo
 
 
+def website_to_github_repo(website: Optional[str]) -> Optional[Tuple[str, str]]:
+    """Parse a manifest website URL to (owner, repo), or None if not a GitHub URL."""
+    if not website:
+        return None
+    try:
+        _, owner, repo = parse_repository_url(website)
+        return (owner, repo)
+    except Exception:
+        return None
+
+
 def parse_pull_request_url(url: str) -> Tuple[str, str, int]:
     """Parse a GitHub pull-request URL into (owner, repo, number).
 

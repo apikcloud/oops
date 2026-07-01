@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
@@ -225,16 +226,9 @@ def commit(  # noqa: PLR0913
         print_warning("Nothing to commit (index identical to HEAD).")
         return
 
-    message = getattr(commit_messages, message_name, None)
-    if message is None:
-        raise ValueError(f"Unknown commit message name: {message_name}")
-    if kwargs:
-        try:
-            message = message.format(**kwargs)
-        except KeyError as exc:
-            raise ValueError(f"Missing placeholder for commit message: {exc}") from exc
-
+    message = commit_messages.render(message_name, **kwargs)
     commit = local_repo.index.commit(message, skip_hooks=skip_hooks)
+
     print_success(f"Commit {commit.hexsha[:8]} — {message}")
 
 
@@ -300,17 +294,11 @@ def commit_v2(  # noqa: PLR0913
         result.add_warning("Nothing to commit (index identical to HEAD).")
         return result
 
-    message = getattr(commit_messages, message_name, None)
-    if message is None:
-        result.add_error(f"Unknown commit message name: {message_name}")
+    try:
+        message = commit_messages.render(message_name, **kwargs)
+    except Exception as exc:
+        result.add_error(str(exc))
         return result
-
-    if kwargs:
-        try:
-            message = message.format(**kwargs)
-        except KeyError as exc:
-            result.add_error(f"Missing placeholder for commit message: {exc}")
-            return result
 
     commit = local_repo.index.commit(message, skip_hooks=skip_hooks)
     result.add_message(f"Commit {commit.hexsha[:8]} — {message}")
@@ -432,3 +420,73 @@ def browse_submodules(submodules: List[Submodule], names: Tuple[str]) -> "Genera
     """
     selected = [s for s in submodules if s.name in names]
     yield from enumerate(selected, 1)
+
+
+def reset_branch(repo: Repo, repo_path: Path, version: str) -> "Result[None]":
+
+    result: Result[None] = Result()
+
+    # 1. List the files to keep (changelog, readme — case-insensitive)
+    keep = [
+        p
+        for p in Path(repo_path).iterdir()
+        if p.is_file()
+        and p.name.lower()
+        in {
+            "changelog.md",
+            "changelog.rst",
+            "changelog",
+            "readme.md",
+            "readme.rst",
+            "readme",
+        }
+    ]
+
+    # 2. Uninitialise and remove all submodules
+    for sub in repo.submodules:
+        repo.git.submodule("deinit", "--force", sub.path)
+        repo.git.rm("-rf", sub.path)
+
+    # 3. Delete everything else except the preserved files and the .git directory
+    for p in Path(repo_path).iterdir():
+        if p.name == ".git":
+            continue
+        if p in keep:
+            continue
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            p.unlink()
+
+    # 4. Stage all deletions
+    repo.git.add("-A")
+
+    # 5. Commit
+    try:
+        message = commit_messages.render("migrate_prepare", version=version)
+    except Exception as exc:
+        result.add_error(str(exc))
+        return result
+
+    commit = repo.index.commit(message)
+
+    result.add_message(f"Commit {commit.hexsha[:8]} — {message}")
+
+    return result
+
+
+def worktree_exists(repo, worktree_path: Path) -> bool:
+    try:
+        out = repo.git.worktree("list", "--porcelain")
+        return str(worktree_path) in out
+    except Exception:
+        return False
+
+
+def find_commit(repo: Repo, branch: str, message: str) -> bool:
+    """Return True if a commit with this exact message exists on branch."""
+    try:
+        out = repo.git.log(branch, "--oneline", f"--grep={message}", "--fixed-strings")
+        return bool(out.strip())
+    except Exception:
+        return False

@@ -19,18 +19,18 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-from git import GitCommandError, Repo
 from oops.commands.base import command
 from oops.core.compat import Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress
 from oops.core.models import Plan, PlanAction, Result
-from oops.io.file import create_symlink, desired_path, ensure_parent
+from oops.io.file import desired_path
 from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
-from oops.services.git import commit_v2, read_gitmodules, require_repository
+from oops.services.git import commit_v2, require_repository
 from oops.services.github import list_remote_addons
+from oops.services.submodule import add_submodule
 from oops.utils.net import encode_url, parse_repository_url
 from oops.utils.render import colorize
 
@@ -69,7 +69,7 @@ def _build_plan(remote_addons: list[str], pull_request: bool) -> Plan:
 
 def add_submodule_flow(  # noqa: PLR0913, C901
     *,
-    repo: "Repo",
+    repo,
     repo_path: Path,
     url: str,
     branch: str,
@@ -112,6 +112,7 @@ def add_submodule_flow(  # noqa: PLR0913, C901
 
     # Mutable holder for the resolved submodule identity (filled in on_selected).
     ctx: dict = {}
+    linked_names: list = []
 
     def on_selected(plan: Plan) -> None:
         """Resolve submodule name/path from the selection, then safety-check.
@@ -145,44 +146,41 @@ def add_submodule_flow(  # noqa: PLR0913, C901
         sub_action.new = branch
         sub_action.detail = sub_path_str
 
-    link_count = [0]
+    outer: Result[None] = Result()
 
     def apply(action: PlanAction) -> Tuple[str, bool]:
         if action.data.get("is_submodule"):
-            ensure_parent(ctx["path"])
-            try:
-                repo.create_submodule(name=ctx["name"], path=ctx["path_str"], url=url, branch=branch)
-            except GitCommandError as exc:
-                raise OopsError(f"Failed to add submodule: {exc}") from exc
-            gm = read_gitmodules(repo)
-            gm.set_value(f'submodule "{ctx["name"]}"', "branch", branch)
-            gm.write()
-            repo.index.add([".gitmodules"])
+            # Collect the selected addon rel_paths from the (post-selection) plan.
+            sel_rels = [a.data["rel_path"] for a in plan.actionable if not a.data.get("is_submodule")]
+            # Delegate creation + symlinking to the service; commit handled below.
+            res = add_submodule(
+                repo=repo, repo_path=repo_path, url=url, branch=branch,
+                addons=None,
+                pull_request=pull_request, token=token,
+                no_commit=True,
+                remote_addons=sel_rels,
+            )
+            outer.merge(res)
+            linked_names.extend(res.data or [])
             return colorize("added", "green"), True
 
-        # symlink action — submodule already created (it is first in the plan)
-        addon_dir = ctx["path"] / action.data["rel_path"]
-        link_name = create_symlink(addon_dir, repo_path)
-        if link_name:
-            repo.index.add([str(repo_path / link_name)])
-            link_count[0] += 1
+        # Addon action — already handled atomically by the service above.
+        addon_name = Path(action.data["rel_path"]).name
+        if addon_name in linked_names:
             return colorize("linked", "green"), True
         return colorize("skipped (exists)", "yellow"), False
 
-    outer: Result[None] = Result()
     result = run_mutation_workflow(
         plan=plan,
         apply=apply,
         outer=outer,
         title="Add submodule",
         force=force,
-        select=True,  # the workflow handles addon selection now
+        select=True,
         select_prompt="Select addon(s) to symlink: ",
         on_selected=on_selected,
         empty_message="Nothing to do.",
     )
-
-    linked = link_count[0]
 
     if not no_commit:
         commit_kwargs = {
@@ -190,7 +188,7 @@ def add_submodule_flow(  # noqa: PLR0913, C901
             "url": url,
             "branch": branch,
             "path": ctx.get("path_str", ""),
-            "symlinks": linked,
+            "symlinks": len(linked_names),
         }
         if extra_commit_kwargs:
             commit_kwargs.update(extra_commit_kwargs)

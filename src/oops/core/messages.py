@@ -15,9 +15,7 @@ class CommitMessages:
     addons_download: str = "chore: download addon(s)\n\n{names}"
     addons_materialize: str = "chore: materialize addon(s)\n\n{names}"
     addons_update_table: str = "chore(README): update addons table"
-    addons_synchronize: str = (
-        "chore: synchronizing the repository based on the list of provided modules"
-    )
+    addons_synchronize: str = "chore: synchronizing the repository based on the list of provided modules"
     requirements_updated: str = "chore: update requirements.txt"
 
     # PR management
@@ -49,6 +47,9 @@ class CommitMessages:
     - created symlinks: {symlinks}
     """
 
+    # Migration
+    migrate_prepare: str = "migrate: prepare {version} base"
+
     # Miscellaneous
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."
     pre_commit_exclude: str = "chore: update pre-commit exclusions"
@@ -57,9 +58,15 @@ class CommitMessages:
     migration_script: str = "chore: add migration script"
     release_create: str = "chore: release {version}"
     manifest_update: str = "chore: update manifest(s)"
-    refactor_per_module: str = (
-        "refactor({module}): add sections and docstrings\n\n{description}"
-    )
+    refactor_per_module: str = "refactor({module}): add sections and docstrings\n\n{description}"
+
+    def render(self, key: str, **kwargs) -> str:
+        if key not in self.__dataclass_fields__:
+            raise ValueError(f"Unknown commit message: {key!r}")
+        try:
+            return getattr(self, key).format(**kwargs)
+        except KeyError as exc:
+            raise ValueError(f"Missing placeholder {exc} for commit message {key!r}") from exc
 
 
 commit_messages = CommitMessages()
