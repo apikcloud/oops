@@ -417,7 +417,7 @@ def _apply_pull_batch(
                 no_commit=False,
                 force=True,
                 pull_request=False,
-                token="",
+                token=token,
             )
             results += [(n, "done", [], None) for n in missing]
         except Exception as exc:  # noqa: BLE001
