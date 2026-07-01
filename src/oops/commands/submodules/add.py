@@ -29,7 +29,7 @@ from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import create_symlink, desired_path, ensure_parent
 from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
-from oops.services.git import commit_v2, read_gitmodules, require_repository
+from oops.services.git import commit_v2, require_repository
 from oops.services.github import list_remote_addons
 from oops.utils.net import encode_url, parse_repository_url
 from oops.utils.render import colorize
@@ -154,9 +154,7 @@ def add_submodule_flow(  # noqa: PLR0913, C901
                 repo.create_submodule(name=ctx["name"], path=ctx["path_str"], url=url, branch=branch)
             except GitCommandError as exc:
                 raise OopsError(f"Failed to add submodule: {exc}") from exc
-            gm = read_gitmodules(repo)
-            gm.set_value(f'submodule "{ctx["name"]}"', "branch", branch)
-            gm.write()
+            # .gitmodules already staged by git submodule add; re-add is idempotent.
             repo.index.add([".gitmodules"])
             return colorize("added", "green"), True
 

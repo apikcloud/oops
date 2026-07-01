@@ -40,7 +40,6 @@ def _base_patches(tmp_path, mock_repo=None):
     return {
         "oops.commands.submodules.add.config": _make_config(),
         "oops.commands.submodules.add.require_repository": MagicMock(return_value=(mock_repo, tmp_path)),
-        "oops.commands.submodules.add.read_gitmodules": MagicMock(return_value=MagicMock()),
         "oops.commands.submodules.add.list_remote_addons": MagicMock(return_value=REMOTE_ADDONS),
         "oops.commands.submodules.add.commit_v2": MagicMock(
             return_value=MagicMock(messages=[], warnings=[], errors=[])
