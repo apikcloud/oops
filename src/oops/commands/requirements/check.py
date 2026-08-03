@@ -43,7 +43,14 @@ from oops.output.formatters import (
 from oops.output.presenters import DefaultCheckPresenter
 from oops.services.git import require_repository
 
-from .common import ImportsCheck, RequirementsCheck, RequirementsCheckContext
+from .common import (
+    ConflictingExactPinsRequirements,
+    ImportsCheck,
+    InvalidRangeRequirements,
+    RequirementsCheck,
+    RequirementsCheckContext,
+    RequirementsWithUnsupportedOperator,
+)
 
 FORMATTERS: FormatterRegistry = {
     "text": SimpleSummaryConsoleFormatter,
@@ -79,7 +86,6 @@ FORMATTERS: FormatterRegistry = {
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
 def main(no_fail: bool, hook: bool, output_format: str, output_path: Path):
-
     metadata = get_metadata()
 
     _, repo_path = require_repository()
@@ -93,11 +99,19 @@ def main(no_fail: bool, hook: bool, output_format: str, output_path: Path):
     ctx: RequirementsCheckContext = RequirementsCheckContext(
         requirement_file=Path(config.project.file_requirements),
         path=repo_path,
-        enabled=["external_dep"],
+        enabled=[
+            "external_dep",
+            "invalid_range_requirements",
+            "requirements_with_unsupported_operator",
+            "conflicting_exact_pins",
+        ],
     )
 
     # TODO: add a test to identify dependencies that cannot be resolved by the algorithm
     results.add(RequirementsCheck(ctx).run())
+    results.add(InvalidRangeRequirements(ctx).run())
+    results.add(RequirementsWithUnsupportedOperator(ctx).run())
+    results.add(ConflictingExactPinsRequirements(ctx).run())
     results.add(ImportsCheck(ctx).run())
 
     results.aggregate()

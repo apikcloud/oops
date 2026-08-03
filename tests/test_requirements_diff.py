@@ -1,15 +1,16 @@
-"""Tests for get_requirements_diff in oops/io/file.py.
+"""Tests for generate_requirements in oops/io/file.py.
 
-The function compares the python deps declared in addon manifests
-against the current requirements.txt, and returns what should change.
+The function generates requirements.txt content from addon manifests
+and diffs it against the current file.
 """
 
 import textwrap
 from pathlib import Path
 
 import pytest
-from oops.core.models import AddonInfo
-from oops.io.file import get_requirements_diff
+from oops.io.requirements import generate_requirements
+from tests.helpers import make_addon as _make_addon
+from tests.helpers import patch_requirements_addons
 
 # The comment line that is always written at the top of the generated file.
 HEADER = "# generated from manifests external_dependencies"
@@ -20,45 +21,6 @@ HEADER = "# generated from manifests external_dependencies"
 # ---------------------------------------------------------------------------
 
 
-def _make_addon(technical_name: str, python_deps: list) -> AddonInfo:
-    """Minimal AddonInfo with only the python external_dependencies filled in."""
-    return AddonInfo(
-        path=f"/fake/{technical_name}",
-        rel_path="",
-        technical_name=technical_name,
-        symlink=False,
-        root=True,
-        version="16.0.1.0.0",
-        author="Apik",
-        maintainers=[],
-        summary="",
-        external_dependencies={"python": python_deps},
-        depends=[],
-        installable=True,
-    )
-
-
-def _make_addon_full_deps(technical_name: str, external_dependencies: dict) -> AddonInfo:
-    """Minimal AddonInfo where the full external_dependencies dict is provided.
-
-    Use this when you need to test non-python keys (e.g. 'bin') or an empty dict.
-    """
-    return AddonInfo(
-        path=f"/fake/{technical_name}",
-        rel_path="",
-        technical_name=technical_name,
-        symlink=False,
-        root=True,
-        version="16.0.1.0.0",
-        author="Apik",
-        maintainers=[],
-        summary="",
-        external_dependencies=external_dependencies,
-        depends=[],
-        installable=True,
-    )
-
-
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -66,8 +28,7 @@ def _make_addon_full_deps(technical_name: str, external_dependencies: dict) -> A
 
 class TestGetRequirementsDiff:
     def _patch_addons(self, monkeypatch, addons: list):
-        """Replace find_addons() so we control exactly which addons are scanned."""
-        monkeypatch.setattr("oops.io.file.find_addons", lambda *a, **kw: iter(addons))
+        patch_requirements_addons(monkeypatch, addons)
 
     def _write_reqs(self, tmp_path: Path, content: str = "") -> None:
         """Write (or overwrite) requirements.txt in the fake repo root."""
@@ -78,7 +39,7 @@ class TestGetRequirementsDiff:
         self._write_reqs(tmp_path)
         self._patch_addons(monkeypatch, [])
 
-        has_changes, new_lines, diff = get_requirements_diff(tmp_path)
+        has_changes, new_lines, diff = generate_requirements(tmp_path)
 
         assert isinstance(has_changes, bool)
         assert isinstance(new_lines, list)
@@ -109,7 +70,7 @@ class TestGetRequirementsDiff:
             self._write_reqs(tmp_path, reqs_content)
             self._patch_addons(monkeypatch, [_make_addon("a", python_deps)])
 
-            has_changes, _, _ = get_requirements_diff(tmp_path)
+            has_changes, _, _ = generate_requirements(tmp_path)
 
             assert has_changes is expected, description
 
@@ -130,7 +91,7 @@ class TestGetRequirementsDiff:
             self._write_reqs(tmp_path)
             self._patch_addons(monkeypatch, [_make_addon("a", [input_dep])])
 
-            _, new_lines, _ = get_requirements_diff(tmp_path)
+            _, new_lines, _ = generate_requirements(tmp_path)
 
             assert expected in new_lines, description
             if input_dep != expected:
@@ -149,7 +110,7 @@ class TestGetRequirementsDiff:
             self._write_reqs(tmp_path)
             self._patch_addons(monkeypatch, [_make_addon("a", [dep])])
 
-            _, new_lines, _ = get_requirements_diff(tmp_path)
+            _, new_lines, _ = generate_requirements(tmp_path)
 
             assert dep in new_lines, description
 
@@ -180,22 +141,22 @@ class TestGetRequirementsDiff:
             addons = [_make_addon(str(i), deps) for i, deps in enumerate(addons_deps)]
             self._patch_addons(monkeypatch, addons)
 
-            _, new_lines, _ = get_requirements_diff(tmp_path)
+            _, new_lines, _ = generate_requirements(tmp_path)
 
             assert expected_in in new_lines, description
             for dep in expected_not_in:
                 assert dep not in new_lines, description
 
     def test_equality_pin_preserved(self, tmp_path, monkeypatch):
-        """Passes == pins through as-is without arbitration, even alongside range constraints."""
+        """== pins take full precedence: range constraints for the same package are dropped."""
         cases = {
             # a plain == pin must not be silently stripped to a bare name
             "single == pin": ([["requests==2.0"]], ["requests==2.0"], ["requests"]),
-            # == coexists with a range from another addon → both appear, human decides
-            "== coexists with range, both kept": (
+            # == coexists with a range from another addon → only == is kept, range is dropped
+            "== coexists with range, only == kept": (
                 [["requests==2.0"], ["requests>=1.0"]],
-                ["requests==2.0", "requests>=1.0"],
-                [],
+                ["requests==2.0"],
+                ["requests>=1.0"],
             ),
             # same == from two addons → deduplicated to one entry (set behaviour)
             "duplicate == across addons, kept once": ([["requests==2.0"], ["requests==2.0"]], ["requests==2.0"], []),
@@ -205,7 +166,7 @@ class TestGetRequirementsDiff:
             addons = [_make_addon(str(i), deps) for i, deps in enumerate(addons_deps)]
             self._patch_addons(monkeypatch, addons)
 
-            _, new_lines, _ = get_requirements_diff(tmp_path)
+            _, new_lines, _ = generate_requirements(tmp_path)
 
             for item in expected_in:
                 assert item in new_lines, f"{description}: {item!r} missing"
@@ -221,7 +182,7 @@ class TestGetRequirementsDiff:
         ]
         self._patch_addons(monkeypatch, addons)
 
-        _, new_lines, _ = get_requirements_diff(tmp_path)
+        _, new_lines, _ = generate_requirements(tmp_path)
 
         assert "requests>1.0" in new_lines
         assert "requests>=1.0" not in new_lines
@@ -235,7 +196,7 @@ class TestGetRequirementsDiff:
         ]
         self._patch_addons(monkeypatch, addons)
 
-        _, new_lines, _ = get_requirements_diff(tmp_path)
+        _, new_lines, _ = generate_requirements(tmp_path)
 
         deps = new_lines[1:]  # skip the header comment
         assert deps == sorted(deps)  # alphabetical order
@@ -246,12 +207,12 @@ class TestGetRequirementsDiff:
         """Ignores everything outside the 'python' key of external_dependencies."""
         cases = {
             # addon has no external_dependencies at all
-            "no python key": (_make_addon_full_deps("a", {}), [HEADER], []),
+            "no python key": (_make_addon("a", external_dependencies={}), [HEADER], []),
             # addon declares external_dependencies but python list is empty
-            "empty python list": (_make_addon_full_deps("a", {"python": []}), [HEADER], []),
+            "empty python list": (_make_addon("a", external_dependencies={"python": []}), [HEADER], []),
             # system-level deps under 'bin' must not pollute the python output
             "bin key ignored": (
-                _make_addon_full_deps("a", {"python": ["requests"], "bin": ["wkhtmltopdf"]}),
+                _make_addon("a", external_dependencies={"python": ["requests"], "bin": ["wkhtmltopdf"]}),
                 [HEADER, "requests"],
                 ["wkhtmltopdf"],
             ),
@@ -260,7 +221,7 @@ class TestGetRequirementsDiff:
             self._write_reqs(tmp_path)
             self._patch_addons(monkeypatch, [addon])
 
-            _, new_lines, _ = get_requirements_diff(tmp_path)
+            _, new_lines, _ = generate_requirements(tmp_path)
 
             for item in expected_in:
                 assert item in new_lines, description
@@ -272,19 +233,19 @@ class TestGetRequirementsDiff:
         # new dep in manifests not yet in the file → appears as an addition
         self._write_reqs(tmp_path, "")
         self._patch_addons(monkeypatch, [_make_addon("a", ["requests"])])
-        _, _, diff = get_requirements_diff(tmp_path)
+        _, _, diff = generate_requirements(tmp_path)
         assert any(line.startswith("+") and "requests" in line for line in diff), "added dep marked +"
 
         # dep in the file no longer declared by any manifest → appears as removal
         self._write_reqs(tmp_path, "old-dep\n")
         self._patch_addons(monkeypatch, [_make_addon("a", ["requests"])])
-        _, _, diff = get_requirements_diff(tmp_path)
+        _, _, diff = generate_requirements(tmp_path)
         assert any(line.startswith("-") and "old-dep" in line for line in diff), "removed dep marked -"
 
         # file already matches the manifests → no +/- markers at all
         self._write_reqs(tmp_path, "requests\n")
         self._patch_addons(monkeypatch, [_make_addon("a", ["requests"])])
-        _, _, diff = get_requirements_diff(tmp_path)
+        _, _, diff = generate_requirements(tmp_path)
         assert not any(line.startswith(("+", "-")) for line in diff), "no marks when in sync"
 
     @pytest.mark.parametrize(
@@ -365,6 +326,6 @@ class TestGetRequirementsDiff:
         self._write_reqs(tmp_path)
         self._patch_addons(monkeypatch, [_make_addon("addon", deps)])
 
-        _, new_lines, _ = get_requirements_diff(tmp_path)
+        _, new_lines, _ = generate_requirements(tmp_path)
 
         assert "\n".join(new_lines) == textwrap.dedent(expected_output).strip(), description

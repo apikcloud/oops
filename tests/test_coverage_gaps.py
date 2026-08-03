@@ -6,7 +6,7 @@
 """Targeted tests to reach the 80% coverage threshold.
 
 Covers: io/file.py (file_updater, find_addons, find_addon_dirs,
-get_requirements_diff, make_migration_command,
+generate_requirements, make_migration_command,
 collect_addon_paths, get_symlink_complete_map,
 get_excluded_addon_names, get_filtered_addon_names),
 services/github.py (get_github_user),
@@ -265,35 +265,35 @@ class TestMakeMigrationCommand:
 
 
 # ---------------------------------------------------------------------------
-# oops/io/file.py — get_requirements_diff
+# oops/io/file.py — generate_requirements
 # ---------------------------------------------------------------------------
 
 
 class TestGetRequirementsDiff:
     def test_detects_new_deps(self, tmp_path):
-        from oops.io.file import get_requirements_diff
+        from oops.io.requirements import generate_requirements
 
         _make_addon(tmp_path, "my_addon")
-        has_changes, new_lines, diff = get_requirements_diff(tmp_path)
+        has_changes, new_lines, diff = generate_requirements(tmp_path)
         assert has_changes is True
         assert "requests" in new_lines
         assert "xlrd" in new_lines
 
     def test_no_changes_when_file_matches(self, tmp_path):
-        from oops.io.file import get_requirements_diff
+        from oops.io.requirements import generate_requirements
 
         _make_addon(tmp_path, "my_addon")
         # Pre-populate with what the function would generate (sorted)
-        _, expected_lines, _ = get_requirements_diff(tmp_path)
+        _, expected_lines, _ = generate_requirements(tmp_path)
         req = tmp_path / "requirements.txt"
         req.write_text("\n".join(expected_lines))
-        has_changes, _, _ = get_requirements_diff(tmp_path)
+        has_changes, _, _ = generate_requirements(tmp_path)
         assert has_changes is False
 
     def test_no_addons_no_deps(self, tmp_path):
-        from oops.io.file import get_requirements_diff
+        from oops.io.requirements import generate_requirements
 
-        has_changes, new_lines, _ = get_requirements_diff(tmp_path)
+        has_changes, new_lines, _ = generate_requirements(tmp_path)
         # Only the header comment line
         assert len(new_lines) == 1
 
