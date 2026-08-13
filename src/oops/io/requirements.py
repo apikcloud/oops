@@ -46,11 +46,14 @@ def parse_requirements(project_path: Path) -> list:
 # --------------------------------------------------
 # All requirements generation
 # --------------------------------------------------
-def generate_requirements(repository_path: Path) -> tuple[bool, list[str], list[str]]:
+def generate_requirements(repository_path: Path, gathered: "tuple | None" = None) -> tuple[bool, list[str], list[str]]:
     """Generate requirements.txt content from addon manifests and diff it against the current file.
 
     Args:
         repository_path: Root of the repository to scan for addons.
+        gathered: Optional pre-gathered tuple from ``gather_repository_requirements`` (with
+            ``allow_not_equal_operator=True``). When provided, the filesystem scan is skipped and
+            ``!=`` constraints are filtered out in memory instead.
 
     Returns:
         A tuple (has_changes, generated_lines, diff_lines):
@@ -58,7 +61,17 @@ def generate_requirements(repository_path: Path) -> tuple[bool, list[str], list[
         - generated_lines: Sorted list of dependency lines (with header comment).
         - diff_lines: Raw output from difflib.ndiff.
     """
-    all_constraint_keys, _, package_version_map, pinned_package_names = _gather_repository_requirements(repository_path)
+    if gathered is None:
+        all_constraint_keys, _, package_version_map, pinned_package_names = gather_repository_requirements(
+            repository_path
+        )
+    else:
+        all_keys, _, _, _ = gathered
+        all_constraint_keys = {c for c in all_keys if "!=" not in c}
+        package_version_map = _categorize_versions_by_operator(sorted(all_constraint_keys))
+        pinned_package_names = {
+            re.split("[<=>]", c)[0].strip() for c in all_constraint_keys if re.match(r"[^<>=!]*==", c)
+        }
 
     resolved_dependencies = []
 
@@ -102,7 +115,7 @@ def generate_requirements(repository_path: Path) -> tuple[bool, list[str], list[
 # Problematic requirements management
 # --------------------------------------------------
 def get_requirements_with_conflicting_exact_pins(
-    all_constraints: list[str],
+    all_constraints: set[str],
     constraint_to_addons: dict[str, set[str]],
 ) -> list[str]:
     """Get requirements with conflicting exact version pins (==).
@@ -112,7 +125,9 @@ def get_requirements_with_conflicting_exact_pins(
     other and lead to dependency resolution issues.
 
     Args:
-        repository_path: Root of the repository to scan for addons.
+        all_constraints: Set of individual constraint strings collected from all addon manifests.
+        constraint_to_addons: Mapping from each constraint string to the set of addon technical names
+            that declare it.
 
     Returns:
         A list formatted like ["ADDON: package==version"] detailing the detected conflicts.
@@ -136,7 +151,7 @@ def get_requirements_with_conflicting_exact_pins(
 
 
 def get_requirements_with_contradictory_range(
-    all_constraints: list[str],
+    all_constraints: set[str],
     constraint_to_addons: dict[str, set[str]],
 ) -> list[str]:
     """Get the requirements with contradictory ranges.
@@ -145,7 +160,9 @@ def get_requirements_with_contradictory_range(
         pandas>1.0.0 and pandas<1.0.0 is a contradictory range as it can't be both below and over 1.0.0.
 
     Args:
-        repository_path: Root of the repository to scan for addons.
+        all_constraints: Set of individual constraint strings collected from all addon manifests.
+        constraint_to_addons: Mapping from each constraint string to the set of addon technical names
+            that declare it.
 
     Returns:
         A list of packages with contradictory ranges.
@@ -166,11 +183,8 @@ def get_requirements_with_contradictory_range(
         lower_version_raw = re.sub(r"^[><=]+", "", lower_bound_str)
         upper_version_raw = re.sub(r"^[><=]+", "", upper_bound_str)
 
-        try:
-            parsed_lower = version.parse(lower_version_raw)
-            parsed_upper = version.parse(upper_version_raw)
-        except version.InvalidVersion:
-            continue
+        parsed_lower = version.parse(lower_version_raw)
+        parsed_upper = version.parse(upper_version_raw)
 
         if parsed_lower >= parsed_upper:
             lower_constraint = f"{package_name}{lower_bound_str}"
@@ -184,13 +198,15 @@ def get_requirements_with_contradictory_range(
 
 
 def get_requirements_with_unsupported_operator(
-    all_constraints: list[str],
+    all_constraints: set[str],
     constraint_to_addons: dict[str, set[str]],
 ) -> list[str]:
     """Get the requirements with unsupported operator, at the moment only the "!=" operator is forbidden.
 
     Args:
-        repository_path: Root of the repository to scan for addons.
+        all_constraints: Set of individual constraint strings collected from all addon manifests.
+        constraint_to_addons: Mapping from each constraint string to the set of addon technical names
+            that declare it.
 
     Returns:
         A list formatted like ["MODULE: pandas!=1.2"] to display the origin of the wrong operator.
@@ -316,7 +332,7 @@ def _find_best_version_boundary(
     return f"{selected_operator}{selected_version}" if selected_version else ""
 
 
-def _gather_repository_requirements(
+def gather_repository_requirements(
     repository_path: Path,
     allow_not_equal_operator: bool = False,
 ) -> tuple[set[str], dict[str, set[str]], dict[str, dict[str, list[str]]], set[str]]:

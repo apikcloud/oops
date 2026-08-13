@@ -7,7 +7,7 @@ Functions under test (src/oops/io/requirements.py):
 """
 
 from oops.io.requirements import (
-    _gather_repository_requirements,
+    gather_repository_requirements,
     get_requirements_with_conflicting_exact_pins,
     get_requirements_with_contradictory_range,
     get_requirements_with_unsupported_operator,
@@ -18,7 +18,7 @@ from tests.helpers import patch_requirements_addons as _patch_addons
 
 def _run_check(check_func, repository_path):
     """Helper to gather requirements from repository and execute the given check function."""
-    all_constraints, constraint_to_addons, _, _ = _gather_repository_requirements(
+    all_constraints, constraint_to_addons, _, _ = gather_repository_requirements(
         repository_path, allow_not_equal_operator=True
     )
     return check_func(all_constraints, constraint_to_addons)

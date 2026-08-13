@@ -11,7 +11,7 @@ from pathlib import Path
 from oops.core.checks import Check, CheckContext, CheckOutcome
 from oops.core.models import Result
 from oops.io.requirements import (
-    _gather_repository_requirements,
+    gather_repository_requirements,
     generate_requirements,
     get_requirements_with_conflicting_exact_pins,
     get_requirements_with_contradictory_range,
@@ -27,7 +27,12 @@ class RequirementsCheckContext(CheckContext):
     @cached_property
     def gathered_requirements(self) -> tuple:
         """Parse repository requirements once and cache the result."""
-        return _gather_repository_requirements(self.path, allow_not_equal_operator=True)
+        return gather_repository_requirements(self.path, allow_not_equal_operator=True)
+
+    @cached_property
+    def generated_requirements(self) -> tuple[bool, list[str], list[str]]:
+        """Generate requirements content using cached gathered data to avoid a second filesystem scan."""
+        return generate_requirements(self.path, self.gathered_requirements)
 
 
 class RequirementsCheck(Check[RequirementsCheckContext]):
@@ -35,7 +40,7 @@ class RequirementsCheck(Check[RequirementsCheckContext]):
     label = "External dependencies"
 
     def _run(self) -> Result[CheckOutcome]:
-        has_changes, _, diff = generate_requirements(self.ctx.path)
+        has_changes, _, diff = self.ctx.generated_requirements
 
         if has_changes:
             self.add(status="failed", items=diff)
@@ -52,15 +57,8 @@ class RequirementsWithUnsupportedOperator(Check[RequirementsCheckContext]):
 
     def _run(self) -> Result[CheckOutcome]:
         all_constraints, constraint_to_addons, _, _ = self.ctx.gathered_requirements
-        problematic_requirements = get_requirements_with_unsupported_operator(all_constraints, constraint_to_addons)
-
-        if problematic_requirements:
-            self.add(status="failed", items=problematic_requirements)
-            self.result.add_error("Requirements with unsupported operator detected. See output above.")
-        else:
-            self.add(status="passed")
-
-        return self.result
+        problems = get_requirements_with_unsupported_operator(all_constraints, constraint_to_addons)
+        return self._resolve(problems, "Unsupported operator in requirement: {item}")
 
 
 class ConflictingExactPinsRequirements(Check[RequirementsCheckContext]):
@@ -69,15 +67,8 @@ class ConflictingExactPinsRequirements(Check[RequirementsCheckContext]):
 
     def _run(self) -> Result[CheckOutcome]:
         all_constraints, constraint_to_addons, _, _ = self.ctx.gathered_requirements
-        problematic_requirements = get_requirements_with_conflicting_exact_pins(all_constraints, constraint_to_addons)
-
-        if problematic_requirements:
-            self.add(status="failed", items=problematic_requirements)
-            self.result.add_error("Requirements with conflicting exact pins detected. See output above.")
-        else:
-            self.add(status="passed")
-
-        return self.result
+        problems = get_requirements_with_conflicting_exact_pins(all_constraints, constraint_to_addons)
+        return self._resolve(problems, "Conflicting exact pin: {item}")
 
 
 class InvalidRangeRequirements(Check[RequirementsCheckContext]):
@@ -86,15 +77,8 @@ class InvalidRangeRequirements(Check[RequirementsCheckContext]):
 
     def _run(self) -> Result[CheckOutcome]:
         all_constraints, constraint_to_addons, _, _ = self.ctx.gathered_requirements
-        problematic_requirements = get_requirements_with_contradictory_range(all_constraints, constraint_to_addons)
-
-        if problematic_requirements:
-            self.add(status="failed", items=problematic_requirements)
-            self.result.add_error("Requirements with contradictory ranges detected. See output above.")
-        else:
-            self.add(status="passed")
-
-        return self.result
+        problems = get_requirements_with_contradictory_range(all_constraints, constraint_to_addons)
+        return self._resolve(problems, "Contradictory version range: {item}")
 
 
 class ImportsCheck(Check[RequirementsCheckContext]):
