@@ -46,14 +46,13 @@ def parse_requirements(project_path: Path) -> list:
 # --------------------------------------------------
 # All requirements generation
 # --------------------------------------------------
-def generate_requirements(repository_path: Path, gathered: "tuple | None" = None) -> tuple[bool, list[str], list[str]]:
+def generate_requirements(repository_path: Path, gathered: tuple | None = None) -> tuple[bool, list[str], list[str]]:
     """Generate requirements.txt content from addon manifests and diff it against the current file.
 
     Args:
         repository_path: Root of the repository to scan for addons.
         gathered: Optional pre-gathered tuple from ``gather_repository_requirements`` (with
-            ``allow_not_equal_operator=True``). When provided, the filesystem scan is skipped and
-            ``!=`` constraints are filtered out in memory instead.
+            ``allow_not_equal_operator=True``). When provided, the filesystem scan is skipped.
 
     Returns:
         A tuple (has_changes, generated_lines, diff_lines):
@@ -63,11 +62,10 @@ def generate_requirements(repository_path: Path, gathered: "tuple | None" = None
     """
     if gathered is None:
         all_constraint_keys, _, package_version_map, pinned_package_names = gather_repository_requirements(
-            repository_path
+            repository_path, allow_not_equal_operator=True
         )
     else:
-        all_keys, _, _, _ = gathered
-        all_constraint_keys = {c for c in all_keys if "!=" not in c}
+        all_constraint_keys, _, _, _ = gathered
         package_version_map = _categorize_versions_by_operator(sorted(all_constraint_keys))
         pinned_package_names = {
             re.split("[<=>]", c)[0].strip() for c in all_constraint_keys if re.match(r"[^<>=!]*==", c)
@@ -90,13 +88,14 @@ def generate_requirements(repository_path: Path, gathered: "tuple | None" = None
         elif upper_bound:
             resolved_dependencies.append(f"{package_name}{upper_bound}")
 
-    # Add unhandled constraints as-is (unconstrained packages and exact == pins)
+    # Add unhandled constraints as-is (unconstrained packages, exact == pins, and unsupported != specs)
     known_packages = set(package_version_map.keys())
     for constraint in sorted(all_constraint_keys):
         package_name = re.split("[<=>]", constraint)[0].strip()
         is_exact_pin = bool(re.match(r"[^<>=!]*==", constraint))
+        is_unsupported_op = "!=" in constraint
 
-        if package_name not in known_packages or is_exact_pin:
+        if package_name not in known_packages or is_exact_pin or is_unsupported_op:
             resolved_dependencies.append(constraint)
 
     resolved_dependencies = sorted(resolved_dependencies)
@@ -133,7 +132,7 @@ def get_requirements_with_conflicting_exact_pins(
         A list formatted like ["ADDON: package==version"] detailing the detected conflicts.
     """
     detected_issues = []
-    valid_range_constraints = [c for c in all_constraints if "!=" not in c]
+    valid_range_constraints = _exclude_unsupported(all_constraints)
 
     exact_pins_by_package: dict[str, list[str]] = {}
     for constraint in sorted(valid_range_constraints):
@@ -168,7 +167,7 @@ def get_requirements_with_contradictory_range(
         A list of packages with contradictory ranges.
     """
     detected_issues = []
-    valid_range_constraints = [c for c in all_constraints if "!=" not in c]
+    valid_range_constraints = _exclude_unsupported(all_constraints)
 
     unpinned_constraints = [c for c in valid_range_constraints if not re.match(r"[^<>=!]*==", c)]
     grouped_unpinned_versions = _categorize_versions_by_operator(sorted(unpinned_constraints))
@@ -223,6 +222,11 @@ def get_requirements_with_unsupported_operator(
 # --------------------------------------------------
 # Private functions
 # --------------------------------------------------
+def _exclude_unsupported(constraints: set[str]) -> list[str]:
+    """Return constraints without unsupported (``!=``) operators."""
+    return [c for c in constraints if "!=" not in c]
+
+
 def _categorize_versions_by_operator(raw_dependency_specs: list[str]) -> dict[str, dict[str, list[str]]]:
     """Group versioned dependencies by package name and comparison operator (>=, >, <=, <).
 
