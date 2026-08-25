@@ -232,7 +232,34 @@ class TestAnalyzeCacheIntegration:
             generated_at = kb.get_meta()["generated_at"]
             cached = kb.get_cached_analysis("my_module", generated_at)
         assert cached is not None
-        assert cached["module_name"] == "my_module"
+        assert cached["summary"]["module_name"] == "my_module"
+        assert "warnings" in cached
+        assert "errors" in cached
+
+    def test_cache_hit_preserves_module_warnings(self, tmp_path: Path) -> None:
+        """Regression: a cache hit used to only restore ModuleSummary — the
+        per-module Result.warnings (e.g. "models/ has no imported .py files")
+        were dropped entirely on the second run."""
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "no_py_files",
+            manifest={"name": "No Py Files", "depends": ["base"]},
+        )
+        (module_path / "models").mkdir()
+
+        with _mock_analyze(tmp_path, db_path):
+            first = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert first.exit_code == 0, first.output
+        first_warnings = json.loads(first.output)["modules"][0]["warnings"]
+        assert any("models/ has no imported .py files" in w for w in first_warnings)
+
+        with _mock_analyze(tmp_path, db_path):
+            second = CliRunner().invoke(main, ["--format", "json", str(module_path)])
+        assert second.exit_code == 0, second.output
+        second_warnings = json.loads(second.output)["modules"][0]["warnings"]
+        assert second_warnings == first_warnings
 
     def test_refresh_invalidates_cache_and_forces_reanalysis(self, tmp_path: Path) -> None:
         """A --refresh rebuild bumps the KB's generated_at, so the previous

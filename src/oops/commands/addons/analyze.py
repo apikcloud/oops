@@ -217,7 +217,11 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
                 cached = None if no_cache else kb.get_cached_analysis(module_name, kb_generated_at)
                 if cached is not None:
-                    module_result.data = ModuleSummary.from_dict(cached)
+                    module_result.data = ModuleSummary.from_dict(cached["summary"])
+                    for w in cached.get("warnings", []):
+                        module_result.add_warning(w)
+                    for e in cached.get("errors", []):
+                        module_result.add_error(e)
                     results.add(module_result)
                     continue
 
@@ -321,7 +325,11 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
                 write_cached_analysis(
                     kb_path, local_repo_id(repo_path), module_name, kb_generated_at,
-                    module_result.data.to_cache_dict(),
+                    {
+                        "summary": module_result.data.to_cache_dict(),
+                        "warnings": module_result.warnings,
+                        "errors": module_result.errors,
+                    },
                 )
 
                 results.add(module_result)
