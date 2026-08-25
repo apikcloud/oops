@@ -9,6 +9,20 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [0.28.0] - 2026-08-25
+
+Sharper requirements checking and a bug fix for generated requirements files.
+
+### ✨ What's new
+
+- **`oops requirements check`**: now catches invalid version ranges, unsupported operators, and conflicting `==` pins across your addons
+
+### 🐛 Fixes
+
+- **`oops requirements update`**: `!=` version constraints are no longer dropped from the generated `requirements.txt`
+
+---
+
 ## [0.27.0] - 2026-07-01
 
 A new `oops migrate` command suite to help move third-party modules toward upstream. 🎉
