@@ -23,7 +23,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command, render_and_exit
-from oops.utils.render import warn_experimental
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
@@ -39,6 +38,7 @@ from oops.output.formatters import (
 )
 from oops.services.git import list_submodules, require_repository
 from oops.services.github import fetch_manifest_deps_rest
+from oops.utils.render import warn_experimental
 
 from .common import (
     STATE_FILE,
