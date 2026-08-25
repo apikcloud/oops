@@ -16,7 +16,6 @@ Sections:
 from __future__ import annotations
 
 import contextlib
-import difflib
 import os
 import re
 import shutil
@@ -39,7 +38,6 @@ from oops.services.git import get_submodule_sha
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
 from oops.utils.render import print_warning
-from packaging import version
 
 # ---------------------------------------------------------------------------
 # Path utilities
@@ -237,21 +235,6 @@ def parse_packages(path: Path) -> list:
     return read_and_parse(path / config.project.file_packages)
 
 
-def parse_requirements(path: Path) -> list:
-    """Read and return the sorted list of entries from the project requirements file.
-
-    Args:
-        path: Project root directory containing the requirements file.
-
-    Returns:
-        Sorted list of requirement strings, or an empty list if the file does not exist.
-    """
-    req_file = path / config.project.file_requirements
-    if not req_file.exists():
-        return []
-    return read_and_parse(req_file, unique=False)
-
-
 def parse_odoo_version(path: Path) -> ImageInfo:
     """Read and parse the Odoo version file into structured image information.
 
@@ -274,123 +257,6 @@ def parse_odoo_version(path: Path) -> ImageInfo:
     if not res:
         raise ValueError()
     return parse_image_tag(res[0])
-
-
-def _get_version_boundary(operators: list, winner_operator: str, ops: dict, is_for_floor: bool = True) -> str:
-    """Pick the tightest version boundary from a set of operator/version pairs.
-
-    For a floor (is_for_floor=True) returns the highest version found across all operators.
-    For a ceil (is_for_floor=False) returns the lowest version found.
-    When two operators target the same version, the strict one (> or <) wins over >= or <=.
-    """
-    best_operator = ""
-    best_version = None
-    for operator in operators:
-        if not ops[operator]:
-            continue
-        candidate = max(ops[operator], key=version.parse) if is_for_floor else min(ops[operator], key=version.parse)
-        if best_version is None:
-            best_version = candidate
-            best_operator = operator
-        elif is_for_floor and version.parse(candidate) > version.parse(best_version):
-            best_version = candidate
-            best_operator = operator
-        elif not is_for_floor and version.parse(candidate) < version.parse(best_version):
-            best_version = candidate
-            best_operator = operator
-        elif version.parse(candidate) == version.parse(best_version) and operator == winner_operator:
-            best_operator = winner_operator
-    return f"{best_operator}{best_version}" if best_version else ""
-
-
-def _collect_raw_deps(repo_path: Path, req_mapping: dict) -> set:
-    """Scan all addons under repo_path and return the set of python deps with pip names applied."""
-    raw_dependencies = set()
-    for addon in find_addons(repo_path, shallow=True):
-        for dep in addon.external_dependencies.get("python", []):
-            match = re.search("[<=>]", dep)
-            if match:
-                raw_name = dep[: match.start()].strip()
-                version_spec = dep[match.start() :].strip()
-            else:
-                raw_name = dep.strip()
-                version_spec = ""
-            clean_name = req_mapping.get(raw_name, raw_name)
-            raw_dependencies.add(f"{clean_name}{version_spec}")
-    return raw_dependencies
-
-
-def _group_deps_by_operator(python_dependencies: list) -> dict:
-    """Group versioned deps by their comparison operator (>=, >, <=, <).
-
-    Returns a dict mapping package name → {">=": [...], ">": [...], "<=": [...], "<": []}.
-    Deps using == or carrying no version are not included here; they are handled separately.
-    """
-    # Directions must be ordered this way to avoid partial matches (e.g. <= before <).
-    directions = ["<=", ">=", "<", ">"]
-    requirement_versions: dict = {}
-    for python_dep in python_dependencies:
-        dep_name = re.split("[<=>]", python_dep)[0]
-        python_versions = python_dep.split(dep_name)[1].split(",")
-        python_deps = [f"{dep_name}{v}" for v in python_versions if v.strip() != ""]
-        for cur_dep in python_deps:
-            for direction in directions:
-                parts = cur_dep.split(direction)
-                if len(parts) > 1:
-                    if dep_name not in requirement_versions:
-                        requirement_versions[dep_name] = {">": [], "<": [], "<=": [], ">=": []}
-                    requirement_versions[dep_name][direction].append(parts[-1])
-                    break
-    return requirement_versions
-
-
-def get_requirements_diff(repo_path: Path) -> tuple[bool, list, list]:
-    """Compare the current requirements file against Python deps declared in addon manifests.
-
-    Collects all ``python`` entries from ``external_dependencies`` across every
-    addon found in *repo_path*, sorts them, and runs a line-level diff against
-    the existing *requirement_file*.
-
-    Args:
-        repo_path: Root of the repository to scan for addons.
-
-    Returns:
-        A three-element tuple ``(has_changes, new_lines, diff)``:
-
-        - ``has_changes``: True if the new content differs from the current file.
-        - ``new_lines``: Sorted list of dependency lines to write.
-        - ``diff``: Raw output from :func:`difflib.ndiff`.
-    """
-    raw_dependencies = _collect_raw_deps(repo_path, config.requirements.python_requirements_mapping)
-    requirement_versions = _group_deps_by_operator(sorted(raw_dependencies))
-
-    # Merge range constraints per package into the tightest floor + ceil.
-    final_deps = []
-    for dep_name, ops in requirement_versions.items():
-        floor_val = _get_version_boundary([">", ">="], ">", ops, is_for_floor=True)
-        ceil_val = _get_version_boundary(["<", "<="], "<", ops, is_for_floor=False)
-        if floor_val and ceil_val:
-            final_deps.append(f"{dep_name}{floor_val},{ceil_val}")
-        elif floor_val:
-            final_deps.append(f"{dep_name}{floor_val}")
-        elif ceil_val:
-            final_deps.append(f"{dep_name}{ceil_val}")
-
-    # Add unresolved deps as-is (bare names and == pins).
-    # == pins are always kept even when range constraints exist — human arbitration required.
-    resolved_names = set(requirement_versions.keys())
-    for dep in sorted(raw_dependencies):
-        dep_name = re.split("[<=>]", dep)[0].strip()
-        is_eq_pin = bool(re.match(r"[^<>=!]*==", dep))
-        if dep_name not in resolved_names or is_eq_pin:
-            final_deps.append(dep)
-
-    final_deps = sorted(final_deps)
-
-    current_reqs = parse_requirements(repo_path)
-    diff = list(difflib.ndiff(current_reqs, final_deps))
-    has_changes = any(line.startswith(("-", "+")) for line in diff)
-    return has_changes, ["# generated from manifests external_dependencies"] + final_deps, diff
 
 
 def read_tagged_block(filepath: Union[str, Path], start_tag: str, end_tag: str) -> str:

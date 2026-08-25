@@ -23,7 +23,8 @@ import click
 from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import EarlyExit
-from oops.io.file import file_updater, get_requirements_diff
+from oops.io.file import file_updater
+from oops.io.requirements import generate_requirements
 from oops.services.git import commit, require_repository
 
 
@@ -34,7 +35,7 @@ def main(dry_run: bool, no_commit: bool):
     repo, repo_path = require_repository()
     requirement_file = Path(config.project.file_requirements)
 
-    has_changes, python_dependencies, _ = get_requirements_diff(repo_path)
+    has_changes, python_dependencies, _ = generate_requirements(repo_path)
     python_dependencies_str = "\n".join(python_dependencies)
 
     if not has_changes:
