@@ -126,10 +126,9 @@ def _load_manifest_or_fallback(module_dir: Path) -> Optional[dict]:
     - Returns None when manifest exists but cannot be parsed.
     - Returns {} when no manifest file is found.
     """
-    from oops.core.config import config
-    from oops.io.manifest import parse_manifest
+    from oops.io.manifest import DEFAULT_MANIFEST_NAMES, parse_manifest
 
-    for manifest_name in config.manifest_names:
+    for manifest_name in DEFAULT_MANIFEST_NAMES:
         path = module_dir / manifest_name
         if path.is_file():
             try:

@@ -16,7 +16,7 @@ Algorithm
 2. For each symbol entry, compute its position in that list
    (lower index = closer to the custom module = higher precedence).
 3. Return the entry with the lowest index (most specific).
-4. Tie-break with the static tier order: third-party > apik > enterprise > odoo.
+4. Tie-break with the static tier order: third-party > oca > custom > enterprise > odoo.
 5. If the symbol is not found in the depends chain at all, fall back to
    tier order and emit a warning.
 """
@@ -27,7 +27,7 @@ from oops.core.compat import Any, Dict, List, Optional, Tuple
 from oops.core.logger import log
 
 # Static tier precedence used as tie-breaker (lower index = higher precedence).
-TIER_PRECEDENCE = ["third-party", "apik", "enterprise", "odoo"]
+TIER_PRECEDENCE = ["third-party", "oca", "custom", "enterprise", "odoo"]
 
 
 def _tier_rank(origin: str) -> int:
@@ -149,7 +149,7 @@ def resolve_symbol_root(
     2. For each candidate, check whether any *other* candidate appears in that
        candidate's depends chain.  A candidate with no such upstream is a root.
     3. If exactly one root, return it.  Multiple roots: prefer most-core tier
-       (odoo > enterprise > apik > third-party).
+       (odoo > enterprise > custom > oca > third-party).
     4. Fallback (all have upstreams / missing data): most-core tier entry.
     """
     if not entries:

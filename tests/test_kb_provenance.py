@@ -40,8 +40,7 @@ def test_origins_has_exactly_five_members() -> None:
         ("enterprise", ORIGIN_ENTERPRISE),
         ("third-party", ORIGIN_THIRD_PARTY),
         ("third_party", ORIGIN_THIRD_PARTY),
-        ("apik", ORIGIN_CUSTOM),
-        ("local", ORIGIN_CUSTOM),
+        ("oca", ORIGIN_OCA),
         ("custom", ORIGIN_CUSTOM),
         ("project", ORIGIN_CUSTOM),
     ],
@@ -58,6 +57,12 @@ def test_normalize_origin_preserves_none_and_empty() -> None:
 
 def test_normalize_origin_unknown_falls_back_to_third_party() -> None:
     assert normalize_origin("something-weird") == ORIGIN_THIRD_PARTY
+
+
+def test_normalize_origin_retired_tier_labels_fall_back_to_third_party() -> None:
+    # "apik"/"local" were removed as tier labels; they are now just unknown input.
+    assert normalize_origin("apik") == ORIGIN_THIRD_PARTY
+    assert normalize_origin("local") == ORIGIN_THIRD_PARTY
 
 
 def test_no_legacy_string_leaks() -> None:

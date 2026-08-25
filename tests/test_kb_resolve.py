@@ -41,14 +41,17 @@ class TestTierRank:
     def test_third_party_is_highest_precedence(self):
         assert _tier_rank("third-party") == 0
 
-    def test_apik_is_second(self):
-        assert _tier_rank("apik") == 1
+    def test_oca_is_second(self):
+        assert _tier_rank("oca") == 1
 
-    def test_enterprise_is_third(self):
-        assert _tier_rank("enterprise") == 2
+    def test_custom_is_third(self):
+        assert _tier_rank("custom") == 2
 
-    def test_odoo_is_fourth(self):
-        assert _tier_rank("odoo") == 3
+    def test_enterprise_is_fourth(self):
+        assert _tier_rank("enterprise") == 3
+
+    def test_odoo_is_fifth(self):
+        assert _tier_rank("odoo") == 4
 
     def test_unknown_tier_beyond_last(self):
         assert _tier_rank("unknown") == len(TIER_PRECEDENCE)
@@ -209,11 +212,11 @@ class TestResolveSymbol:
 
     def test_tier_breaks_tie_when_both_not_in_chain(self):
         # Neither entry is reachable from my_module's depends
-        index = _index(("my_module", "apik", []))
+        index = _index(("my_module", "custom", []))
         odoo_entry = _entry("sale", origin="odoo")
-        apik_entry = _entry("my_other", origin="apik")
-        result = resolve_symbol([odoo_entry, apik_entry], "my_module", index)
-        # apik (rank 1) beats odoo (rank 3)
+        custom_entry = _entry("my_other", origin="custom")
+        result = resolve_symbol([odoo_entry, custom_entry], "my_module", index)
+        # custom (rank 2) beats odoo (rank 4)
         assert result["module"] == "my_other"
 
     def test_tier_breaks_tie_at_same_chain_position(self):
@@ -226,7 +229,7 @@ class TestResolveSymbol:
         tp = _entry("tp_mod", origin="third-party")
         odoo = _entry("odoo_mod", origin="odoo")
         result = resolve_symbol([odoo, tp], "my_module", index)
-        # third-party (rank 0) beats odoo (rank 3)
+        # third-party (rank 0) beats odoo (rank 4)
         assert result["module"] == "tp_mod"
 
     def test_returns_none_for_truly_empty(self):

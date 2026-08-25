@@ -20,25 +20,29 @@ from pathlib import Path
 
 import libcst as cst
 from oops.core.compat import Optional, Union
-from oops.core.config import config
 from oops.core.exceptions import NoManifestFound
 from oops.core.logger import log
+
+DEFAULT_MANIFEST_NAMES = ["__manifest__.py", "__openerp__.py", "__terp__.py"]
 
 # ---------------------------------------------------------------------------
 # Path lookup
 # ---------------------------------------------------------------------------
 
 
-def get_manifest_path(addon_dir: str) -> Optional[str]:
+def get_manifest_path(addon_dir: str, manifest_names: Optional[list] = None) -> Optional[str]:
     """Return the path to the manifest file inside an addon directory.
 
     Args:
         addon_dir: Path to the addon directory to search.
+        manifest_names: Candidate manifest filenames to look for, in order.
+            Defaults to ``DEFAULT_MANIFEST_NAMES``.
 
     Returns:
         Absolute path to the manifest file, or None if not found.
     """
-    for manifest_name in config.manifest_names:
+    names = manifest_names if manifest_names is not None else DEFAULT_MANIFEST_NAMES
+    for manifest_name in names:
         manifest_path = os.path.join(addon_dir, manifest_name)
         if os.path.isfile(manifest_path):
             return manifest_path
@@ -68,16 +72,19 @@ def parse_manifest(filepath: Path) -> dict:
     return manifest
 
 
-def load_manifest(addon_dir: Path) -> dict:
+def load_manifest(addon_dir: Path, manifest_names: Optional[list] = None) -> dict:
     """Load and parse the Odoo manifest found inside an addon directory.
 
     Args:
         addon_dir: Path to the addon directory containing the manifest file.
+        manifest_names: Candidate manifest filenames to look for, in order.
+            Defaults to ``DEFAULT_MANIFEST_NAMES``.
 
     Returns:
         Parsed manifest as a dict, or an empty dict if no manifest is found.
     """
-    for manifest_name in config.manifest_names:
+    names = manifest_names if manifest_names is not None else DEFAULT_MANIFEST_NAMES
+    for manifest_name in names:
         manifest_path = addon_dir / manifest_name
         if manifest_path.is_file():
             return parse_manifest(manifest_path)

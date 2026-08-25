@@ -311,7 +311,6 @@ def main(  # noqa: C901, PLR0912, PLR0915
     update_metadata(
         schema_version=3,
         limitations=[
-            "oca origin folded into third_party (all submodule code labelled third_party)",
             "controllers/wizard/report/data not analysed (see each module's not_analysed)",
             "module load order is installed-scoped; model nodes carry start-line only",
         ],

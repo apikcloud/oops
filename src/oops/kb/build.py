@@ -9,21 +9,20 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from git import InvalidGitRepositoryError
+from git.repo import Repo
 from oops.core.compat import Iterable
 from oops.core.logger import log
-from oops.core.models import Result
+from oops.core.models import AddonInfo, Result
 from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
-from oops.io.file import find_addons
+from oops.io.file import enrich_addon, find_addons
 from oops.io.installed_modules import installed_modules_path
 from oops.kb.load_order import compute_load_order
 from oops.kb.resolve import build_depends_chain
-from oops.kb.scanner import (
-    discover_root_addons,
-    scan_module,
-    tier_root_from_real_path,
-)
+from oops.kb.scanner import scan_module
 from oops.kb.store import SCHEMA_VERSION, KBReader, update_module_load_order, write_project_kb
 from oops.kb.xml_scanner import scan_module_xml
+from oops.services.git import list_submodules
 
 
 def _resolve_prototype_roles(scan_results: list[dict]) -> None:
@@ -231,70 +230,58 @@ def build_project_kb(
     global_odoo_version = global_meta.get("odoo_version", version)
     sources: dict[str, str] = dict(global_sources)
 
-    # --- Discover root addons (symlinks + non-symlink dirs at root) ---
-    tiers = discover_root_addons(repo_path, allowed_modules)
+    # --- Discover and classify root addons (symlinks + non-symlink dirs at root) ---
+    try:
+        subs = list_submodules(Repo(repo_path))
+    except InvalidGitRepositoryError:
+        subs = {}
 
-    # Scan order: apik (owned via apik-addons/), local (owned at root),
-    # third-party (selected community modules).
-    tier_scan_order = ["apik", "local", "third-party"]
-    project_scan_results: list[dict] = []
+    # Deduplicate by resolved real path, preferring root-level symlinks over
+    # real files (mirrors commands/addons/list.py's established dedup rule).
+    seen: dict[str, AddonInfo] = {}
+    for addon in find_addons(repo_path, shallow=True):
+        if addon.path not in seen or addon.symlinked:
+            seen[addon.path] = addon
 
-    for origin in tier_scan_order:
-        tier_modules = tiers.get(origin, [])
-        if not tier_modules:
-            continue
+    project_addons = [a for a in seen.values() if a.technical_name in allowed_modules]
+    project_addons.sort(key=lambda a: a.technical_name)
 
-        log.info(f"Scanning {origin} tier ({len(tier_modules)}) modules)…")
+    for addon in project_addons:
+        sub = subs.get(addon.rel_path, {})
+        enrich_addon(addon, sub)
 
-        scanned = 0
+    log.info(f"Scanning {len(project_addons)} project addon(s)…")
 
-        if origin == "local":
-            tier_root = repo_path
-        else:
-            tier_root = None
-            for _, real_path in tier_modules:
-                tier_root = tier_root_from_real_path(origin, real_path)
-                if tier_root:
-                    break
+    tier_result: dict = {
+        "modules": {},
+        "symbols": [],
+        "field_refs": [],
+        "model_origins": [],
+        "views": [],
+        "actions": [],
+        "menus": [],
+    }
+    for addon in project_addons:
+        real_module_path = Path(addon.path)
+        origin = addon.classification
 
-        if tier_root is None:
-            result.add_warning(f"Could not determine tier root for {origin}, skipping.")
-            continue
+        scan = scan_module(real_module_path, origin, repo_path)
+        tier_result["modules"].update(scan["modules"])
+        tier_result["symbols"].extend(scan["symbols"])
+        tier_result["field_refs"].extend(scan.get("field_refs", []))
+        tier_result["model_origins"].extend(scan.get("model_origins", []))
 
-        sources[origin] = str(tier_root)
+        xml_scan = scan_module_xml(real_module_path, origin, repo_path)
+        tier_result["views"].extend(xml_scan.get("views", []))
+        tier_result["actions"].extend(xml_scan.get("actions", []))
+        tier_result["menus"].extend(xml_scan.get("menus", []))
 
-        tier_result: dict = {
-            "modules": {},
-            "symbols": [],
-            "field_refs": [],
-            "model_origins": [],
-            "views": [],
-            "actions": [],
-            "menus": [],
-        }
-        for _, real_module_path in tier_modules:
-            manifest = real_module_path / "__manifest__.py"
-            if not manifest.exists():
-                manifest = real_module_path / "__openerp__.py"
-            if not manifest.exists():
-                log.info(f"No manifest in {real_module_path}, skipping.")
-                continue
+    log.info(f"{len(project_addons)} modules scanned")
 
-            scan = scan_module(real_module_path, origin, tier_root)
-            tier_result["modules"].update(scan["modules"])
-            tier_result["symbols"].extend(scan["symbols"])
-            tier_result["field_refs"].extend(scan.get("field_refs", []))
-            tier_result["model_origins"].extend(scan.get("model_origins", []))
-
-            xml_scan = scan_module_xml(real_module_path, origin, tier_root)
-            tier_result["views"].extend(xml_scan.get("views", []))
-            tier_result["actions"].extend(xml_scan.get("actions", []))
-            tier_result["menus"].extend(xml_scan.get("menus", []))
-
-            scanned += 1
-
-        log.info(f"{scanned} modules scanned")
-        project_scan_results.append(tier_result)
+    sources["custom"] = str(repo_path)
+    sources["oca"] = str(repo_path)
+    sources["third-party"] = str(repo_path)
+    project_scan_results: list[dict] = [tier_result]
 
     # --- Scope (input list, not actually-scanned set) ---
     scope = sorted(modules_list)

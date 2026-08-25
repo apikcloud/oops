@@ -10,10 +10,6 @@ model ``ancestor_origin`` (``"odoo"``), view ``origin`` (``"third-party"`` /
 ``"custom"``) — and the KB tier labels into one controlled enum.
 
 ``origin ∈ { core, enterprise, oca, third_party, custom }``
-
-OCA is NOT split out from third_party: in this project all submodule code is
-labelled ``third-party`` by path marker, so ``oca`` is a valid enum member but
-left unpopulated (limitation recorded in ``metadata.limitations``).
 """
 
 from __future__ import annotations
@@ -37,8 +33,7 @@ ORIGINS = frozenset(
     }
 )
 
-# Raw KB/tier label → v2 enum. OCA is NOT split out (folded into third_party —
-# see module docstring and metadata.limitations).
+# Raw KB/tier label → v2 enum.
 _RAW_ORIGIN_MAP = {
     "odoo": ORIGIN_CORE,
     "odoo_core": ORIGIN_CORE,   # community/odoo/addons tier
@@ -47,8 +42,7 @@ _RAW_ORIGIN_MAP = {
     "themes": ORIGIN_CORE,
     "third-party": ORIGIN_THIRD_PARTY,
     "third_party": ORIGIN_THIRD_PARTY,
-    "apik": ORIGIN_CUSTOM,
-    "local": ORIGIN_CUSTOM,
+    "oca": ORIGIN_OCA,
     "custom": ORIGIN_CUSTOM,
     # view-layer labels seen in the KB
     "project": ORIGIN_CUSTOM,

@@ -575,7 +575,6 @@ class TestAnalyzeSchemaV2:
         meta = json.loads(result.output)["metadata"]
         assert meta["schema_version"] == 3
         assert isinstance(meta["limitations"], list) and meta["limitations"]
-        assert any("oca" in lim.lower() for lim in meta["limitations"])
 
     def test_every_metric_key_has_descriptor(self, tmp_path: Path) -> None:
         from oops.output.descriptors import descriptor

@@ -59,13 +59,14 @@ def _make_global_kb(path: Path, version: str = "17.0") -> Path:
     return path
 
 
-def _make_module(parent: Path, name: str) -> Path:
+def _make_module(parent: Path, name: str, author: str | None = None) -> Path:
     """Create a minimal Odoo module directory (no models, just a manifest)."""
     mod = parent / name
     mod.mkdir(parents=True, exist_ok=True)
-    (mod / "__manifest__.py").write_text(
-        "{'name': 'Test', 'depends': ['base']}", encoding="utf-8"
-    )
+    manifest = {"name": "Test", "depends": ["base"]}
+    if author is not None:
+        manifest["author"] = author
+    (mod / "__manifest__.py").write_text(repr(manifest), encoding="utf-8")
     return mod
 
 
@@ -185,7 +186,7 @@ class TestBuildProjectKb:
             modules = kb.get_modules()
             sources = kb.get_sources()
         assert "module_local" in modules
-        assert sources.get("local") == str(repo)
+        assert sources.get("third-party") == str(repo)
 
     def test_build_project_kb_returns_result(self, tmp_path):
         global_kb = _make_global_kb(tmp_path / "global.db")
@@ -199,24 +200,47 @@ class TestBuildProjectKb:
         expected_db = repo / ".oops-cache" / "kb.db"
         assert result.data == expected_db
 
-    def test_missing_tier_root_adds_warning(self, tmp_path):
+    def test_oca_author_classified_as_oca(self, tmp_path):
+        """A submodule addon authored by OCA gets origin='oca', not a symlink-tier label."""
         global_kb = _make_global_kb(tmp_path / "global.db")
         repo = tmp_path / "repo"
         repo.mkdir()
-        # Create a symlink that points to a non-existent apik-addons dir so
-        # tier_root_from_real_path("apik", ...) returns None.
         tp_dir = repo / ".third-party"
-        _make_module(tp_dir, "module_a")
+        _make_module(tp_dir, "module_a", author="Odoo Community Association (OCA)")
         (repo / "module_a").symlink_to(tp_dir / "module_a")
 
-        # Patch tier_root_from_real_path to always return None for "apik" tier
-        import unittest.mock as mock
-        with mock.patch(
-            "oops.kb.build.tier_root_from_real_path", return_value=None
-        ):
-            result = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb)
+        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb).data
 
-        assert any("tier root" in w for w in result.warnings)
+        with KBReader(db_path) as kb:
+            modules = kb.get_modules()
+        assert modules["module_a"]["origin"] == "oca"
+
+    def test_project_author_classified_as_custom(self, tmp_path):
+        """An addon authored by the configured project author gets origin='custom'."""
+        global_kb = _make_global_kb(tmp_path / "global.db")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        # conftest.py's MINIMAL_CONFIG sets manifest.author = "Acme".
+        _make_module(repo, "module_local", author="Acme")
+
+        db_path = build_project_kb(repo, "17.0", ["module_local"], global_kb=global_kb).data
+
+        with KBReader(db_path) as kb:
+            modules = kb.get_modules()
+        assert modules["module_local"]["origin"] == "custom"
+
+    def test_unrecognised_author_classified_as_third_party(self, tmp_path):
+        """An addon with no matching author/prefix/submodule-org falls back to third-party."""
+        global_kb = _make_global_kb(tmp_path / "global.db")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        _make_tp_symlinks(repo, "module_a")
+
+        db_path = build_project_kb(repo, "17.0", ["module_a"], global_kb=global_kb).data
+
+        with KBReader(db_path) as kb:
+            modules = kb.get_modules()
+        assert modules["module_a"]["origin"] == "third-party"
 
 
 # ---------------------------------------------------------------------------
@@ -587,12 +611,12 @@ def _odoo_xml(body: str) -> str:
 
 
 class TestXmlEndToEnd:
-    def _make_apik_module_with_extension(self, parent: Path, name: str) -> Path:
-        """Create an apik module with an extension view for base.view_form_primary."""
+    def _make_project_module_with_extension(self, parent: Path, name: str) -> Path:
+        """Create a project-root module with an extension view for base.view_form_primary."""
         mod = parent / name
         mod.mkdir(parents=True, exist_ok=True)
         (mod / "__manifest__.py").write_text(
-            "{'name': 'Apik Module', 'depends': ['base'], 'data': ['views/ext.xml']}",
+            "{'name': 'Project Module', 'depends': ['base'], 'data': ['views/ext.xml']}",
             encoding="utf-8",
         )
         views_dir = mod / "views"
@@ -613,18 +637,18 @@ class TestXmlEndToEnd:
         return mod
 
     def test_extension_view_type_resolved_from_global_kb(self, tmp_path):
-        """Cross-layer resolution: apik extension inherits view_type from global KB."""
+        """Cross-layer resolution: a project extension inherits view_type from global KB."""
         global_kb = _make_global_kb_with_views(tmp_path / "global.db")
 
         repo = tmp_path / "repo"
         repo.mkdir()
-        apik_dir = repo / "apik-addons"
-        apik_dir.mkdir()
-        mod_dir = self._make_apik_module_with_extension(apik_dir, "my_apik_mod")
-        (repo / "my_apik_mod").symlink_to(mod_dir)
+        local_dir = repo / "local-addons"
+        local_dir.mkdir()
+        mod_dir = self._make_project_module_with_extension(local_dir, "my_local_mod")
+        (repo / "my_local_mod").symlink_to(mod_dir)
 
         db_path = build_project_kb(
-            repo, "17.0", ["my_apik_mod"], global_kb=global_kb
+            repo, "17.0", ["my_local_mod"], global_kb=global_kb
         ).data
         assert db_path is not None
 
@@ -638,21 +662,21 @@ class TestXmlEndToEnd:
         assert by_id["base.view_form_primary"]["origin"] == "odoo"
         assert by_id["base.view_form_primary"]["view_type"] == "form"
 
-        # Apik extension resolved to form via pass-2
-        ext_id = "my_apik_mod.view_form_ext"
+        # Project extension resolved to form via pass-2
+        ext_id = "my_local_mod.view_form_ext"
         assert ext_id in by_id, f"Extension view {ext_id!r} missing from KB"
-        assert by_id[ext_id]["origin"] == "apik"
+        assert by_id[ext_id]["origin"] == "third-party"
         assert by_id[ext_id]["view_type"] == "form"
 
     def test_origins_correct_across_tiers(self, tmp_path):
-        """Global-tier views keep origin='odoo'; project-tier views get origin='apik'."""
+        """Global-tier views keep origin='odoo'; project-tier views get their real classification."""
         global_kb = _make_global_kb_with_views(tmp_path / "global.db")
 
         repo = tmp_path / "repo"
         repo.mkdir()
-        apik_dir = repo / "apik-addons"
-        apik_dir.mkdir()
-        mod_dir = self._make_apik_module_with_extension(apik_dir, "mod_a")
+        local_dir = repo / "local-addons"
+        local_dir.mkdir()
+        mod_dir = self._make_project_module_with_extension(local_dir, "mod_a")
         (repo / "mod_a").symlink_to(mod_dir)
 
         db_path = build_project_kb(repo, "17.0", ["mod_a"], global_kb=global_kb).data
@@ -663,7 +687,7 @@ class TestXmlEndToEnd:
 
         origins = {v["xml_id"]: v["origin"] for v in views}
         assert origins.get("base.view_form_primary") == "odoo"
-        assert origins.get("mod_a.view_form_ext") == "apik"
+        assert origins.get("mod_a.view_form_ext") == "third-party"
 
 
 class TestSourceEndLinePreservedInMerge:

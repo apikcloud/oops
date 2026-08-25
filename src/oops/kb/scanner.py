@@ -6,11 +6,10 @@
 """AST-based scanner for Odoo source trees.
 
 Sections:
-    - Constants: ODOO_BASE_CLASSES, FIELD_TYPES, METHOD_SECTION_*, tier marker helpers
+    - Constants: ODOO_BASE_CLASSES, FIELD_TYPES, METHOD_SECTION_*
     - AST helpers: parse, extract, classify Odoo model nodes
     - Manifest parsing: delegated to oops.io.manifest
     - Scanning: scan_module, scan_tier, odoo_addons_roots
-    - Root addon discovery: discover_root_addons, tier_root_from_real_path
 """
 
 import ast
@@ -18,7 +17,6 @@ import json
 from pathlib import Path
 
 from oops.core.compat import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
-from oops.core.config import config
 from oops.core.logger import log
 from oops.core.models import Result
 from oops.io.manifest import load_manifest
@@ -82,14 +80,6 @@ KWARG_TO_SECTION: Dict[str, str] = {
     "default": METHOD_SECTION_DEFAULT,
     "selection": METHOD_SECTION_SELECTION,
 }
-
-
-def _tier_markers() -> dict:
-    """Build tier path markers from config.submodules paths."""
-    return {
-        "third-party": f"/{config.submodules.current_path}/",
-        "apik": f"/{config.submodules.apik_path}/",
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -726,7 +716,7 @@ def scan_module(  # noqa: C901
 
     Args:
         module_dir: absolute path to the module (must contain __manifest__.py).
-        origin:     tier label ('odoo', 'enterprise', 'third-party', 'apik').
+        origin:     provenance label ('odoo', 'enterprise', 'oca', 'third-party', 'custom').
         tier_root:  root used to compute relative source_file paths.
 
     Returns:
@@ -963,102 +953,3 @@ def odoo_addons_roots(odoo_path: Path) -> List[Path]:
     return roots
 
 
-def discover_root_addons(
-    repo_path: Path,
-    allowed_modules: Optional[Set[str]] = None,
-) -> Dict[str, List[Tuple[str, Path]]]:
-    """Walk repo_path for root-level Odoo addons and group them by tier.
-
-    # TODO: Must be replace by `io/file.py:find_addons` by extending the logic if needed
-
-    Three tiers are recognised:
-        - 'third-party': symlink whose real path contains '/.third-party/'.
-        - 'apik':        symlink whose real path contains '/apik-addons/'.
-        - 'local':       real directory at the repo root with a manifest.
-
-    Symlinks that resolve outside the known submodule tiers are logged and
-    skipped.
-
-    Returns:
-        { origin: [(module_name, real_module_path), ...] }
-    """
-    markers = _tier_markers()
-    tiers: Dict[str, List[Tuple[str, Path]]] = {origin: [] for origin in markers}
-    tiers["local"] = []
-
-    # Search at depth 1 under repo_path and its immediate non-hidden children.
-    candidates: List[Path] = [repo_path]
-    for child in repo_path.iterdir():
-        if child.is_dir() and not child.name.startswith("."):
-            candidates.append(child)
-
-    seen_real: Set[Path] = set()
-
-    for search_dir in candidates:
-        if not search_dir.is_dir():
-            continue
-        try:
-            entries = list(search_dir.iterdir())
-        except PermissionError:
-            continue
-        for entry in entries:
-            if not entry.is_dir():
-                continue
-            module_name = entry.name
-            if allowed_modules and module_name not in allowed_modules:
-                continue
-            real = entry.resolve()
-            if real in seen_real:
-                continue
-
-            if entry.is_symlink():
-                seen_real.add(real)
-                real_str = str(real)
-                matched = False
-                for origin, marker in markers.items():
-                    if marker in real_str or marker.replace("/", "\\") in real_str:
-                        tiers[origin].append((module_name, real))
-                        matched = True
-                        break
-                if not matched:
-                    log.warning(
-                        "Symlink %s → %s does not match any known tier root, skipping.",
-                        entry,
-                        real,
-                    )
-                continue
-
-            # Non-symlink real directory: only counts as 'local' if it has a
-            # manifest AND it sits directly under the repo root. We deliberately
-            # do not descend into nested real directories.
-            if search_dir != repo_path:
-                continue
-            if not (entry / "__manifest__.py").exists() and not (entry / "__openerp__.py").exists():
-                continue
-            seen_real.add(real)
-            tiers["local"].append((module_name, real))
-
-    return tiers
-
-
-def tier_root_from_real_path(origin: str, real_path: Path) -> Optional[Path]:
-    """Derive the tier root directory from a module's real path.
-
-    Args:
-        origin: Tier name (e.g. ``'third-party'`` or ``'apik'``).
-        real_path: Resolved (non-symlink) path of the module directory.
-
-    Returns:
-        The tier root path, or ``None`` if the marker is not found in the path.
-
-        e.g. ``/repo/.third-party/sale-workflow/sale_order_type``
-             → ``/repo/.third-party``
-    """
-    marker = _tier_markers().get(origin)
-    if not marker:
-        return None
-    real_str = str(real_path)
-    idx = real_str.find(marker)
-    if idx == -1:
-        return None
-    return Path(real_str[: idx + len(marker) - 1])

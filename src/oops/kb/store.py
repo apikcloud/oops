@@ -7,7 +7,7 @@
 
 Two databases, same schema:
 - kb_global.db   : Odoo community + enterprise, generated once per version.
-- kb_project.db  : global + third-party + apik, scoped to a project.
+- kb_project.db  : global + project's own classified addons (custom/oca/third-party), scoped to a project.
 
 Schema (v9)
 -----------

@@ -109,9 +109,6 @@ class ImagesConfig:
 class SubmodulesConfig:
     current_path: Path = field(default_factory=lambda: Path(".third-party"))
     old_paths: List[Path] = field(default_factory=lambda: [Path("third-party")])
-    apik_path: Path = field(
-        default_factory=lambda: Path("apik-addons")
-    )  # TODO: do not mention this in the configuration
     force_scheme: str = "ssh"
     deprecated_repositories: dict = field(default_factory=lambda: {})
     checks: List[str] = field(
