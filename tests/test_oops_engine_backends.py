@@ -13,6 +13,7 @@ skipped otherwise, e.g. in CI environments with no Postgres available).
 from __future__ import annotations
 
 import os
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -107,3 +108,57 @@ class TestDualBackendRoundTrip:
         if backend is None:
             pytest.skip("No live Postgres reachable (set OOPS_TEST_POSTGRES_DSN) — skipping Postgres backend test")
         _round_trip(backend)
+
+
+class TestLegacySchemaMigration:
+    """A KB file written by a pre-v10 `oops` release has `modules` etc. without
+    a `repo_id` column. `CREATE TABLE IF NOT EXISTS` is a no-op on a table that
+    already exists, so opening such a file must not silently leave it on the
+    old schema — that produces `sqlite3.OperationalError: no such column:
+    repo_id` the moment any repo_id-scoped query runs (regression: real
+    project/global KB cache files from before this schema predate the
+    `analyze`/`serve`/dashboard `doc` flow crashing with that error)."""
+
+    def _make_legacy_kb(self, db_path: Path) -> None:
+        con = sqlite3.connect(str(db_path))
+        try:
+            con.executescript(
+                """
+                CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                CREATE TABLE sources (origin TEXT PRIMARY KEY, path TEXT NOT NULL);
+                CREATE TABLE modules (
+                    name TEXT PRIMARY KEY, origin TEXT NOT NULL,
+                    depends TEXT NOT NULL DEFAULT '[]',
+                    application INTEGER NOT NULL DEFAULT 0, app TEXT
+                );
+                CREATE TABLE symbols (model TEXT, name TEXT, kind TEXT, origin TEXT, module TEXT);
+                """
+            )
+            con.execute(
+                "INSERT INTO meta (key, value) VALUES ('schema_version', '7')"
+            )
+            con.execute(
+                "INSERT INTO modules (name, origin, depends) VALUES ('legacy_mod', 'odoo', '[]')"
+            )
+            con.commit()
+        finally:
+            con.close()
+
+    def test_write_kb_heals_a_legacy_schema_file(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        self._make_legacy_kb(db_path)
+        backend = SQLiteBackend(db_path)
+
+        result = write_kb(backend, "a", "17.0", [_make_scan("module_a")], sources={"custom": "/repo-a"})
+        assert result.ok, result.errors
+
+        with KBReader(backend, repo_ids=["a"]) as kb:
+            assert set(kb.get_modules()) == {"module_a"}
+
+    def test_kbreader_heals_a_legacy_schema_file(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        self._make_legacy_kb(db_path)
+        backend = SQLiteBackend(db_path)
+
+        with KBReader(backend, repo_ids=["whatever"]) as kb:
+            assert kb.get_modules() == {}

@@ -165,6 +165,18 @@ class TestPrepareSiteDir:
         assert bundle.is_file(), "dist/app.bundle.js missing"
         assert bundle.stat().st_size > 10_000, "dist/app.bundle.js suspiciously small"
 
+    def test_bundle_has_a_registered_error_view(self) -> None:
+        """Regression: `{"metadata": {"command": "error"}}` payloads (emitted by
+        `run_oops()` on a subprocess crash and `Api.doc_project()` on any
+        exception) must route to a real view, not the "No view registered"
+        fallback — the built bundle must be in sync with ui/src/renderer.ts."""
+        from oops.core.paths import UI
+
+        bundle = (UI / "dist" / "app.bundle.js").read_text(encoding="utf-8")
+        # viewError's own fallback text — only present if the bundle was built
+        # after registering it in renderer.ts's VIEWS map.
+        assert "Unknown error." in bundle
+
 
 class TestResolutionContract:
     """Verify the DocModel carries resolved *_ref keys on field and method nodes."""

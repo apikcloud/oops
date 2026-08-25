@@ -162,6 +162,33 @@ CREATE TABLE IF NOT EXISTS analysis_cache (
 """
 
 
+# Tables that existed before schema v10 (repo_id scoping) — a KB file written
+# by an older `oops` release has these without a `repo_id` column. `CREATE
+# TABLE IF NOT EXISTS` is a no-op on a table that already exists, so an old
+# file's physical schema never catches up on its own; _reset_if_legacy_schema()
+# drops them so the DDL below recreates them on the current schema. `repo_meta`
+# and `analysis_cache` never existed pre-v10, so there is nothing to drop there.
+_LEGACY_TABLES = (
+    "meta", "sources", "modules", "symbols", "field_refs",
+    "model_origins", "views", "actions", "menus",
+)
+
+
+def _reset_if_legacy_schema(con: sqlite3.Connection) -> None:
+    """Drop pre-v10 tables from an existing KB file so DDL recreates them fresh.
+
+    Local KB files (project cache, global cache) are disposable — regenerated
+    by `build_project_kb()`/`oops misc build-kb` — so dropping and letting the
+    caller's write rebuild them is safe and requires no data migration.
+    """
+    cols = {row[1] for row in con.execute("PRAGMA table_info(modules)")}
+    if not cols or "repo_id" in cols:
+        return  # brand-new file, or already on the current schema
+    for table in _LEGACY_TABLES:
+        con.execute(f"DROP TABLE IF EXISTS {table}")
+    con.commit()
+
+
 class SQLiteBackend:
     """Local single-file SQLite storage — today's behavior, byte-for-byte."""
 
@@ -173,6 +200,7 @@ class SQLiteBackend:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         con = sqlite3.connect(str(self.db_path))
         con.row_factory = sqlite3.Row
+        _reset_if_legacy_schema(con)
         con.executescript(DDL)
         con.commit()
         return con
