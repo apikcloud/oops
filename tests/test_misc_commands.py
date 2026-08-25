@@ -386,7 +386,7 @@ class TestBuildKb:
         ), patch(
             "oops.commands.misc.build_global._resolve_view_types"
         ), patch(
-            "oops.commands.misc.build_global.write_global_kb",
+            "oops.commands.misc.build_global.write_kb",
             return_value=Result(
                 data={
                     "file": tmp_path / "kb.db",

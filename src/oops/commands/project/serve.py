@@ -28,13 +28,14 @@ from oops.core.exceptions import EarlyExit
 from oops.core.logger import live_progress
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
-from oops.core.paths import UI, project_kb_path
-from oops.kb.store import KBReader
+from oops.core.paths import UI
 from oops.output.base import RenderTarget
 from oops.output.descriptors import load_descriptors
 from oops.output.serializers import to_json_string
 from oops.services.git import require_repository
 from oops.services.project import require_project
+from oops_engine.paths import project_kb_path
+from oops_engine.store import KBReader, discover_repo_ids
 
 
 def source_roots_from_payload(payload: dict) -> dict:
@@ -86,7 +87,7 @@ def _build_source_roots(repo_path: Path) -> dict:
     kb_path = project_kb_path(repo_path)
     if not kb_path.exists():
         return {}
-    with KBReader(kb_path) as kb:
+    with KBReader(kb_path, repo_ids=discover_repo_ids(kb_path)) as kb:
         modules = kb.get_modules()    # {name: {origin: str, ...}}
         sources = kb.get_sources()    # {origin: abs_path_str}
     roots = {}

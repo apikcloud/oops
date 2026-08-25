@@ -25,8 +25,6 @@ from oops.core.models import (
     StructureSummary,
     ViewsSummary,
 )
-from oops.kb.identity import field_id, method_id, model_id, module_id, normalize_source_file
-from oops.kb.provenance import normalize_origin
 from oops.output.base import Presenter
 from oops.output.descriptors import label_of
 from oops.output.layout import ConclusionBlock, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
@@ -34,6 +32,8 @@ from oops.services.loc import LocStats
 from oops.utils.render import (
     colorize,
 )
+from oops_engine.identity import field_id, method_id, model_id, module_id, normalize_source_file
+from oops_engine.provenance import normalize_origin
 
 if TYPE_CHECKING:
     pass

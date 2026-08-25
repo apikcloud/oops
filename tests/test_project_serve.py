@@ -293,6 +293,7 @@ class TestBuildSourceRoots:
         fake_sources = {"local": str(local_root), "oca": str(oca_root)}
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -315,6 +316,7 @@ class TestBuildSourceRoots:
         fake_sources = {"third-party": str(oca_root)}
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -343,6 +345,7 @@ class TestBuildSourceRoots:
         }
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -374,6 +377,7 @@ class TestMergeSourceRoots:
         }
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -394,6 +398,7 @@ class TestMergeSourceRoots:
         fake_sources = {"odoo_core": str(odoo_addons)}
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value

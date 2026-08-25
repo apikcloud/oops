@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: load_order.py — oops/kb/load_order.py
+# File: load_order.py — oops_engine/load_order.py
 
 """Phase 1 of the Odoo inheritance resolver: module load order.
 

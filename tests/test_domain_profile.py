@@ -13,16 +13,19 @@ from unittest.mock import MagicMock
 from oops.core.compat import Any
 from oops.core.config import AnalyzeConfig
 from oops.core.models import ClassSummary, ModuleSummary, ViewsSummary
-from oops.kb.build import _resolve_module_apps
-from oops.kb.domain_profile import (
+from oops_engine.build import _resolve_module_apps
+from oops_engine.domain_profile import (
     compute_domain_profile,
 )
-from oops.kb.domains import domain_label
-from oops.kb.store import KBReader, write_project_kb
+from oops_engine.domains import domain_label
+from oops_engine.store import KBReader
+from oops_engine.store import write_kb as _write_kb_impl
 
 # ---------------------------------------------------------------------------
 # Helpers — minimal KB fixtures
 # ---------------------------------------------------------------------------
+
+_TEST_REPO_ID = "test"
 
 
 def _write_kb(
@@ -31,8 +34,9 @@ def _write_kb(
     model_origins: list[dict] | None = None,
     symbols: list[dict] | None = None,
 ) -> None:
-    write_project_kb(
+    _write_kb_impl(
         db_path=db_path,
+        repo_id=_TEST_REPO_ID,
         odoo_version="17.0",
         project="test",
         scope=[],
@@ -148,7 +152,7 @@ class TestKBReaderHelpers:
                 "sale_management": _mod("sale_management", ["sale"], app="sale"),
             },
         )
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             assert kb.get_module_app("sale") == "sale"
             assert kb.get_module_app("sale_management") == "sale"
             assert kb.get_module_app("nonexistent") is None
@@ -162,7 +166,7 @@ class TestKBReaderHelpers:
                 "sale_management": _mod("sale_management", ["sale"]),
             },
         )
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             assert kb.is_application("sale") is True
             assert kb.is_application("sale_management") is False
             assert kb.is_application("nonexistent") is False
@@ -175,7 +179,7 @@ class TestKBReaderHelpers:
                 _origin("my.model", "my_module", inherits_json='{"sale.order": "sale_id"}'),
             ],
         )
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             parents = kb.get_model_inherits("my.model")
         assert parents == ["sale.order"]
 
@@ -187,19 +191,19 @@ class TestKBReaderHelpers:
                 _origin("my.model", "my_module"),
             ],
         )
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             assert kb.get_model_inherits("my.model") == []
 
     def test_get_model_inherits_missing_model(self, tmp_path):
         db_path = tmp_path / "kb.db"
         _write_kb(db_path)
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             assert kb.get_model_inherits("no.such.model") == []
 
     def test_modules_have_application_and_app_fields(self, tmp_path):
         db_path = tmp_path / "kb.db"
         _write_kb(db_path, modules={"sale": _mod("sale", [], application=1, app="sale")})
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             mods = kb.get_modules()
         assert mods["sale"]["application"] is True
         assert mods["sale"]["app"] == "sale"
@@ -353,7 +357,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs], [ci])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         assert len(profile["domains"]) == 1
@@ -379,7 +383,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs], [ci])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         # Should land in Sales via _inherits → sale.order → sale
@@ -398,7 +402,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs], [ci])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         assert any(d["domain"] == "account" for d in profile["domains"])
@@ -412,7 +416,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs], [ci])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         assert profile["custom_models"] == 1
@@ -431,7 +435,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs, cs], [ci_sale, ci_acc])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         total_prop = sum(d["score_proportional"] for d in profile["domains"])
@@ -450,7 +454,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs], [ci])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         dominant = profile["domains"][0]
@@ -461,7 +465,7 @@ class TestComputeDomainProfile:
         _write_kb(db_path)
         summary = _make_summary([], [])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         assert profile["domains"] == []
@@ -487,7 +491,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs], [ci])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         assert profile["domains"] == []
@@ -507,7 +511,7 @@ class TestComputeDomainProfile:
 
         summary = _make_summary([cs], [ci])
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         assert profile["domains"] == []
@@ -544,7 +548,7 @@ class TestComputeDomainProfile:
         )
         summary = _make_summary([], [], views_summary=vs)
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
             profile = compute_domain_profile(summary, kb, self._DEFAULT_WEIGHTS)
 
         assert any(d["domain"] == "sale" for d in profile["domains"])

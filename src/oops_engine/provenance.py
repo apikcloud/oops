@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: provenance.py — oops/kb/provenance.py
+# File: provenance.py — oops_engine/provenance.py
 
 """Single provenance vocabulary for the analyze IR (schema_version 2).
 

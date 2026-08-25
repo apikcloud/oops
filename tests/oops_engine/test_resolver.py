@@ -7,9 +7,9 @@ import json
 import sqlite3
 from pathlib import Path
 
-from oops.kb.inheritance import merge_methods
-from oops.kb.resolver import InheritanceResolver
-from oops.kb.store import KBReader
+from oops_engine.inheritance import merge_methods
+from oops_engine.resolver import InheritanceResolver
+from oops_engine.store import KBReader
 
 
 def _make_fixture_kb(tmp_path: Path) -> Path:
@@ -18,12 +18,14 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
     con.executescript("""
         CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
         CREATE TABLE modules (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             name TEXT PRIMARY KEY, origin TEXT,
             depends TEXT DEFAULT '[]',
             application INTEGER DEFAULT 0,
             app TEXT, depth INTEGER, load_index INTEGER
         );
         CREATE TABLE model_origins (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, module TEXT, origin TEXT, role TEXT,
             model_type TEXT DEFAULT 'model',
             inherit_json TEXT DEFAULT '[]',
@@ -33,6 +35,7 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
             PRIMARY KEY (model, module)
         );
         CREATE TABLE symbols (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, name TEXT, kind TEXT,
             origin TEXT, module TEXT,
             source_file TEXT, source_line INTEGER,
@@ -43,6 +46,7 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
             PRIMARY KEY (model, name, kind, module)
         );
         CREATE TABLE field_refs (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, field_name TEXT, module TEXT,
             kwarg TEXT, target_method TEXT,
             PRIMARY KEY (model, field_name, module, kwarg)
@@ -60,11 +64,12 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
         ],
     )
     con.executemany(
-        "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
         [
-            ("sale.order", "base", "odoo", "create", "model", "[]", "{}", "base/sale_order.py", 1, None, 0),
-            ("sale.order", "sale", "odoo", "extend", "model", "[]", "{}", "sale/sale_order.py", 1, None, 0),
-            ("sale.order", "custom_sale", "apik", "extend", "model", "[]", "{}", "custom/sale_order.py", 1, None, 0),
+            ("test", "sale.order", "base", "odoo", "create", "model", "[]", "{}", "base/sale_order.py", 1, None, 0),
+            ("test", "sale.order", "sale", "odoo", "extend", "model", "[]", "{}", "sale/sale_order.py", 1, None, 0),
+            ("test", "sale.order", "custom_sale", "apik", "extend", "model", "[]", "{}",
+             "custom/sale_order.py", 1, None, 0),
         ],
     )
     base_field = json.dumps({"type": "Char", "required": False})
@@ -91,27 +96,27 @@ def _make_fixture_kb(tmp_path: Path) -> Path:
 class TestInheritanceResolver:
     def test_resolve_returns_expected_keys(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        with InheritanceResolver.from_project_kb(db_path) as resolver:
+        with InheritanceResolver.from_project_kb(db_path, repo_ids=["test"]) as resolver:
             result = resolver.resolve("sale.order")
         assert set(result.keys()) == {"model", "chain", "mro", "fields", "methods"}
         assert result["model"] == "sale.order"
 
     def test_chain_length(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        with InheritanceResolver.from_project_kb(db_path) as resolver:
+        with InheritanceResolver.from_project_kb(db_path, repo_ids=["test"]) as resolver:
             result = resolver.resolve("sale.order")
         assert len(result["chain"]) == 3
 
     def test_chain_load_order(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        with InheritanceResolver.from_project_kb(db_path) as resolver:
+        with InheritanceResolver.from_project_kb(db_path, repo_ids=["test"]) as resolver:
             result = resolver.resolve("sale.order")
         modules = [r["module"] for r in result["chain"]]
         assert modules == ["base", "sale", "custom_sale"]
 
     def test_field_source_override(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        with InheritanceResolver.from_project_kb(db_path) as resolver:
+        with InheritanceResolver.from_project_kb(db_path, repo_ids=["test"]) as resolver:
             result = resolver.resolve("sale.order")
         assert "name" in result["fields"]
         # custom_sale overrides required=True
@@ -120,7 +125,7 @@ class TestInheritanceResolver:
 
     def test_installed_modules_restriction(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        with InheritanceResolver.from_project_kb(db_path) as resolver:
+        with InheritanceResolver.from_project_kb(db_path, repo_ids=["test"]) as resolver:
             # Restrict to base+sale only — custom_sale excluded
             result = resolver.resolve("sale.order", installed_modules={"base", "sale"})
         chain_modules = {r["module"] for r in result["chain"]}
@@ -132,7 +137,7 @@ class TestInheritanceResolver:
 
     def test_mro_most_derived_first(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        with InheritanceResolver.from_project_kb(db_path) as resolver:
+        with InheritanceResolver.from_project_kb(db_path, repo_ids=["test"]) as resolver:
             result = resolver.resolve("sale.order")
         mro_modules = [r["module"] for r in result["mro"]]
         chain_modules = [r["module"] for r in result["chain"]]
@@ -140,7 +145,7 @@ class TestInheritanceResolver:
 
     def test_methods_key_present(self, tmp_path):
         db_path = _make_fixture_kb(tmp_path)
-        with InheritanceResolver.from_project_kb(db_path) as resolver:
+        with InheritanceResolver.from_project_kb(db_path, repo_ids=["test"]) as resolver:
             result = resolver.resolve("sale.order")
         assert isinstance(result["methods"], dict)
 
@@ -152,12 +157,14 @@ def _make_method_fixture_kb(tmp_path: Path) -> Path:
     con.executescript("""
         CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
         CREATE TABLE modules (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             name TEXT PRIMARY KEY, origin TEXT,
             depends TEXT DEFAULT '[]',
             application INTEGER DEFAULT 0,
             app TEXT, depth INTEGER, load_index INTEGER
         );
         CREATE TABLE model_origins (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, module TEXT, origin TEXT, role TEXT,
             model_type TEXT DEFAULT 'model',
             inherit_json TEXT DEFAULT '[]',
@@ -167,6 +174,7 @@ def _make_method_fixture_kb(tmp_path: Path) -> Path:
             PRIMARY KEY (model, module)
         );
         CREATE TABLE symbols (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, name TEXT, kind TEXT,
             origin TEXT, module TEXT,
             source_file TEXT, source_line INTEGER,
@@ -177,6 +185,7 @@ def _make_method_fixture_kb(tmp_path: Path) -> Path:
             PRIMARY KEY (model, name, kind, module)
         );
         CREATE TABLE field_refs (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, field_name TEXT, module TEXT,
             kwarg TEXT, target_method TEXT,
             PRIMARY KEY (model, field_name, module, kwarg)
@@ -194,11 +203,14 @@ def _make_method_fixture_kb(tmp_path: Path) -> Path:
         ],
     )
     con.executemany(
-        "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
         [
-            ("sale.order", "base",        "odoo", "create", "model", "[]", "{}", "base/sale_order.py", 1, None, 0),
-            ("sale.order", "sale",        "odoo", "extend", "model", "[]", "{}", "sale/sale_order.py", 1, None, 0),
-            ("sale.order", "custom_sale", "apik", "extend", "model", "[]", "{}", "custom/sale_order.py", 1, None, 0),
+            ("test", "sale.order", "base",        "odoo", "create", "model", "[]", "{}",
+             "base/sale_order.py", 1, None, 0),
+            ("test", "sale.order", "sale",        "odoo", "extend", "model", "[]", "{}",
+             "sale/sale_order.py", 1, None, 0),
+            ("test", "sale.order", "custom_sale", "apik", "extend", "model", "[]", "{}",
+             "custom/sale_order.py", 1, None, 0),
         ],
     )
     _sym = (
@@ -227,8 +239,8 @@ class TestMergeMethods:
     def test_super_chain_all_reachable(self, tmp_path):
         """custom_sale→super→sale→super→base: all 3 layers reachable."""
         db_path = _make_method_fixture_kb(tmp_path)
-        with KBReader(db_path) as reader:
-            from oops.kb.inheritance import build_class_chain, compute_mro
+        with KBReader(db_path, repo_ids=["test"]) as reader:
+            from oops_engine.inheritance import build_class_chain, compute_mro
             chain = build_class_chain("sale.order", reader, {})
             mro = compute_mro(chain, reader=reader, load_order={})
             methods = merge_methods(mro, reader)
@@ -240,8 +252,8 @@ class TestMergeMethods:
     def test_override_without_super_truncates(self, tmp_path):
         """custom_sale.override_me has no super → base layer unreachable."""
         db_path = _make_method_fixture_kb(tmp_path)
-        with KBReader(db_path) as reader:
-            from oops.kb.inheritance import build_class_chain, compute_mro
+        with KBReader(db_path, repo_ids=["test"]) as reader:
+            from oops_engine.inheritance import build_class_chain, compute_mro
             chain = build_class_chain("sale.order", reader, {})
             mro = compute_mro(chain, reader=reader, load_order={})
             methods = merge_methods(mro, reader)
@@ -259,8 +271,8 @@ class TestMergeMethods:
 
     def test_root_is_first_stack_entry(self, tmp_path):
         db_path = _make_method_fixture_kb(tmp_path)
-        with KBReader(db_path) as reader:
-            from oops.kb.inheritance import build_class_chain, compute_mro
+        with KBReader(db_path, repo_ids=["test"]) as reader:
+            from oops_engine.inheritance import build_class_chain, compute_mro
             chain = build_class_chain("sale.order", reader, {})
             mro = compute_mro(chain, reader=reader, load_order={})
             methods = merge_methods(mro, reader)

@@ -17,8 +17,13 @@ import pytest
 from click.testing import CliRunner
 from oops.commands.addons.analyze import main
 from oops.core.models import Result
-from oops.kb.store import write_project_kb
 from oops.services.loc import LocStats
+from oops_engine.store import write_kb
+
+# repo_id used by every KB fixture in this file; _mock_analyze() patches
+# local_repo_id() to always return this, so KBReader lookups match regardless
+# of the tmp_path directory name pytest picks per test.
+_TEST_REPO_ID = "test"
 
 # ---------------------------------------------------------------------------
 # KB and module helpers (duplicated from test_refactor.py to avoid cross-file import)
@@ -44,8 +49,9 @@ def _make_kb(
             "model_origins": model_origins or [],
         }
     ]
-    write_project_kb(
+    write_kb(
         db_path=db_path,
+        repo_id=_TEST_REPO_ID,
         odoo_version="17.0",
         project="test",
         scope=[],
@@ -186,6 +192,7 @@ def _mock_analyze(tmp_path: Path, db_path: Path):
             patch("oops.commands.addons.analyze.read_installed_modules", return_value=None), \
             patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(False, "")), \
             patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+            patch("oops.commands.addons.analyze.local_repo_id", return_value=_TEST_REPO_ID), \
             patch("oops.core.logger.Live", MagicMock()):
         yield
 
@@ -676,6 +683,7 @@ class TestAnalyzeJsonWarnings:
                 patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
                 patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
                 patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+                patch("oops.commands.addons.analyze.odoo_core_repo_id", return_value=_TEST_REPO_ID), \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), tmp_path)
             mock_info.return_value = type(
@@ -734,7 +742,7 @@ class TestAnalyzeRebuild:
         repo_path, module_path = self._make_fake_repo(tmp_path)
         build_called = []
 
-        def fake_build(rp, version, modules):  # noqa: ARG001
+        def fake_build(rp, version, modules, addons):  # noqa: ARG001
             build_called.append(True)
             return Result(data=rp / ".oops-cache" / "kb.db")
 
@@ -742,6 +750,7 @@ class TestAnalyzeRebuild:
                 patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
+                patch("oops.commands.addons.analyze.discover_project_addons", return_value=[]), \
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
@@ -756,7 +765,7 @@ class TestAnalyzeRebuild:
         repo_path, module_path = self._make_fake_repo(tmp_path)
         build_called = []
 
-        def fake_build(rp, version, modules):  # noqa: ARG001
+        def fake_build(rp, version, modules, addons):  # noqa: ARG001
             build_called.append(True)
             return Result(data=rp / ".oops-cache" / "kb.db")
 
@@ -764,6 +773,7 @@ class TestAnalyzeRebuild:
                 patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
+                patch("oops.commands.addons.analyze.discover_project_addons", return_value=[]), \
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)

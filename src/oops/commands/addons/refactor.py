@@ -43,15 +43,16 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import log
-from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import parse_odoo_version
 from oops.io.installed_modules import read_installed_modules
 from oops.io.refactor import analyse_file, rewrite_file
-from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
-from oops.kb.scanner import build_module_field_refs
-from oops.kb.store import KBReader
 from oops.services.git import commit, require_repository
+from oops.services.kb import discover_project_addons
 from oops.utils.render import human_readable, print_rule, print_success, print_warning, warn_experimental
+from oops_engine.build import build_project_kb, compute_root_drift, is_project_kb_stale, odoo_core_repo_id
+from oops_engine.paths import global_kb_path, project_kb_path
+from oops_engine.scanner import build_module_field_refs
+from oops_engine.store import KBReader, discover_repo_ids
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -145,7 +146,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
             _gkb = global_kb_path(version)
             _odoo_mods: set[str] = set()
             if _gkb.exists():
-                with KBReader(_gkb) as _kb:
+                with KBReader(_gkb, repo_ids=[odoo_core_repo_id(version)]) as _kb:
                     _odoo_mods = {
                         n
                         for n, d in _kb.get_modules().items()
@@ -176,7 +177,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
             log.info("Rebuilding project KB (%s)…", why)
             print_warning(f"Rebuilding project KB: {why}")
             try:
-                kb_result = build_project_kb(repo_path, version, info.modules)
+                addons = discover_project_addons(local_repo, repo_path, set(info.modules))
+                kb_result = build_project_kb(repo_path, version, info.modules, addons)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
             kb_path = kb_result.data
@@ -195,7 +197,10 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
     assert kb_path
 
-    with KBReader(kb_path) as kb:
+    # repo_path/version are only known when the KB was resolved from a live
+    # git repo (kb_path is None branch above); with an explicit --kb path,
+    # discover whatever repo_id(s) the file actually holds.
+    with KBReader(kb_path, repo_ids=discover_repo_ids(kb_path)) as kb:
         modules_index = kb.get_modules()
 
         # --- Git branch (one shared branch for the whole run) ---

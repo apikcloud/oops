@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from oops.kb.identity import field_id, method_id, model_id, module_id, normalize_source_file
+from oops_engine.identity import field_id, method_id, model_id, module_id, normalize_source_file
 
 
 def test_module_id() -> None:

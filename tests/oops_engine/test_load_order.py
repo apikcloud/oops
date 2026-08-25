@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 
-from oops.kb.load_order import compute_load_order
+from oops_engine.load_order import compute_load_order
 
 
 class TestComputeLoadOrder:

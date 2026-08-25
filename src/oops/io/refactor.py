@@ -16,12 +16,12 @@ from pathlib import Path
 import libcst as cst
 from oops.core.compat import Any, Dict, List, Optional, Tuple, Union
 from oops.core.logger import log
-from oops.kb.resolve import (
+from oops_engine.resolve import (
     format_source_line,
     resolve_symbol,
     resolve_symbol_root,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     FIELD_TYPES,
     METHOD_SECTION_ACTION,
     METHOD_SECTION_BUSINESS,
@@ -44,7 +44,7 @@ from oops.kb.scanner import (
     is_odoo_model_class,
     reconstruct_signature,
 )
-from oops.kb.store import KBReader
+from oops_engine.store import KBReader
 
 # ---------------------------------------------------------------------------
 # Constants

@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: inheritance.py — oops/kb/inheritance.py
+# File: inheritance.py — oops_engine/inheritance.py
 
 """Phases 2–4 of the Odoo inheritance resolver.
 

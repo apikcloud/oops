@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: build.py — oops/kb/build.py
+# File: build.py — oops_engine/build.py
 
 from __future__ import annotations
 
@@ -9,20 +9,23 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from git import InvalidGitRepositoryError
-from git.repo import Repo
-from oops.core.compat import Iterable
+from oops.core.compat import Iterable, List
 from oops.core.logger import log
 from oops.core.models import AddonInfo, Result
-from oops.core.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
-from oops.io.file import enrich_addon, find_addons
+from oops.io.file import find_addons
 from oops.io.installed_modules import installed_modules_path
-from oops.kb.load_order import compute_load_order
-from oops.kb.resolve import build_depends_chain
-from oops.kb.scanner import scan_module
-from oops.kb.store import SCHEMA_VERSION, KBReader, update_module_load_order, write_project_kb
-from oops.kb.xml_scanner import scan_module_xml
-from oops.services.git import list_submodules
+from oops_engine.identity import local_repo_id
+from oops_engine.load_order import compute_load_order
+from oops_engine.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
+from oops_engine.resolve import build_depends_chain
+from oops_engine.scanner import scan_module
+from oops_engine.store import SCHEMA_VERSION, KBReader, update_module_load_order, write_kb
+from oops_engine.xml_scanner import scan_module_xml
+
+
+def odoo_core_repo_id(version: str) -> str:
+    """Return the repo_id under which the global (Odoo-core) KB's rows are written."""
+    return f"odoo-core-{version}"
 
 
 def _resolve_prototype_roles(scan_results: list[dict]) -> None:
@@ -123,6 +126,7 @@ def build_project_kb(
     repo_path: Path,
     version: str,
     modules: Iterable[str],
+    addons: "List[AddonInfo]",
     *,
     slug: str | None = None,
     global_kb: Path | None = None,
@@ -133,6 +137,10 @@ def build_project_kb(
         repo_path: Repository root.
         version: Odoo version string, e.g. ``"17.0"``.
         modules: Allowed module names (the user-owned installed list).
+        addons: Already-discovered, already-classified project addons to scan
+            (see ``services.kb.discover_project_addons``) — this function has
+            no knowledge of git, submodules, or config; each addon's
+            ``.classification`` becomes its KB ``origin``.
         slug: Project slug embedded in KB metadata. Defaults to ``repo_path.name``.
         global_kb: Path to the global KB. Defaults to ``global_kb_path(version)``.
 
@@ -154,8 +162,11 @@ def build_project_kb(
     if not global_kb.exists():
         raise FileNotFoundError(f"Global KB not found: {global_kb}\nRun oops misc build-kb first.")
 
+    global_repo_id = odoo_core_repo_id(version)
+    project_repo_id = local_repo_id(repo_path)
+
     # Verify the global KB is on the expected schema before reading from it.
-    with KBReader(global_kb) as _gkb:
+    with KBReader(global_kb, repo_ids=[global_repo_id]) as _gkb:
         _sv = _gkb.get_meta().get("schema_version")
     if _sv != str(SCHEMA_VERSION):
         raise FileNotFoundError(
@@ -166,13 +177,11 @@ def build_project_kb(
     cache_dir.mkdir(parents=True, exist_ok=True)
     db_path = cache_dir / "kb.db"
 
-    allowed_modules: set[str] = set(modules_list)
-
     # --- Seed from global KB ---
 
     log.info(f"Loading global KB: {global_kb}")
 
-    with KBReader(global_kb) as kb:
+    with KBReader(global_kb, repo_ids=[global_repo_id]) as kb:
         global_meta = kb.get_meta()
         global_sources = kb.get_sources()
         global_modules = kb.get_modules()
@@ -180,13 +189,16 @@ def build_project_kb(
             dict(r)
             for r in kb._con.execute(
                 "SELECT model, name, kind, origin, module, source_file, source_line, "
-                "source_end_line, field_type, section, import_index, attrs_json, has_super FROM symbols"
+                "source_end_line, field_type, section, import_index, attrs_json, has_super "
+                "FROM symbols WHERE repo_id = ?",
+                (global_repo_id,),
             ).fetchall()
         ]
         global_field_refs = [
             dict(r)
             for r in kb._con.execute(
-                "SELECT model, field_name, module, kwarg, target_method FROM field_refs"
+                "SELECT model, field_name, module, kwarg, target_method FROM field_refs WHERE repo_id = ?",
+                (global_repo_id,),
             ).fetchall()
         ]
         global_model_origins = [
@@ -194,26 +206,32 @@ def build_project_kb(
             for r in kb._con.execute(
                 "SELECT model, module, origin, role, model_type, "
                 "inherit_json, inherits_json, source_file, source_line, description "
-                "FROM model_origins"
+                "FROM model_origins WHERE repo_id = ?",
+                (global_repo_id,),
             ).fetchall()
         ]
         global_views = [
             dict(r)
             for r in kb._con.execute(
                 "SELECT xml_id, module, origin, name, model, view_type, inherit_id, "
-                "mode, source_file, source_line, fields_json, buttons_json FROM views"
+                "mode, source_file, source_line, fields_json, buttons_json FROM views WHERE repo_id = ?",
+                (global_repo_id,),
             ).fetchall()
         ]
         global_actions = [
             dict(r)
             for r in kb._con.execute(
-                "SELECT xml_id, module, origin, name, model, view_id, domain, source_file, source_line FROM actions"
+                "SELECT xml_id, module, origin, name, model, view_id, domain, source_file, source_line "
+                "FROM actions WHERE repo_id = ?",
+                (global_repo_id,),
             ).fetchall()
         ]
         global_menus = [
             dict(r)
             for r in kb._con.execute(
-                "SELECT xml_id, module, origin, name, action, parent_id, source_file, source_line FROM menus"
+                "SELECT xml_id, module, origin, name, action, parent_id, source_file, source_line "
+                "FROM menus WHERE repo_id = ?",
+                (global_repo_id,),
             ).fetchall()
         ]
 
@@ -228,29 +246,9 @@ def build_project_kb(
     }
 
     global_odoo_version = global_meta.get("odoo_version", version)
-    sources: dict[str, str] = dict(global_sources)
 
-    # --- Discover and classify root addons (symlinks + non-symlink dirs at root) ---
-    try:
-        subs = list_submodules(Repo(repo_path))
-    except InvalidGitRepositoryError:
-        subs = {}
-
-    # Deduplicate by resolved real path, preferring root-level symlinks over
-    # real files (mirrors commands/addons/list.py's established dedup rule).
-    seen: dict[str, AddonInfo] = {}
-    for addon in find_addons(repo_path, shallow=True):
-        if addon.path not in seen or addon.symlinked:
-            seen[addon.path] = addon
-
-    project_addons = [a for a in seen.values() if a.technical_name in allowed_modules]
-    project_addons.sort(key=lambda a: a.technical_name)
-
-    for addon in project_addons:
-        sub = subs.get(addon.rel_path, {})
-        enrich_addon(addon, sub)
-
-    log.info(f"Scanning {len(project_addons)} project addon(s)…")
+    # --- Scan the caller-supplied, already-classified addons ---
+    log.info(f"Scanning {len(addons)} project addon(s)…")
 
     tier_result: dict = {
         "modules": {},
@@ -261,7 +259,7 @@ def build_project_kb(
         "actions": [],
         "menus": [],
     }
-    for addon in project_addons:
+    for addon in addons:
         real_module_path = Path(addon.path)
         origin = addon.classification
 
@@ -276,41 +274,52 @@ def build_project_kb(
         tier_result["actions"].extend(xml_scan.get("actions", []))
         tier_result["menus"].extend(xml_scan.get("menus", []))
 
-    log.info(f"{len(project_addons)} modules scanned")
+    log.info(f"{len(addons)} modules scanned")
 
-    sources["custom"] = str(repo_path)
-    sources["oca"] = str(repo_path)
-    sources["third-party"] = str(repo_path)
+    project_sources = {"custom": str(repo_path), "oca": str(repo_path), "third-party": str(repo_path)}
     project_scan_results: list[dict] = [tier_result]
 
     # --- Scope (input list, not actually-scanned set) ---
     scope = sorted(modules_list)
 
     # --- Resolve prototype roles, view types, and module apps across all scan results ---
+    # (cross-referencing global + project scan data in memory; writing them under
+    # separate repo_ids below does not affect this resolution pass)
     all_scan_results = [global_scan] + project_scan_results
     _resolve_prototype_roles(all_scan_results)
     _resolve_view_types(all_scan_results)
     _resolve_module_apps(all_scan_results)
 
-    # --- Write ---
+    # --- Write: each repo_id's rows via its own scoped write_kb() call ---
     log.info(f"Writing project KB → {db_path}")
-    write_result = write_project_kb(
+    write_result = write_kb(
         db_path=db_path,
+        repo_id=global_repo_id,
         odoo_version=global_odoo_version,
+        scan_results=[global_scan],
+        sources=global_sources,
+    )
+    result.merge(write_result)
+
+    write_result = write_kb(
+        db_path=db_path,
+        repo_id=project_repo_id,
+        odoo_version=global_odoo_version,
+        scan_results=project_scan_results,
+        sources=project_sources,
         project=project,
         scope=scope,
-        sources=sources,
-        scan_results=all_scan_results,
     )
     result.merge(write_result)
 
     # --- Compute and persist load order ---
     # Restrict to the caller-supplied installed set, not every module in the KB
     # (the KB also contains the global KB modules which are not all installed).
-    with KBReader(db_path) as kb:
+    repo_ids = [project_repo_id, global_repo_id]
+    with KBReader(db_path, repo_ids=repo_ids) as kb:
         modules_depends = kb.get_modules_with_depends()
     load_result = compute_load_order(set(modules_list), modules_depends)
-    update_module_load_order(db_path, load_result)
+    update_module_load_order(db_path, repo_ids, load_result)
     log.info(f"Load order stamped for {len(load_result)} modules")
 
     result.data = db_path
@@ -358,7 +367,7 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
     if not project.exists():
         return True, f"no project KB at {project}"
 
-    with KBReader(project) as kb:
+    with KBReader(project, repo_ids=[local_repo_id(repo_path), odoo_core_repo_id(version)]) as kb:
         meta = kb.get_meta()
         sv = meta.get("schema_version")
         if sv != str(SCHEMA_VERSION):
@@ -378,7 +387,7 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
 
     global_kb = global_kb_path(version)
     if global_kb.exists():
-        with KBReader(global_kb) as kb:
+        with KBReader(global_kb, repo_ids=[odoo_core_repo_id(version)]) as kb:
             global_ts = parse_kb_timestamp(kb.get_meta().get("generated_at"))
         if global_ts and global_ts > project_ts:
             return True, "global KB is newer than project KB"

@@ -30,12 +30,7 @@ import click
 from oops.commands.base import command
 from oops.core.logger import live_progress, log
 from oops.core.models import Result
-from oops.core.paths import global_kb_dir
 from oops.io.file import get_odoo_sources_dirs, list_odoo_sources_versions, parse_odoo_version
-from oops.kb.build import _resolve_module_apps, _resolve_prototype_roles, _resolve_view_types
-from oops.kb.scanner import odoo_addons_roots, scan_tier
-from oops.kb.store import write_global_kb
-from oops.kb.xml_scanner import scan_tier_xml
 from oops.output.formatters import (
     FormatterRegistry,
     JsonFormatter,
@@ -48,6 +43,11 @@ from oops.utils.render import (
     prompt_select,
     warn_experimental,
 )
+from oops_engine.build import _resolve_module_apps, _resolve_prototype_roles, _resolve_view_types, odoo_core_repo_id
+from oops_engine.paths import global_kb_dir
+from oops_engine.scanner import odoo_addons_roots, scan_tier
+from oops_engine.store import write_kb
+from oops_engine.xml_scanner import scan_tier_xml
 
 from .presenters.build_global import BuildGlobalPresenter
 
@@ -189,8 +189,9 @@ def main(
         _resolve_module_apps(scan_results)
 
         log.info(f"Writing file to {db_path}")
-        temp_result = write_global_kb(
+        temp_result = write_kb(
             db_path=db_path,
+            repo_id=odoo_core_repo_id(version),
             odoo_version=version,
             sources=sources,
             scan_results=scan_results,

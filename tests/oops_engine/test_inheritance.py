@@ -7,8 +7,8 @@ import json
 import sqlite3
 from pathlib import Path
 
-from oops.kb.inheritance import build_class_chain, compute_mro, merge_fields
-from oops.kb.store import KBReader
+from oops_engine.inheritance import build_class_chain, compute_mro, merge_fields
+from oops_engine.store import KBReader
 
 # ---------------------------------------------------------------------------
 # Minimal in-memory KB fixture
@@ -21,6 +21,7 @@ def _make_db(tmp_path: Path) -> Path:
     con.executescript("""
         CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
         CREATE TABLE modules (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             name TEXT PRIMARY KEY, origin TEXT,
             depends TEXT DEFAULT '[]',
             application INTEGER DEFAULT 0,
@@ -29,6 +30,7 @@ def _make_db(tmp_path: Path) -> Path:
             load_index INTEGER
         );
         CREATE TABLE model_origins (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, module TEXT, origin TEXT, role TEXT,
             model_type TEXT DEFAULT 'model',
             inherit_json TEXT DEFAULT '[]',
@@ -38,6 +40,7 @@ def _make_db(tmp_path: Path) -> Path:
             PRIMARY KEY (model, module)
         );
         CREATE TABLE symbols (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, name TEXT, kind TEXT,
             origin TEXT, module TEXT,
             source_file TEXT, source_line INTEGER,
@@ -48,6 +51,7 @@ def _make_db(tmp_path: Path) -> Path:
             PRIMARY KEY (model, name, kind, module)
         );
         CREATE TABLE field_refs (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, field_name TEXT, module TEXT,
             kwarg TEXT, target_method TEXT,
             PRIMARY KEY (model, field_name, module, kwarg)
@@ -64,15 +68,15 @@ def _make_db(tmp_path: Path) -> Path:
         ],
     )
     # Each module defines/extends res.partner
-    _MO_SQL = "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+    _MO_SQL = "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
     con.executemany(
         _MO_SQL,
         [
-            ("res.partner", "base", "odoo", "create", "model",
+            ("test", "res.partner", "base", "odoo", "create", "model",
              "[]", "{}", "base/models/res_partner.py", 10, None, 0),
-            ("res.partner", "mail", "odoo", "extend", "model",
+            ("test", "res.partner", "mail", "odoo", "extend", "model",
              "[]", "{}", "mail/models/res_partner.py", 5, None, 0),
-            ("res.partner", "custom", "apik", "extend", "model",
+            ("test", "res.partner", "custom", "apik", "extend", "model",
              "[]", "{}", "custom/models/res_partner.py", 3, None, 0),
         ],
     )
@@ -102,7 +106,7 @@ def _make_db(tmp_path: Path) -> Path:
 class TestClassChain:
     def test_load_index_ordering(self, tmp_path):
         db_path = _make_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("res.partner", reader, {})
         assert len(chain) == 3
         load_indices = [r["load_index"] for r in chain]
@@ -112,7 +116,7 @@ class TestClassChain:
         db_path = _make_db(tmp_path)
         # Reverse load order: custom=0, mail=1, base=2
         load_order = {"custom": (0, 0), "mail": (1, 1), "base": (2, 2)}
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("res.partner", reader, load_order)
         assert chain[0]["module"] == "custom"
         assert chain[1]["module"] == "mail"
@@ -120,7 +124,7 @@ class TestClassChain:
 
     def test_inherit_field_parsed(self, tmp_path):
         db_path = _make_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("res.partner", reader, {})
         for r in chain:
             assert isinstance(r["inherit"], list)
@@ -132,20 +136,24 @@ class TestClassChain:
         con = sqlite3.connect(str(db_path))
         con.executescript("""
             CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
-            CREATE TABLE modules (name TEXT PRIMARY KEY, origin TEXT,
+            CREATE TABLE modules (repo_id TEXT NOT NULL DEFAULT 'test',
+            name TEXT PRIMARY KEY, origin TEXT,
                 depends TEXT DEFAULT '[]', application INTEGER DEFAULT 0,
                 app TEXT, depth INTEGER, load_index INTEGER);
-            CREATE TABLE model_origins (model TEXT, module TEXT, origin TEXT,
+            CREATE TABLE model_origins (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, module TEXT, origin TEXT,
                 role TEXT, model_type TEXT DEFAULT 'model',
                 inherit_json TEXT DEFAULT '[]', inherits_json TEXT DEFAULT '{}',
                 source_file TEXT, source_line INTEGER, description TEXT,
                 import_index INTEGER, PRIMARY KEY (model, module));
-            CREATE TABLE symbols (model TEXT, name TEXT, kind TEXT,
+            CREATE TABLE symbols (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, name TEXT, kind TEXT,
                 origin TEXT, module TEXT, source_file TEXT, source_line INTEGER,
                 source_end_line INTEGER, field_type TEXT, section TEXT,
                 import_index INTEGER, attrs_json TEXT,
                 PRIMARY KEY (model, name, kind, module));
-            CREATE TABLE field_refs (model TEXT, field_name TEXT, module TEXT,
+            CREATE TABLE field_refs (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, field_name TEXT, module TEXT,
                 kwarg TEXT, target_method TEXT,
                 PRIMARY KEY (model, field_name, module, kwarg));
             INSERT INTO meta VALUES ('schema_version', '8');
@@ -155,15 +163,15 @@ class TestClassChain:
             [("a_mod", "odoo", 1, 5), ("b_mod", "odoo", 1, 5)],
         )
         con.executemany(
-            "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             [
-                ("test.model", "a_mod", "odoo", "extend", "model", "[]", "{}", "a.py", 1, None, 1),
-                ("test.model", "b_mod", "odoo", "create", "model", "[]", "{}", "b.py", 1, None, 0),
+                ("test", "test.model", "a_mod", "odoo", "extend", "model", "[]", "{}", "a.py", 1, None, 1),
+                ("test", "test.model", "b_mod", "odoo", "create", "model", "[]", "{}", "b.py", 1, None, 0),
             ],
         )
         con.commit()
         con.close()
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("test.model", reader, {})
         # b_mod has import_index=0, should come first
         assert chain[0]["module"] == "b_mod"
@@ -173,7 +181,7 @@ class TestClassChain:
 class TestMRO:
     def test_single_inherit_reversed(self, tmp_path):
         db_path = _make_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("res.partner", reader, {})
         mro = compute_mro(chain)
         assert len(mro) == len(chain)
@@ -192,7 +200,7 @@ class TestMRO:
 class TestFieldMerge:
     def test_required_override(self, tmp_path):
         db_path = _make_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("res.partner", reader, {})
             mro = compute_mro(chain)
             fields = merge_fields(mro, reader)
@@ -203,7 +211,7 @@ class TestFieldMerge:
 
     def test_base_field_present(self, tmp_path):
         db_path = _make_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("res.partner", reader, {})
             mro = compute_mro(chain)
             fields = merge_fields(mro, reader)
@@ -216,20 +224,24 @@ class TestFieldMerge:
         con = sqlite3.connect(str(db_path))
         con.executescript("""
             CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
-            CREATE TABLE modules (name TEXT PRIMARY KEY, origin TEXT,
+            CREATE TABLE modules (repo_id TEXT NOT NULL DEFAULT 'test',
+            name TEXT PRIMARY KEY, origin TEXT,
                 depends TEXT DEFAULT '[]', application INTEGER DEFAULT 0,
                 app TEXT, depth INTEGER, load_index INTEGER);
-            CREATE TABLE model_origins (model TEXT, module TEXT, origin TEXT,
+            CREATE TABLE model_origins (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, module TEXT, origin TEXT,
                 role TEXT, model_type TEXT DEFAULT 'model',
                 inherit_json TEXT DEFAULT '[]', inherits_json TEXT DEFAULT '{}',
                 source_file TEXT, source_line INTEGER, description TEXT,
                 import_index INTEGER, PRIMARY KEY (model, module));
-            CREATE TABLE symbols (model TEXT, name TEXT, kind TEXT,
+            CREATE TABLE symbols (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, name TEXT, kind TEXT,
                 origin TEXT, module TEXT, source_file TEXT, source_line INTEGER,
                 source_end_line INTEGER, field_type TEXT, section TEXT,
                 import_index INTEGER, attrs_json TEXT,
                 PRIMARY KEY (model, name, kind, module));
-            CREATE TABLE field_refs (model TEXT, field_name TEXT, module TEXT,
+            CREATE TABLE field_refs (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, field_name TEXT, module TEXT,
                 kwarg TEXT, target_method TEXT,
                 PRIMARY KEY (model, field_name, module, kwarg));
             INSERT INTO meta VALUES ('schema_version', '8');
@@ -239,10 +251,10 @@ class TestFieldMerge:
             [("base", "odoo", 0, 0), ("ext", "apik", 1, 1)],
         )
         con.executemany(
-            "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             [
-                ("my.model", "base", "odoo", "create", "model", "[]", "{}", "f.py", 1, None, 0),
-                ("my.model", "ext", "apik", "extend", "model", "[]", "{}", "g.py", 1, None, 0),
+                ("test", "my.model", "base", "odoo", "create", "model", "[]", "{}", "f.py", 1, None, 0),
+                ("test", "my.model", "ext", "apik", "extend", "model", "[]", "{}", "g.py", 1, None, 0),
             ],
         )
         base_attrs = json.dumps({"type": "Selection", "selection": [["a", "A"], ["b", "B"]]})
@@ -261,7 +273,7 @@ class TestFieldMerge:
         )
         con.commit()
         con.close()
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("my.model", reader, {})
             mro = compute_mro(chain)
             fields = merge_fields(mro, reader)
@@ -291,12 +303,14 @@ def _make_diamond_db(tmp_path: Path) -> Path:
     con.executescript("""
         CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
         CREATE TABLE modules (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             name TEXT PRIMARY KEY, origin TEXT,
             depends TEXT DEFAULT '[]',
             application INTEGER DEFAULT 0,
             app TEXT, depth INTEGER, load_index INTEGER
         );
         CREATE TABLE model_origins (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, module TEXT, origin TEXT, role TEXT,
             model_type TEXT DEFAULT 'model',
             inherit_json TEXT DEFAULT '[]',
@@ -306,6 +320,7 @@ def _make_diamond_db(tmp_path: Path) -> Path:
             PRIMARY KEY (model, module)
         );
         CREATE TABLE symbols (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, name TEXT, kind TEXT,
             origin TEXT, module TEXT,
             source_file TEXT, source_line INTEGER,
@@ -316,6 +331,7 @@ def _make_diamond_db(tmp_path: Path) -> Path:
             PRIMARY KEY (model, name, kind, module)
         );
         CREATE TABLE field_refs (
+            repo_id TEXT NOT NULL DEFAULT 'test',
             model TEXT, field_name TEXT, module TEXT,
             kwarg TEXT, target_method TEXT,
             PRIMARY KEY (model, field_name, module, kwarg)
@@ -332,12 +348,12 @@ def _make_diamond_db(tmp_path: Path) -> Path:
         ],
     )
     rows = [
-        ("base.model", "base_mod", "odoo", "create",    "model", "[]",                   "{}", "f.py", 1, None, 0),
-        ("a.model",    "a_mod",    "odoo", "prototype", "model", '["base.model"]',        "{}", "f.py", 1, None, 0),
-        ("b.model",    "b_mod",    "odoo", "prototype", "model", '["base.model"]',        "{}", "f.py", 1, None, 0),
-        ("c.model",    "c_mod",    "apik", "create",    "model", '["a.model","b.model"]', "{}", "f.py", 1, None, 0),
+        ("test", "base.model", "base_mod", "odoo", "create", "model", "[]", "{}", "f.py", 1, None, 0),
+        ("test", "a.model", "a_mod", "odoo", "prototype", "model", '["base.model"]', "{}", "f.py", 1, None, 0),
+        ("test", "b.model", "b_mod", "odoo", "prototype", "model", '["base.model"]', "{}", "f.py", 1, None, 0),
+        ("test", "c.model", "c_mod", "apik", "create", "model", '["a.model","b.model"]', "{}", "f.py", 1, None, 0),
     ]
-    con.executemany("INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows)
+    con.executemany("INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     con.commit()
     con.close()
     return db_path
@@ -347,7 +363,7 @@ class TestMROC3:
     def test_diamond_c3_order(self, tmp_path):
         """c.model MRO must be [c, a, b, base] (classic diamond C3)."""
         db_path = _make_diamond_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("c.model", reader, {})
             mro = compute_mro(chain, reader=reader, load_order={})
         model_names = [r["model"] for r in mro]
@@ -356,7 +372,7 @@ class TestMROC3:
     def test_prototype_mro_includes_parent(self, tmp_path):
         """a.model MRO must be [a, base]."""
         db_path = _make_diamond_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("a.model", reader, {})
             mro = compute_mro(chain, reader=reader, load_order={})
         model_names = [r["model"] for r in mro]
@@ -365,7 +381,7 @@ class TestMROC3:
     def test_single_inherit_unchanged_with_reader(self, tmp_path):
         """Passing reader to a single-inherit chain must not change MRO."""
         db_path = _make_diamond_db(tmp_path)
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("base.model", reader, {})
             mro_no_reader = compute_mro(chain)
             mro_with_reader = compute_mro(chain, reader=reader, load_order={})
@@ -377,20 +393,24 @@ class TestMROC3:
         con = sqlite3.connect(str(db_path))
         con.executescript("""
             CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
-            CREATE TABLE modules (name TEXT PRIMARY KEY, origin TEXT,
+            CREATE TABLE modules (repo_id TEXT NOT NULL DEFAULT 'test',
+            name TEXT PRIMARY KEY, origin TEXT,
                 depends TEXT DEFAULT '[]', application INTEGER DEFAULT 0,
                 app TEXT, depth INTEGER, load_index INTEGER);
-            CREATE TABLE model_origins (model TEXT, module TEXT, origin TEXT,
+            CREATE TABLE model_origins (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, module TEXT, origin TEXT,
                 role TEXT, model_type TEXT DEFAULT 'model',
                 inherit_json TEXT DEFAULT '[]', inherits_json TEXT DEFAULT '{}',
                 source_file TEXT, source_line INTEGER, description TEXT,
                 import_index INTEGER, PRIMARY KEY (model, module));
-            CREATE TABLE symbols (model TEXT, name TEXT, kind TEXT,
+            CREATE TABLE symbols (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, name TEXT, kind TEXT,
                 origin TEXT, module TEXT, source_file TEXT, source_line INTEGER,
                 source_end_line INTEGER, field_type TEXT, section TEXT,
                 import_index INTEGER, attrs_json TEXT, has_super INTEGER,
                 PRIMARY KEY (model, name, kind, module));
-            CREATE TABLE field_refs (model TEXT, field_name TEXT, module TEXT,
+            CREATE TABLE field_refs (repo_id TEXT NOT NULL DEFAULT 'test',
+            model TEXT, field_name TEXT, module TEXT,
                 kwarg TEXT, target_method TEXT,
                 PRIMARY KEY (model, field_name, module, kwarg));
             INSERT INTO meta VALUES ('schema_version', '9');
@@ -400,15 +420,15 @@ class TestMROC3:
             [("mod_x", "odoo", 0, 0), ("mod_y", "odoo", 1, 1)],
         )
         con.executemany(
-            "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO model_origins VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             [
-                ("x.model", "mod_x", "odoo", "prototype", "model", '["y.model"]', "{}", "f.py", 1, None, 0),
-                ("y.model", "mod_y", "odoo", "prototype", "model", '["x.model"]', "{}", "f.py", 1, None, 0),
+                ("test", "x.model", "mod_x", "odoo", "prototype", "model", '["y.model"]', "{}", "f.py", 1, None, 0),
+                ("test", "y.model", "mod_y", "odoo", "prototype", "model", '["x.model"]', "{}", "f.py", 1, None, 0),
             ],
         )
         con.commit()
         con.close()
-        with KBReader(db_path) as reader:
+        with KBReader(db_path, repo_ids=["test"]) as reader:
             chain = build_class_chain("x.model", reader, {})
             mro = compute_mro(chain, reader=reader, load_order={})
         # Must not raise; exact order is the fallback (reversed chain)

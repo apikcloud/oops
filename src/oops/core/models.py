@@ -14,7 +14,6 @@ from pathlib import Path
 
 from oops.core.compat import TYPE_CHECKING, Any, Dict, Generic, List, Literal, Optional, Protocol, T
 from oops.utils.helpers import date_from_string
-from oops.utils.render import format_datetime
 
 if TYPE_CHECKING:
     from oops.services.loc import LocStats
@@ -104,6 +103,8 @@ class CommitInfo:
         )
 
     def __str__(self) -> str:
+        from oops.utils.render import format_datetime  # noqa: PLC0415 — keep config out of this module's import graph
+
         return f"{self.message} by {self.author} on {format_datetime(self.date)} ({self.sha})"
 
     def to_dict(self) -> dict:
@@ -295,6 +296,54 @@ class ModuleSummary:
     """Flat {(model, method_name): stack_list} for the IR method stack attachment."""
     origin: "Optional[str]" = None
     """Module KB origin (core/enterprise/oca/third_party/custom) from the KB modules table."""
+
+    def to_cache_dict(self) -> dict:
+        """Serialize to a JSON-safe dict for the analysis cache.
+
+        `dataclasses.asdict()` alone is not enough: `module_path` is a `Path`,
+        `structure.xml_analysed` is a `frozenset`, and `method_stacks` is keyed
+        by `(model, method_name)` tuples — none of which `json.dumps()` accepts.
+        """
+        payload = asdict(self)
+        payload["module_path"] = str(self.module_path)
+        payload["structure"]["xml_analysed"] = sorted(self.structure.xml_analysed)
+        payload["method_stacks"] = [
+            {"model": model, "method": method, "stack": stack}
+            for (model, method), stack in self.method_stacks.items()
+        ]
+        return payload
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ModuleSummary":
+        """Reconstruct a `ModuleSummary` from `to_cache_dict()`'s output."""
+        from oops.io.refactor import ClassInfo, SymbolInfo  # noqa: PLC0415 — avoid a heavy import at module load
+        from oops.services.loc import LocStats  # noqa: PLC0415 — see TYPE_CHECKING import above
+
+        data = dict(data)
+        data["module_path"] = Path(data["module_path"])
+
+        structure_data = dict(data["structure"])
+        structure_data["xml_analysed"] = frozenset(structure_data.get("xml_analysed") or [])
+        data["structure"] = StructureSummary(**structure_data)
+
+        data["classes"] = [ClassSummary(**c) for c in data.get("classes") or []]
+
+        if data.get("loc") is not None:
+            data["loc"] = LocStats(**data["loc"])
+
+        if data.get("views_summary") is not None:
+            data["views_summary"] = ViewsSummary(**data["views_summary"])
+
+        data["class_infos"] = [
+            ClassInfo(**{**ci, "symbols": [SymbolInfo(**s) for s in ci.get("symbols") or []]})
+            for ci in data.get("class_infos") or []
+        ]
+
+        data["method_stacks"] = {
+            (item["model"], item["method"]): item["stack"] for item in data.get("method_stacks") or []
+        }
+
+        return cls(**data)
 
 
 class HasStatus(Protocol):

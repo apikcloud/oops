@@ -29,18 +29,11 @@ from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata, update_metadata
 from oops.core.models import ClassSummary, ModuleSummary, Result, ResultCollection, StructureSummary, ViewsSummary
-from oops.core.paths import global_kb_path, project_kb_path
 from oops.io.file import detect_readme, find_addons
 from oops.io.installed_modules import read_installed_modules
 from oops.io.manifest import load_manifest
 from oops.io.python_imports import discover_imported_files
 from oops.io.refactor import ClassInfo, SymbolInfo, analyse_file
-from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
-from oops.kb.domain_profile import compute_domain_profile
-from oops.kb.provenance import normalize_origin
-from oops.kb.resolver import InheritanceResolver
-from oops.kb.scanner import build_module_field_refs
-from oops.kb.store import KBReader
 from oops.output.formatters import (
     FormatterRegistry,
     JsonFormatter,
@@ -50,10 +43,18 @@ from oops.output.formatters import (
 )
 from oops.output.sinks import deliver
 from oops.services.git import require_repository
-from oops.services.kb import set_kb_metadata
+from oops.services.kb import discover_project_addons, set_kb_metadata
 from oops.services.loc import get_addon_loc
 from oops.services.project import require_project
 from oops.utils.helpers import deep_visit
+from oops_engine.build import build_project_kb, compute_root_drift, is_project_kb_stale, odoo_core_repo_id
+from oops_engine.domain_profile import compute_domain_profile
+from oops_engine.identity import local_repo_id
+from oops_engine.paths import global_kb_path, project_kb_path
+from oops_engine.provenance import normalize_origin
+from oops_engine.resolver import InheritanceResolver
+from oops_engine.scanner import build_module_field_refs
+from oops_engine.store import KBReader, write_cached_analysis
 
 from .presenters.analyze import AnalyzePresenter
 
@@ -97,6 +98,12 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
+@click.option(
+    "--no-cache",
+    is_flag=True,
+    default=False,
+    help="Skip the per-module analysis cache read (a fresh result is still cached afterwards).",
+)
 @click.pass_context
 def main(  # noqa: C901, PLR0912, PLR0915
     ctx,
@@ -104,6 +111,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     refresh: bool,
     output_format: str,
     output_path: Path,
+    no_cache: bool,
 ) -> None:
 
     metadata = get_metadata()
@@ -116,7 +124,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
         results.add_warning("This command is experimental and may change without notice between releases.")
 
     resolved_paths = [mp.resolve() for mp in module_paths]
-    _, repo_path = require_repository()
+    local_repo, repo_path = require_repository()
     odoo_image = require_project(repo_path)
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
@@ -132,7 +140,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
             _gkb = global_kb_path(version)
             _odoo_mods: set[str] = set()
             if _gkb.exists():
-                with KBReader(_gkb) as _kb:
+                with KBReader(_gkb, repo_ids=[odoo_core_repo_id(version)]) as _kb:
                     _odoo_mods = {
                         n
                         for n, d in _kb.get_modules().items()
@@ -164,7 +172,8 @@ def main(  # noqa: C901, PLR0912, PLR0915
             why = "forced via --refresh" if refresh else f"stale: {reason}"
             results.add_warning(f"Rebuilding project KB: {why}")
             try:
-                kb_result = build_project_kb(repo_path, version, info.modules)
+                addons = discover_project_addons(local_repo, repo_path, set(info.modules))
+                kb_result = build_project_kb(repo_path, version, info.modules, addons)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
             results.merge(kb_result)
@@ -185,10 +194,11 @@ def main(  # noqa: C901, PLR0912, PLR0915
         else:
             total_loc = sum(get_addon_loc(str(mp)).total for mp in resolved_paths)
 
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[local_repo_id(repo_path), odoo_core_repo_id(version)]) as kb:
             modules_index = kb.get_modules()
             load_order = kb.get_module_load_order()
             resolver = InheritanceResolver(kb)
+            kb_generated_at = kb.get_meta().get("generated_at", "")
             _resolved_cache: dict = {}
 
             def _get_resolved(model: str) -> dict:
@@ -204,6 +214,12 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 log.info(f"Analysing {module_path.name} ({i}/{len(resolved_paths)})...")
                 module_name = module_path.name
                 module_result: Result[ModuleSummary] = Result()
+
+                cached = None if no_cache else kb.get_cached_analysis(module_name, kb_generated_at)
+                if cached is not None:
+                    module_result.data = ModuleSummary.from_dict(cached)
+                    results.add(module_result)
+                    continue
 
                 manifest = load_manifest(module_path)
                 if not manifest:
@@ -302,6 +318,11 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
                 weights = {**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}
                 module_result.data.domain_profile = compute_domain_profile(module_result.data, kb, weights)
+
+                write_cached_analysis(
+                    kb_path, local_repo_id(repo_path), module_name, kb_generated_at,
+                    module_result.data.to_cache_dict(),
+                )
 
                 results.add(module_result)
 

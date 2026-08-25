@@ -12,7 +12,7 @@ import logging
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from oops.kb.xml_scanner import (
+from oops_engine.xml_scanner import (
     _discover_xml_files,
     _extract_content,
     _line_of,

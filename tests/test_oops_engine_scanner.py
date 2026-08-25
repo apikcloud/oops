@@ -12,7 +12,7 @@ import logging
 import textwrap
 from pathlib import Path
 
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     _dedup_model_origins,
     _detect_super_in_func,
     _extract_string_value,
@@ -25,13 +25,13 @@ from oops.kb.scanner import (
     scan_module,
     scan_tier,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     get_model_names as _get_model_names,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     is_field_assignment as _is_field_assignment,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     is_odoo_model_class as _is_odoo_model_class,
 )
 

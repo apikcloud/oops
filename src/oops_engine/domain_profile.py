@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: domain_profile.py — oops/kb/domain_profile.py
+# File: domain_profile.py — oops_engine/domain_profile.py
 
 """Domain profile computation for the analyze command.
 
@@ -16,11 +16,11 @@ Public entry point:
 from __future__ import annotations
 
 from oops.core.compat import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
-from oops.kb.domains import EXCLUDED_TECHNICAL_MODULES, PILLAR_MODULES, domain_label
+from oops_engine.domains import EXCLUDED_TECHNICAL_MODULES, PILLAR_MODULES, domain_label
 
 if TYPE_CHECKING:
     from oops.core.models import ModuleSummary
-    from oops.kb.store import KBReader
+    from oops_engine.store import KBReader
 
 
 # ---------------------------------------------------------------------------

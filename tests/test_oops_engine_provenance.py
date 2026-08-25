@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import pytest
-from oops.kb.provenance import (
+from oops_engine.provenance import (
     ORIGIN_CORE,
     ORIGIN_CUSTOM,
     ORIGIN_ENTERPRISE,

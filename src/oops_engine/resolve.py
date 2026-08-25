@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: resolve.py — oops/kb/resolve.py
+# File: resolve.py — oops_engine/resolve.py
 
 """Dependency graph resolution for KB symbol precedence.
 

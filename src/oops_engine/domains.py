@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: domains.py — oops/kb/domains.py
+# File: domains.py — oops_engine/domains.py
 
 """Static domain-profiling constants. Edit freely."""
 

@@ -34,19 +34,21 @@ from oops.io.refactor import (
     analyse_file,
     rewrite_file,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     classify_method as _classify_method,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     get_model_names as _get_model_names,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     is_field_assignment as _is_field,
 )
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     is_odoo_model_class as _is_odoo_class,
 )
-from oops.kb.store import KBReader, write_project_kb
+from oops_engine.store import KBReader, write_kb
+
+_TEST_REPO_ID = "test"
 
 # ---------------------------------------------------------------------------
 # Shared test fixtures / source snippets
@@ -101,8 +103,9 @@ def _make_kb(
         "field_refs": [],
         "model_origins": model_origins or [],
     }]
-    write_project_kb(
+    write_kb(
         db_path=db_path,
+        repo_id=_TEST_REPO_ID,
         odoo_version="17.0",
         project="test",
         scope=[],
@@ -620,13 +623,13 @@ class TestAnalyseFile:
     def test_non_odoo_file_returns_empty(self, tmp_path):
         py_file = tmp_path / "helper.py"
         py_file.write_text("class Helper:\n    pass\n")
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             assert analyse_file(py_file, kb, {}, "mymodule") == []
 
     def test_detects_new_model_class(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             result = analyse_file(py_file, kb, {}, "mymodule")
         assert len(result) == 1
         ci = result[0]
@@ -637,7 +640,7 @@ class TestAnalyseFile:
     def test_new_model_fields_go_to_base_fields(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "mymodule")
         field_syms = [s for s in ci.symbols if s.kind == "field"]
         assert field_syms
@@ -646,7 +649,7 @@ class TestAnalyseFile:
     def test_new_model_methods_classified_correctly(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "mymodule")
         method_map = {s.name: s for s in ci.symbols if s.kind == "method"}
         assert method_map["action_open"].section == "ACTION METHODS"
@@ -656,7 +659,7 @@ class TestAnalyseFile:
         py_file = tmp_path / "sale_order.py"
         py_file.write_text(INHERIT_MODEL_SOURCE)
         kb_path = self._sale_kb(tmp_path)
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[_TEST_REPO_ID]) as kb:
             modules_index = kb.get_modules()
             [ci] = analyse_file(py_file, kb, modules_index, "my_sale")
         field_map = {s.name: s for s in ci.symbols if s.kind == "field"}
@@ -667,7 +670,7 @@ class TestAnalyseFile:
         py_file = tmp_path / "sale_order.py"
         py_file.write_text(INHERIT_MODEL_SOURCE)
         kb_path = self._sale_kb(tmp_path)
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[_TEST_REPO_ID]) as kb:
             modules_index = kb.get_modules()
             [ci] = analyse_file(py_file, kb, modules_index, "my_sale")
         method_map = {s.name: s for s in ci.symbols if s.kind == "method"}
@@ -679,7 +682,7 @@ class TestAnalyseFile:
     def test_method_end_lineno_populated(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "mymodule")
         methods = [s for s in ci.symbols if s.kind == "method"]
         assert methods
@@ -689,7 +692,7 @@ class TestAnalyseFile:
     def test_syntax_error_file_returns_empty(self, tmp_path):
         py_file = tmp_path / "broken.py"
         py_file.write_text("def broken(:\n    pass")
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             assert analyse_file(py_file, kb, {}, "mymodule") == []
 
 
@@ -713,14 +716,14 @@ class TestRewriteFile:
     def test_injects_base_fields_header(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             classes = analyse_file(py_file, kb, {}, "mymodule")
         assert "# === BASE FIELDS === #" in rewrite_file(py_file, classes)
 
     def test_injects_method_section_header(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             classes = analyse_file(py_file, kb, {}, "mymodule")
         new_src = rewrite_file(py_file, classes)
         assert "# === ACTION METHODS === #" in new_src
@@ -729,7 +732,7 @@ class TestRewriteFile:
     def test_injects_docstring_for_undocumented_method(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             classes = analyse_file(py_file, kb, {}, "mymodule")
         new_src = rewrite_file(py_file, classes)
         assert '"""' in new_src
@@ -749,7 +752,7 @@ class TestRewriteFile:
         """)
         py_file = tmp_path / "my_model.py"
         py_file.write_text(source)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             classes = analyse_file(py_file, kb, {}, "mymodule")
         new_src = rewrite_file(py_file, classes)
         assert "Already documented." in new_src
@@ -758,7 +761,7 @@ class TestRewriteFile:
     def test_private_attrs_appear_before_fields_section(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             classes = analyse_file(py_file, kb, {}, "mymodule")
         new_src = rewrite_file(py_file, classes)
         assert new_src.index("_name") < new_src.index("# === BASE FIELDS === #")
@@ -766,7 +769,7 @@ class TestRewriteFile:
     def test_output_is_valid_python(self, tmp_path):
         py_file = tmp_path / "my_model.py"
         py_file.write_text(NEW_MODEL_SOURCE)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             classes = analyse_file(py_file, kb, {}, "mymodule")
         ast.parse(rewrite_file(py_file, classes))  # must not raise
 
@@ -902,6 +905,10 @@ class TestRefactorRebuild:
     def _patch_build(self, monkeypatch, kb_path: Path):
         """Mock build_project_kb to return kb_path without running the scanner."""
         calls: list = []
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.discover_project_addons",
+            lambda *_a, **_kw: [],
+        )
         monkeypatch.setattr(
             "oops.commands.addons.refactor.build_project_kb",
             lambda *a, **kw: (calls.append((a, kw)), Result(data=kb_path))[1],
@@ -1374,7 +1381,7 @@ class TestAnalyseFileFieldRefs:
     def _write_and_analyse(self, tmp_path: Path, source: str) -> dict:
         py_file = tmp_path / "m.py"
         py_file.write_text(textwrap.dedent(source))
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "mymodule")
         return {s.name: s for s in ci.symbols if s.kind == "method"}
 
@@ -1460,7 +1467,7 @@ class TestAnalyseFileFieldRefs:
         """)
         py_file = tmp_path / "m.py"
         py_file.write_text(src)
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             classes = analyse_file(py_file, kb, {}, "mymodule")
         new_src = rewrite_file(py_file, classes)
         assert "# === COMPUTE METHODS === #" in new_src
@@ -1487,9 +1494,9 @@ class TestAnalyseFileFieldRefs:
                 def _compute_x(self):
                     pass
         """))
-        from oops.kb.scanner import build_module_field_refs
+        from oops_engine.scanner import build_module_field_refs
         module_local_refs = build_module_field_refs([file_a, file_b])
-        with KBReader(self._empty_kb(tmp_path)) as kb:
+        with KBReader(self._empty_kb(tmp_path), repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(file_b, kb, {}, "mymodule", module_local_refs)
         method_map = {s.name: s for s in ci.symbols if s.kind == "method"}
         assert method_map["_compute_x"].section == "COMPUTE METHODS"
@@ -1563,7 +1570,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
         py_file = tmp_path / "res_client.py"
         py_file.write_text(NEW_MODEL_WITH_MIXINS_SOURCE)
         kb_path = self._make_client_kb(tmp_path)
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "partner_hub")
         assert ci.is_new_model is True
 
@@ -1577,7 +1584,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
         py_file = tmp_path / "res_client_ext.py"
         py_file.write_text(src)
         kb_path = self._make_client_kb(tmp_path)
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "partner_hub_project")
         assert ci.is_new_model is False
 
@@ -1585,7 +1592,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
         py_file = tmp_path / "res_client.py"
         py_file.write_text(NEW_MODEL_WITH_MIXINS_SOURCE)
         kb_path = self._make_client_kb(tmp_path)
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "partner_hub")
         field_syms = [s for s in ci.symbols if s.kind == "field"]
         assert field_syms, "expected at least one field"
@@ -1595,7 +1602,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
         py_file = tmp_path / "res_client.py"
         py_file.write_text(NEW_MODEL_WITH_MIXINS_SOURCE)
         kb_path = self._make_client_kb(tmp_path)
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "partner_hub")
         assert all(not s.is_override for s in ci.symbols if s.kind == "method")
 
@@ -1607,7 +1614,7 @@ class TestAnalyseFileCreatorInNonEmptyKB:
         _make_kb(kb_path, symbols=[
             _kb_symbol("res.client", "name", "field", module="partner_hub")
         ])
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[_TEST_REPO_ID]) as kb:
             [ci] = analyse_file(py_file, kb, {}, "partner_hub")
         assert ci.is_new_model is True
 
@@ -1619,43 +1626,43 @@ class TestAnalyseFileCreatorInNonEmptyKB:
 
 class TestGetInherits:
     def test_basic_dict(self):
-        from oops.kb.scanner import get_inherits
+        from oops_engine.scanner import get_inherits
         src = "class Foo(models.Model):\n    _inherits = {'res.partner': 'partner_id'}"
         assert get_inherits(_parse_class(src)) == {"res.partner": "partner_id"}
 
     def test_empty_when_absent(self):
-        from oops.kb.scanner import get_inherits
+        from oops_engine.scanner import get_inherits
         assert get_inherits(_parse_class("class Foo(models.Model):\n    pass")) == {}
 
     def test_multiple_parents(self):
-        from oops.kb.scanner import get_inherits
+        from oops_engine.scanner import get_inherits
         src = "class Foo(models.Model):\n    _inherits = {'res.partner': 'partner_id', 'res.company': 'company_id'}"
         result = get_inherits(_parse_class(src))
         assert result == {"res.partner": "partner_id", "res.company": "company_id"}
 
     def test_ignores_non_dict_value(self):
-        from oops.kb.scanner import get_inherits
+        from oops_engine.scanner import get_inherits
         src = "class Foo(models.Model):\n    _inherits = some_variable"
         assert get_inherits(_parse_class(src)) == {}
 
 
 class TestGetModelType:
     def test_abstract_model(self):
-        from oops.kb.scanner import get_model_type
+        from oops_engine.scanner import get_model_type
         assert get_model_type(_parse_class("class Foo(models.AbstractModel): pass")) == "abstract"
 
     def test_transient_model(self):
-        from oops.kb.scanner import get_model_type
+        from oops_engine.scanner import get_model_type
         assert get_model_type(_parse_class("class Foo(models.TransientModel): pass")) == "transient"
 
     def test_concrete_model(self):
-        from oops.kb.scanner import get_model_type
+        from oops_engine.scanner import get_model_type
         assert get_model_type(_parse_class("class Foo(models.Model): pass")) == "model"
 
     def test_bare_abstract_name(self):
-        from oops.kb.scanner import get_model_type
+        from oops_engine.scanner import get_model_type
         assert get_model_type(_parse_class("class Foo(AbstractModel): pass")) == "abstract"
 
     def test_bare_transient_name(self):
-        from oops.kb.scanner import get_model_type
+        from oops_engine.scanner import get_model_type
         assert get_model_type(_parse_class("class Foo(TransientModel): pass")) == "transient"

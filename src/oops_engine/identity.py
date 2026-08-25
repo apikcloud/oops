@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: identity.py — oops/kb/identity.py
+# File: identity.py — oops_engine/identity.py
 
 """Stable, module-qualified ids and source-path normalization for the IR v2.
 
@@ -19,7 +19,19 @@ Id scheme (spec §7.1):
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from oops.core.compat import Optional
+
+
+def local_repo_id(repo_path: Path) -> str:
+    """Return a stable repo_id slug for a local project's own KB rows.
+
+    Uses the resolved absolute path's directory name — stable across repeated
+    runs against the same checkout, and distinct across different local
+    projects (the local CLI's SQLite use case never needs more than this).
+    """
+    return Path(repo_path).resolve().name
 
 
 def module_id(module: str) -> str:

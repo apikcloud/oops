@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: xml_scanner.py — oops/kb/xml_scanner.py
+# File: xml_scanner.py — oops_engine/xml_scanner.py
 
 """XML scanner for Odoo source trees.
 

@@ -47,11 +47,11 @@ test: ## Run pytest suite
 
 .PHONY: cov
 cov: ## Run pytest with branch coverage (terminal report)
-	uv run pytest --cov=oops --cov-branch --cov-report=term-missing
+	uv run pytest --cov=oops --cov=oops_engine --cov-branch --cov-report=term-missing
 
 .PHONY: cov-html
 cov-html: ## Run pytest with branch coverage (HTML report → htmlcov/)
-	uv run pytest --cov=oops --cov-branch --cov-report=html
+	uv run pytest --cov=oops --cov=oops_engine --cov-branch --cov-report=html
 	@echo "Open htmlcov/index.html"
 
 ##@ Code Quality
