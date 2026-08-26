@@ -122,6 +122,16 @@ class AnalysisRun:
     default=False,
     help="Skip the per-module analysis cache read (a fresh result is still cached afterwards).",
 )
+@click.option(
+    "--installed-only",
+    is_flag=True,
+    default=False,
+    help=(
+        "Only scan addons listed in installed_modules.txt for the project KB. "
+        "By default, addons present at the repo root but missing from "
+        "installed_modules.txt are scanned too."
+    ),
+)
 @click.pass_context
 def main(  # noqa: C901, PLR0912, PLR0915
     ctx,
@@ -131,6 +141,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     output_format: str,
     output_path: Path,
     no_cache: bool,
+    installed_only: bool,
 ) -> None:
 
     if analyze_all and module_paths:
@@ -155,7 +166,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
     else:
         resolved_paths = list(module_paths)
 
-    run = run_analysis(local_repo, repo_path, resolved_paths, refresh, no_cache)
+    run = run_analysis(local_repo, repo_path, resolved_paths, refresh, no_cache, installed_only)
     results = run.results
     if not json_mode:
         results.add_warning("This command is experimental and may change without notice between releases.")
@@ -173,10 +184,15 @@ def run_analysis(  # noqa: C901, PLR0912, PLR0915
     module_paths: list[Path],
     refresh: bool,
     no_cache: bool = False,
+    installed_only: bool = False,
 ) -> AnalysisRun:
     """Analyze the given module paths, returning per-module results.
 
     Shared by the `analyze` CLI command and `project_pipeline.build_ir()`.
+
+    By default, addons present at the repo root but absent from
+    installed_modules.txt are still scanned into the project KB. Pass
+    ``installed_only=True`` to restrict the KB scan to the installed set only.
     """
     results: ResultCollection[ModuleSummary] = ResultCollection(title="Addons analyze")
 
@@ -209,10 +225,20 @@ def run_analysis(  # noqa: C901, PLR0912, PLR0915
             if missing:
                 results.add_warning(f"Modules in installed_modules.txt with no addon at the repo root: {missing}")
             if extra:
-                results.add_warning(
-                    f"Addons at the repo root not in installed_modules.txt "
-                    f"(will not be scanned by the project KB): {extra}"
-                )
+                if installed_only:
+                    results.add_warning(
+                        f"Addons at the repo root not in installed_modules.txt "
+                        f"(excluded from the project KB scan — --installed-only): {extra}"
+                    )
+                else:
+                    results.add_warning(
+                        f"Addons at the repo root not in installed_modules.txt "
+                        f"(scanned anyway; pass --installed-only to exclude): {extra}"
+                    )
+
+            scan_modules = set(info.modules)
+            if extra and not installed_only:
+                scan_modules |= set(extra)
 
         stale, reason = is_project_kb_stale(repo_path, version)
         needs_build = refresh or stale
@@ -233,8 +259,8 @@ def run_analysis(  # noqa: C901, PLR0912, PLR0915
             why = "forced via --refresh" if refresh else f"stale: {reason}"
             results.add_warning(f"Rebuilding project KB: {why}")
             try:
-                addons = discover_project_addons(repo, repo_path, set(info.modules))
-                kb_result = build_project_kb(repo_path, version, info.modules, addons)
+                addons = discover_project_addons(repo, repo_path, scan_modules)
+                kb_result = build_project_kb(repo_path, version, scan_modules, addons)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
             results.merge(kb_result)

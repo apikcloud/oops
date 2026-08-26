@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `oops addons analyze --all`: analyze every discoverable addon instead of specifying paths, mirroring `oops addons list --all`.
+- `oops addons analyze --installed-only` / `oops addons refactor --installed-only`: restrict the project KB scan to addons listed in `installed_modules.txt`, excluding root addons that aren't installed.
 
 ### Changed
 
 - `oops addons analyze`'s per-module analysis cache is now keyed by a content fingerprint of the module's own source chained with its dependencies', instead of the project KB's `generated_at` timestamp. A KB rebuild alone (schema migration, `installed_modules.txt` mtime, global-KB refresh) no longer invalidates every module's cached analysis — only an actual edit to a module's own files or a dependency's does.
 - `oops addons list` and `oops addons analyze`'s per-addon LOC computation (`cloc`) is now cached across invocations, keyed by the same content fingerprint, in the project's KB SQLite file. Unchanged addons skip the `cloc` subprocess on subsequent runs — previously `analyze` shelled out to `cloc` for every module's total-LOC computation on every run, uncached, regardless of the analysis cache.
+- **Breaking**: `oops addons analyze` and `oops addons refactor` now scan addons at the repo root that aren't listed in `installed_modules.txt` into the project KB by default (previously excluded, with only a warning). Pass `--installed-only` to restore the old behavior.
 
 ### Removed
 
