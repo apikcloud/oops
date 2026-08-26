@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from oops.commands.addons.list import main
 from oops.core.models import AddonInfo
-from oops.services.loc import LocStats
+from oops.services.loc import LocStats, _has_cloc, get_addon_loc
 
 
 def _make_addon_info(
@@ -42,14 +42,14 @@ def _make_addon_info(
 
 
 def _invoke_list_json(tmp_path: Path, addons: list[AddonInfo], loc_map: dict[str, LocStats]) -> list[dict]:
-    def _fake_loc(path: str) -> LocStats:
+    def _fake_loc(repo_path: Path, path: str) -> LocStats:  # noqa: ARG001
         return loc_map.get(path, LocStats())
 
     with patch("oops.commands.addons.list.require_repository") as mock_repo, patch(
         "oops.commands.addons.list.list_submodules", return_value={}
     ), patch("oops.commands.addons.list.find_addons", return_value=iter(addons)), patch(
         "oops.commands.addons.list.enrich_addon"
-    ), patch("oops.commands.addons.list.get_addon_loc", side_effect=_fake_loc), patch(
+    ), patch("oops.commands.addons.list.get_addon_loc_cached", side_effect=_fake_loc), patch(
         "oops.core.logger.Live", MagicMock()
     ):
         mock_repo.return_value = (MagicMock(), tmp_path)
@@ -102,3 +102,70 @@ class TestListLocKeys:
         row = rows[0]
         assert row["loc_total"] == 0
         assert row["loc_pct"] == 0.0
+
+
+class TestListLocCaching:
+    """Exercises the real get_addon_loc_cached() path end-to-end (not mocked)
+    — only the cloc subprocess wrapper (oops.services.loc.run) is faked."""
+
+    def test_second_invocation_reuses_persisted_loc_cache(self, tmp_path: Path) -> None:
+        addon_dir = tmp_path / "my_addon"
+        addon_dir.mkdir()
+        (addon_dir / "__manifest__.py").write_text("{}", encoding="utf-8")
+        addon = _make_addon_info(tmp_path, "my_addon", str(addon_dir))
+
+        calls = {"n": 0}
+
+        def _run(*a, **k):  # noqa: ANN002, ANN003
+            calls["n"] += 1
+            return json.dumps({"Python": {"code": 10}})
+
+        get_addon_loc.cache_clear()
+        _has_cloc.cache_clear()
+        try:
+            with patch("oops.commands.addons.list.require_repository") as mock_repo, \
+                    patch("oops.commands.addons.list.list_submodules", return_value={}), \
+                    patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), \
+                    patch("oops.commands.addons.list.enrich_addon"), \
+                    patch("shutil.which", lambda _: "/usr/bin/cloc"), \
+                    patch("oops.services.loc.run", side_effect=_run), \
+                    patch("oops.core.logger.Live", MagicMock()):
+                mock_repo.return_value = (MagicMock(), tmp_path)
+                first = CliRunner().invoke(main, ["--format", "json"])
+                get_addon_loc.cache_clear()  # defeat the in-process cache; only the persisted one should hit
+                second = CliRunner().invoke(main, ["--format", "json"])
+        finally:
+            get_addon_loc.cache_clear()
+            _has_cloc.cache_clear()
+
+        assert first.exit_code == 0, first.output
+        assert second.exit_code == 0, second.output
+        assert calls["n"] == 1  # cloc shelled out only once across both invocations
+        assert (tmp_path / ".oops-cache" / "kb.db").exists()
+
+    def test_no_prebuilt_kb_required(self, tmp_path: Path) -> None:
+        """`oops addons list` must work on a project with no `.oops-cache/kb.db`
+        yet — it must not require a prior `oops addons analyze`/build-kb run."""
+        addon_dir = tmp_path / "my_addon"
+        addon_dir.mkdir()
+        (addon_dir / "__manifest__.py").write_text("{}", encoding="utf-8")
+        addon = _make_addon_info(tmp_path, "my_addon", str(addon_dir))
+
+        assert not (tmp_path / ".oops-cache" / "kb.db").exists()
+
+        get_addon_loc.cache_clear()
+        _has_cloc.cache_clear()
+        try:
+            with patch("oops.commands.addons.list.require_repository") as mock_repo, \
+                    patch("oops.commands.addons.list.list_submodules", return_value={}), \
+                    patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), \
+                    patch("oops.commands.addons.list.enrich_addon"), \
+                    patch("shutil.which", lambda _: None), \
+                    patch("oops.core.logger.Live", MagicMock()):
+                mock_repo.return_value = (MagicMock(), tmp_path)
+                result = CliRunner().invoke(main, ["--format", "json"])
+        finally:
+            get_addon_loc.cache_clear()
+            _has_cloc.cache_clear()
+
+        assert result.exit_code == 0, result.output
