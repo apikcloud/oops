@@ -158,12 +158,23 @@ DDL_STATEMENTS = [
     "CREATE INDEX IF NOT EXISTS idx_menus_module  ON menus (repo_id, module)",
     """
     CREATE TABLE IF NOT EXISTS analysis_cache (
-        repo_id         TEXT NOT NULL,
-        module_name     TEXT NOT NULL,
-        kb_generated_at TEXT NOT NULL,
-        payload_json    JSONB NOT NULL,
-        cached_at       TEXT NOT NULL,
-        PRIMARY KEY (repo_id, module_name, kb_generated_at)
+        repo_id             TEXT NOT NULL,
+        module_name         TEXT NOT NULL,
+        content_fingerprint TEXT NOT NULL,
+        kb_generated_at     TEXT NOT NULL,
+        payload_json        JSONB NOT NULL,
+        cached_at           TEXT NOT NULL,
+        PRIMARY KEY (repo_id, module_name, content_fingerprint)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS loc_cache (
+        repo_id             TEXT NOT NULL,
+        addon_path          TEXT NOT NULL,
+        content_fingerprint TEXT NOT NULL,
+        loc_json            JSONB NOT NULL,
+        cached_at           TEXT NOT NULL,
+        PRIMARY KEY (repo_id, addon_path, content_fingerprint)
     )
     """,
 ]

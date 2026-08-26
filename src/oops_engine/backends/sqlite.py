@@ -152,12 +152,22 @@ CREATE INDEX IF NOT EXISTS idx_menus_parent  ON menus (repo_id, parent_id);
 CREATE INDEX IF NOT EXISTS idx_menus_module  ON menus (repo_id, module);
 
 CREATE TABLE IF NOT EXISTS analysis_cache (
-    repo_id         TEXT NOT NULL,
-    module_name     TEXT NOT NULL,
-    kb_generated_at TEXT NOT NULL,
-    payload_json    TEXT NOT NULL,
-    cached_at       TEXT NOT NULL,
-    PRIMARY KEY (repo_id, module_name, kb_generated_at)
+    repo_id             TEXT NOT NULL,
+    module_name         TEXT NOT NULL,
+    content_fingerprint TEXT NOT NULL,
+    kb_generated_at     TEXT NOT NULL,
+    payload_json        TEXT NOT NULL,
+    cached_at           TEXT NOT NULL,
+    PRIMARY KEY (repo_id, module_name, content_fingerprint)
+);
+
+CREATE TABLE IF NOT EXISTS loc_cache (
+    repo_id             TEXT NOT NULL,
+    addon_path          TEXT NOT NULL,
+    content_fingerprint TEXT NOT NULL,
+    loc_json            TEXT NOT NULL,
+    cached_at           TEXT NOT NULL,
+    PRIMARY KEY (repo_id, addon_path, content_fingerprint)
 );
 """
 
@@ -189,6 +199,14 @@ def _reset_if_legacy_schema(con: sqlite3.Connection) -> None:
     con.commit()
 
 
+def _reset_stale_analysis_cache(con: sqlite3.Connection) -> None:
+    """Drop analysis_cache if it predates the content_fingerprint key — disposable, safe to drop."""
+    cols = {row[1] for row in con.execute("PRAGMA table_info(analysis_cache)")}
+    if cols and "content_fingerprint" not in cols:
+        con.execute("DROP TABLE IF EXISTS analysis_cache")
+        con.commit()
+
+
 class SQLiteBackend:
     """Local single-file SQLite storage — today's behavior, byte-for-byte."""
 
@@ -201,6 +219,7 @@ class SQLiteBackend:
         con = sqlite3.connect(str(self.db_path))
         con.row_factory = sqlite3.Row
         _reset_if_legacy_schema(con)
+        _reset_stale_analysis_cache(con)
         con.executescript(DDL)
         con.commit()
         return con

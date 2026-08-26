@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 from oops_engine.backends.sqlite import SQLiteBackend
-from oops_engine.store import KBReader, write_kb
+from oops_engine.store import KBReader, write_cached_analysis, write_kb
 
 _DEFAULT_TEST_DSN = "postgresql://postgres:test@localhost:5433/oops_test"
 
@@ -162,3 +162,54 @@ class TestLegacySchemaMigration:
 
         with KBReader(backend, repo_ids=["whatever"]) as kb:
             assert kb.get_modules() == {}
+
+
+class TestAnalysisCacheMigration:
+    """A KB file with the pre-content-fingerprint analysis_cache table (keyed
+    only by kb_generated_at) must be dropped and recreated on the current
+    schema — the cache is disposable, so no data migration is needed, only
+    don't crash on the old column shape."""
+
+    def _make_legacy_cache_kb(self, db_path: Path) -> None:
+        con = sqlite3.connect(str(db_path))
+        try:
+            con.executescript(
+                """
+                CREATE TABLE analysis_cache (
+                    repo_id TEXT NOT NULL,
+                    module_name TEXT NOT NULL,
+                    kb_generated_at TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    cached_at TEXT NOT NULL,
+                    PRIMARY KEY (repo_id, module_name, kb_generated_at)
+                );
+                """
+            )
+            con.execute(
+                "INSERT INTO analysis_cache VALUES ('a', 'mod', 'gen-1', '{}', 'now')"
+            )
+            con.commit()
+        finally:
+            con.close()
+
+    def test_stale_analysis_cache_dropped_and_recreated(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        self._make_legacy_cache_kb(db_path)
+        backend = SQLiteBackend(db_path)
+
+        con = backend.connect()  # triggers _reset_stale_analysis_cache
+        cols = {row[1] for row in con.execute("PRAGMA table_info(analysis_cache)")}
+        rows = con.execute("SELECT COUNT(*) FROM analysis_cache").fetchone()
+        con.close()
+
+        assert "content_fingerprint" in cols
+        assert rows[0] == 0  # the stale row is gone, not migrated
+
+    def test_write_cached_analysis_works_after_migration(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        self._make_legacy_cache_kb(db_path)
+        backend = SQLiteBackend(db_path)
+
+        write_cached_analysis(backend, "a", "mod", "fp-1", "gen-2", {"x": 1})
+        with KBReader(backend, repo_ids=["a"]) as kb:
+            assert kb.get_cached_analysis("mod", "fp-1") == {"x": 1}

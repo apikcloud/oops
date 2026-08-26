@@ -53,10 +53,19 @@ actions       (repo_id, xml_id, module, origin, name, model, view_id, domain,
                source_file, source_line)
 menus         (repo_id, xml_id, module, origin, name, action, parent_id,
                source_file, source_line)
-analysis_cache (repo_id, module_name, kb_generated_at, payload_json, cached_at)
-               -- cached ModuleSummary.to_cache_dict() JSON; a fresh write_kb()
-               -- for the repo_id both bumps generated_at (missing old rows)
-               -- and deletes leftover rows outright, see _DATA_TABLES.
+analysis_cache (repo_id, module_name, content_fingerprint, kb_generated_at,
+                payload_json, cached_at)
+               -- cached ModuleSummary.to_cache_dict() JSON, keyed by a content
+               -- fingerprint of the module's own source chained with its
+               -- dependencies' fingerprints (oops_engine.fingerprint). NOT in
+               -- _DATA_TABLES: a KB rebuild alone no longer invalidates it —
+               -- only a change to the module's (or a dependency's) own files
+               -- does. write_cached_analysis() prunes stale fingerprints for
+               -- the same (repo_id, module_name) on each write, keeping one
+               -- row per module.
+loc_cache      (repo_id, addon_path, content_fingerprint, loc_json, cached_at)
+               -- cached get_addon_loc() result, keyed the same way; written
+               -- and pruned by write_cached_loc().
 
 Indexes
 -------
@@ -118,7 +127,8 @@ _DATA_TABLES = (
     "modules",
     "sources",
     "repo_meta",
-    "analysis_cache",  # a fresh scan invalidates every cached analysis for this repo_id
+    # analysis_cache/loc_cache are content-fingerprint-keyed, not kb_generated_at
+    # -keyed — a KB rebuild alone must not invalidate them. See module docstring.
 )
 
 # (table, columns, conflict_columns) for the 7 tables scan results populate.
@@ -421,34 +431,49 @@ def write_cached_analysis(
     db_path: BackendOrPath,
     repo_id: str,
     module_name: str,
+    content_fingerprint: str,
     kb_generated_at: str,
     payload: Dict[str, Any],
 ) -> None:
     """Cache one module's computed analysis (a `ModuleSummary.to_cache_dict()` payload).
 
     Args:
-        db_path:         destination — a bare path or an explicit Backend.
-        repo_id:         repo_id this analysis was computed for.
-        module_name:     module technical name.
-        kb_generated_at: the KB's `generated_at` meta value at analysis time —
-            part of the cache key, so a KB rebuild naturally misses old rows.
-        payload:         JSON-safe dict, e.g. from `ModuleSummary.to_cache_dict()`.
+        db_path:              destination — a bare path or an explicit Backend.
+        repo_id:              repo_id this analysis was computed for.
+        module_name:          module technical name.
+        content_fingerprint:  chained content fingerprint (own source + resolved
+            dependencies', see `oops_engine.fingerprint`) — the cache key. A
+            change to the module's own files or a dependency's produces a
+            different fingerprint, so the previous row is a guaranteed miss.
+        kb_generated_at:      the KB's `generated_at` meta value at analysis
+            time — kept as a plain (non-key) column for observability.
+        payload:               JSON-safe dict, e.g. from `ModuleSummary.to_cache_dict()`.
     """
     backend = _resolve_backend(db_path)
+    ph = backend.placeholder()
     upsert = backend.upsert_sql(
         "analysis_cache",
-        ("repo_id", "module_name", "kb_generated_at", "payload_json", "cached_at"),
-        ("repo_id", "module_name", "kb_generated_at"),
+        ("repo_id", "module_name", "content_fingerprint", "kb_generated_at", "payload_json", "cached_at"),
+        ("repo_id", "module_name", "content_fingerprint"),
     )
     con = backend.connect()
     try:
         with con:
             cur = con.cursor()
+            # content_fingerprint is no longer invalidated by a KB rebuild, so
+            # prune this module's other fingerprints or rows accumulate
+            # unbounded across edits — keep only the one just written.
+            cur.execute(
+                f"DELETE FROM analysis_cache WHERE repo_id = {ph} AND module_name = {ph} "
+                f"AND content_fingerprint != {ph}",
+                (repo_id, module_name, content_fingerprint),
+            )
             cur.execute(
                 upsert,
                 (
                     repo_id,
                     module_name,
+                    content_fingerprint,
                     kb_generated_at,
                     json.dumps(payload),
                     datetime.now(timezone.utc).isoformat(),
@@ -456,6 +481,86 @@ def write_cached_analysis(
             )
     finally:
         con.close()
+
+
+def write_cached_loc(
+    db_path: BackendOrPath,
+    repo_id: str,
+    addon_path: str,
+    content_fingerprint: str,
+    loc: Dict[str, Any],
+) -> None:
+    """Cache one addon's computed LOC breakdown (a `LocStats`-shaped dict).
+
+    Args:
+        db_path:              destination — a bare path or an explicit Backend.
+        repo_id:              repo_id this addon was scanned under.
+        addon_path:            resolved absolute addon directory path — stable
+            identity for an addon regardless of which submodule/symlink tier
+            it's found through.
+        content_fingerprint:  the addon directory's content fingerprint (see
+            `oops_engine.fingerprint`) — the cache key.
+        loc:                   JSON-safe dict, e.g. `dataclasses.asdict(LocStats(...))`.
+    """
+    backend = _resolve_backend(db_path)
+    ph = backend.placeholder()
+    upsert = backend.upsert_sql(
+        "loc_cache",
+        ("repo_id", "addon_path", "content_fingerprint", "loc_json", "cached_at"),
+        ("repo_id", "addon_path", "content_fingerprint"),
+    )
+    con = backend.connect()
+    try:
+        with con:
+            cur = con.cursor()
+            # Same prune rationale as write_cached_analysis: keep one row per addon.
+            cur.execute(
+                f"DELETE FROM loc_cache WHERE repo_id = {ph} AND addon_path = {ph} "
+                f"AND content_fingerprint != {ph}",
+                (repo_id, addon_path, content_fingerprint),
+            )
+            cur.execute(
+                upsert,
+                (repo_id, addon_path, content_fingerprint, json.dumps(loc), datetime.now(timezone.utc).isoformat()),
+            )
+    finally:
+        con.close()
+
+
+def get_cached_loc(
+    db_path: BackendOrPath,
+    repo_id: str,
+    addon_path: str,
+    content_fingerprint: str,
+) -> Optional[Dict[str, Any]]:
+    """Return a cached LOC breakdown dict, or None on a cache miss.
+
+    Standalone (not `KBReader`-bound) — unlike `get_cached_analysis`, this is
+    called from `oops addons list`, which must work against a project with no
+    prior KB build. `SQLiteBackend.connect()` creates the file (and applies
+    the DDL) if it doesn't exist yet; `KBReader` requires it to already exist.
+
+    Args:
+        db_path:              a bare path or an explicit Backend.
+        repo_id:               repo_id this addon was scanned under.
+        addon_path:            resolved absolute addon directory path.
+        content_fingerprint:  the addon directory's current content
+            fingerprint (see `oops_engine.fingerprint`) — the cache key.
+    """
+    backend = _resolve_backend(db_path)
+    ph = backend.placeholder()
+    con = backend.connect()
+    try:
+        cur = con.cursor()
+        cur.execute(
+            f"SELECT loc_json FROM loc_cache WHERE repo_id = {ph} AND addon_path = {ph} "
+            f"AND content_fingerprint = {ph}",
+            (repo_id, addon_path, content_fingerprint),
+        )
+        row = cur.fetchone()
+    finally:
+        con.close()
+    return json.loads(row["loc_json"]) if row else None
 
 
 # ---------------------------------------------------------------------------
@@ -538,20 +643,22 @@ class KBReader:
         rows = self._exec("SELECT key, value FROM repo_meta WHERE repo_id = ?", (rid,)).fetchall()
         return {r["key"]: r["value"] for r in rows}
 
-    def get_cached_analysis(self, module_name: str, kb_generated_at: str) -> Optional[Dict[str, Any]]:
+    def get_cached_analysis(self, module_name: str, content_fingerprint: str) -> Optional[Dict[str, Any]]:
         """Return a cached `ModuleSummary.to_cache_dict()` payload, or None on a cache miss.
 
         Args:
-            module_name:     module technical name.
-            kb_generated_at: the KB's current `generated_at` meta value — the
-                cache key includes it, so a KB rebuild is a guaranteed miss.
+            module_name:          module technical name.
+            content_fingerprint:  the module's current chained content
+                fingerprint (see `oops_engine.fingerprint`) — the cache key,
+                so an edit to the module's own files or a dependency's is a
+                guaranteed miss, independent of KB rebuilds.
         """
         row = self._exec(
             f"""
             SELECT payload_json FROM analysis_cache
-            WHERE repo_id IN ({self._placeholders()}) AND module_name = ? AND kb_generated_at = ?
+            WHERE repo_id IN ({self._placeholders()}) AND module_name = ? AND content_fingerprint = ?
             """,
-            (*self._repo_ids, module_name, kb_generated_at),
+            (*self._repo_ids, module_name, content_fingerprint),
         ).fetchone()
         return json.loads(row["payload_json"]) if row else None
 

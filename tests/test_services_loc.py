@@ -3,9 +3,10 @@
 
 import json
 import subprocess
+import time
 
 import pytest
-from oops.services.loc import LocStats, _has_cloc, get_addon_loc
+from oops.services.loc import LocStats, _has_cloc, get_addon_loc, get_addon_loc_cached
 
 
 @pytest.fixture(autouse=True)
@@ -85,3 +86,76 @@ def test_get_addon_loc_empty_output(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
     monkeypatch.setattr("oops.services.loc.run", lambda *a, **k: "")
     assert get_addon_loc("/fake/addon") == LocStats()
+
+
+# ---------------------------------------------------------------------------
+# get_addon_loc_cached — persistent, content-fingerprint-keyed LOC cache
+# ---------------------------------------------------------------------------
+
+
+def test_get_addon_loc_cached_creates_kb_file_if_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
+    monkeypatch.setattr("oops.services.loc.run", lambda *a, **k: SAMPLE_CLOC)
+
+    repo_path = tmp_path / "repo"
+    addon_path = repo_path / "my_addon"
+    addon_path.mkdir(parents=True)
+    (addon_path / "__manifest__.py").write_text("{}", encoding="utf-8")
+
+    kb_path = repo_path / ".oops-cache" / "kb.db"
+    assert not kb_path.exists()
+
+    stats = get_addon_loc_cached(repo_path, str(addon_path))
+
+    assert stats == LocStats(python=300, xml=150, javascript=80, docs=65)
+    assert kb_path.exists()
+
+
+def test_get_addon_loc_cached_hits_cache_on_unchanged_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
+    calls = {"n": 0}
+
+    def _run(*a, **k):
+        calls["n"] += 1
+        return SAMPLE_CLOC
+
+    monkeypatch.setattr("oops.services.loc.run", _run)
+
+    repo_path = tmp_path / "repo"
+    addon_path = repo_path / "my_addon"
+    addon_path.mkdir(parents=True)
+    (addon_path / "__manifest__.py").write_text("{}", encoding="utf-8")
+
+    first = get_addon_loc_cached(repo_path, str(addon_path))
+    get_addon_loc.cache_clear()  # defeat the in-process lru_cache — prove the persisted cache is what's hit
+    second = get_addon_loc_cached(repo_path, str(addon_path))
+
+    assert first == second
+    assert calls["n"] == 1  # cloc only shelled out once
+
+
+def test_get_addon_loc_cached_misses_and_repopulates_after_edit(tmp_path, monkeypatch):
+    monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
+    calls = {"n": 0}
+
+    def _run(*a, **k):
+        calls["n"] += 1
+        return SAMPLE_CLOC
+
+    monkeypatch.setattr("oops.services.loc.run", _run)
+
+    repo_path = tmp_path / "repo"
+    addon_path = repo_path / "my_addon"
+    addon_path.mkdir(parents=True)
+    (addon_path / "__manifest__.py").write_text("{}", encoding="utf-8")
+
+    get_addon_loc_cached(repo_path, str(addon_path))
+    get_addon_loc.cache_clear()
+
+    time.sleep(0.01)
+    (addon_path / "extra.py").write_text("x = 1", encoding="utf-8")
+
+    result = get_addon_loc_cached(repo_path, str(addon_path))
+
+    assert calls["n"] == 2  # content changed -> fingerprint miss -> cloc reran
+    assert result == LocStats(python=300, xml=150, javascript=80, docs=65)

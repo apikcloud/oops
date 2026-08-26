@@ -17,12 +17,17 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from functools import lru_cache
+from pathlib import Path
 
 from oops.core.logger import log
 from oops.io.tools import run
 from oops.utils.render import print_warning
+from oops_engine.fingerprint import fingerprint_directory
+from oops_engine.identity import local_repo_id
+from oops_engine.paths import project_kb_path
+from oops_engine.store import get_cached_loc, write_cached_loc
 
 CLOC_LANGS = "Python,XML,JavaScript,Markdown,reStructuredText"
 
@@ -88,3 +93,26 @@ def get_addon_loc(path: str) -> LocStats:
         javascript=int(data.get("JavaScript", {}).get("code", 0)),
         docs=int(md.get("code", 0)) + int(rst.get("code", 0)),
     )
+
+
+def get_addon_loc_cached(repo_path: Path, addon_path: str) -> LocStats:
+    """Cached wrapper around `get_addon_loc()`, keyed by content fingerprint.
+
+    `get_addon_loc()`'s own `@lru_cache` is in-process only — gone the moment
+    the CLI exits. This persists the result in the project KB's SQLite file,
+    keyed by a content fingerprint of the addon directory (see
+    `oops_engine.fingerprint`) so unchanged addons skip the `cloc` subprocess
+    on the next invocation. Works even when no project KB has been built yet
+    — the cache file/schema is created on first use.
+    """
+    fingerprint = fingerprint_directory(Path(addon_path))
+    repo_id = local_repo_id(repo_path)
+    db_path = project_kb_path(repo_path)
+
+    cached = get_cached_loc(db_path, repo_id, addon_path, fingerprint)
+    if cached is not None:
+        return LocStats(**cached)
+
+    loc = get_addon_loc(addon_path)
+    write_cached_loc(db_path, repo_id, addon_path, fingerprint, asdict(loc))
+    return loc
