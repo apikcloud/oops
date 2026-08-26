@@ -45,16 +45,6 @@ class TestSanitizeCell:
         assert sanitize_cell(None) == ""
 
 
-class TestRenderMarkdownTable:
-    def test_basic_table(self):
-        from oops.utils.render import render_markdown_table
-        result = render_markdown_table(["Name", "Version"], [["addon_a", "1.0"]])
-        assert "Name" in result
-        assert "Version" in result
-        assert "addon_a" in result
-        assert "---" in result
-
-
 class TestRenderMaintainers:
     def test_renders_html_links(self):
         from oops.utils.render import render_maintainers

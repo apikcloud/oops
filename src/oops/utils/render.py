@@ -259,23 +259,6 @@ def sanitize_cell(s: Any) -> str:
     return s
 
 
-def render_markdown_table(header: List[str], rows: List[List[str]]) -> str:
-    """Render a plain Markdown table from a header row and data rows.
-
-    Args:
-        header: List of column header strings.
-        rows: List of rows, where each row is a list of cell strings.
-
-    Returns:
-        Markdown table string with a separator row after the header.
-    """
-    table = []
-    rows = [header, ["---"] * len(header)] + rows
-    for row in rows:
-        table.append(" | ".join(row))
-    return "\n".join(table)
-
-
 def render_maintainers(manifest: dict) -> str:
     """Render maintainer GitHub avatars as inline HTML image links.
 

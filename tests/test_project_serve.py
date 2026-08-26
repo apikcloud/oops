@@ -20,24 +20,24 @@ from oops.commands.project.serve import (
     prepare_site_dir,
     source_roots_from_payload,
 )
-from oops.services.loc import LocStats
 
 
-def _fake_addon(technical_name: str, path: str) -> MagicMock:
-    addon = MagicMock()
-    addon.technical_name = technical_name
-    addon.path = path
-    addon.rel_path = ""
-    addon.symlinked = False
-    addon.symlink = False
-    addon.location = "local"
-    addon.submodule = ""
-    addon.branch = ""
-    addon.pull_request = False
-    addon.version = "17.0.1.0.0"
-    addon.classification = "custom"
-    addon.author = "Apik"
-    return addon
+def _fake_inventory(technical_name: str, path: str) -> dict:
+    return {
+        technical_name: {
+            "module": technical_name,
+            "path": path,
+            "location": "local",
+            "symlink": False,
+            "submodule": "",
+            "branch": "",
+            "pr": False,
+            "version": "17.0.1.0.0",
+            "classification": "custom",
+            "author": "Apik",
+            "loc": {"python": 10, "xml": 0, "javascript": 0, "docs": 0, "total": 10},
+        }
+    }
 
 
 _FAKE_IR = {
@@ -61,15 +61,9 @@ _FAKE_IR = {
 
 class TestBuildPayload:
     def test_build_payload_is_json_clean(self, tmp_path: Path) -> None:
-        addon = _fake_addon("my_module", str(tmp_path / "my_module"))
-        with patch("oops.commands.project.doc.list_submodules", return_value={}), \
-                patch("oops.commands.project.doc.find_addons", return_value=[addon]), \
-                patch("oops.commands.project.doc.enrich_addon"), \
-                patch(
-                    "oops.commands.project.doc.get_addon_loc",
-                    return_value=LocStats(python=10),
-                ), \
-                patch("oops.commands.project.serve._run_analyze", return_value=_FAKE_IR), \
+        inventory = _fake_inventory("my_module", str(tmp_path / "my_module"))
+        with patch("oops.commands.project.serve.build_inventory", return_value=inventory), \
+                patch("oops.commands.project.serve.build_ir", return_value=_FAKE_IR), \
                 patch("oops.commands.project.serve.get_metadata", return_value=None):
             payload = build_payload(
                 MagicMock(), tmp_path, show_all=False, names=(), refresh=False
@@ -93,16 +87,10 @@ class TestBuildPayload:
     def test_build_payload_merges_command_metadata(self, tmp_path: Path) -> None:
         from oops.core.metadata import Metadata
 
-        addon = _fake_addon("my_module", str(tmp_path / "my_module"))
+        inventory = _fake_inventory("my_module", str(tmp_path / "my_module"))
         fake_meta = Metadata(command="project serve", project_name="acme", git_branch="main")
-        with patch("oops.commands.project.doc.list_submodules", return_value={}), \
-                patch("oops.commands.project.doc.find_addons", return_value=[addon]), \
-                patch("oops.commands.project.doc.enrich_addon"), \
-                patch(
-                    "oops.commands.project.doc.get_addon_loc",
-                    return_value=LocStats(python=10),
-                ), \
-                patch("oops.commands.project.serve._run_analyze", return_value=_FAKE_IR), \
+        with patch("oops.commands.project.serve.build_inventory", return_value=inventory), \
+                patch("oops.commands.project.serve.build_ir", return_value=_FAKE_IR), \
                 patch("oops.commands.project.serve.get_metadata", return_value=fake_meta):
             payload = build_payload(
                 MagicMock(), tmp_path, show_all=False, names=(), refresh=False
@@ -119,8 +107,7 @@ class TestBuildPayload:
         import pytest
         from oops.core.exceptions import EarlyExit
 
-        with patch("oops.commands.project.doc.list_submodules", return_value={}), \
-                patch("oops.commands.project.doc.find_addons", return_value=[]):
+        with patch("oops.commands.project.serve.build_inventory", return_value={}):
             with pytest.raises(EarlyExit):
                 build_payload(
                     MagicMock(), tmp_path, show_all=False, names=(), refresh=False

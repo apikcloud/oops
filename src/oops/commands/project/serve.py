@@ -22,7 +22,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.commands.project.doc import _build_inventory, _run_analyze
 from oops.commands.project.presenters.doc import ProjectDocPresenter
 from oops.core.exceptions import EarlyExit
 from oops.core.logger import live_progress
@@ -34,6 +33,7 @@ from oops.output.descriptors import load_descriptors
 from oops.output.serializers import to_json_string
 from oops.services.git import require_repository
 from oops.services.project import require_project
+from oops.services.project_pipeline import build_inventory, build_ir
 from oops_engine.paths import project_kb_path
 from oops_engine.store import KBReader, discover_repo_ids
 
@@ -214,11 +214,11 @@ def build_payload(
     repo, repo_path: Path, show_all: bool, names: tuple, refresh: bool
 ) -> dict:
     """Stages A–C → DocModel, plus the descriptor schema for client-side cards."""
-    inventory = _build_inventory(repo, repo_path, show_all, names)
+    inventory = build_inventory(repo, repo_path, show_all, names)
     if not inventory:
         raise EarlyExit()
-    paths = [row["path"] for row in inventory.values()]
-    ir = _run_analyze(paths, refresh)
+    paths = [Path(row["path"]) for row in inventory.values()]
+    ir = build_ir(repo, repo_path, paths, refresh)
 
     result: Result = Result()
     result.data = {"ir": ir, "inventory": inventory}
