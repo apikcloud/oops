@@ -20,6 +20,7 @@ no git operations, and no manifest edits.
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
@@ -44,11 +45,13 @@ from oops.output.formatters import (
 from oops.output.sinks import deliver
 from oops.services.git import require_repository
 from oops.services.kb import discover_project_addons, set_kb_metadata
-from oops.services.loc import get_addon_loc
+from oops.services.loc import get_addon_loc_cached
 from oops.services.project import require_project
+from oops.services.project_pipeline import build_inventory
 from oops.utils.helpers import deep_visit
 from oops_engine.build import build_project_kb, compute_root_drift, is_project_kb_stale, odoo_core_repo_id
 from oops_engine.domain_profile import compute_domain_profile
+from oops_engine.fingerprint import chain_fingerprint, fingerprint_directory
 from oops_engine.identity import local_repo_id
 from oops_engine.paths import global_kb_path, project_kb_path
 from oops_engine.provenance import normalize_origin
@@ -65,6 +68,15 @@ FORMATTERS: FormatterRegistry = {
 }
 
 
+@dataclass
+class AnalysisRun:
+    """Result of run_analysis(): per-module results plus AnalyzePresenter inputs."""
+
+    results: "ResultCollection[ModuleSummary]"
+    installed: "set[str] | None"
+    load_order: dict
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -74,8 +86,14 @@ FORMATTERS: FormatterRegistry = {
 @click.argument(
     "module_paths",
     nargs=-1,
-    required=True,
+    required=False,
     type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--all",
+    "analyze_all",
+    is_flag=True,
+    help="Analyze every addon active at the repo root instead of specifying paths.",
 )
 @click.option(
     "--refresh",
@@ -108,28 +126,67 @@ FORMATTERS: FormatterRegistry = {
 def main(  # noqa: C901, PLR0912, PLR0915
     ctx,
     module_paths: tuple[Path, ...],
+    analyze_all: bool,
     refresh: bool,
     output_format: str,
     output_path: Path,
     no_cache: bool,
 ) -> None:
 
+    if analyze_all and module_paths:
+        raise click.UsageError("Pass either MODULE_PATHS or --all, not both.")
+    if not analyze_all and not module_paths:
+        raise click.UsageError("Pass MODULE_PATHS or use --all.")
+
     metadata = get_metadata()
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
-
     json_mode = output_format == "json"
-    results: ResultCollection[ModuleSummary] = ResultCollection(title="Addons analyze")
+
+    local_repo, repo_path = require_repository()
+    if analyze_all:
+        # show_all=False: root-level addons only (symlinked/local at the repo
+        # root — i.e. actually part of the project). Unlike `addons list
+        # --all`, analyzing addons that were never activated at the root
+        # (dormant in a submodule) doesn't make sense — analyze reasons about
+        # the project's installed set, not the full submodule inventory.
+        inventory = build_inventory(local_repo, repo_path, show_all=False, names=())
+        resolved_paths = [Path(row["path"]) for row in inventory.values()]
+    else:
+        resolved_paths = list(module_paths)
+
+    run = run_analysis(local_repo, repo_path, resolved_paths, refresh, no_cache)
+    results = run.results
     if not json_mode:
         results.add_warning("This command is experimental and may change without notice between releases.")
 
+    # 2. Presenter prepares neutral dicts according to the formatter's audience.
+    output = AnalyzePresenter(installed=run.installed, load_order=run.load_order).prepare(
+        results, target=formatter.target, metadata=metadata
+    )
+    deliver(formatter, output, output_format, output_path)
+
+
+def run_analysis(  # noqa: C901, PLR0912, PLR0915
+    repo,
+    repo_path: Path,
+    module_paths: list[Path],
+    refresh: bool,
+    no_cache: bool = False,
+) -> AnalysisRun:
+    """Analyze the given module paths, returning per-module results.
+
+    Shared by the `analyze` CLI command and `project_pipeline.build_ir()`.
+    """
+    results: ResultCollection[ModuleSummary] = ResultCollection(title="Addons analyze")
+
     resolved_paths = [mp.resolve() for mp in module_paths]
-    local_repo, repo_path = require_repository()
     odoo_image = require_project(repo_path)
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
 
     installed: set[str] | None = None
+    load_order: dict = {}
 
     with live_progress("Analysis..."):
         version = str(odoo_image.major_version)
@@ -167,12 +224,16 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 raise OopsError(
                     f"installed_modules.txt not found at "
                     f"{repo_path / config.project.file_installed_modules}.\n"
-                    "Create the file (one module per line) and re-run oops analyze."
+                    "Create the file from the command below and re-run oops analyze:"
+                    "odoo shell --no-http << EOF"
+                    "res = env['ir.module.module'].search([('state', 'in', ['installed', 'to upgrade', 'to remove'])]).mapped('name')"  # noqa: E501
+                    "print('\n'.join(sorted(res)))"
+                    "EOF"
                 )
             why = "forced via --refresh" if refresh else f"stale: {reason}"
             results.add_warning(f"Rebuilding project KB: {why}")
             try:
-                addons = discover_project_addons(local_repo, repo_path, set(info.modules))
+                addons = discover_project_addons(repo, repo_path, set(info.modules))
                 kb_result = build_project_kb(repo_path, version, info.modules, addons)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
@@ -187,12 +248,13 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
         if len(resolved_paths) == 1:
             try:
-                _, _root = require_repository()
-                total_loc = sum(get_addon_loc(a.path).total for a in find_addons(_root, shallow=True))
+                total_loc = sum(
+                    get_addon_loc_cached(repo_path, a.path).total for a in find_addons(repo_path, shallow=True)
+                )
             except Exception:
-                total_loc = get_addon_loc(str(resolved_paths[0])).total
+                total_loc = get_addon_loc_cached(repo_path, str(resolved_paths[0])).total
         else:
-            total_loc = sum(get_addon_loc(str(mp)).total for mp in resolved_paths)
+            total_loc = sum(get_addon_loc_cached(repo_path, str(mp)).total for mp in resolved_paths)
 
         with KBReader(kb_path, repo_ids=[local_repo_id(repo_path), odoo_core_repo_id(version)]) as kb:
             modules_index = kb.get_modules()
@@ -210,12 +272,33 @@ def main(  # noqa: C901, PLR0912, PLR0915
                         _resolved_cache[model] = {}
                 return _resolved_cache[model]
 
+            # Bottom-up order: a dependency's chained fingerprint must exist
+            # before its dependent's is computed. Modules with no recorded
+            # load_index (not in the KB's load order) sort last.
+            def _load_index(mp: Path) -> float:
+                depth_and_index = load_order.get(mp.name)
+                idx = depth_and_index[1] if depth_and_index else None
+                return idx if idx is not None else float("inf")
+
+            resolved_paths = sorted(resolved_paths, key=_load_index)
+            fingerprints: dict[str, str] = {}
+
             for i, module_path in enumerate(resolved_paths, start=1):
                 log.info(f"Analysing {module_path.name} ({i}/{len(resolved_paths)})...")
                 module_name = module_path.name
                 module_result: Result[ModuleSummary] = Result()
 
-                cached = None if no_cache else kb.get_cached_analysis(module_name, kb_generated_at)
+                # depends is needed to chain the fingerprint before the cache
+                # lookup, so the manifest is loaded up front regardless of
+                # cache hit/miss (cheap — ast.literal_eval, not the expensive part).
+                manifest = load_manifest(module_path)
+                depends = manifest.get("depends", []) if manifest else []
+                own_fingerprint = fingerprint_directory(module_path)
+                dep_fingerprints = [fingerprints[dep] for dep in depends if dep in fingerprints]
+                content_fingerprint = chain_fingerprint(own_fingerprint, dep_fingerprints)
+                fingerprints[module_name] = content_fingerprint
+
+                cached = None if no_cache else kb.get_cached_analysis(module_name, content_fingerprint)
                 if cached is not None:
                     module_result.data = ModuleSummary.from_dict(cached["summary"])
                     for w in cached.get("warnings", []):
@@ -225,7 +308,6 @@ def main(  # noqa: C901, PLR0912, PLR0915
                     results.add(module_result)
                     continue
 
-                manifest = load_manifest(module_path)
                 if not manifest:
                     module_result.add_warning(f"{module_name}: no manifest found — header will show <unknown>")
 
@@ -301,7 +383,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
                 views_summary, xml_analysed = _build_views_summary(module_name, manifest, kb)
                 structure = _build_structure(module_path, manifest, xml_analysed)
-                loc = get_addon_loc(str(module_path))
+                loc = get_addon_loc_cached(repo_path, str(module_path))
                 loc_pct = round(100.0 * loc.total / total_loc, 1) if total_loc else 0.0
 
                 module_result.data = ModuleSummary(
@@ -324,7 +406,11 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 module_result.data.domain_profile = compute_domain_profile(module_result.data, kb, weights)
 
                 write_cached_analysis(
-                    kb_path, local_repo_id(repo_path), module_name, kb_generated_at,
+                    kb_path,
+                    local_repo_id(repo_path),
+                    module_name,
+                    content_fingerprint,
+                    kb_generated_at,
                     {
                         "summary": module_result.data.to_cache_dict(),
                         "warnings": module_result.warnings,
@@ -345,11 +431,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
         ],
     )
 
-    # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = AnalyzePresenter(installed=installed, load_order=load_order).prepare(
-        results, target=formatter.target, metadata=metadata
-    )
-    deliver(formatter, output, output_format, output_path)
+    return AnalysisRun(results=results, installed=installed, load_order=load_order)
 
 
 # ---------------------------------------------------------------------------

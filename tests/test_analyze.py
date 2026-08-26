@@ -232,6 +232,43 @@ class TestAnalyzeCLI:
 
 
 # ---------------------------------------------------------------------------
+# TestAnalyzeAllFlag
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeAllFlag:
+    def test_help_lists_all_flag(self) -> None:
+        result = CliRunner().invoke(main, ["--help"])
+        assert result.exit_code == 0
+        assert "--all" in result.output
+
+    def test_neither_paths_nor_all_is_usage_error(self) -> None:
+        result = CliRunner().invoke(main, [])
+        assert result.exit_code == 2
+
+    def test_both_paths_and_all_is_usage_error(self, tmp_path: Path) -> None:
+        result = CliRunner().invoke(main, ["--all", str(tmp_path)])
+        assert result.exit_code == 2
+
+    def test_all_flag_analyzes_build_inventory_paths(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        inventory = {"my_module": {"path": str(module_path)}}
+        with _mock_analyze(tmp_path, db_path), \
+                patch("oops.commands.addons.analyze.build_inventory", return_value=inventory) as mock_bi:
+            result = CliRunner().invoke(main, ["--all", "--format", "json"])
+        assert result.exit_code == 0, result.output
+        mock_bi.assert_called_once_with(mock_bi.call_args.args[0], tmp_path, show_all=False, names=())
+        data = json.loads(result.output)
+        assert data["modules"][0]["module"] == "my_module"
+
+
+# ---------------------------------------------------------------------------
 # TestAnalyzeText
 # ---------------------------------------------------------------------------
 
@@ -460,7 +497,7 @@ class TestAnalyzeJson:
         fake_addon = MagicMock()
         fake_addon.path = str(module_path)
         with _mock_analyze(tmp_path, db_path), \
-                patch("oops.commands.addons.analyze.get_addon_loc", return_value=fake_loc), \
+                patch("oops.commands.addons.analyze.get_addon_loc_cached", return_value=fake_loc), \
                 patch("oops.commands.addons.analyze.find_addons", return_value=[fake_addon]):
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0

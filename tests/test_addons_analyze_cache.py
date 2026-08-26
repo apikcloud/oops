@@ -19,6 +19,7 @@ Covers:
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -26,6 +27,7 @@ from click.testing import CliRunner
 from oops.commands.addons.analyze import main
 from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
 from oops.services.loc import LocStats
+from oops_engine.fingerprint import chain_fingerprint, fingerprint_directory
 from oops_engine.store import KBReader, write_cached_analysis, write_kb
 
 from .test_analyze import NEW_MODEL_SOURCE, _make_kb, _make_module_full, _mock_analyze
@@ -136,33 +138,51 @@ class TestStoreCacheHelpers:
     def test_write_then_read_cached_analysis(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
         write_kb(db_path, _TEST_REPO_ID, "17.0", [], sources={})
-        write_cached_analysis(db_path, _TEST_REPO_ID, "my_module", "2026-01-01T00:00:00", {"foo": "bar"})
+        write_cached_analysis(
+            db_path, _TEST_REPO_ID, "my_module", "fp-1", "2026-01-01T00:00:00", {"foo": "bar"}
+        )
 
         with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
-            assert kb.get_cached_analysis("my_module", "2026-01-01T00:00:00") == {"foo": "bar"}
-            assert kb.get_cached_analysis("my_module", "some-other-generated-at") is None
-            assert kb.get_cached_analysis("other_module", "2026-01-01T00:00:00") is None
+            assert kb.get_cached_analysis("my_module", "fp-1") == {"foo": "bar"}
+            assert kb.get_cached_analysis("my_module", "some-other-fingerprint") is None
+            assert kb.get_cached_analysis("other_module", "fp-1") is None
 
-    def test_fresh_write_kb_invalidates_previous_cache_rows(self, tmp_path: Path) -> None:
+    def test_write_kb_no_longer_invalidates_cache_rows(self, tmp_path: Path) -> None:
+        """A KB rebuild (write_kb) alone must not invalidate analysis_cache —
+        only a content_fingerprint mismatch does. This is the core fix of the
+        content-fingerprint cache: previously every KB rebuild wiped every
+        module's cached analysis, even for modules whose source didn't change."""
         db_path = tmp_path / "kb.db"
         write_kb(db_path, _TEST_REPO_ID, "17.0", [], sources={})
-        write_cached_analysis(db_path, _TEST_REPO_ID, "my_module", "gen-1", {"foo": "bar"})
+        write_cached_analysis(
+            db_path, _TEST_REPO_ID, "my_module", "fp-1", "gen-1", {"foo": "bar"}
+        )
 
         write_kb(db_path, _TEST_REPO_ID, "17.0", [], sources={})  # simulates a KB rebuild
 
         with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
-            assert kb.get_cached_analysis("my_module", "gen-1") is None
+            assert kb.get_cached_analysis("my_module", "fp-1") == {"foo": "bar"}
+
+    def test_write_cached_analysis_prunes_stale_fingerprints_for_same_module(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        write_kb(db_path, _TEST_REPO_ID, "17.0", [], sources={})
+        write_cached_analysis(db_path, _TEST_REPO_ID, "my_module", "fp-1", "gen-1", {"v": 1})
+        write_cached_analysis(db_path, _TEST_REPO_ID, "my_module", "fp-2", "gen-1", {"v": 2})
+
+        with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
+            assert kb.get_cached_analysis("my_module", "fp-1") is None  # pruned
+            assert kb.get_cached_analysis("my_module", "fp-2") == {"v": 2}
 
     def test_cache_is_scoped_by_repo_id(self, tmp_path: Path) -> None:
         db_path = tmp_path / "kb.db"
         write_kb(db_path, "repo-a", "17.0", [], sources={})
         write_kb(db_path, "repo-b", "17.0", [], sources={})
-        write_cached_analysis(db_path, "repo-a", "my_module", "gen-1", {"who": "a"})
+        write_cached_analysis(db_path, "repo-a", "my_module", "fp-1", "gen-1", {"who": "a"})
 
         with KBReader(db_path, repo_ids=["repo-b"]) as kb:
-            assert kb.get_cached_analysis("my_module", "gen-1") is None
+            assert kb.get_cached_analysis("my_module", "fp-1") is None
         with KBReader(db_path, repo_ids=["repo-a"]) as kb:
-            assert kb.get_cached_analysis("my_module", "gen-1") == {"who": "a"}
+            assert kb.get_cached_analysis("my_module", "fp-1") == {"who": "a"}
 
 
 # ---------------------------------------------------------------------------
@@ -228,9 +248,10 @@ class TestAnalyzeCacheIntegration:
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0, result.output
 
+        # "base" is not part of the analyzed set, so it's excluded from the chain.
+        content_fingerprint = chain_fingerprint(fingerprint_directory(module_path), [])
         with KBReader(db_path, repo_ids=[_TEST_REPO_ID]) as kb:
-            generated_at = kb.get_meta()["generated_at"]
-            cached = kb.get_cached_analysis("my_module", generated_at)
+            cached = kb.get_cached_analysis("my_module", content_fingerprint)
         assert cached is not None
         assert cached["summary"]["module_name"] == "my_module"
         assert "warnings" in cached
@@ -261,9 +282,13 @@ class TestAnalyzeCacheIntegration:
         second_warnings = json.loads(second.output)["modules"][0]["warnings"]
         assert second_warnings == first_warnings
 
-    def test_refresh_invalidates_cache_and_forces_reanalysis(self, tmp_path: Path) -> None:
-        """A --refresh rebuild bumps the KB's generated_at, so the previous
-        cache entry (keyed on the old generated_at) is a guaranteed miss."""
+    def test_refresh_rebuilds_kb_but_reuses_cache_when_unchanged(self, tmp_path: Path) -> None:
+        """A --refresh rebuild bumps the KB's generated_at, but the module's
+        content_fingerprint is unchanged (no file edits) — so the cache is
+        still hit and analyse_file is not called again. This is the core fix
+        of content-fingerprint keying: a KB rebuild alone no longer
+        invalidates every module's cached analysis (contrast with the old
+        kb_generated_at-keyed cache, which made this a guaranteed miss)."""
         repo_path = tmp_path / "repo"
         repo_path.mkdir()
         db_path = repo_path / ".oops-cache" / "kb.db"
@@ -292,10 +317,101 @@ class TestAnalyzeCacheIntegration:
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
                 patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
                 patch("oops.commands.addons.analyze.local_repo_id", return_value=_TEST_REPO_ID), \
-                patch("oops.commands.addons.analyze.analyse_file", return_value=[]) as mock_analyse, \
+                patch("oops.commands.addons.analyze.analyse_file") as mock_analyse, \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
             mock_info.return_value = MagicMock(modules=["my_module"])
             second = CliRunner().invoke(main, ["--refresh", "--format", "json", str(module_path)])
         assert second.exit_code == 0, second.output
-        mock_analyse.assert_called()
+        mock_analyse.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# TestContentFingerprintCache — dependency-chained cache invalidation
+# ---------------------------------------------------------------------------
+
+
+def _module_names_written(mock_write) -> set:
+    """Module names passed to write_cached_analysis (only reached on a cache miss)."""
+    return {c.args[2] for c in mock_write.call_args_list}
+
+
+class TestContentFingerprintCache:
+    def _make_dep_and_main(self, tmp_path: Path, db_path: Path) -> "tuple[Path, Path]":
+        from oops_engine.store import update_module_load_order
+
+        _make_kb(
+            db_path,
+            modules={
+                "dep_module": {"origin": "custom", "depends": []},
+                "main_module": {"origin": "custom", "depends": ["dep_module", "base"]},
+            },
+        )
+        update_module_load_order(db_path, [_TEST_REPO_ID], {"dep_module": (0, 0), "main_module": (1, 1)})
+
+        dep_path = _make_module_full(tmp_path, "dep_module", manifest={"name": "Dep", "depends": []})
+        main_path = _make_module_full(
+            tmp_path, "main_module", manifest={"name": "Main", "depends": ["dep_module", "base"]}
+        )
+        return dep_path, main_path
+
+    def test_unchanged_module_cache_hit_after_kb_rebuild(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        dep_path, main_path = self._make_dep_and_main(tmp_path, db_path)
+
+        with _mock_analyze(tmp_path, db_path):
+            first = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
+        assert first.exit_code == 0, first.output
+
+        _make_kb(  # simulate a KB rebuild — bumps generated_at, no file changes
+            db_path,
+            modules={
+                "dep_module": {"origin": "custom", "depends": []},
+                "main_module": {"origin": "custom", "depends": ["dep_module", "base"]},
+            },
+        )
+        from oops_engine.store import update_module_load_order
+
+        update_module_load_order(db_path, [_TEST_REPO_ID], {"dep_module": (0, 0), "main_module": (1, 1)})
+
+        with _mock_analyze(tmp_path, db_path), \
+                patch("oops.commands.addons.analyze.write_cached_analysis") as mock_write:
+            second = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
+        assert second.exit_code == 0, second.output
+        assert _module_names_written(mock_write) == set()  # every module hit the cache
+
+    def test_edited_module_cache_miss(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        dep_path, main_path = self._make_dep_and_main(tmp_path, db_path)
+
+        with _mock_analyze(tmp_path, db_path):
+            first = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
+        assert first.exit_code == 0, first.output
+
+        time.sleep(0.01)
+        (main_path / "extra.py").write_text("x = 1", encoding="utf-8")
+
+        with _mock_analyze(tmp_path, db_path), \
+                patch("oops.commands.addons.analyze.write_cached_analysis") as mock_write:
+            second = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
+        assert second.exit_code == 0, second.output
+        # Only main_module's own files changed — dep_module is untouched and still hits.
+        assert _module_names_written(mock_write) == {"main_module"}
+
+    def test_dependent_module_cache_miss_when_dependency_changes(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        dep_path, main_path = self._make_dep_and_main(tmp_path, db_path)
+
+        with _mock_analyze(tmp_path, db_path):
+            first = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
+        assert first.exit_code == 0, first.output
+
+        time.sleep(0.01)
+        (dep_path / "extra.py").write_text("x = 1", encoding="utf-8")
+
+        with _mock_analyze(tmp_path, db_path), \
+                patch("oops.commands.addons.analyze.write_cached_analysis") as mock_write:
+            second = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
+        assert second.exit_code == 0, second.output
+        # dep_module changed directly; main_module misses too via the chained fingerprint.
+        assert _module_names_written(mock_write) == {"dep_module", "main_module"}
