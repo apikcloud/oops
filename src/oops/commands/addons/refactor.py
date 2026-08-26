@@ -45,11 +45,12 @@ from oops.core.exceptions import OopsError
 from oops.core.logger import log
 from oops.io.file import parse_odoo_version
 from oops.io.installed_modules import read_installed_modules
-from oops.io.refactor import analyse_file, rewrite_file
+from oops.io.refactor import rewrite_file
 from oops.services.git import commit, require_repository
 from oops.services.kb import discover_project_addons
 from oops.utils.render import human_readable, print_rule, print_success, print_warning, warn_experimental
 from oops_engine.build import build_project_kb, compute_root_drift, is_project_kb_stale, odoo_core_repo_id
+from oops_engine.inspect_module import analyse_file
 from oops_engine.paths import global_kb_path, project_kb_path
 from oops_engine.scanner import build_module_field_refs
 from oops_engine.store import KBReader, discover_repo_ids

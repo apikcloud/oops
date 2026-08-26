@@ -6,7 +6,18 @@ import subprocess
 import time
 
 import pytest
-from oops.services.loc import LocStats, _has_cloc, get_addon_loc, get_addon_loc_cached
+from oops.services.loc import _has_cloc, get_addon_loc, get_addon_loc_cached
+from oops_engine.loc import _has_cloc as _engine_has_cloc
+from oops_engine.loc import get_addon_loc as _engine_get_addon_loc
+from oops_engine.loc import get_addon_loc_cached as _engine_get_addon_loc_cached
+from oops_engine.models import LocStats
+
+
+def test_services_loc_reexports_are_the_engine_implementation() -> None:
+    """`oops.services.loc` is a thin back-compat re-export of `oops_engine.loc`."""
+    assert get_addon_loc is _engine_get_addon_loc
+    assert get_addon_loc_cached is _engine_get_addon_loc_cached
+    assert _has_cloc is _engine_has_cloc
 
 
 @pytest.fixture(autouse=True)
@@ -33,7 +44,7 @@ SAMPLE_CLOC = json.dumps(
 
 def test_get_addon_loc_parses_languages(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
-    monkeypatch.setattr("oops.services.loc.run", lambda *a, **k: SAMPLE_CLOC)
+    monkeypatch.setattr("oops_engine.loc.run", lambda *a, **k: SAMPLE_CLOC)
 
     stats = get_addon_loc("/fake/addon")
 
@@ -49,7 +60,7 @@ def test_get_addon_loc_missing_binary(monkeypatch):
 
 def test_get_addon_loc_decode_error(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
-    monkeypatch.setattr("oops.services.loc.run", lambda *a, **k: "not-json")
+    monkeypatch.setattr("oops_engine.loc.run", lambda *a, **k: "not-json")
     assert get_addon_loc("/fake/addon") == LocStats()
 
 
@@ -59,7 +70,7 @@ def test_get_addon_loc_subprocess_failure(monkeypatch):
     def _boom(*a, **k):
         raise subprocess.CalledProcessError(1, "cloc")
 
-    monkeypatch.setattr("oops.services.loc.run", _boom)
+    monkeypatch.setattr("oops_engine.loc.run", _boom)
     assert get_addon_loc("/fake/addon") == LocStats()
 
 
@@ -76,7 +87,7 @@ def test_get_addon_loc_is_cached(monkeypatch):
         calls["n"] += 1
         return SAMPLE_CLOC
 
-    monkeypatch.setattr("oops.services.loc.run", _run)
+    monkeypatch.setattr("oops_engine.loc.run", _run)
     get_addon_loc("/fake/addon")
     get_addon_loc("/fake/addon")
     assert calls["n"] == 1
@@ -84,7 +95,7 @@ def test_get_addon_loc_is_cached(monkeypatch):
 
 def test_get_addon_loc_empty_output(monkeypatch):
     monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
-    monkeypatch.setattr("oops.services.loc.run", lambda *a, **k: "")
+    monkeypatch.setattr("oops_engine.loc.run", lambda *a, **k: "")
     assert get_addon_loc("/fake/addon") == LocStats()
 
 
@@ -95,7 +106,7 @@ def test_get_addon_loc_empty_output(monkeypatch):
 
 def test_get_addon_loc_cached_creates_kb_file_if_absent(tmp_path, monkeypatch):
     monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/cloc")
-    monkeypatch.setattr("oops.services.loc.run", lambda *a, **k: SAMPLE_CLOC)
+    monkeypatch.setattr("oops_engine.loc.run", lambda *a, **k: SAMPLE_CLOC)
 
     repo_path = tmp_path / "repo"
     addon_path = repo_path / "my_addon"
@@ -119,7 +130,7 @@ def test_get_addon_loc_cached_hits_cache_on_unchanged_dir(tmp_path, monkeypatch)
         calls["n"] += 1
         return SAMPLE_CLOC
 
-    monkeypatch.setattr("oops.services.loc.run", _run)
+    monkeypatch.setattr("oops_engine.loc.run", _run)
 
     repo_path = tmp_path / "repo"
     addon_path = repo_path / "my_addon"
@@ -142,7 +153,7 @@ def test_get_addon_loc_cached_misses_and_repopulates_after_edit(tmp_path, monkey
         calls["n"] += 1
         return SAMPLE_CLOC
 
-    monkeypatch.setattr("oops.services.loc.run", _run)
+    monkeypatch.setattr("oops_engine.loc.run", _run)
 
     repo_path = tmp_path / "repo"
     addon_path = repo_path / "my_addon"

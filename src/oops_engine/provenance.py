@@ -63,3 +63,48 @@ def normalize_origin(raw: Optional[str]) -> Optional[str]:
     if raw is None or raw == "":
         return raw  # preserve None ("not enriched") and "" ("enriched, no origin")
     return _RAW_ORIGIN_MAP.get(raw, ORIGIN_THIRD_PARTY)
+
+
+def classify_addon(
+    author: str,
+    technical_name: str,
+    submodule_org: str,
+    *,
+    project_author: Optional[str] = None,
+    project_prefix: Optional[str] = None,
+    github_owner: Optional[str] = None,
+) -> str:
+    """Classify a project-root addon as custom/oca/third-party.
+
+    Pure function — mirrors the priority order previously inline in
+    io/file.py:enrich_addon() (first match wins):
+    1. "(OCA)" in author -> "oca"
+    2. author == project_author -> "custom"
+    3. technical_name starts with project_prefix -> "custom"
+    4. submodule_org == "OCA" -> "oca"; submodule_org == github_owner -> "custom"
+    5. fallback -> "third-party"
+
+    Args:
+        author: The addon's manifest ``author`` string.
+        technical_name: The addon's technical (directory) name.
+        submodule_org: The submodule's GitHub org (first path segment of its
+            remote), or "" if the addon isn't inside a submodule.
+        project_author: This project's configured manifest author to match
+            against (``config.manifest.author`` on the CLI side), or None.
+        project_prefix: This project's configured addon name prefix
+            (``config.project.prefix``), or None.
+        github_owner: This project's configured GitHub owner
+            (``config.github.owner``), or None.
+    """
+    if "(OCA)" in author:
+        return "oca"
+    if project_author and author == project_author:
+        return "custom"
+    if project_prefix and technical_name.startswith(project_prefix):
+        return "custom"
+    if submodule_org:
+        if submodule_org == "OCA":
+            return "oca"
+        if github_owner and submodule_org == github_owner:
+            return "custom"
+    return "third-party"

@@ -17,9 +17,9 @@ from __future__ import annotations
 
 from oops.core.compat import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from oops_engine.domains import EXCLUDED_TECHNICAL_MODULES, PILLAR_MODULES, domain_label
+from oops_engine.models import ModuleSummary
 
 if TYPE_CHECKING:
-    from oops.core.models import ModuleSummary
     from oops_engine.store import KBReader
 
 

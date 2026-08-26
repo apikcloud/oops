@@ -25,9 +25,9 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 from oops.commands.addons.analyze import main
-from oops.core.models import ClassSummary, ModuleSummary, Result, StructureSummary
-from oops.services.loc import LocStats
+from oops.core.models import Result
 from oops_engine.fingerprint import chain_fingerprint, fingerprint_directory
+from oops_engine.models import ClassSummary, LocStats, ModuleSummary, StructureSummary
 from oops_engine.store import KBReader, write_cached_analysis, write_kb
 
 from .test_analyze import NEW_MODEL_SOURCE, _make_kb, _make_module_full, _mock_analyze
@@ -98,7 +98,7 @@ class TestModuleSummaryCacheRoundTrip:
         assert restored.origin == summary.origin
 
     def test_class_infos_round_trip(self, tmp_path: Path) -> None:
-        from oops.io.refactor import ClassInfo, SymbolInfo
+        from oops_engine.inspect_module import ClassInfo, SymbolInfo
 
         summary = self._make_summary(tmp_path)
         summary.class_infos = [
@@ -206,7 +206,7 @@ class TestAnalyzeCacheIntegration:
         assert first.exit_code == 0, first.output
 
         with _mock_analyze(tmp_path, db_path), \
-                patch("oops.commands.addons.analyze.analyse_file") as mock_analyse:
+                patch("oops_engine.summary.analyse_file") as mock_analyse:
             second = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert second.exit_code == 0, second.output
         mock_analyse.assert_not_called()
@@ -228,7 +228,7 @@ class TestAnalyzeCacheIntegration:
         assert result.exit_code == 0, result.output
 
         with _mock_analyze(tmp_path, db_path), \
-                patch("oops.commands.addons.analyze.analyse_file") as mock_analyse:
+                patch("oops_engine.summary.analyse_file") as mock_analyse:
             mock_analyse.return_value = []
             result = CliRunner().invoke(main, ["--no-cache", "--format", "json", str(module_path)])
         assert result.exit_code == 0, result.output
@@ -317,7 +317,8 @@ class TestAnalyzeCacheIntegration:
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
                 patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
                 patch("oops.commands.addons.analyze.local_repo_id", return_value=_TEST_REPO_ID), \
-                patch("oops.commands.addons.analyze.analyse_file") as mock_analyse, \
+                patch("oops_engine.summary.local_repo_id", return_value=_TEST_REPO_ID), \
+                patch("oops_engine.summary.analyse_file") as mock_analyse, \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
             mock_info.return_value = MagicMock(modules=["my_module"])
@@ -375,7 +376,7 @@ class TestContentFingerprintCache:
         update_module_load_order(db_path, [_TEST_REPO_ID], {"dep_module": (0, 0), "main_module": (1, 1)})
 
         with _mock_analyze(tmp_path, db_path), \
-                patch("oops.commands.addons.analyze.write_cached_analysis") as mock_write:
+                patch("oops_engine.summary.write_cached_analysis") as mock_write:
             second = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
         assert second.exit_code == 0, second.output
         assert _module_names_written(mock_write) == set()  # every module hit the cache
@@ -392,7 +393,7 @@ class TestContentFingerprintCache:
         (main_path / "extra.py").write_text("x = 1", encoding="utf-8")
 
         with _mock_analyze(tmp_path, db_path), \
-                patch("oops.commands.addons.analyze.write_cached_analysis") as mock_write:
+                patch("oops_engine.summary.write_cached_analysis") as mock_write:
             second = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
         assert second.exit_code == 0, second.output
         # Only main_module's own files changed — dep_module is untouched and still hits.
@@ -410,7 +411,7 @@ class TestContentFingerprintCache:
         (dep_path / "extra.py").write_text("x = 1", encoding="utf-8")
 
         with _mock_analyze(tmp_path, db_path), \
-                patch("oops.commands.addons.analyze.write_cached_analysis") as mock_write:
+                patch("oops_engine.summary.write_cached_analysis") as mock_write:
             second = CliRunner().invoke(main, ["--format", "json", str(dep_path), str(main_path)])
         assert second.exit_code == 0, second.output
         # dep_module changed directly; main_module misses too via the chained fingerprint.

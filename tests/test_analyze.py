@@ -17,7 +17,7 @@ import pytest
 from click.testing import CliRunner
 from oops.commands.addons.analyze import main
 from oops.core.models import Result
-from oops.services.loc import LocStats
+from oops_engine.models import LocStats
 from oops_engine.store import write_kb
 
 # repo_id used by every KB fixture in this file; _mock_analyze() patches
@@ -193,6 +193,7 @@ def _mock_analyze(tmp_path: Path, db_path: Path):
             patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(False, "")), \
             patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
             patch("oops.commands.addons.analyze.local_repo_id", return_value=_TEST_REPO_ID), \
+            patch("oops_engine.summary.local_repo_id", return_value=_TEST_REPO_ID), \
             patch("oops.core.logger.Live", MagicMock()):
         yield
 
@@ -498,6 +499,7 @@ class TestAnalyzeJson:
         fake_addon.path = str(module_path)
         with _mock_analyze(tmp_path, db_path), \
                 patch("oops.commands.addons.analyze.get_addon_loc_cached", return_value=fake_loc), \
+                patch("oops_engine.summary.get_addon_loc_cached", return_value=fake_loc), \
                 patch("oops.commands.addons.analyze.find_addons", return_value=[fake_addon]):
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0

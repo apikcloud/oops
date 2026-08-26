@@ -10,8 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from oops.services.loc import LocStats
 from oops.services.project_pipeline import build_inventory
+from oops_engine.models import LocStats
 
 
 def _fake_addon(technical_name: str, path: str, rel_path: str = "", **kw) -> MagicMock:

@@ -12,7 +12,8 @@ from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from oops.commands.addons.list import main
 from oops.core.models import AddonInfo
-from oops.services.loc import LocStats, _has_cloc, get_addon_loc
+from oops.services.loc import _has_cloc, get_addon_loc
+from oops_engine.models import LocStats
 
 
 def _make_addon_info(
@@ -106,7 +107,7 @@ class TestListLocKeys:
 
 class TestListLocCaching:
     """Exercises the real get_addon_loc_cached() path end-to-end (not mocked)
-    — only the cloc subprocess wrapper (oops.services.loc.run) is faked."""
+    — only the cloc subprocess wrapper (oops_engine.loc.run) is faked."""
 
     def test_second_invocation_reuses_persisted_loc_cache(self, tmp_path: Path) -> None:
         addon_dir = tmp_path / "my_addon"
@@ -128,7 +129,7 @@ class TestListLocCaching:
                     patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), \
                     patch("oops.commands.addons.list.enrich_addon"), \
                     patch("shutil.which", lambda _: "/usr/bin/cloc"), \
-                    patch("oops.services.loc.run", side_effect=_run), \
+                    patch("oops_engine.loc.run", side_effect=_run), \
                     patch("oops.core.logger.Live", MagicMock()):
                 mock_repo.return_value = (MagicMock(), tmp_path)
                 first = CliRunner().invoke(main, ["--format", "json"])

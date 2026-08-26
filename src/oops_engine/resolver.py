@@ -27,6 +27,7 @@ class InheritanceResolver:
     def __init__(self, reader: KBReader, _owns_reader: bool = False) -> None:
         self._reader = reader
         self._owns_reader = _owns_reader
+        self._resolved_cache: dict = {}
 
     @classmethod
     def from_project_kb(cls, kb_path: Path, repo_ids: Sequence[str]) -> "InheritanceResolver":
@@ -88,3 +89,26 @@ class InheritanceResolver:
             "fields": fields,
             "methods": methods,
         }
+
+    def resolve_cached(self, model_name: str, installed_modules: set[str] | None = None) -> dict:
+        """Memoizing wrapper around ``resolve()`` — at most one resolution
+        attempt per model per ``InheritanceResolver`` instance, reused across
+        every caller (e.g. every module analyzed in one run).
+
+        On a cache hit, always returns without raising — including for a
+        model whose sole resolution attempt failed (an empty ``{}`` is
+        cached on failure, same as a legitimate empty result). On a cache
+        miss that fails, the failure is cached *and* the exception is
+        re-raised, so the caller sees it exactly once (on the attempt that
+        caused it) and can turn it into a warning; every later call for the
+        same model returns the cached ``{}`` silently.
+        """
+        if model_name in self._resolved_cache:
+            return self._resolved_cache[model_name]
+        try:
+            result = self.resolve(model_name, installed_modules=installed_modules)
+        except Exception:
+            self._resolved_cache[model_name] = {}
+            raise
+        self._resolved_cache[model_name] = result
+        return result

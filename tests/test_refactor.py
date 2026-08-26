@@ -16,23 +16,27 @@ from click.testing import CliRunner
 from oops.commands.addons.refactor import main
 from oops.core.models import Result
 from oops.io.refactor import (
-    ClassInfo,
-    SymbolInfo,
     _append_section,
     _build_docstring_stmt,
     _class_docstring_lines,
-    _detect_super,
-    _get_decorator_names,
-    _has_class_docstring,
-    _has_docstring,
     _is_class_docstring,
     _is_field_stmt_cst,
     _is_private_attr_stmt,
     _make_header,
     _method_docstring_lines,
     _strip_leading_lines,
-    analyse_file,
     rewrite_file,
+)
+from oops_engine.inspect_module import (
+    ClassInfo,
+    SymbolInfo,
+    _detect_super,
+    _has_class_docstring,
+    _has_docstring,
+    analyse_file,
+)
+from oops_engine.scanner import (
+    _get_decorator_names,
 )
 from oops_engine.scanner import (
     classify_method as _classify_method,

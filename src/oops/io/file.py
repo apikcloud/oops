@@ -38,6 +38,7 @@ from oops.services.git import get_submodule_sha
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
 from oops.utils.render import print_warning
+from oops_engine.provenance import classify_addon
 
 # ---------------------------------------------------------------------------
 # Path utilities
@@ -658,35 +659,15 @@ def enrich_addon(addon: AddonInfo, sub: dict) -> None:
     addon.branch = sub.get("branch", "")
     addon.pull_request = sub.get("pr", False)
 
-    # Classification priority (first match wins):
-    # 1. Author field contains "(OCA)" — reliable even without a submodule
-    # 2. Author matches the configured project author (config.manifest.author)
-    # 3. Technical name starts with the project addon prefix (config.project.prefix)
-    # 4. Submodule org is "OCA" or matches the configured GitHub owner
-    # 5. Fallback: third-party
-
-    if "(OCA)" in addon.author:
-        addon.classification = "oca"
-        return
-
-    if config.manifest.author and addon.author == config.manifest.author:
-        addon.classification = "custom"
-        return
-
-    if config.project.prefix and addon.technical_name.startswith(config.project.prefix):
-        addon.classification = "custom"
-        return
-
-    if addon.submodule:
-        owner = addon.submodule.split("/")[0]
-        if owner == "OCA":
-            addon.classification = "oca"
-            return
-        if config.github.owner and owner == config.github.owner:
-            addon.classification = "custom"
-            return
-
-    addon.classification = "third-party"
+    submodule_org = addon.submodule.split("/")[0] if addon.submodule else ""
+    addon.classification = classify_addon(
+        addon.author,
+        addon.technical_name,
+        submodule_org,
+        project_author=config.manifest.author,
+        project_prefix=config.project.prefix,
+        github_owner=config.github.owner,
+    )
 
 
 def get_excluded_addon_names(repo_path: Path) -> list:

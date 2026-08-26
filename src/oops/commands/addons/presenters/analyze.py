@@ -15,24 +15,15 @@
 from __future__ import annotations
 
 from oops.core.compat import TYPE_CHECKING, Optional
-from oops.core.models import (
-    ClassSummary,
-    ModuleSummary,
-    Result,
-    ResultCollection,
-    Stat,
-    StatGroup,
-    StructureSummary,
-    ViewsSummary,
-)
+from oops.core.models import Result, ResultCollection, Stat, StatGroup
 from oops.output.base import Presenter
 from oops.output.descriptors import label_of
 from oops.output.layout import ConclusionBlock, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
-from oops.services.loc import LocStats
 from oops.utils.render import (
     colorize,
 )
 from oops_engine.identity import field_id, method_id, model_id, module_id, normalize_source_file
+from oops_engine.models import ClassSummary, LocStats, ModuleSummary, StructureSummary, ViewsSummary
 from oops_engine.provenance import normalize_origin
 
 if TYPE_CHECKING:

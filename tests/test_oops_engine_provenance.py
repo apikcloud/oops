@@ -15,6 +15,7 @@ from oops_engine.provenance import (
     ORIGIN_OCA,
     ORIGIN_THIRD_PARTY,
     ORIGINS,
+    classify_addon,
     normalize_origin,
 )
 
@@ -69,3 +70,31 @@ def test_no_legacy_string_leaks() -> None:
     # The mapper must never emit a legacy variant.
     for raw in ("odoo", "third-party", "community"):
         assert normalize_origin(raw) not in {"odoo", "third-party", "community"}
+
+
+class TestClassifyAddon:
+    def test_oca_by_author(self) -> None:
+        assert classify_addon("Odoo Community Association (OCA)", "server_tools", "") == "oca"
+
+    def test_custom_by_author(self) -> None:
+        assert classify_addon("Apik", "some_module", "", project_author="Apik") == "custom"
+
+    def test_custom_by_prefix(self) -> None:
+        assert (
+            classify_addon("Someone", "apk_sale_extension", "", project_prefix="apk_") == "custom"
+        )
+
+    def test_oca_by_org(self) -> None:
+        assert classify_addon("Someone", "server_tools", "OCA") == "oca"
+
+    def test_custom_by_org(self) -> None:
+        assert classify_addon("Someone", "my_module", "apik-cloud", github_owner="apik-cloud") == "custom"
+
+    def test_fallback_third_party(self) -> None:
+        assert classify_addon("Someone Else", "unrelated_module", "") == "third-party"
+
+    def test_oca_by_author_wins_over_org(self) -> None:
+        result = classify_addon(
+            "Odoo Community Association (OCA)", "m", "apik-cloud", github_owner="apik-cloud"
+        )
+        assert result == "oca"

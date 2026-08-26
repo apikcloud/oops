@@ -55,7 +55,7 @@ menus         (repo_id, xml_id, module, origin, name, action, parent_id,
                source_file, source_line)
 analysis_cache (repo_id, module_name, content_fingerprint, kb_generated_at,
                 payload_json, cached_at)
-               -- cached ModuleSummary.to_cache_dict() JSON, keyed by a content
+               -- cached oops_engine.models.ModuleSummary.to_cache_dict() JSON, keyed by a content
                -- fingerprint of the module's own source chained with its
                -- dependencies' fingerprints (oops_engine.fingerprint). NOT in
                -- _DATA_TABLES: a KB rebuild alone no longer invalidates it —
@@ -435,7 +435,7 @@ def write_cached_analysis(
     kb_generated_at: str,
     payload: Dict[str, Any],
 ) -> None:
-    """Cache one module's computed analysis (a `ModuleSummary.to_cache_dict()` payload).
+    """Cache one module's computed analysis (an `oops_engine.models.ModuleSummary.to_cache_dict()` payload).
 
     Args:
         db_path:              destination — a bare path or an explicit Backend.
@@ -447,7 +447,7 @@ def write_cached_analysis(
             different fingerprint, so the previous row is a guaranteed miss.
         kb_generated_at:      the KB's `generated_at` meta value at analysis
             time — kept as a plain (non-key) column for observability.
-        payload:               JSON-safe dict, e.g. from `ModuleSummary.to_cache_dict()`.
+        payload:               JSON-safe dict, e.g. from `oops_engine.models.ModuleSummary.to_cache_dict()`.
     """
     backend = _resolve_backend(db_path)
     ph = backend.placeholder()
@@ -490,7 +490,7 @@ def write_cached_loc(
     content_fingerprint: str,
     loc: Dict[str, Any],
 ) -> None:
-    """Cache one addon's computed LOC breakdown (a `LocStats`-shaped dict).
+    """Cache one addon's computed LOC breakdown (an `oops_engine.models.LocStats`-shaped dict).
 
     Args:
         db_path:              destination — a bare path or an explicit Backend.
@@ -500,7 +500,7 @@ def write_cached_loc(
             it's found through.
         content_fingerprint:  the addon directory's content fingerprint (see
             `oops_engine.fingerprint`) — the cache key.
-        loc:                   JSON-safe dict, e.g. `dataclasses.asdict(LocStats(...))`.
+        loc:                   JSON-safe dict, e.g. `dataclasses.asdict(oops_engine.models.LocStats(...))`.
     """
     backend = _resolve_backend(db_path)
     ph = backend.placeholder()
@@ -644,7 +644,7 @@ class KBReader:
         return {r["key"]: r["value"] for r in rows}
 
     def get_cached_analysis(self, module_name: str, content_fingerprint: str) -> Optional[Dict[str, Any]]:
-        """Return a cached `ModuleSummary.to_cache_dict()` payload, or None on a cache miss.
+        """Return a cached `oops_engine.models.ModuleSummary.to_cache_dict()` payload, or None on a cache miss.
 
         Args:
             module_name:          module technical name.

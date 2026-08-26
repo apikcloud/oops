@@ -15,7 +15,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from oops.commands.addons.analyze import run_analysis
-from oops.core.models import ModuleSummary
+from oops_engine.models import ModuleSummary
 
 from .test_analyze import NEW_MODEL_SOURCE, _make_kb, _make_module_full, _mock_analyze
 

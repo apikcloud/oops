@@ -12,12 +12,12 @@ from unittest.mock import MagicMock
 
 from oops.core.compat import Any
 from oops.core.config import AnalyzeConfig
-from oops.core.models import ClassSummary, ModuleSummary, ViewsSummary
 from oops_engine.build import _resolve_module_apps
 from oops_engine.domain_profile import (
     compute_domain_profile,
 )
 from oops_engine.domains import domain_label
+from oops_engine.models import ClassSummary, ModuleSummary, ViewsSummary
 from oops_engine.store import KBReader
 from oops_engine.store import write_kb as _write_kb_impl
 
@@ -289,7 +289,7 @@ def _make_cs(
 
 
 def _make_summary(classes, class_infos, views_summary=None, loc=None) -> ModuleSummary:
-    from oops.core.models import StructureSummary
+    from oops_engine.models import StructureSummary
 
     return ModuleSummary(
         module_name="test_module",
