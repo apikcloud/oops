@@ -17,8 +17,13 @@ import pytest
 from click.testing import CliRunner
 from oops.commands.addons.analyze import main
 from oops.core.models import Result
-from oops.kb.store import write_project_kb
-from oops.services.loc import LocStats
+from oops_engine.models import LocStats
+from oops_engine.store import write_kb
+
+# repo_id used by every KB fixture in this file; _mock_analyze() patches
+# local_repo_id() to always return this, so KBReader lookups match regardless
+# of the tmp_path directory name pytest picks per test.
+_TEST_REPO_ID = "test"
 
 # ---------------------------------------------------------------------------
 # KB and module helpers (duplicated from test_refactor.py to avoid cross-file import)
@@ -44,8 +49,9 @@ def _make_kb(
             "model_origins": model_origins or [],
         }
     ]
-    write_project_kb(
+    write_kb(
         db_path=db_path,
+        repo_id=_TEST_REPO_ID,
         odoo_version="17.0",
         project="test",
         scope=[],
@@ -186,6 +192,8 @@ def _mock_analyze(tmp_path: Path, db_path: Path):
             patch("oops.commands.addons.analyze.read_installed_modules", return_value=None), \
             patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(False, "")), \
             patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+            patch("oops.commands.addons.analyze.local_repo_id", return_value=_TEST_REPO_ID), \
+            patch("oops_engine.summary.local_repo_id", return_value=_TEST_REPO_ID), \
             patch("oops.core.logger.Live", MagicMock()):
         yield
 
@@ -222,6 +230,43 @@ class TestAnalyzeCLI:
             result = CliRunner().invoke(main, [str(module_path)])
         assert result.exit_code == 0
         assert "my_module" in result.output
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeAllFlag
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeAllFlag:
+    def test_help_lists_all_flag(self) -> None:
+        result = CliRunner().invoke(main, ["--help"])
+        assert result.exit_code == 0
+        assert "--all" in result.output
+
+    def test_neither_paths_nor_all_is_usage_error(self) -> None:
+        result = CliRunner().invoke(main, [])
+        assert result.exit_code == 2
+
+    def test_both_paths_and_all_is_usage_error(self, tmp_path: Path) -> None:
+        result = CliRunner().invoke(main, ["--all", str(tmp_path)])
+        assert result.exit_code == 2
+
+    def test_all_flag_analyzes_build_inventory_paths(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "kb.db"
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            tmp_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        inventory = {"my_module": {"path": str(module_path)}}
+        with _mock_analyze(tmp_path, db_path), \
+                patch("oops.commands.addons.analyze.build_inventory", return_value=inventory) as mock_bi:
+            result = CliRunner().invoke(main, ["--all", "--format", "json"])
+        assert result.exit_code == 0, result.output
+        mock_bi.assert_called_once_with(mock_bi.call_args.args[0], tmp_path, show_all=False, names=())
+        data = json.loads(result.output)
+        assert data["modules"][0]["module"] == "my_module"
 
 
 # ---------------------------------------------------------------------------
@@ -453,7 +498,8 @@ class TestAnalyzeJson:
         fake_addon = MagicMock()
         fake_addon.path = str(module_path)
         with _mock_analyze(tmp_path, db_path), \
-                patch("oops.commands.addons.analyze.get_addon_loc", return_value=fake_loc), \
+                patch("oops.commands.addons.analyze.get_addon_loc_cached", return_value=fake_loc), \
+                patch("oops_engine.summary.get_addon_loc_cached", return_value=fake_loc), \
                 patch("oops.commands.addons.analyze.find_addons", return_value=[fake_addon]):
             result = CliRunner().invoke(main, ["--format", "json", str(module_path)])
         assert result.exit_code == 0
@@ -575,7 +621,6 @@ class TestAnalyzeSchemaV2:
         meta = json.loads(result.output)["metadata"]
         assert meta["schema_version"] == 3
         assert isinstance(meta["limitations"], list) and meta["limitations"]
-        assert any("oca" in lim.lower() for lim in meta["limitations"])
 
     def test_every_metric_key_has_descriptor(self, tmp_path: Path) -> None:
         from oops.output.descriptors import descriptor
@@ -677,6 +722,7 @@ class TestAnalyzeJsonWarnings:
                 patch("oops.commands.addons.analyze.compute_root_drift") as mock_drift, \
                 patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
                 patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+                patch("oops.commands.addons.analyze.odoo_core_repo_id", return_value=_TEST_REPO_ID), \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), tmp_path)
             mock_info.return_value = type(
@@ -735,7 +781,7 @@ class TestAnalyzeRebuild:
         repo_path, module_path = self._make_fake_repo(tmp_path)
         build_called = []
 
-        def fake_build(rp, version, modules):  # noqa: ARG001
+        def fake_build(rp, version, modules, addons):  # noqa: ARG001
             build_called.append(True)
             return Result(data=rp / ".oops-cache" / "kb.db")
 
@@ -743,6 +789,7 @@ class TestAnalyzeRebuild:
                 patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
+                patch("oops.commands.addons.analyze.discover_project_addons", return_value=[]), \
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
@@ -757,7 +804,7 @@ class TestAnalyzeRebuild:
         repo_path, module_path = self._make_fake_repo(tmp_path)
         build_called = []
 
-        def fake_build(rp, version, modules):  # noqa: ARG001
+        def fake_build(rp, version, modules, addons):  # noqa: ARG001
             build_called.append(True)
             return Result(data=rp / ".oops-cache" / "kb.db")
 
@@ -765,6 +812,7 @@ class TestAnalyzeRebuild:
                 patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
                 patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
                 patch("oops.commands.addons.analyze.is_project_kb_stale") as mock_stale, \
+                patch("oops.commands.addons.analyze.discover_project_addons", return_value=[]), \
                 patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
                 patch("oops.core.logger.Live", MagicMock()):
             mock_repo.return_value = (MagicMock(), repo_path)
@@ -774,6 +822,71 @@ class TestAnalyzeRebuild:
             result = CliRunner().invoke(main, ["--refresh", str(module_path)])
         assert result.exit_code == 0
         assert build_called
+
+
+# ---------------------------------------------------------------------------
+# TestAnalyzeInstalledOnly
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeInstalledOnly:
+    """--installed-only: root addons missing from installed_modules.txt are
+    excluded from the project KB scan instead of being scanned anyway."""
+
+    def _make_fake_repo(self, tmp_path: Path) -> tuple[Path, Path]:
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        db_path = repo_path / ".oops-cache" / "kb.db"
+        db_path.parent.mkdir()
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            repo_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        return repo_path, module_path
+
+    def _run(self, tmp_path: Path, module_path: Path, extra_args: list[str]) -> tuple[object, list[set]]:
+        repo_path = module_path.parent
+        scan_modules_calls: list[set] = []
+
+        def fake_build(rp, version, modules, addons):  # noqa: ARG001
+            scan_modules_calls.append(set(modules))
+            return Result(data=rp / ".oops-cache" / "kb.db")
+
+        with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
+                patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
+                patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(True, "test")), \
+                patch("oops.commands.addons.analyze.compute_root_drift", return_value=([], ["extra_module"])), \
+                patch("oops.commands.addons.analyze.discover_project_addons", return_value=[]), \
+                patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
+                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
+                patch("oops.core.logger.Live", MagicMock()):
+            mock_repo.return_value = (MagicMock(), repo_path)
+            mock_info.return_value = MagicMock(modules=["my_module"])
+            mock_gkb.return_value = repo_path / "nonexistent_global_kb.db"
+
+            result = CliRunner().invoke(main, ["--format", "json", *extra_args, str(module_path)])
+        return result, scan_modules_calls
+
+    def test_default_scans_extra_root_addon_anyway(self, tmp_path: Path) -> None:
+        repo_path, module_path = self._make_fake_repo(tmp_path)
+        result, scan_modules_calls = self._run(tmp_path, module_path, [])
+        assert result.exit_code == 0, result.output
+        assert scan_modules_calls
+        assert "extra_module" in scan_modules_calls[0]
+        data = json.loads(result.output)
+        assert any("scanned anyway; pass --installed-only to exclude" in w for w in data["warnings"])
+
+    def test_installed_only_excludes_extra_root_addon(self, tmp_path: Path) -> None:
+        repo_path, module_path = self._make_fake_repo(tmp_path)
+        result, scan_modules_calls = self._run(tmp_path, module_path, ["--installed-only"])
+        assert result.exit_code == 0, result.output
+        assert scan_modules_calls
+        assert "extra_module" not in scan_modules_calls[0]
+        data = json.loads(result.output)
+        assert any("excluded from the project KB scan — --installed-only" in w for w in data["warnings"])
 
 
 # ---------------------------------------------------------------------------

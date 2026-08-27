@@ -9,10 +9,10 @@ import textwrap
 from datetime import date, datetime
 
 import questionary
-from oops.core.compat import Any, List, Optional
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import log
+from oops_engine.compat import Any, List, Optional
 from rich import box
 from rich.columns import Columns
 from rich.console import Console
@@ -257,23 +257,6 @@ def sanitize_cell(s: Any) -> str:
         return ""
     s = " ".join(s.split())
     return s
-
-
-def render_markdown_table(header: List[str], rows: List[List[str]]) -> str:
-    """Render a plain Markdown table from a header row and data rows.
-
-    Args:
-        header: List of column header strings.
-        rows: List of rows, where each row is a list of cell strings.
-
-    Returns:
-        Markdown table string with a separator row after the header.
-    """
-    table = []
-    rows = [header, ["---"] * len(header)] + rows
-    for row in rows:
-        table.append(" | ".join(row))
-    return "\n".join(table)
 
 
 def render_maintainers(manifest: dict) -> str:

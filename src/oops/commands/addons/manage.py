@@ -10,15 +10,15 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Tuple
 from oops.core.exceptions import AppAbort, NotFoundError
 from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import relpath
-from oops.io.manifest import find_addons_extended
 from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, list_available_addons, require_repository, require_submodules
 from oops.utils.render import colorize, prompt_choices
+from oops_engine.compat import Tuple
+from oops_engine.manifest import find_addons_extended
 
 
 def _build_plan(added: set, removed: set, available: dict) -> Plan:
@@ -115,9 +115,7 @@ def main(no_commit: bool) -> None:
         if created:
             outer.merge(commit_v2(repo, repo_path, created, "addons_new", skip_hooks=True))
         if unlinked:
-            outer.merge(
-                commit_v2(repo, repo_path, unlinked, "addons_remove", remove=True, skip_hooks=True)
-            )
+            outer.merge(commit_v2(repo, repo_path, unlinked, "addons_remove", remove=True, skip_hooks=True))
     elif created or unlinked:
         outer.add_warning("Don't forget to commit the symlink changes.")
 

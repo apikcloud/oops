@@ -33,8 +33,9 @@ from functools import lru_cache
 from pathlib import Path
 
 import libcst as cst
-from oops.core.compat import Any, List, Optional, Sequence, Tuple, Union  # noqa: UP035
 from oops.core.config import ManifestConfig
+from oops_engine.compat import Any, List, Optional, Sequence, Tuple, Union  # noqa: UP035
+from oops_engine.manifest import DEFAULT_MANIFEST_NAMES
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -205,7 +206,7 @@ def _find_manifest_rel(addon_dir: Path, repo_root: Path) -> Optional[str]:
 
         names = _cfg.manifest_names
     except Exception:
-        names = ["__manifest__.py", "__openerp__.py"]
+        names = DEFAULT_MANIFEST_NAMES
     for name in names:
         candidate = addon_dir / name
         if candidate.exists():
@@ -220,7 +221,7 @@ def _addon_root_of(path: Path, repo_root: Path) -> Optional[Path]:
 
         names = _cfg.manifest_names
     except Exception:
-        names = ["__manifest__.py", "__openerp__.py"]
+        names = DEFAULT_MANIFEST_NAMES
 
     current = path if path.is_dir() else path.parent
     # Stop at repo_root (don't escape the repository)

@@ -20,7 +20,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress
@@ -33,6 +32,7 @@ from oops.services.github import list_remote_addons
 from oops.services.submodule import add_submodule
 from oops.utils.net import encode_url, parse_repository_url
 from oops.utils.render import colorize
+from oops_engine.compat import Optional, Tuple
 
 # Kind markers for the plan actions.
 KIND_SUBMODULE = "add-submodule"

@@ -6,7 +6,6 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import asdict
 
-from oops.core.compat import List
 from oops.core.models import PullRequest, Result, Stat, StatGroup
 from oops.output.base import SimplePresenter
 from oops.output.layout import (
@@ -16,6 +15,7 @@ from oops.output.layout import (
     statgroup_to_panel,
 )
 from oops.utils.render import colorize
+from oops_engine.compat import List
 
 COLOR_STATUS = {
     "open": "green",

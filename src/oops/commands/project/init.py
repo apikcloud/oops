@@ -22,10 +22,10 @@ from oops.commands.base import command
 from oops.core.exceptions import AppAbort
 from oops.io.file import build_compose, volume_prefix
 from oops.io.templates import ODOO_CONF
-from oops.io.tools import run
 from oops.services.git import require_repository
 from oops.services.project import require_project
 from oops.utils.render import conclude, print_success, prompt_confirm, rule
+from oops_engine.utils import run
 
 
 @command("init", help=__doc__)

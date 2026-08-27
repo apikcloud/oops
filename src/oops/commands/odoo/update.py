@@ -29,7 +29,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command, render_and_exit
-from oops.core.compat import Optional
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
@@ -44,6 +43,7 @@ from oops.services.git import require_repository
 from oops.utils.git import update_at_date, update_latest
 from oops.utils.helpers import normalize_version
 from oops.utils.render import prompt_select
+from oops_engine.compat import Optional
 
 from .presenters.update import UpdatePresenter
 

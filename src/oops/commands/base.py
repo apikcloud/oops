@@ -9,12 +9,12 @@ import time
 from typing import Any
 
 import click
-from oops.core.compat import TYPE_CHECKING
 from oops.core.config import config
 from oops.core.exceptions import AppAbort, ConfigurationError, EarlyExit, OopsError
 from oops.core.metadata import collect_metadata
 from oops.output.sinks import deliver
 from oops.services.stats import append_event, maybe_flush
+from oops_engine.compat import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from oops.core.models import Result, ResultCollection

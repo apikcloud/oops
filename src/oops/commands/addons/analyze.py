@@ -19,7 +19,7 @@ no git operations, and no manifest edits.
 
 from __future__ import annotations
 
-import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import click
@@ -28,19 +28,9 @@ from oops.core.config import AnalyzeConfig, config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata, update_metadata
-from oops.core.models import ClassSummary, ModuleSummary, Result, ResultCollection, StructureSummary, ViewsSummary
-from oops.core.paths import global_kb_path, project_kb_path
-from oops.io.file import detect_readme, find_addons
+from oops.core.models import ResultCollection
+from oops.io.file import find_addons
 from oops.io.installed_modules import read_installed_modules
-from oops.io.manifest import load_manifest
-from oops.io.python_imports import discover_imported_files
-from oops.io.refactor import ClassInfo, SymbolInfo, analyse_file
-from oops.kb.build import build_project_kb, compute_root_drift, is_project_kb_stale
-from oops.kb.domain_profile import compute_domain_profile
-from oops.kb.provenance import normalize_origin
-from oops.kb.resolver import InheritanceResolver
-from oops.kb.scanner import build_module_field_refs
-from oops.kb.store import KBReader
 from oops.output.formatters import (
     FormatterRegistry,
     JsonFormatter,
@@ -50,10 +40,17 @@ from oops.output.formatters import (
 )
 from oops.output.sinks import deliver
 from oops.services.git import require_repository
-from oops.services.kb import set_kb_metadata
-from oops.services.loc import get_addon_loc
+from oops.services.kb import discover_project_addons, set_kb_metadata
+from oops.services.loc import get_addon_loc_cached
 from oops.services.project import require_project
-from oops.utils.helpers import deep_visit
+from oops.services.project_pipeline import build_inventory
+from oops_engine.build import build_project_kb, compute_root_drift, is_project_kb_stale, odoo_core_repo_id
+from oops_engine.identity import local_repo_id
+from oops_engine.models import ModuleSummary
+from oops_engine.paths import global_kb_path, project_kb_path
+from oops_engine.resolver import InheritanceResolver
+from oops_engine.store import KBReader
+from oops_engine.summary import build_module_summary
 
 from .presenters.analyze import AnalyzePresenter
 
@@ -62,6 +59,15 @@ FORMATTERS: FormatterRegistry = {
     "json": JsonFormatter,
     "html": SpaReportFormatter,
 }
+
+
+@dataclass
+class AnalysisRun:
+    """Result of run_analysis(): per-module results plus AnalyzePresenter inputs."""
+
+    results: "ResultCollection[ModuleSummary]"
+    installed: "set[str] | None"
+    load_order: dict
 
 
 # ---------------------------------------------------------------------------
@@ -73,8 +79,14 @@ FORMATTERS: FormatterRegistry = {
 @click.argument(
     "module_paths",
     nargs=-1,
-    required=True,
+    required=False,
     type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--all",
+    "analyze_all",
+    is_flag=True,
+    help="Analyze every addon active at the repo root instead of specifying paths.",
 )
 @click.option(
     "--refresh",
@@ -97,31 +109,93 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
+@click.option(
+    "--no-cache",
+    is_flag=True,
+    default=False,
+    help="Skip the per-module analysis cache read (a fresh result is still cached afterwards).",
+)
+@click.option(
+    "--installed-only",
+    is_flag=True,
+    default=False,
+    help=(
+        "Only scan addons listed in installed_modules.txt for the project KB. "
+        "By default, addons present at the repo root but missing from "
+        "installed_modules.txt are scanned too."
+    ),
+)
 @click.pass_context
 def main(  # noqa: C901, PLR0912, PLR0915
     ctx,
     module_paths: tuple[Path, ...],
+    analyze_all: bool,
     refresh: bool,
     output_format: str,
     output_path: Path,
+    no_cache: bool,
+    installed_only: bool,
 ) -> None:
+
+    if analyze_all and module_paths:
+        raise click.UsageError("Pass either MODULE_PATHS or --all, not both.")
+    if not analyze_all and not module_paths:
+        raise click.UsageError("Pass MODULE_PATHS or use --all.")
 
     metadata = get_metadata()
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
-
     json_mode = output_format == "json"
-    results: ResultCollection[ModuleSummary] = ResultCollection(title="Addons analyze")
+
+    local_repo, repo_path = require_repository()
+    if analyze_all:
+        # show_all=False: root-level addons only (symlinked/local at the repo
+        # root — i.e. actually part of the project). Unlike `addons list
+        # --all`, analyzing addons that were never activated at the root
+        # (dormant in a submodule) doesn't make sense — analyze reasons about
+        # the project's installed set, not the full submodule inventory.
+        inventory = build_inventory(local_repo, repo_path, show_all=False, names=())
+        resolved_paths = [Path(row["path"]) for row in inventory.values()]
+    else:
+        resolved_paths = list(module_paths)
+
+    run = run_analysis(local_repo, repo_path, resolved_paths, refresh, no_cache, installed_only)
+    results = run.results
     if not json_mode:
         results.add_warning("This command is experimental and may change without notice between releases.")
 
+    # 2. Presenter prepares neutral dicts according to the formatter's audience.
+    output = AnalyzePresenter(installed=run.installed, load_order=run.load_order).prepare(
+        results, target=formatter.target, metadata=metadata
+    )
+    deliver(formatter, output, output_format, output_path)
+
+
+def run_analysis(  # noqa: C901, PLR0912, PLR0915
+    repo,
+    repo_path: Path,
+    module_paths: list[Path],
+    refresh: bool,
+    no_cache: bool = False,
+    installed_only: bool = False,
+) -> AnalysisRun:
+    """Analyze the given module paths, returning per-module results.
+
+    Shared by the `analyze` CLI command and `project_pipeline.build_ir()`.
+
+    By default, addons present at the repo root but absent from
+    installed_modules.txt are still scanned into the project KB. Pass
+    ``installed_only=True`` to restrict the KB scan to the installed set only.
+    """
+    results: ResultCollection[ModuleSummary] = ResultCollection(title="Addons analyze")
+
     resolved_paths = [mp.resolve() for mp in module_paths]
-    _, repo_path = require_repository()
     odoo_image = require_project(repo_path)
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
 
     installed: set[str] | None = None
+    load_order: dict = {}
 
     with live_progress("Analysis..."):
         version = str(odoo_image.major_version)
@@ -132,7 +206,7 @@ def main(  # noqa: C901, PLR0912, PLR0915
             _gkb = global_kb_path(version)
             _odoo_mods: set[str] = set()
             if _gkb.exists():
-                with KBReader(_gkb) as _kb:
+                with KBReader(_gkb, repo_ids=[odoo_core_repo_id(version)]) as _kb:
                     _odoo_mods = {
                         n
                         for n, d in _kb.get_modules().items()
@@ -144,12 +218,22 @@ def main(  # noqa: C901, PLR0912, PLR0915
             if missing:
                 results.add_warning(f"Modules in installed_modules.txt with no addon at the repo root: {missing}")
             if extra:
-                results.add_warning(
-                    f"Addons at the repo root not in installed_modules.txt "
-                    f"(will not be scanned by the project KB): {extra}"
-                )
+                if installed_only:
+                    results.add_warning(
+                        f"Addons at the repo root not in installed_modules.txt "
+                        f"(excluded from the project KB scan — --installed-only): {extra}"
+                    )
+                else:
+                    results.add_warning(
+                        f"Addons at the repo root not in installed_modules.txt "
+                        f"(scanned anyway; pass --installed-only to exclude): {extra}"
+                    )
 
-        stale, reason = is_project_kb_stale(repo_path, version)
+            scan_modules = set(info.modules)
+            if extra and not installed_only:
+                scan_modules |= set(extra)
+
+        stale, reason = is_project_kb_stale(repo_path, version, config.project.file_installed_modules)
         needs_build = refresh or stale
 
         kb_path: Path | None = None
@@ -159,12 +243,17 @@ def main(  # noqa: C901, PLR0912, PLR0915
                 raise OopsError(
                     f"installed_modules.txt not found at "
                     f"{repo_path / config.project.file_installed_modules}.\n"
-                    "Create the file (one module per line) and re-run oops analyze."
+                    "Create the file from the command below and re-run oops analyze:\n"
+                    "odoo shell --no-http << EOF\n"
+                    "res = env['ir.module.module'].search([('state', 'in', ['installed', 'to upgrade', 'to remove'])]).mapped('name')\n"  # noqa: E501
+                    "print('\\n'.join(sorted(res)))\n"
+                    "EOF"
                 )
             why = "forced via --refresh" if refresh else f"stale: {reason}"
             results.add_warning(f"Rebuilding project KB: {why}")
             try:
-                kb_result = build_project_kb(repo_path, version, info.modules)
+                addons = discover_project_addons(repo, repo_path, scan_modules)
+                kb_result = build_project_kb(repo_path, version, scan_modules, addons)
             except FileNotFoundError as exc:
                 raise OopsError(str(exc)) from None
             results.merge(kb_result)
@@ -178,131 +267,49 @@ def main(  # noqa: C901, PLR0912, PLR0915
 
         if len(resolved_paths) == 1:
             try:
-                _, _root = require_repository()
-                total_loc = sum(get_addon_loc(a.path).total for a in find_addons(_root, shallow=True))
+                total_loc = sum(
+                    get_addon_loc_cached(repo_path, a.path).total for a in find_addons(repo_path, shallow=True)
+                )
             except Exception:
-                total_loc = get_addon_loc(str(resolved_paths[0])).total
+                total_loc = get_addon_loc_cached(repo_path, str(resolved_paths[0])).total
         else:
-            total_loc = sum(get_addon_loc(str(mp)).total for mp in resolved_paths)
+            total_loc = sum(get_addon_loc_cached(repo_path, str(mp)).total for mp in resolved_paths)
 
-        with KBReader(kb_path) as kb:
+        with KBReader(kb_path, repo_ids=[local_repo_id(repo_path), odoo_core_repo_id(version)]) as kb:
             modules_index = kb.get_modules()
             load_order = kb.get_module_load_order()
             resolver = InheritanceResolver(kb)
-            _resolved_cache: dict = {}
+            kb_generated_at = kb.get_meta().get("generated_at", "")
 
-            def _get_resolved(model: str) -> dict:
-                if model not in _resolved_cache:
-                    try:
-                        _resolved_cache[model] = resolver.resolve(model, installed_modules=installed)
-                    except Exception as exc:
-                        results.add_warning(f"Resolver failed for {model!r}: {exc}")
-                        _resolved_cache[model] = {}
-                return _resolved_cache[model]
+            # Bottom-up order: a dependency's chained fingerprint must exist
+            # before its dependent's is computed. Modules with no recorded
+            # load_index (not in the KB's load order) sort last.
+            def _load_index(mp: Path) -> float:
+                depth_and_index = load_order.get(mp.name)
+                idx = depth_and_index[1] if depth_and_index else None
+                return idx if idx is not None else float("inf")
+
+            resolved_paths = sorted(resolved_paths, key=_load_index)
+            fingerprints: dict[str, str] = {}
+
+            weights = {**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}
 
             for i, module_path in enumerate(resolved_paths, start=1):
                 log.info(f"Analysing {module_path.name} ({i}/{len(resolved_paths)})...")
-                module_name = module_path.name
-                module_result: Result[ModuleSummary] = Result()
-
-                manifest = load_manifest(module_path)
-                if not manifest:
-                    module_result.add_warning(f"{module_name}: no manifest found — header will show <unknown>")
-
-                models_dir = module_path / "models"
-                model_py_files = discover_imported_files(models_dir)
-
-                if not model_py_files:
-                    if models_dir.is_dir():
-                        module_result.add_warning(f"{module_name}: models/ has no imported .py files")
-                    else:
-                        module_result.add_warning(f"{module_name}: no models/ directory")
-
-                module_local_refs = build_module_field_refs(model_py_files)
-
-                all_classes: list[ClassSummary] = []
-                all_class_infos: list[ClassInfo] = []
-                method_symbols: list[dict] = []
-                method_stacks: dict = {}
-                for py_file in model_py_files:
-                    rel_file = f"{module_name}/{py_file.relative_to(module_path).as_posix()}"
-                    class_infos = analyse_file(py_file, kb, modules_index, module_name, module_local_refs)
-                    for ci in class_infos:
-                        ci.source_file = rel_file  # IR v2: own-module source path
-                        all_class_infos.append(ci)
-                        cs = _summarize_class(ci)
-                        cs.missing_description = cs.is_new_model and not ci.description
-                        cs.resolved_description = ci.description
-                        if not cs.is_new_model and cs.inherit:
-                            inherited_model = cs.inherit[0]
-                            cs.ancestor_model = inherited_model
-                            resolved = _get_resolved(inherited_model)
-                            mro = resolved.get("mro", [])
-                            # Find immediate upstream layer (first MRO entry after module_name)
-                            mro_modules = [r["module"] for r in mro]
-                            try:
-                                idx = mro_modules.index(module_name)
-                                upstream = mro[idx + 1] if idx + 1 < len(mro) else None
-                            except ValueError:
-                                upstream = mro[0] if mro else None
-                            if upstream:
-                                cs.ancestor_module = upstream["module"]
-                                cs.ancestor_origin = upstream.get("origin", "")
-                            # Root = original creator: chain[0] (earliest-loaded).
-                            # mro[-1] is wrong in multi-inherit C3 (last mixin, not base).
-                            chain = resolved.get("chain", [])
-                            root = chain[0] if chain else (mro[-1] if mro else None)
-                            if root:
-                                cs.root_module = root["module"]
-                                cs.root_origin = root.get("origin", "")
-                            if not upstream and root:
-                                cs.ancestor_module = root["module"]
-                                cs.ancestor_origin = root.get("origin", "")
-                            # Description: prefer upstream, fall back to root
-                            if not cs.resolved_description:
-                                for candidate in (upstream, root):
-                                    if candidate:
-                                        desc = kb.get_model_description(inherited_model)
-                                        if desc:
-                                            cs.resolved_description = desc
-                                            cs.description_inherited_from = candidate["module"]
-                                            break
-                        all_classes.append(cs)
-                        model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
-                        resolved_m = _get_resolved(model_label) if model_label else {}
-                        resolver_methods = resolved_m.get("methods", {})
-                        method_symbols.extend(
-                            _enrich_method_sym(s, rel_file, model_label, module_name, resolver_methods)
-                            for s in ci.symbols
-                            if s.kind == "method"
-                        )
-                        for mname, mdata in resolver_methods.items():
-                            method_stacks[(model_label, mname)] = mdata.get("stack", [])
-
-                views_summary, xml_analysed = _build_views_summary(module_name, manifest, kb)
-                structure = _build_structure(module_path, manifest, xml_analysed)
-                loc = get_addon_loc(str(module_path))
-                loc_pct = round(100.0 * loc.total / total_loc, 1) if total_loc else 0.0
-
-                module_result.data = ModuleSummary(
-                    module_name=module_name,
-                    module_path=module_path,
-                    manifest=manifest,
-                    classes=all_classes,
-                    structure=structure,
-                    loc=loc,
-                    loc_pct=loc_pct,
-                    views_summary=views_summary,
-                    method_symbols=method_symbols,
-                    class_infos=all_class_infos,
-                    readme=detect_readme(module_path),
-                    method_stacks=method_stacks,
-                    origin=modules_index.get(module_name, {}).get("origin"),
+                module_result = build_module_summary(
+                    module_path,
+                    repo_path,
+                    kb,
+                    modules_index,
+                    resolver,
+                    fingerprints,
+                    installed,
+                    total_loc,
+                    weights,
+                    kb_generated_at,
+                    kb_path,
+                    no_cache=no_cache,
                 )
-
-                weights = {**AnalyzeConfig().domain_weights, **config.analyze.domain_weights}
-                module_result.data.domain_profile = compute_domain_profile(module_result.data, kb, weights)
-
                 results.add(module_result)
 
     set_kb_metadata(repo_path, version)
@@ -311,226 +318,9 @@ def main(  # noqa: C901, PLR0912, PLR0915
     update_metadata(
         schema_version=3,
         limitations=[
-            "oca origin folded into third_party (all submodule code labelled third_party)",
             "controllers/wizard/report/data not analysed (see each module's not_analysed)",
             "module load order is installed-scoped; model nodes carry start-line only",
         ],
     )
 
-    # 2. Presenter prepares neutral dicts according to the formatter's audience.
-    output = AnalyzePresenter(installed=installed, load_order=load_order).prepare(
-        results, target=formatter.target, metadata=metadata
-    )
-    deliver(formatter, output, output_format, output_path)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _enrich_method_sym(
-    s: "SymbolInfo",
-    rel_file: str,
-    model_label: str,
-    module_name: str,
-    resolver_methods: dict,
-) -> dict:
-    """Build method_symbols IR entry, enriching with resolver stack if available."""
-    overrides_ref = None
-    method_stack = resolver_methods.get(s.name, {}).get("stack", [])
-    if method_stack and s.is_override:
-        # upstream reference = root of the resolver stack (original definer)
-        root = method_stack[0]
-        overrides_ref = {
-            "module": root["module"],
-            "origin": normalize_origin(root.get("origin")),
-            "source_file": root.get("source_file"),
-            "source_line": root.get("source_line"),
-        }
-    return {
-        "model": model_label,
-        "kind": "method",
-        "name": s.name,
-        "section": s.section,
-        "line_start": s.lineno,
-        "line_end": s.end_lineno,
-        "source_file": rel_file,
-        "is_override": s.is_override,
-        "has_docstring": s.has_docstring,
-        "overrides": overrides_ref,
-    }
-
-
-def _summarize_class(ci: ClassInfo) -> ClassSummary:
-    fields = [s for s in ci.symbols if s.kind == "field"]
-    methods = [s for s in ci.symbols if s.kind == "method"]
-
-    fields_base = sum(1 for f in fields if f.section == "BASE FIELDS")
-    fields_new = sum(1 for f in fields if f.section == "NEW FIELDS")
-    fields_inherited = sum(1 for f in fields if f.section == "INHERITED FIELDS")
-
-    fields_by_type: dict[str, int] = {}
-    for f in fields:
-        if f.field_type:
-            fields_by_type[f.field_type] = fields_by_type.get(f.field_type, 0) + 1
-
-    methods_by_section: dict[str, int] = {}
-    for m in methods:
-        methods_by_section[m.section] = methods_by_section.get(m.section, 0) + 1
-
-    model_label = ci.model_name or (ci.inherit[0] if ci.inherit else "")
-
-    def _detail(m: "SymbolInfo") -> dict:
-        e = m.kb_entry or {}
-        return {
-            "model": model_label,
-            "method": m.name,
-            "origin_module": e.get("module", ""),
-            "origin": e.get("origin", ""),
-            "line_start": e.get("source_line"),
-            "line_end": e.get("source_end_line"),
-            "source_file": e.get("source_file", ""),
-        }
-
-    override_details = [_detail(m) for m in methods if m.is_override]
-    inherited_method_details = [_detail(m) for m in methods if m.kb_entry and not m.is_override and not ci.is_new_model]
-
-    return ClassSummary(
-        class_name=ci.class_name,
-        model_name=ci.model_name,
-        is_new_model=ci.is_new_model,
-        inherit=ci.inherit,
-        model_type=ci.model_type,
-        fields_total=len(fields),
-        fields_base=fields_base,
-        fields_new=fields_new,
-        fields_inherited=fields_inherited,
-        fields_by_type=fields_by_type,
-        methods_total=len(methods),
-        methods_by_section=methods_by_section,
-        overrides=len(override_details),
-        override_details=override_details,
-        missing_docstrings=sum(1 for m in methods if not m.has_docstring),
-        inherited_methods=len(inherited_method_details),
-        inherited_method_details=inherited_method_details,
-    )
-
-
-def _group_manifest_data(entries: list) -> dict[str, dict[str, int]]:
-    result: dict[str, dict[str, int]] = {}
-    for entry in entries:
-        parts = Path(entry).parts
-        subdir = parts[0] if len(parts) > 1 else "."
-        ext = Path(entry).suffix.lstrip(".")
-        result.setdefault(subdir, {})
-        result[subdir][ext] = result[subdir].get(ext, 0) + 1
-    return result
-
-
-def _build_views_summary(
-    module_name: str,
-    manifest: dict,
-    kb: "KBReader",
-) -> "tuple[ViewsSummary, frozenset[str]]":
-    views = kb.get_module_views(module_name)
-    actions = kb.get_module_action_count(module_name)
-    menus = kb.get_module_menu_count(module_name)
-
-    primary_by_type: dict[str, int] = {}
-    extensions = 0
-    extensions_by_type: dict[str, int] = {}
-    extensions_upstream = 0
-    unresolved = 0
-    view_list: list[dict] = []
-
-    for v in views:
-        if v["mode"] == "primary":
-            vt = v["view_type"] or "unknown"
-            primary_by_type[vt] = primary_by_type.get(vt, 0) + 1
-        else:
-            extensions += 1
-            vt = v["view_type"] or "unknown"
-            extensions_by_type[vt] = extensions_by_type.get(vt, 0) + 1
-            iid = v.get("inherit_id") or ""
-            if iid and not iid.startswith(f"{module_name}."):
-                extensions_upstream += 1
-        if v.get("view_type") == "unresolved":
-            unresolved += 1
-
-        inherit_id = v.get("inherit_id")
-        parent = kb.get_view(inherit_id) if inherit_id else None
-        view_list.append(
-            {
-                "xml_id": v["xml_id"],
-                "mode": v["mode"],
-                "view_type": v.get("view_type"),
-                "name": v.get("name"),
-                "model": v.get("model"),
-                "origin": v["origin"],
-                "inherit_id": inherit_id,
-                "fields_count": len(json.loads(v.get("fields_json") or "[]")),
-                "buttons_count": len(json.loads(v.get("buttons_json") or "[]")),
-                "ancestor_module": parent["module"] if parent else None,
-                "ancestor_origin": parent["origin"] if parent else None,
-                "source_file": v.get("source_file"),
-                "line_start": v.get("source_line"),
-                "line_end": v.get("source_end_line"),
-            }
-        )
-
-    # source_file in KB is tier-root-relative (e.g. "my_module/views/form.xml");
-    # manifest entry is module-relative (e.g. "views/form.xml"). Match via endswith.
-    # Edge case: a top-level entry like "views.xml" could match a path ending in
-    # "/views.xml" from another module — acceptable given Odoo's convention of
-    # always placing XML in subdirectories.
-    indexed_source_files = {v["source_file"] for v in views}
-    data_entries = manifest.get("data", []) or []
-    xml_analysed_list: list[str] = []
-    for entry in data_entries:
-        if not entry.endswith(".xml"):
-            continue
-        if any(sf.endswith("/" + entry) or sf == entry for sf in indexed_source_files):
-            xml_analysed_list.append(entry)
-
-    return (
-        ViewsSummary(
-            primary_by_type=primary_by_type,
-            extensions=extensions,
-            extensions_by_type=extensions_by_type,
-            extensions_upstream=extensions_upstream,
-            actions=actions,
-            menus=menus,
-            unresolved=unresolved,
-            view_list=view_list,
-        ),
-        frozenset(xml_analysed_list),
-    )
-
-
-def _build_structure(
-    module_path: Path, manifest: dict, xml_analysed: "frozenset[str] | None" = None
-) -> StructureSummary:
-    data = _group_manifest_data(manifest.get("data", []))
-    demo = _group_manifest_data(manifest.get("demo", []))
-
-    controllers_py = len(discover_imported_files(module_path / "controllers"))
-    wizard_py = len(discover_imported_files(module_path / "wizard"))
-    report_py = len(discover_imported_files(module_path / "report"))
-
-    static_by_ext: dict[str, int] = {}
-    for _, value in deep_visit(manifest.get("assets", {})):
-        if isinstance(value, str):
-            ext = Path(value).suffix.lstrip(".")
-            if ext:
-                static_by_ext[ext] = static_by_ext.get(ext, 0) + 1
-
-    return StructureSummary(
-        data=data,
-        demo=demo,
-        controllers_py=controllers_py,
-        wizard_py=wizard_py,
-        report_py=report_py,
-        static_by_ext=static_by_ext,
-        xml_analysed=xml_analysed if xml_analysed is not None else frozenset(),
-    )
+    return AnalysisRun(results=results, installed=installed, load_order=load_order)

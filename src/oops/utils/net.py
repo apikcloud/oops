@@ -9,9 +9,9 @@ from urllib.parse import urlparse
 
 import requests
 from git import Repo
-from oops.core.compat import Optional, Tuple
 from oops.core.config import config
 from oops.utils.helpers import removesuffix
+from oops_engine.compat import Optional, Tuple
 
 
 def make_json_get(url: str, headers: Optional[dict] = None, params: Optional[dict] = None) -> dict:

@@ -4,9 +4,8 @@ import csv
 import io
 import sys
 
-from oops.core.compat import Dict, Type
 from oops.core.exceptions import get_error_console
-from oops.output.base import OutputFormatter, RenderTarget, SiteFormatter
+from oops.output.base import OutputFormatter, RenderTarget
 from oops.output.layout import MetricsLayout, MinimalLayout, OnePanelLayout, Output, SimpleSummaryLayout, SummaryLayout
 from oops.output.serializers import to_json_string
 from oops.utils.render import (
@@ -24,6 +23,7 @@ from oops.utils.render import (
     rule,
     warning_section,
 )
+from oops_engine.compat import Dict, Type
 
 MAX_COLUMNS = 6
 
@@ -207,52 +207,6 @@ class SpaReportFormatter(OutputFormatter):
 
     def success(self, message: str) -> None:
         pass
-
-
-class MarkdownSiteFormatter(SiteFormatter):
-    """Render the DocModel as a multi-file Markdown site.
-
-    Produces ``index.md``, one ``modules/<name>.md`` per module and one
-    ``models/<bare>.md`` per bare model (aggregating every contributing module).
-    Audit pages are added by Phase 4.
-    """
-
-    def render_site(self, output: "Output[dict]") -> Dict[str, str]:
-        from oops.output.markdown.pages import (
-            build_audit_index,
-            build_audit_overrides,
-            build_audit_views,
-            build_index,
-            build_method,
-            build_methods_index,
-            build_model,
-            build_module,
-        )
-
-        dm = output.layout
-        files: Dict[str, str] = {"index.md": build_index(dm)}
-
-        for mod in dm.get("modules", []):
-            files[f"modules/{mod['module']}.md"] = build_module(dm, mod)
-
-        for bare, entry in dm.get("models_by_bare", {}).items():
-            files[entry["page"]] = build_model(dm, bare, entry)
-
-        # Generate method pages
-        from oops.output.docmodel import method_page_path
-
-        for mod in dm.get("modules", []):
-            for method in mod.get("methods", []):
-                method_id = method.get("id", "")
-                files[method_page_path(method_id)] = build_method(dm, method, mod["module"])
-
-        files["methods/index.md"] = build_methods_index(dm)
-
-        files["audit/index.md"] = build_audit_index(dm)
-        files["audit/overrides.md"] = build_audit_overrides(dm)
-        files["audit/views.md"] = build_audit_views(dm)
-
-        return files
 
 
 class JsonFormatter(OutputFormatter):

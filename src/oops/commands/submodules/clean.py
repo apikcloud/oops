@@ -20,7 +20,6 @@ from pathlib import Path
 import click
 from git import Repo
 from oops.commands.base import command
-from oops.core.compat import Iterable
 from oops.core.config import config
 from oops.core.exceptions import AppAbort
 from oops.core.logger import live_progress, log
@@ -33,6 +32,7 @@ from oops.utils.render import (
     render_healder,
     render_panel,
 )
+from oops_engine.compat import Iterable
 
 _PICKER_COUNT = 20
 _HEAD_CHOICE = "HEAD (current) — reset in place"

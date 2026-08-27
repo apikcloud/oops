@@ -6,8 +6,8 @@
 
 from dataclasses import asdict, dataclass, field
 
-from oops.core.compat import Generic, List, Literal, TypeVar
 from oops.core.models import Result
+from oops_engine.compat import Generic, List, Literal, TypeVar
 
 CheckStatus = Literal["passed", "failed", "skipped"]
 

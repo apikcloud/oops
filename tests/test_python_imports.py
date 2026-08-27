@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 
 import pytest
-from oops.io.python_imports import discover_imported_files
+from oops_engine.python_imports import discover_imported_files
 
 
 class TestDiscoverImportedFiles:

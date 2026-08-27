@@ -13,13 +13,13 @@ differs. Displays a plan and prompts for confirmation before applying unless
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Tuple
 from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import desired_path, get_symlink_map
 from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
 from oops.utils.render import colorize
+from oops_engine.compat import Tuple
 
 
 def _build_plan(submodules, mapping) -> Plan:

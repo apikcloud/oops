@@ -20,12 +20,12 @@ from pathlib import Path
 import click
 from git import GitCommandError, Repo
 from oops.commands.base import command
-from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.exceptions import ConfigError, OopsError
 from oops.core.logger import live_progress
 from oops.utils.net import resolve_clone_target
 from oops.utils.render import conclude, render_panel
+from oops_engine.compat import Optional
 
 
 def _resolve_target(repo: str) -> tuple[str, Path]:

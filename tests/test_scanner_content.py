@@ -14,7 +14,7 @@ from __future__ import annotations
 import ast
 
 import pytest
-from oops.kb.scanner import (
+from oops_engine.scanner import (
     decorator_call_texts,
     extract_field_details,
     reconstruct_signature,

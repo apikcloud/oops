@@ -15,15 +15,15 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Optional, Tuple
 from oops.core.exceptions import NotFoundError
 from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import relpath
-from oops.io.manifest import find_addons_extended
 from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, list_available_addons, require_repository
 from oops.utils.render import colorize
+from oops_engine.compat import Optional, Tuple
+from oops_engine.manifest import find_addons_extended
 
 
 def _build_plan(names: Optional[set], available: dict, existing: set) -> Plan:

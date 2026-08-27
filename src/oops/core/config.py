@@ -11,9 +11,9 @@ from pathlib import Path
 
 import click
 import yaml
-from oops.core.compat import Dict, Final, List, Optional, Union, get_type_hints
 from oops.core.exceptions import ConfigurationError
 from oops.core.paths import CONFIG_PATHS as _CONFIG_PATHS
+from oops_engine.compat import Dict, Final, List, Optional, Union, get_type_hints
 
 logger = logging.getLogger(__name__)
 
@@ -109,9 +109,6 @@ class ImagesConfig:
 class SubmodulesConfig:
     current_path: Path = field(default_factory=lambda: Path(".third-party"))
     old_paths: List[Path] = field(default_factory=lambda: [Path("third-party")])
-    apik_path: Path = field(
-        default_factory=lambda: Path("apik-addons")
-    )  # TODO: do not mention this in the configuration
     force_scheme: str = "ssh"
     deprecated_repositories: dict = field(default_factory=lambda: {})
     checks: List[str] = field(

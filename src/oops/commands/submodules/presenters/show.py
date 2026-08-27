@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from oops.core.compat import List, Optional
 from oops.core.models import CommitInfo, Result, Stat, StatGroup, SubmoduleInfo
 from oops.output.base import SimplePresenter
 from oops.output.layout import (
@@ -15,6 +14,7 @@ from oops.output.layout import (
     statgroup_to_panel,
 )
 from oops.utils.render import approximate_duration, format_date, render_boolean
+from oops_engine.compat import List, Optional
 
 
 def _render_commit(commit: Optional[CommitInfo]) -> List[str]:

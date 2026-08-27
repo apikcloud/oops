@@ -3,7 +3,7 @@
 #
 # File: docmodel.py — src/oops/output/docmodel.py
 
-"""Pure DocModel helpers for ``oops project doc`` (Stage C).
+"""Pure DocModel helpers for ``oops project serve``/``mcp``/the dashboard (Stage C).
 
 This module holds the *presenter logic* that turns the analyze IR v2 payload
 into a render-ready model: an id index, a bare-model grouping that aggregates
@@ -11,9 +11,9 @@ all modules contributing to one Odoo model, stable per-node anchors, and a
 single reference-resolution rule shared by every page builder.
 
 Everything here is pure (no I/O, no rendering) so it can be unit-tested in
-isolation. The Markdown formatter (``output/markdown/``) consumes the dict
-returned by :func:`ProjectDocPresenter.to_machine`, which is built from these
-helpers.
+isolation. ``oops project serve``, ``oops mcp``, and the dashboard consume the
+dict returned by :func:`ProjectDocPresenter.to_machine`, which is built from
+these helpers.
 
 Id scheme (from ``kb.identity``)::
 
@@ -29,8 +29,8 @@ a ``{"kind": "link", "path", "anchor"}``; any other target becomes a
 
 from __future__ import annotations
 
-from oops.core.compat import Any, Dict, List, Optional
 from oops.utils.helpers import slugify
+from oops_engine.compat import Any, Dict, List, Optional
 
 
 def model_page_path(bare: str) -> str:

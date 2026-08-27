@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from oops.core.compat import Any
+from oops_engine.compat import Any
 
 
 def to_json_string(data: Any, **kwargs) -> str:

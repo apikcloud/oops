@@ -29,8 +29,8 @@ class TestTierOriginMap:
 
 class TestWriteGlobalKbTierSources:
     def test_two_tier_sources_stored_as_tier_roots(self, tmp_path: Path) -> None:
-        """write_global_kb + get_sources() roundtrip preserves per-tier roots."""
-        from oops.kb.store import KBReader, write_global_kb
+        """write_kb + get_sources() roundtrip preserves per-tier roots."""
+        from oops_engine.store import KBReader, write_kb
 
         addons_root = tmp_path / "community" / "addons"
         odoo_addons_root = tmp_path / "community" / "odoo" / "addons"
@@ -43,14 +43,15 @@ class TestWriteGlobalKbTierSources:
         }
 
         db_path = tmp_path / "test.db"
-        write_global_kb(
+        write_kb(
             db_path=db_path,
+            repo_id="odoo-core-17.0",
             odoo_version="17.0",
             sources=sources,
             scan_results=[],
         )
 
-        with KBReader(db_path) as kb:
+        with KBReader(db_path, repo_ids=["odoo-core-17.0"]) as kb:
             stored = kb.get_sources()
 
         assert stored["odoo"] == str(addons_root)

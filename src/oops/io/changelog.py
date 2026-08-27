@@ -5,8 +5,8 @@
 
 import re
 
-from oops.core.compat import Dict, List, Optional
 from oops.core.models import ChangelogSection
+from oops_engine.compat import Dict, List, Optional
 
 
 def _extract_section(changelog: str, version: str) -> str:

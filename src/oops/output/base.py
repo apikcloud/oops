@@ -8,10 +8,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from oops.core.compat import Generic, Literal, Optional, TypeVar
 from oops.core.metadata import Metadata
 from oops.core.models import HasStatus, Result
 from oops.output.layout import Layout, Output
+from oops_engine.compat import Generic, Literal, Optional, TypeVar
 
 D = TypeVar("D")  # data type for the simple case
 T = TypeVar("T", bound=HasStatus)  # anything with ok/warnings/errors
@@ -55,33 +55,6 @@ class OutputFormatter(ABC):
     @abstractmethod
     def success(self, message: str) -> None:
         """Report a successful operation."""
-
-
-class SiteFormatter(OutputFormatter):
-    """Base for formatters that emit a multi-file site instead of one string.
-
-    A site is N files, not a single rendered string, so the inherited
-    single-string ``render`` returns ``None`` (sites never go through the
-    ``deliver``/``write_output`` path) and ``render_site`` returns a
-    ``{relative_path: content}`` tree delivered by ``deliver_site``.
-    """
-
-    target = RenderTarget(audience="machine", verbosity="full")
-
-    def render(self, output: Output) -> Optional[str]:  # noqa: ARG002 - sites use render_site
-        return None
-
-    @abstractmethod
-    def render_site(self, output: Output) -> "dict[str, str]":
-        """Return the site as a mapping of relative path → file content."""
-
-    def error(self, message: str, code: int = 1) -> None:
-        import sys
-
-        print(f"Error ({code}): {message}", file=sys.stderr)
-
-    def success(self, message: str) -> None:
-        pass
 
 
 class Presenter(Generic[T]):

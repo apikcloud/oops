@@ -26,7 +26,6 @@ from pathlib import Path
 import click
 import requests
 from oops.commands.base import command
-from oops.core.compat import Tuple
 from oops.core.config import config
 from oops.core.exceptions import APIError, AppAbort, ConfigError, EarlyExit, OopsError
 from oops.core.logger import live_progress
@@ -39,6 +38,7 @@ from oops.services.git import commit_v2, require_repository
 from oops.services.project import fetch_project_files
 from oops.utils.helpers import normalize_version_arg
 from oops.utils.render import colorize, conclude, prompt_select, rule
+from oops_engine.compat import Tuple
 
 
 def _build_plan(

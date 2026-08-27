@@ -22,7 +22,6 @@ import configparser
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import log
@@ -32,6 +31,7 @@ from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, is_pull_request, read_gitmodules, require_repository, require_submodules
 from oops.utils.render import colorize
+from oops_engine.compat import Optional, Tuple
 
 
 def _build_plan(submodules, gitmodules, branch: str, skip_pr: bool) -> Plan:

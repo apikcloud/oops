@@ -22,19 +22,20 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.commands.project.doc import _build_inventory, _run_analyze
 from oops.commands.project.presenters.doc import ProjectDocPresenter
 from oops.core.exceptions import EarlyExit
 from oops.core.logger import live_progress
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
-from oops.core.paths import UI, project_kb_path
-from oops.kb.store import KBReader
+from oops.core.paths import UI
 from oops.output.base import RenderTarget
 from oops.output.descriptors import load_descriptors
 from oops.output.serializers import to_json_string
 from oops.services.git import require_repository
 from oops.services.project import require_project
+from oops.services.project_pipeline import build_inventory, build_ir
+from oops_engine.paths import project_kb_path
+from oops_engine.store import KBReader, discover_repo_ids
 
 
 def source_roots_from_payload(payload: dict) -> dict:
@@ -86,7 +87,7 @@ def _build_source_roots(repo_path: Path) -> dict:
     kb_path = project_kb_path(repo_path)
     if not kb_path.exists():
         return {}
-    with KBReader(kb_path) as kb:
+    with KBReader(kb_path, repo_ids=discover_repo_ids(kb_path)) as kb:
         modules = kb.get_modules()    # {name: {origin: str, ...}}
         sources = kb.get_sources()    # {origin: abs_path_str}
     roots = {}
@@ -213,11 +214,11 @@ def build_payload(
     repo, repo_path: Path, show_all: bool, names: tuple, refresh: bool
 ) -> dict:
     """Stages A–C → DocModel, plus the descriptor schema for client-side cards."""
-    inventory = _build_inventory(repo, repo_path, show_all, names)
+    inventory = build_inventory(repo, repo_path, show_all, names)
     if not inventory:
         raise EarlyExit()
-    paths = [row["path"] for row in inventory.values()]
-    ir = _run_analyze(paths, refresh)
+    paths = [Path(row["path"]) for row in inventory.values()]
+    ir = build_ir(repo, repo_path, paths, refresh)
 
     result: Result = Result()
     result.data = {"ir": ir, "inventory": inventory}

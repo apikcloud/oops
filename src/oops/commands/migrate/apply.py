@@ -33,7 +33,6 @@ from pathlib import Path
 import click
 import yaml
 from oops.commands.base import command, render_and_exit
-from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
@@ -47,9 +46,10 @@ from oops.output.formatters import (
     SimpleSummaryConsoleFormatter,
 )
 from oops.services.git import require_repository
-from oops.utils.render import warn_experimental
 from oops.services.github import get_pull_request
 from oops.utils.net import parse_pull_request_url
+from oops.utils.render import warn_experimental
+from oops_engine.compat import Optional
 
 from .common import (
     PLAN_FILE,

@@ -13,17 +13,17 @@ from pathlib import Path, PurePosixPath
 import click
 from git import GitCommandError, InvalidGitRepositoryError, Repo, Submodule
 from git.config import GitConfigParser
-from oops.core.compat import TYPE_CHECKING, Generator, List, Optional, Tuple
 from oops.core.exceptions import OopsError
 from oops.core.messages import commit_messages
 from oops.core.metadata import update_metadata
 from oops.core.models import CommitInfo, Result
 from oops.core.paths import PR_DIR
 from oops.io.format import format_file
-from oops.io.manifest import find_addons_extended
-from oops.io.tools import run
 from oops.utils.net import encode_url
 from oops.utils.render import print_success, print_warning
+from oops_engine.compat import TYPE_CHECKING, Generator, List, Optional, Tuple
+from oops_engine.manifest import find_addons_extended
+from oops_engine.utils import run
 
 if TYPE_CHECKING:
     from git.util import IterableList

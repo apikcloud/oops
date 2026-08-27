@@ -19,7 +19,7 @@ import json
 from functools import lru_cache
 from importlib.resources import files
 
-from oops.core.compat import Any, Dict, Optional
+from oops_engine.compat import Any, Dict, Optional
 
 _SCHEMA_RESOURCE = files("oops.output") / "schema" / "analyze_ir_v2.json"
 

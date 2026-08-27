@@ -13,10 +13,9 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
+from oops.core.config import config
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
-from oops.core.models import AddonInfo, Result
-from oops.io.file import enrich_addon, find_addons
 from oops.output.formatters import (
     CsvFormatter,
     FormatterRegistry,
@@ -27,7 +26,9 @@ from oops.output.formatters import (
 )
 from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
-from oops.services.loc import get_addon_loc
+from oops.services.loc import get_addon_loc_cached
+from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.models import Addon, Result
 
 from .presenters.list import ListPresenter
 
@@ -92,7 +93,7 @@ def main(
     repo, repo_path = require_repository()
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
-    result: Result[list[AddonInfo]] = Result()
+    result: Result[list[Addon]] = Result()
     result.data = []
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
@@ -109,13 +110,7 @@ def main(
         # Filter submodule names if requested
         active_paths = {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
 
-        # Deduplicate by resolved path, preferring root-level symlinks over real files.
-        # os.walk visits both when --all is used, and dotfile dirs (.third-party) sort
-        # first, so without this the real file wins and symlinks are miscounted.
-        seen: dict[str, AddonInfo] = {}
-        for addon in find_addons(repo_path, shallow=not show_all):
-            if addon.path not in seen or addon.symlinked:
-                seen[addon.path] = addon
+        seen = dedup_addons_by_path(repo_path, shallow=not show_all)
 
         for addon in seen.values():
             if active_paths is not None and addon.rel_path not in active_paths:
@@ -126,11 +121,12 @@ def main(
 
             log.info(f"Enrichment of {addon.technical_name}")
 
-            sub = subs.get(addon.rel_path, {})
-            enrich_addon(addon, sub)
+            enrich_addon_from_subs(
+                addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+            )
 
             # add lines of code
-            addon.loc = get_addon_loc(addon.path)
+            addon.loc = get_addon_loc_cached(repo_path, addon.path)
 
             result.data.append(addon)
 

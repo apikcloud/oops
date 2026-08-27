@@ -14,11 +14,13 @@ import pytest
 class TestHumanReadableWidth:
     def test_truncates_long_string(self):
         from oops.utils.render import human_readable
+
         result = human_readable("A" * 100, width=10)
         assert len(result) <= 10 + 3  # placeholder "..." can extend up to 3 chars
 
     def test_set_joined(self):
         from oops.utils.render import human_readable
+
         result = human_readable({1, 2})
         assert "1" in result
         assert "2" in result
@@ -27,49 +29,46 @@ class TestHumanReadableWidth:
 class TestRenderBoolean:
     def test_true_returns_symbol(self):
         from oops.utils.render import render_boolean
+
         assert render_boolean(True) != ""
 
     def test_false_returns_empty(self):
         from oops.utils.render import render_boolean
+
         assert render_boolean(False) == ""
 
 
 class TestSanitizeCell:
     def test_collapses_whitespace(self):
         from oops.utils.render import sanitize_cell
+
         assert sanitize_cell("  hello   world  ") == "hello world"
 
     def test_returns_empty_for_falsy(self):
         from oops.utils.render import sanitize_cell
+
         assert sanitize_cell("") == ""
         assert sanitize_cell(None) == ""
-
-
-class TestRenderMarkdownTable:
-    def test_basic_table(self):
-        from oops.utils.render import render_markdown_table
-        result = render_markdown_table(["Name", "Version"], [["addon_a", "1.0"]])
-        assert "Name" in result
-        assert "Version" in result
-        assert "addon_a" in result
-        assert "---" in result
 
 
 class TestRenderMaintainers:
     def test_renders_html_links(self):
         from oops.utils.render import render_maintainers
+
         result = render_maintainers({"maintainers": ["alice", "bob"]})
         assert "alice" in result
         assert "bob" in result
 
     def test_empty_when_no_maintainers(self):
         from oops.utils.render import render_maintainers
+
         assert render_maintainers({}) == ""
 
 
 class TestPrintError:
     def test_prints_to_stdout(self, capsys):
         from oops.utils.render import print_error
+
         print_error("something went wrong")
         out = capsys.readouterr().out
         assert "something went wrong" in out
@@ -78,6 +77,7 @@ class TestPrintError:
 class TestPrintRule:
     def test_prints_label_to_stdout(self, capsys):
         from oops.utils.render import print_rule
+
         print_rule("foo")
         assert "── foo ──" in capsys.readouterr().out
 
@@ -85,11 +85,13 @@ class TestPrintRule:
 class TestWarningSection:
     def test_empty_is_silent(self, capsys):
         from oops.utils.render import warning_section
+
         warning_section([])
         assert capsys.readouterr().out == ""
 
     def test_single_message_contains_text(self, capsys):
         from oops.utils.render import warning_section
+
         warning_section(["something went wrong"])
         out = capsys.readouterr().out
         assert "something went wrong" in out
@@ -97,6 +99,7 @@ class TestWarningSection:
 
     def test_multi_message_all_present(self, capsys):
         from oops.utils.render import warning_section
+
         warning_section(["first", "second"])
         out = capsys.readouterr().out
         assert "first" in out
@@ -106,10 +109,12 @@ class TestWarningSection:
 class TestGetConsole:
     def test_returns_distinct_instances(self):
         from oops.utils.render import get_console
+
         assert get_console() is not get_console()
 
     def test_error_console_targets_stderr(self):
         from oops.utils.render import get_error_console
+
         assert get_error_console().stderr is True
 
 
@@ -117,14 +122,17 @@ class TestOopsError:
     def test_inherits_click_exception(self):
         import click
         from oops.utils.render import OopsError
+
         assert issubclass(OopsError, click.ClickException)
 
     def test_exit_code_is_one(self):
         from oops.utils.render import OopsError
+
         assert OopsError("boom").exit_code == 1
 
     def test_show_writes_styled_message_to_stderr(self, capsys):
         from oops.utils.render import OopsError
+
         OopsError("Project KB not found.").show()
         captured = capsys.readouterr()
         assert captured.out == ""
@@ -187,19 +195,24 @@ class TestAppAbort:
 
 
 class TestSentinelExitCodes:
-    @pytest.mark.parametrize("cls,code", [
-        ("ConfigError", 1),
-        ("APIError", 2),
-        ("NotFoundError", 3),
-    ])
+    @pytest.mark.parametrize(
+        "cls,code",
+        [
+            ("ConfigError", 1),
+            ("APIError", 2),
+            ("NotFoundError", 3),
+        ],
+    )
     def test_exit_code(self, cls, code):
         import importlib
+
         exc_mod = importlib.import_module("oops.core.exceptions")
         exc_cls = getattr(exc_mod, cls)
         assert exc_cls.exit_code == code
 
     def test_show_writes_symbol_to_stderr(self, capsys):
         from oops.core.exceptions import ConfigError
+
         ConfigError("bad config").show()
         captured = capsys.readouterr()
         assert captured.out == ""
@@ -223,26 +236,32 @@ class TestTelemetryClassification:
 
     def test_oops_error(self, monkeypatch):
         from oops.core.exceptions import OopsError
+
         assert self._run(lambda: OopsError("err"), monkeypatch) == "OopsError"
 
     def test_config_error(self, monkeypatch):
         from oops.core.exceptions import ConfigError
+
         assert self._run(lambda: ConfigError("err"), monkeypatch) == "ConfigError"
 
     def test_api_error(self, monkeypatch):
         from oops.core.exceptions import APIError
+
         assert self._run(lambda: APIError("err"), monkeypatch) == "APIError"
 
     def test_not_found_error(self, monkeypatch):
         from oops.core.exceptions import NotFoundError
+
         assert self._run(lambda: NotFoundError("err"), monkeypatch) == "NotFoundError"
 
     def test_usage_error(self, monkeypatch):
         import click
+
         assert self._run(lambda: click.UsageError("bad input"), monkeypatch) == "UsageError"
 
     def test_click_exception(self, monkeypatch):
         import click
+
         assert self._run(lambda: click.ClickException("err"), monkeypatch) == "ClickException"
 
     def test_runtime_error(self, monkeypatch):
@@ -256,29 +275,34 @@ class TestTelemetryClassification:
 
 class TestDeepVisit:
     def test_flat_dict(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
+
         result = dict(deep_visit({"a": 1, "b": 2}))
         assert result["a"] == 1
         assert result["b"] == 2
 
     def test_nested_dict(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
+
         result = dict(deep_visit({"x": {"y": 42}}))
         assert result["x.y"] == 42
 
     def test_list_values(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
+
         result = list(deep_visit([10, 20]))
         assert ("[0]", 10) in result
         assert ("[1]", 20) in result
 
     def test_scalar(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
+
         result = list(deep_visit(99))
         assert result == [("", 99)]
 
     def test_tuple_treated_as_list(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
+
         result = list(deep_visit((1, 2)))
         assert ("[0]", 1) in result
 
@@ -286,18 +310,21 @@ class TestDeepVisit:
 class TestFilterAndClean:
     def test_strips_inline_comment(self):
         from oops.utils.helpers import filter_and_clean
+
         result = filter_and_clean(["package # version pinned"])
         assert "package" in result
         assert any("package" in item and "#" not in item for item in result)
 
     def test_skips_comment_lines(self):
         from oops.utils.helpers import filter_and_clean
+
         result = filter_and_clean(["# full comment", "valid_item"])
         assert "valid_item" in result
         assert "# full comment" not in str(result)
 
     def test_skips_empty_lines(self):
         from oops.utils.helpers import filter_and_clean
+
         result = filter_and_clean(["", "item"])
         assert "item" in result
         assert "" not in result
@@ -306,6 +333,7 @@ class TestFilterAndClean:
 class TestStrToListEmpty:
     def test_empty_input_returns_empty_list(self):
         from oops.utils.helpers import str_to_list
+
         assert str_to_list("") == []
         assert str_to_list(None) == []  # type: ignore[arg-type]
 
@@ -318,6 +346,7 @@ class TestStrToListEmpty:
 class TestImageInfo:
     def _make(self, enterprise=False, release=None):
         from oops.core.models import ImageInfo
+
         return ImageInfo(
             image="apik/odoo:19.0",
             registry="apik",
@@ -346,6 +375,7 @@ class TestImageInfo:
 
     def test_from_raw_dict(self):
         from oops.core.models import ImageInfo
+
         vals = {
             "image": "apik/odoo:19.0",
             "org": "apik",
@@ -363,6 +393,7 @@ class TestImageInfo:
 class TestCommitInfo:
     def _make(self):
         from oops.core.models import CommitInfo
+
         return CommitInfo(
             sha="abc1234",
             author="Alice",
@@ -376,6 +407,7 @@ class TestCommitInfo:
 
     def test_from_string(self):
         from oops.core.models import CommitInfo
+
         raw = "abc1234;Alice;alice@example.com;2025-01-15T00:00:00;feat: something"
         ci = CommitInfo.from_string(raw)
         assert ci.sha == "abc1234"
@@ -405,6 +437,7 @@ class TestWorkflowRunInfo:
 
     def test_from_dict(self):
         from oops.core.models import WorkflowRunInfo
+
         run = WorkflowRunInfo.from_dict(self._vals())
         assert run.actor == "alice"
         assert run.branch == "main"
@@ -412,11 +445,13 @@ class TestWorkflowRunInfo:
 
     def test_age_is_non_negative(self):
         from oops.core.models import WorkflowRunInfo
+
         run = WorkflowRunInfo.from_dict(self._vals())
         assert run.age >= 0
 
     def test_str_representation(self):
         from oops.core.models import WorkflowRunInfo
+
         run = WorkflowRunInfo.from_dict(self._vals())
         s = str(run)
         assert "CI" in s
@@ -425,8 +460,9 @@ class TestWorkflowRunInfo:
 
 class TestAddonInfo:
     def test_symlinked_property_true(self, tmp_path):
-        from oops.core.models import AddonInfo
-        addon = AddonInfo(
+        from oops_engine.models import Addon
+
+        addon = Addon(
             path=str(tmp_path),
             rel_path="",
             technical_name="my_addon",
@@ -443,8 +479,9 @@ class TestAddonInfo:
         assert addon.symlinked is True
 
     def test_symlinked_property_false_not_root(self, tmp_path):
-        from oops.core.models import AddonInfo
-        addon = AddonInfo(
+        from oops_engine.models import Addon
+
+        addon = Addon(
             path=str(tmp_path),
             rel_path="sub",
             technical_name="my_addon",
@@ -461,11 +498,12 @@ class TestAddonInfo:
         assert addon.symlinked is False
 
     def test_from_path_regular_dir(self, tmp_path):
-        from oops.core.models import AddonInfo
+        from oops_engine.models import Addon
+
         addon_dir = tmp_path / "my_addon"
         addon_dir.mkdir()
         manifest = {"author": "Acme", "version": "16.0.1.0.0", "installable": True}
-        info = AddonInfo.from_path(addon_dir, tmp_path, manifest)
+        info = Addon.from_path(addon_dir, tmp_path, manifest)
         assert info.technical_name == "my_addon"
         assert info.symlink is False
         assert info.author == "Acme"
@@ -479,6 +517,7 @@ class TestAddonInfo:
 class TestReadGitmodules:
     def test_raises_when_no_working_tree(self):
         from oops.services.git import read_gitmodules
+
         repo = MagicMock()
         repo.working_tree_dir = None
         with pytest.raises(ValueError, match="working tree"):
@@ -486,6 +525,7 @@ class TestReadGitmodules:
 
     def test_returns_config_parser(self, tmp_path):
         from oops.services.git import read_gitmodules
+
         # Create a mock repo with a working_tree_dir
         (tmp_path / ".gitmodules").write_text("")
         repo = MagicMock()
@@ -497,6 +537,7 @@ class TestReadGitmodules:
 class TestIsPullRequest:
     def test_pr_path_returns_true(self):
         from oops.services.git import is_pull_request
+
         sub = MagicMock()
         sub.path = "PRs/owner/repo"
         sub.name = "PRs/owner/repo"
@@ -504,6 +545,7 @@ class TestIsPullRequest:
 
     def test_pr_in_name_returns_true(self):
         from oops.services.git import is_pull_request
+
         sub = MagicMock()
         sub.path = "some/pr/path"
         sub.name = "some/pr/path"
@@ -511,6 +553,7 @@ class TestIsPullRequest:
 
     def test_regular_path_returns_false(self):
         from oops.services.git import is_pull_request
+
         sub = MagicMock()
         sub.path = ".third-party/OCA/sale-workflow"
         sub.name = ".third-party/OCA/sale-workflow"
@@ -525,22 +568,27 @@ class TestIsPullRequest:
 class TestDesiredPath:
     def test_oca_owner_uppercased(self):
         from oops.io.file import desired_path
+
         result = desired_path("https://github.com/oca/sale-workflow.git")
         assert "OCA" in result
 
     def test_pull_request_inserts_dir(self):
         from oops.io.file import desired_path
+
         result = desired_path("https://github.com/acme/repo.git", pull_request=True)
         from oops.core.config import config
+
         assert config.pull_request_dir in result
 
     def test_prefix_prepended(self):
         from oops.io.file import desired_path
+
         result = desired_path("https://github.com/acme/repo.git", prefix=".third-party/")
         assert result.startswith(".third-party")
 
     def test_suffix_appended(self):
         from oops.io.file import desired_path
+
         result = desired_path("https://github.com/acme/repo.git", suffix="v16")
         assert result.endswith("v16")
 
@@ -553,6 +601,7 @@ class TestDesiredPath:
 class TestCleanUrl:
     def test_strips_credentials(self):
         from oops.utils.net import clean_url
+
         url = "https://user:token@github.com/org/repo.git"
         result = clean_url(url)
         assert "user" not in result
@@ -561,6 +610,7 @@ class TestCleanUrl:
 
     def test_url_without_credentials_unchanged(self):
         from oops.utils.net import clean_url
+
         url = "https://github.com/org/repo.git"
         result = clean_url(url)
         assert "github.com/org/repo.git" in result
@@ -645,6 +695,7 @@ class TestRequireSubmodulesErrors:
 class TestGetSubmoduleSha:
     def test_returns_sha(self):
         from oops.services.git import get_submodule_sha
+
         repo = MagicMock()
         repo.git.rev_parse.return_value = "deadbeef"
         result = get_submodule_sha(repo, "HEAD", "submodule/path")
@@ -652,6 +703,7 @@ class TestGetSubmoduleSha:
 
     def test_returns_none_on_exception(self):
         from oops.services.git import get_submodule_sha
+
         repo = MagicMock()
         repo.git.rev_parse.side_effect = Exception("not found")
         result = get_submodule_sha(repo, "HEAD", "missing")
@@ -661,6 +713,7 @@ class TestGetSubmoduleSha:
 class TestGetLastCommit:
     def test_returns_commit_info(self):
         from oops.services.git import get_last_commit
+
         output = "abc1234;Alice;alice@example.com;2025-01-15T00:00:00;feat: add feature"
         with patch("oops.services.git.run", return_value=output):
             result = get_last_commit()
@@ -670,6 +723,7 @@ class TestGetLastCommit:
 
     def test_returns_none_when_no_output(self):
         from oops.services.git import get_last_commit
+
         with patch("oops.services.git.run", return_value=""):
             result = get_last_commit()
             assert result is None
@@ -678,12 +732,14 @@ class TestGetLastCommit:
         import subprocess
 
         from oops.services.git import get_last_commit
+
         with patch("oops.services.git.run", side_effect=subprocess.CalledProcessError(128, "git")):
             result = get_last_commit()
             assert result is None
 
     def test_uses_path_argument(self):
         from oops.services.git import get_last_commit
+
         output = "abc1234;Alice;alice@example.com;2025-01-15T00:00:00;feat: something"
         with patch("oops.services.git.run", return_value=output) as mock_run:
             get_last_commit(path="/some/path")
@@ -700,6 +756,7 @@ class TestGetLastCommit:
 class TestCopytree:
     def test_copies_directory(self, tmp_path):
         from oops.io.file import copytree
+
         src = tmp_path / "src"
         src.mkdir()
         (src / "file.txt").write_text("hello")
@@ -709,6 +766,7 @@ class TestCopytree:
 
     def test_skips_git_dir(self, tmp_path):
         from oops.io.file import copytree
+
         src = tmp_path / "src"
         src.mkdir()
         (src / "file.txt").write_text("data")
@@ -724,6 +782,7 @@ class TestParsePackages:
     def test_reads_packages_file(self, tmp_path, monkeypatch):
         from oops.core.config import config
         from oops.io.file import parse_packages
+
         pkg_file = tmp_path / config.project.file_packages
         pkg_file.write_text("pkg_a\npkg_b\n")
         result = parse_packages(tmp_path)

@@ -8,12 +8,13 @@ import subprocess
 import zipfile
 
 import requests
-from oops.core.compat import List, Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import APIError
 from oops.core.logger import log
 from oops.core.models import PullRequest, WorkflowRunInfo
 from oops.utils.net import make_json_get
+from oops_engine.compat import List, Optional, Tuple
+from oops_engine.manifest import DEFAULT_MANIFEST_NAMES
 
 
 def _get_headers(token: Optional[str]) -> dict:
@@ -204,7 +205,7 @@ def list_remote_addons(
     """List addon directory paths in a GitHub repository at a specific branch.
 
     Uses the Git Trees API (recursive=1) to find every directory that contains
-    a ``__manifest__.py`` or ``__openerp__.py`` file, without cloning the repo.
+    an Odoo manifest file, without cloning the repo.
 
     Args:
         owner: Repository owner (user or organisation).
@@ -228,7 +229,7 @@ def list_remote_addons(
             continue
         path: str = item["path"]
         filename = path.rsplit("/", 1)[-1]
-        if filename not in ("__manifest__.py", "__openerp__.py"):
+        if filename not in DEFAULT_MANIFEST_NAMES:
             continue
         parent = path.rsplit("/", 1)[0] if "/" in path else ""
         if parent:

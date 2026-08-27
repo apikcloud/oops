@@ -7,11 +7,10 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Generator
 from datetime import date
 
 import click
-from oops.core.compat import PY38, Any, List
+from oops_engine.compat import PY38, Any, List
 
 
 def removesuffix(raw: Any, suffix: str) -> str:
@@ -58,30 +57,6 @@ def str_to_list(raw: str, sep: str = ",") -> list:
     if not raw:
         return []
     return list(filter(bool, (clean_string(item) for item in raw.split(sep))))
-
-
-def deep_visit(obj: Any, prefix: str = "") -> Generator[tuple[str, Any]]:
-    """Yield flattened (path, value) pairs by recursively walking a nested structure.
-
-    Dict keys become dot-separated segments; list indices become ``[n]`` segments.
-    Example: ``assets.web.assets_backend[0]`` → ``"/module/static/..."``
-
-    Args:
-        obj: Nested dict, list, tuple, or scalar to walk.
-        prefix: Accumulated path prefix for the current node. Defaults to "".
-
-    Yields:
-        Tuple of (dotted_path_string, leaf_value) for each scalar encountered.
-    """
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            key = str(k)
-            yield from deep_visit(v, f"{prefix}.{key}" if prefix else key)
-    elif isinstance(obj, (list, tuple)):
-        for i, v in enumerate(obj):
-            yield from deep_visit(v, f"{prefix}[{i}]")
-    else:
-        yield prefix, obj
 
 
 def filter_and_clean(items: List[str], unique: bool = True) -> list:

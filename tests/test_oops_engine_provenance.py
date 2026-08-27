@@ -1,0 +1,100 @@
+# Copyright 2026 apik (https://apik.cloud).
+# License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
+#
+# File: test_kb_provenance.py — tests/test_kb_provenance.py
+
+"""Tests for oops/kb/provenance.py — the unified origin vocabulary."""
+
+from __future__ import annotations
+
+import pytest
+from oops_engine.provenance import (
+    ORIGIN_CORE,
+    ORIGIN_CUSTOM,
+    ORIGIN_ENTERPRISE,
+    ORIGIN_OCA,
+    ORIGIN_THIRD_PARTY,
+    ORIGINS,
+    classify_addon,
+    normalize_origin,
+)
+
+
+def test_origins_has_exactly_five_members() -> None:
+    assert ORIGINS == {
+        ORIGIN_CORE,
+        ORIGIN_ENTERPRISE,
+        ORIGIN_OCA,
+        ORIGIN_THIRD_PARTY,
+        ORIGIN_CUSTOM,
+    }
+    assert len(ORIGINS) == 5
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("odoo", ORIGIN_CORE),
+        ("odoo_core", ORIGIN_CORE),
+        ("community", ORIGIN_CORE),
+        ("themes", ORIGIN_CORE),
+        ("enterprise", ORIGIN_ENTERPRISE),
+        ("third-party", ORIGIN_THIRD_PARTY),
+        ("third_party", ORIGIN_THIRD_PARTY),
+        ("oca", ORIGIN_OCA),
+        ("custom", ORIGIN_CUSTOM),
+        ("project", ORIGIN_CUSTOM),
+    ],
+)
+def test_normalize_origin_maps_every_legacy_label(raw: str, expected: str) -> None:
+    assert normalize_origin(raw) == expected
+    assert normalize_origin(raw) in ORIGINS
+
+
+def test_normalize_origin_preserves_none_and_empty() -> None:
+    assert normalize_origin(None) is None
+    assert normalize_origin("") == ""
+
+
+def test_normalize_origin_unknown_falls_back_to_third_party() -> None:
+    assert normalize_origin("something-weird") == ORIGIN_THIRD_PARTY
+
+
+def test_normalize_origin_retired_tier_labels_fall_back_to_third_party() -> None:
+    # "apik"/"local" were removed as tier labels; they are now just unknown input.
+    assert normalize_origin("apik") == ORIGIN_THIRD_PARTY
+    assert normalize_origin("local") == ORIGIN_THIRD_PARTY
+
+
+def test_no_legacy_string_leaks() -> None:
+    # The mapper must never emit a legacy variant.
+    for raw in ("odoo", "third-party", "community"):
+        assert normalize_origin(raw) not in {"odoo", "third-party", "community"}
+
+
+class TestClassifyAddon:
+    def test_oca_by_author(self) -> None:
+        assert classify_addon("Odoo Community Association (OCA)", "server_tools", "") == "oca"
+
+    def test_custom_by_author(self) -> None:
+        assert classify_addon("Apik", "some_module", "", project_author="Apik") == "custom"
+
+    def test_custom_by_prefix(self) -> None:
+        assert (
+            classify_addon("Someone", "apk_sale_extension", "", project_prefix="apk_") == "custom"
+        )
+
+    def test_oca_by_org(self) -> None:
+        assert classify_addon("Someone", "server_tools", "OCA") == "oca"
+
+    def test_custom_by_org(self) -> None:
+        assert classify_addon("Someone", "my_module", "apik-cloud", github_owner="apik-cloud") == "custom"
+
+    def test_fallback_third_party(self) -> None:
+        assert classify_addon("Someone Else", "unrelated_module", "") == "third-party"
+
+    def test_oca_by_author_wins_over_org(self) -> None:
+        result = classify_addon(
+            "Odoo Community Association (OCA)", "m", "apik-cloud", github_owner="apik-cloud"
+        )
+        assert result == "oca"

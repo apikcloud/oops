@@ -75,11 +75,6 @@ class ConfigurationError(Exception):
     """Raised when required configuration values are missing."""
 
 
-class NoManifestFound(Exception):
-    """Raised when no manifest file is found in an addon."""
-
-
-
 class MissingMandatoryFiles(Exception):
     """Raised when mandatory files are missing."""
 

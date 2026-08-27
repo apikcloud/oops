@@ -20,24 +20,24 @@ from oops.commands.project.serve import (
     prepare_site_dir,
     source_roots_from_payload,
 )
-from oops.services.loc import LocStats
 
 
-def _fake_addon(technical_name: str, path: str) -> MagicMock:
-    addon = MagicMock()
-    addon.technical_name = technical_name
-    addon.path = path
-    addon.rel_path = ""
-    addon.symlinked = False
-    addon.symlink = False
-    addon.location = "local"
-    addon.submodule = ""
-    addon.branch = ""
-    addon.pull_request = False
-    addon.version = "17.0.1.0.0"
-    addon.classification = "custom"
-    addon.author = "Apik"
-    return addon
+def _fake_inventory(technical_name: str, path: str) -> dict:
+    return {
+        technical_name: {
+            "module": technical_name,
+            "path": path,
+            "location": "local",
+            "symlink": False,
+            "submodule": "",
+            "branch": "",
+            "pr": False,
+            "version": "17.0.1.0.0",
+            "classification": "custom",
+            "author": "Apik",
+            "loc": {"python": 10, "xml": 0, "javascript": 0, "docs": 0, "total": 10},
+        }
+    }
 
 
 _FAKE_IR = {
@@ -61,15 +61,9 @@ _FAKE_IR = {
 
 class TestBuildPayload:
     def test_build_payload_is_json_clean(self, tmp_path: Path) -> None:
-        addon = _fake_addon("my_module", str(tmp_path / "my_module"))
-        with patch("oops.commands.project.doc.list_submodules", return_value={}), \
-                patch("oops.commands.project.doc.find_addons", return_value=[addon]), \
-                patch("oops.commands.project.doc.enrich_addon"), \
-                patch(
-                    "oops.commands.project.doc.get_addon_loc",
-                    return_value=LocStats(python=10),
-                ), \
-                patch("oops.commands.project.serve._run_analyze", return_value=_FAKE_IR), \
+        inventory = _fake_inventory("my_module", str(tmp_path / "my_module"))
+        with patch("oops.commands.project.serve.build_inventory", return_value=inventory), \
+                patch("oops.commands.project.serve.build_ir", return_value=_FAKE_IR), \
                 patch("oops.commands.project.serve.get_metadata", return_value=None):
             payload = build_payload(
                 MagicMock(), tmp_path, show_all=False, names=(), refresh=False
@@ -93,16 +87,10 @@ class TestBuildPayload:
     def test_build_payload_merges_command_metadata(self, tmp_path: Path) -> None:
         from oops.core.metadata import Metadata
 
-        addon = _fake_addon("my_module", str(tmp_path / "my_module"))
+        inventory = _fake_inventory("my_module", str(tmp_path / "my_module"))
         fake_meta = Metadata(command="project serve", project_name="acme", git_branch="main")
-        with patch("oops.commands.project.doc.list_submodules", return_value={}), \
-                patch("oops.commands.project.doc.find_addons", return_value=[addon]), \
-                patch("oops.commands.project.doc.enrich_addon"), \
-                patch(
-                    "oops.commands.project.doc.get_addon_loc",
-                    return_value=LocStats(python=10),
-                ), \
-                patch("oops.commands.project.serve._run_analyze", return_value=_FAKE_IR), \
+        with patch("oops.commands.project.serve.build_inventory", return_value=inventory), \
+                patch("oops.commands.project.serve.build_ir", return_value=_FAKE_IR), \
                 patch("oops.commands.project.serve.get_metadata", return_value=fake_meta):
             payload = build_payload(
                 MagicMock(), tmp_path, show_all=False, names=(), refresh=False
@@ -119,12 +107,74 @@ class TestBuildPayload:
         import pytest
         from oops.core.exceptions import EarlyExit
 
-        with patch("oops.commands.project.doc.list_submodules", return_value={}), \
-                patch("oops.commands.project.doc.find_addons", return_value=[]):
+        with patch("oops.commands.project.serve.build_inventory", return_value={}):
             with pytest.raises(EarlyExit):
                 build_payload(
                     MagicMock(), tmp_path, show_all=False, names=(), refresh=False
                 )
+
+    def test_build_payload_end_to_end_through_real_analysis(self, tmp_path: Path) -> None:
+        """build_ir() is exercised for real here (unlike the tests above, which
+        mock it out) — a real module's source is analyzed and the resulting IR
+        is carried all the way through ProjectDocPresenter, so a break anywhere
+        in analyze -> build_ir -> DocModel is caught. Replaces the end-to-end
+        coverage the removed `oops project doc` tests used to provide."""
+        import textwrap
+
+        from oops_engine.store import write_kb
+
+        repo_id = "e2e-test-repo"
+        db_path = tmp_path / "kb.db"
+        write_kb(
+            db_path=db_path,
+            repo_id=repo_id,
+            odoo_version="17.0",
+            project="test",
+            scope=[],
+            sources={"odoo": "/odoo"},
+            scan_results=[{"modules": {}, "symbols": [], "views": [], "actions": [], "menus": [],
+                           "model_origins": []}],
+        )
+
+        module_path = tmp_path / "my_module"
+        (module_path / "models").mkdir(parents=True)
+        (module_path / "__manifest__.py").write_text(
+            repr({"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]}),
+            encoding="utf-8",
+        )
+        (module_path / "models" / "__init__.py").write_text("from . import my_model", encoding="utf-8")
+        (module_path / "models" / "my_model.py").write_text(
+            textwrap.dedent("""\
+                from odoo import fields, models
+
+
+                class MyModel(models.Model):
+                    _name = 'my.test.model'
+
+                    name = fields.Char(string='Name')
+                """),
+            encoding="utf-8",
+        )
+
+        inventory = _fake_inventory("my_module", str(module_path))
+
+        with patch("oops.commands.project.serve.build_inventory", return_value=inventory), \
+                patch("oops.commands.project.serve.get_metadata", return_value=None), \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17.0)), \
+                patch("oops.commands.addons.analyze.read_installed_modules", return_value=None), \
+                patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(False, "")), \
+                patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+                patch("oops.commands.addons.analyze.local_repo_id", return_value=repo_id), \
+                patch("oops_engine.summary.local_repo_id", return_value=repo_id), \
+                patch("oops.core.logger.Live", MagicMock()):
+            payload = build_payload(
+                MagicMock(), tmp_path, show_all=False, names=(), refresh=False
+            )
+
+        assert payload["modules"][0]["module"] == "my_module"
+        assert "my.test.model" in payload["models_by_bare"]
+        model_fields = payload["models_by_bare"]["my.test.model"]["contributions"][0]["fields"]
+        assert {f["name"] for f in model_fields} == {"name"}
 
 
 class TestPrepareSiteDir:
@@ -164,6 +214,18 @@ class TestPrepareSiteDir:
         bundle = Path(str(UI / "dist" / "app.bundle.js"))
         assert bundle.is_file(), "dist/app.bundle.js missing"
         assert bundle.stat().st_size > 10_000, "dist/app.bundle.js suspiciously small"
+
+    def test_bundle_has_a_registered_error_view(self) -> None:
+        """Regression: `{"metadata": {"command": "error"}}` payloads (emitted by
+        `run_oops()` on a subprocess crash and `Api.doc_project()` on any
+        exception) must route to a real view, not the "No view registered"
+        fallback — the built bundle must be in sync with ui/src/renderer.ts."""
+        from oops.core.paths import UI
+
+        bundle = (UI / "dist" / "app.bundle.js").read_text(encoding="utf-8")
+        # viewError's own fallback text — only present if the bundle was built
+        # after registering it in renderer.ts's VIEWS map.
+        assert "Unknown error." in bundle
 
 
 class TestResolutionContract:
@@ -293,6 +355,7 @@ class TestBuildSourceRoots:
         fake_sources = {"local": str(local_root), "oca": str(oca_root)}
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -315,6 +378,7 @@ class TestBuildSourceRoots:
         fake_sources = {"third-party": str(oca_root)}
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -343,6 +407,7 @@ class TestBuildSourceRoots:
         }
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -374,6 +439,7 @@ class TestMergeSourceRoots:
         }
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value
@@ -394,6 +460,7 @@ class TestMergeSourceRoots:
         fake_sources = {"odoo_core": str(odoo_addons)}
 
         with patch("oops.commands.project.serve.project_kb_path") as pkp, \
+             patch("oops.commands.project.serve.discover_repo_ids", return_value=["test"]), \
              patch("oops.commands.project.serve.KBReader") as KBR:
             pkp.return_value = MagicMock(exists=lambda: True)
             inst = KBR.return_value.__enter__.return_value

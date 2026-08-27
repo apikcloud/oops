@@ -8,7 +8,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from git import GitCommandError, Repo
-from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.models import Result
@@ -16,6 +15,7 @@ from oops.io.file import create_symlink, desired_path, ensure_parent
 from oops.services.git import commit_v2
 from oops.services.github import list_remote_addons
 from oops.utils.net import encode_url, parse_repository_url
+from oops_engine.compat import Optional
 
 
 def resolve_target(

@@ -9,16 +9,18 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Optional
+from oops.core.config import config
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
-from oops.io.file import enrich_addon, find_addons, parse_odoo_version
+from oops.io.file import parse_odoo_version
 from oops.output.formatters import FormatterRegistry, JsonFormatter, SpaReportFormatter
 from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.kb import load_odoo_kb, require_kb
 from oops.utils.render import ask
+from oops_engine.addons import enrich_addon_from_subs, find_addons
+from oops_engine.compat import Optional
 
 from .presenters.show import ShowPresenter
 
@@ -75,8 +77,9 @@ def main(ctx, output_format: str, output_path: Optional[Path]) -> None:
         # 2a. Collect local addons.
         for addon in find_addons(repo_path, shallow=True):
             log.info(f"Enrichment of {addon.technical_name}")
-            sub = subs.get(addon.rel_path, {})
-            enrich_addon(addon, sub)
+            enrich_addon_from_subs(
+                addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+            )
             result.data["addons"].append(
                 {
                     "name": addon.technical_name,

@@ -58,10 +58,12 @@ oops-exclude-addons = "oops.commands.project.exclude:main"
 oops-fix-manifest = "oops.commands.manifest.fix:main"
 # Special command ;)
 oops-i-did-it-again = "oops.commands.submodules.clean:main"
+# Standalone source-analysis engine entry point (no git/config/CLI machinery)
+oops-engine-scan = "oops_engine.cli:main"
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/oops"]
+packages = ["src/oops", "src/oops_engine"]
 artifacts = ["src/oops/output/ui/dist/app.bundle.js"]
 
 [tool.hatch.metadata]
@@ -89,7 +91,7 @@ addopts = "-q --strict-markers"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["oops"]
+source = ["oops", "oops_engine"]
 branch = true
 parallel = true
 omit = ["*/__main__.py", "*/_version.py", "*/tests/*", "*/oops/commands/*"]
@@ -107,11 +109,13 @@ exclude_lines = [
 
 [tool.coverage.paths]
 source = ["src/oops", ".venv/lib/python*/site-packages/oops"]
+oops_engine = ["src/oops_engine", ".venv/lib/python*/site-packages/oops_engine"]
 
 [project.optional-dependencies]
 gui = ["pywebview[qt]"]
 mcp = ["mcp[cli]; python_version>='3.10'"]
 migrate = ["odoo-module-migrator @ git+https://github.com/OCA/odoo-module-migrator.git"]
+postgres = ["psycopg[binary]>=3.1"]
 dev = ["pytest", "pytest-cov", "coverage[toml]", "ruff", "pyright", "freezegun"]
 docs = [
     "mkdocs>=1.6; python_version>='3.9'",

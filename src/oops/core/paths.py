@@ -7,6 +7,9 @@ import os
 from importlib.resources import files
 from pathlib import Path
 
+from oops_engine.paths import PR_DIR as PR_DIR
+from oops_engine.paths import UNPORTED_DIR as UNPORTED_DIR
+
 WORKING_DIR = Path.cwd()
 
 # ---------------------------------------------------------------------------
@@ -26,45 +29,6 @@ CONFIG_PATHS = [
 # ---------------------------------------------------------------------------
 
 # TODO: PR_dir must be replace by `config.pull_request_dir`
-PR_DIR = "PRs"  # pull-request addon symlink directory
-UNPORTED_DIR = "__unported__"  # unported addons directory inside an addon path
-
-# ---------------------------------------------------------------------------
-# KB cache (project-local)
-# ---------------------------------------------------------------------------
-
-CACHE_DIR_NAME = ".oops-cache"
-
-
-def project_kb_path(repo_root: Path) -> Path:
-    """Return the path of the project KB database for a given repo root.
-
-    Returns:
-        ``<repo_root>/.oops-cache/kb.db`` (does not check for existence).
-    """
-    return repo_root / CACHE_DIR_NAME / "kb.db"
-
-
-def global_kb_dir() -> Path:
-    """Return the default global KB cache directory.
-
-    Returns:
-        ``~/.cache/oops/kb`` (does not check for existence).
-    """
-    return Path.home() / ".cache" / "oops" / "kb"
-
-
-def global_kb_path(version: str) -> Path:
-    """Return the path of the global KB database for a given Odoo version.
-
-    Args:
-        version: Odoo version string, e.g. ``'17.0'``.
-
-    Returns:
-        ``~/.cache/oops/kb/<version>.db`` (does not check for existence).
-    """
-    return global_kb_dir() / f"{version}.db"
-
 
 # ---------------------------------------------------------------------------
 # Stats / usage-tracking data directory

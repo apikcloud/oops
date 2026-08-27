@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import click
 from oops.commands.base import command, render_and_exit
-from oops.core.compat import List, Optional
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress
@@ -21,6 +20,7 @@ from oops.output.formatters import (
 )
 from oops.services.github import list_pull_requests
 from oops.utils.net import parse_repository_url, resolve_repository_url
+from oops_engine.compat import List, Optional
 
 from .presenters.explore import ExplorePresenter
 

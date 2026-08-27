@@ -3,9 +3,10 @@
 #
 # File: doc.py — src/oops/commands/project/presenters/doc.py
 
-# The presenter receives the combined Result from `oops project doc` and turns
-# it into the DocModel — a render-ready dict consumed by the Markdown site
-# formatter. It is the ONLY place where the data is shaped; no rendering, no
+# The presenter receives the combined Result from the inventory + IR v2
+# analysis pipeline (`project_pipeline.py`) and turns it into the DocModel — a
+# render-ready dict consumed by `oops project serve`, `oops mcp`, and the
+# dashboard. It is the ONLY place where the data is shaped; no rendering, no
 # Rich, no formatter imports.
 
 from __future__ import annotations

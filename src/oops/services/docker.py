@@ -9,12 +9,12 @@ from dataclasses import dataclass
 from datetime import date
 
 from oops.core.checks import Check, CheckContext, CheckOutcome
-from oops.core.compat import Optional
 from oops.core.config import ImagesConfig, config
 from oops.core.exceptions import DeprecatedRegistryWarning, UnusualRegistryWarning
 from oops.core.models import ImageInfo, Result
 from oops.utils.helpers import date_from_string
 from oops.utils.net import make_json_get
+from oops_engine.compat import Optional
 from requests import RequestException
 
 # try:

@@ -7,6 +7,7 @@ import { viewDepends }        from "./views/depends";
 import { viewRelease }        from "./views/release";
 import { viewChecks }         from "./views/checks";
 import { viewMigrateAnalyze } from "./views/migrate_analyze";
+import { viewError } from "./views/error";
 
 export type View = (root: HTMLElement, payload: Payload, source: Source) => void;
 
@@ -21,6 +22,7 @@ const VIEWS: Record<string, View> = {
   "project check":  viewChecks,
   "requirements check": viewChecks,
   "migrate analyze": viewMigrateAnalyze,
+  "error": viewError,
 };
 
 function viewUnknown(root: HTMLElement, payload: Payload): void {

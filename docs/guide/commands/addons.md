@@ -164,6 +164,12 @@ Force a KB rebuild before analysing:
 oops addons analyze plant_nursery --refresh
 ```
 
+Analyse every addon active at the repo root instead of specifying paths (unlike `oops addons list --all`, this does not reach into submodules for addons that were never activated):
+
+```bash
+oops addons analyze --all --format json
+```
+
 ---
 
 ::: mkdocs-click:commands

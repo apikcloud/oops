@@ -1,10 +1,49 @@
 from pathlib import Path
 
+from git import Repo
+from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.metadata import update_metadata
-from oops.core.paths import global_kb_path
-from oops.kb.build import parse_kb_timestamp, project_kb_path
-from oops.kb.store import KBReader
+from oops.services.git import list_submodules
+from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.build import odoo_core_repo_id, parse_kb_timestamp, project_kb_path
+from oops_engine.compat import List, Set
+from oops_engine.identity import local_repo_id
+from oops_engine.models import Addon
+from oops_engine.paths import global_kb_path
+from oops_engine.store import KBReader
+
+
+def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[str]) -> List[Addon]:
+    """Discover and classify root-level project addons for a KB build.
+
+    Bridges the CLI's git/config-aware discovery (``io.file.find_addons``/
+    ``enrich_addon``) into the plain, already-classified ``Addon`` list
+    that ``oops_engine.build.build_project_kb()`` expects — the engine itself
+    has no dependency on git, submodules, or config.
+
+    Args:
+        repo: The local git repository (from ``services.git.require_repository()``).
+        repo_path: Repository root.
+        allowed_modules: Module names to keep (the user-owned installed list).
+
+    Returns:
+        Discovered addons, classified (``.classification`` populated),
+        sorted by technical name.
+    """
+    subs = list_submodules(repo)
+
+    seen = dedup_addons_by_path(repo_path, shallow=True)
+
+    project_addons = [a for a in seen.values() if a.technical_name in allowed_modules]
+    project_addons.sort(key=lambda a: a.technical_name)
+
+    for addon in project_addons:
+        enrich_addon_from_subs(
+            addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+        )
+
+    return project_addons
 
 
 def require_kb(version: str) -> Path:
@@ -35,7 +74,7 @@ def load_odoo_kb(version: str) -> dict:
     kb_path = global_kb_path(version)
     if not kb_path.exists():
         return {}
-    with KBReader(kb_path) as kb:
+    with KBReader(kb_path, repo_ids=[odoo_core_repo_id(version)]) as kb:
         return kb.get_modules()
 
 
@@ -54,13 +93,13 @@ def set_kb_metadata(repo_path: Path, version: str) -> None:
 
     project = project_kb_path(repo_path)
     if project.exists():
-        with KBReader(project) as kb:
+        with KBReader(project, repo_ids=[local_repo_id(repo_path), odoo_core_repo_id(version)]) as kb:
             kb_meta = kb.get_meta()
             project_ts = parse_kb_timestamp(kb_meta.get("generated_at"))
 
     global_kb = global_kb_path(version)
     if global_kb.exists():
-        with KBReader(global_kb) as kb:
+        with KBReader(global_kb, repo_ids=[odoo_core_repo_id(version)]) as kb:
             global_ts = parse_kb_timestamp(kb.get_meta().get("generated_at"))
 
     fields: dict = {}

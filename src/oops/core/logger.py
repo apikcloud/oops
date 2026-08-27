@@ -9,6 +9,7 @@ from contextvars import ContextVar
 from typing import Callable, Optional
 
 from oops.core.exceptions import get_error_console
+from oops_engine.logger import log
 from rich.live import Live
 from rich.spinner import Spinner
 
@@ -62,7 +63,4 @@ def live_progress(message: str, spinner: str = "dots", enabled: bool = True):
 
 
 # setup
-log = logging.getLogger("oops")
-log.setLevel(logging.INFO)
-log.propagate = False
 log.addHandler(ProgressHandler())

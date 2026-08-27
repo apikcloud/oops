@@ -32,8 +32,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command, render_and_exit
-from oops.utils.render import warn_experimental
-from oops.core.compat import Optional
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
@@ -47,6 +45,8 @@ from oops.output.formatters import (
 from oops.services.git import require_repository
 from oops.services.github import check_upstream_graphql
 from oops.services.kb import load_odoo_kb
+from oops.utils.render import warn_experimental
+from oops_engine.compat import Optional
 
 from .common import (
     PLAN_FILE,

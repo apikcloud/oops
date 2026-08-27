@@ -21,10 +21,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import yaml
-from oops.core.compat import Literal, Optional
+from oops_engine.compat import Literal, Optional
 
 if TYPE_CHECKING:
-    from oops.core.models import AddonInfo
+    from oops_engine.models import Addon
 
 UTC = timezone.utc
 
@@ -102,10 +102,10 @@ def artifact_path(repo_path: Path, name: Path) -> Path:
 
 
 def classify_origin(
-    addon: "AddonInfo",
+    addon: "Addon",
     sub_url: "Optional[str]" = None,
 ) -> "tuple[OriginKind, Optional[str]]":
-    """Map an enriched AddonInfo to (OriginKind, repo_slug).
+    """Map an enriched Addon to (OriginKind, repo_slug).
 
     Uses addon.classification directly (custom | oca | third-party).
     repo_slug is "owner/repo" (e.g. "OCA/server-tools") or None.

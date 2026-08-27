@@ -10,13 +10,13 @@ from pathlib import Path, PurePosixPath
 
 from git import GitConfigParser, Repo, Submodule
 from oops.core.checks import Check, CheckContext, CheckOutcome
-from oops.core.compat import TYPE_CHECKING, List
 from oops.core.config import config
 from oops.core.logger import log
 from oops.core.models import Result
 from oops.io.file import check_prefix, desired_path, get_symlink_map
 from oops.services.git import is_pull_request
 from oops.utils.net import _parse_url
+from oops_engine.compat import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from git.util import IterableList
