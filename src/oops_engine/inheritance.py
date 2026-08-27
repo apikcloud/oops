@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 
-from oops.core.compat import Any
+from oops_engine.compat import Any
 
 _MERGE_ATTRS = [
     "string",

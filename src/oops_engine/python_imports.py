@@ -1,7 +1,8 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: python_imports.py — oops/io/python_imports.py
+# File: python_imports.py — src/oops_engine/python_imports.py
+
 
 """Walk a Python package's __init__.py import chain.
 
@@ -15,7 +16,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from oops.core.logger import log
+from oops_engine.logger import log
 
 
 def discover_imported_files(package_dir: Path) -> list[Path]:

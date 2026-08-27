@@ -21,13 +21,13 @@ from dataclasses import asdict
 from functools import lru_cache
 from pathlib import Path
 
-from oops.core.logger import log
-from oops.io.tools import run
 from oops_engine.fingerprint import fingerprint_directory
 from oops_engine.identity import local_repo_id
+from oops_engine.logger import log
 from oops_engine.models import LocStats
 from oops_engine.paths import project_kb_path
 from oops_engine.store import get_cached_loc, write_cached_loc
+from oops_engine.utils import run
 
 CLOC_LANGS = "Python,XML,JavaScript,Markdown,reStructuredText"
 

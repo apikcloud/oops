@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import click
 from oops.commands.base import command
-from oops.core.compat import List, Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
@@ -32,6 +31,7 @@ from oops.services.git import commit_v2, is_pull_request, require_repository, re
 from oops.services.github import find_pull_requests, list_remote_addons
 from oops.utils.net import encode_url, get_public_repo_url, parse_repository_url
 from oops.utils.render import colorize, warn_experimental
+from oops_engine.compat import List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Pre-verification — establish a full verdict per PR sub before any mutation

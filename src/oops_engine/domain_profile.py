@@ -15,7 +15,7 @@ Public entry point:
 
 from __future__ import annotations
 
-from oops.core.compat import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from oops_engine.compat import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 from oops_engine.domains import EXCLUDED_TECHNICAL_MODULES, PILLAR_MODULES, domain_label
 from oops_engine.models import ModuleSummary
 

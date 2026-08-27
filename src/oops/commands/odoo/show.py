@@ -17,7 +17,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command, render_and_exit
-from oops.core.compat import Optional
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
 from oops.io.file import require_odoo_sources
@@ -28,6 +27,7 @@ from oops.output.formatters import (
     SimpleSummaryConsoleFormatter,
 )
 from oops.utils.git import repo_info
+from oops_engine.compat import Optional
 
 from .presenters.show import ShowPresenter
 

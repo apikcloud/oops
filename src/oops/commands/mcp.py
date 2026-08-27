@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from oops.commands.base import command
 from oops.commands.project.serve import build_payload
-from oops.core.compat import Any
 from oops.core.exceptions import OopsError
 from oops.output.serializers import to_json_string
 from oops.services.git import require_repository
 from oops.services.project import require_project
+from oops_engine.compat import Any
 
 # Cached DocModel payload. Built lazily; warmed at launch in main().
 _PAYLOAD: dict[str, Any] | None = None

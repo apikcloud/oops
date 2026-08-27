@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from oops.core.config import config
+from oops_engine.paths import installed_modules_path as _engine_installed_modules_path
 
 
 @dataclass(frozen=True)
@@ -45,13 +46,17 @@ class InstalledModules:
 def installed_modules_path(repo_root: Path) -> Path:
     """Return the conventional path of the installed-modules file.
 
+    Config-aware wrapper around ``oops_engine.paths.installed_modules_path()``
+    — supplies ``config.project.file_installed_modules`` so the engine-side
+    function itself stays free of any ``oops.core.config`` dependency.
+
     Args:
         repo_root: Repository root directory.
 
     Returns:
         Path to the installed-modules file (may not exist yet).
     """
-    return repo_root / config.project.file_installed_modules
+    return _engine_installed_modules_path(repo_root, config.project.file_installed_modules)
 
 
 def read_installed_modules(repo_root: Path) -> InstalledModules | None:

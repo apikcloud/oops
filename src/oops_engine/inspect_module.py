@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import libcst as cst
-from oops.core.compat import Any, Dict, List, Optional, Tuple, Union
-from oops.core.logger import log
+from oops_engine.compat import Any, Dict, List, Optional, Tuple, Union
+from oops_engine.logger import log
 from oops_engine.resolve import resolve_symbol, resolve_symbol_root
 from oops_engine.scanner import (
     _extract_string_value,

@@ -14,7 +14,7 @@ model ``ancestor_origin`` (``"odoo"``), view ``origin`` (``"third-party"`` /
 
 from __future__ import annotations
 
-from oops.core.compat import Optional
+from oops_engine.compat import Optional
 
 # origin ∈ { core, enterprise, oca, third_party, custom }
 ORIGIN_CORE = "core"
@@ -36,7 +36,7 @@ ORIGINS = frozenset(
 # Raw KB/tier label → v2 enum.
 _RAW_ORIGIN_MAP = {
     "odoo": ORIGIN_CORE,
-    "odoo_core": ORIGIN_CORE,   # community/odoo/addons tier
+    "odoo_core": ORIGIN_CORE,  # community/odoo/addons tier
     "community": ORIGIN_CORE,
     "enterprise": ORIGIN_ENTERPRISE,
     "themes": ORIGIN_CORE,
@@ -77,7 +77,7 @@ def classify_addon(
     """Classify a project-root addon as custom/oca/third-party.
 
     Pure function — mirrors the priority order previously inline in
-    io/file.py:enrich_addon() (first match wins):
+    oops_engine/addons.py:enrich_addon() (first match wins):
     1. "(OCA)" in author -> "oca"
     2. author == project_author -> "custom"
     3. technical_name starts with project_prefix -> "custom"

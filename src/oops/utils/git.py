@@ -9,8 +9,8 @@ import subprocess
 from pathlib import Path
 
 import click
-from oops.core.compat import Optional
 from oops.core.exceptions import APIError
+from oops_engine.compat import Optional
 
 
 def _git(*args: str, cwd: Optional[Path] = None, quiet: bool = False) -> None:

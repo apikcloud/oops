@@ -33,8 +33,8 @@ from functools import lru_cache
 from pathlib import Path
 
 import libcst as cst
-from oops.core.compat import Any, List, Optional, Sequence, Tuple, Union  # noqa: UP035
 from oops.core.config import ManifestConfig
+from oops_engine.compat import Any, List, Optional, Sequence, Tuple, Union  # noqa: UP035
 
 # ---------------------------------------------------------------------------
 # Constants

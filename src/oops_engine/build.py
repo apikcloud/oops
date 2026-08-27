@@ -9,14 +9,19 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from oops.core.compat import Iterable, List
-from oops.core.logger import log
-from oops.core.models import AddonInfo, Result
-from oops.io.file import find_addons
-from oops.io.installed_modules import installed_modules_path
+from oops_engine.addons import find_addons
+from oops_engine.compat import Iterable, List
 from oops_engine.identity import local_repo_id
 from oops_engine.load_order import compute_load_order
-from oops_engine.paths import CACHE_DIR_NAME, global_kb_path, project_kb_path
+from oops_engine.logger import log
+from oops_engine.models import AddonInfo, Result
+from oops_engine.paths import (
+    CACHE_DIR_NAME,
+    DEFAULT_INSTALLED_MODULES_FILENAME,
+    global_kb_path,
+    installed_modules_path,
+    project_kb_path,
+)
 from oops_engine.resolve import build_depends_chain
 from oops_engine.scanner import scan_module
 from oops_engine.store import SCHEMA_VERSION, KBReader, update_module_load_order, write_kb
@@ -346,12 +351,17 @@ def parse_kb_timestamp(value: str | None) -> datetime | None:
         return None
 
 
-def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
+def is_project_kb_stale(
+    repo_path: Path, version: str, installed_modules_filename: str = DEFAULT_INSTALLED_MODULES_FILENAME
+) -> tuple[bool, str]:
     """Decide whether the project KB needs to be rebuilt.
 
     Args:
         repo_path: Repository root.
         version: Odoo version string (used to resolve the global KB path).
+        installed_modules_filename: Installed-modules filename to check the
+            mtime of. Defaults to the project's standard convention; CLI
+            callers should pass ``config.project.file_installed_modules``.
 
     Returns:
         ``(stale, reason)``. ``reason`` is one of (priority order):
@@ -379,7 +389,7 @@ def is_project_kb_stale(repo_path: Path, version: str) -> tuple[bool, str]:
     if project_ts is None:
         return True, "project KB has no generated_at metadata"
 
-    modules_file = installed_modules_path(repo_path)
+    modules_file = installed_modules_path(repo_path, installed_modules_filename)
     if modules_file.exists():
         file_mtime = datetime.fromtimestamp(modules_file.stat().st_mtime, tz=timezone.utc)
         if file_mtime > project_ts:

@@ -11,7 +11,7 @@ from oops.io.file import (
     relpath,
     write_text_file,
 )
-from oops.io.manifest import (
+from oops_engine.manifest import (
     find_addons_extended,
     find_manifests,
     get_manifest_path,
@@ -20,7 +20,7 @@ from oops.io.manifest import (
     parse_manifest_cst,
     read_manifest,
 )
-from oops.io.tools import run
+from oops_engine.utils import run
 
 # ---------------------------------------------------------------------------
 # oops/io/tools.py
@@ -113,7 +113,7 @@ class TestReadManifest:
         assert isinstance(node, cst.Module)
 
     def test_raises_no_manifest_found(self, tmp_path):
-        from oops.core.exceptions import NoManifestFound
+        from oops_engine.exceptions import NoManifestFound
 
         with pytest.raises(NoManifestFound):
             read_manifest(str(tmp_path))
@@ -297,7 +297,7 @@ class TestDetectReadme:
         return p
 
     def test_readme_rst_wins(self, tmp_path) -> None:
-        from oops.io.file import detect_readme
+        from oops_engine.readme import detect_readme
 
         mod = self._mod(tmp_path)
         (mod / "README.rst").write_text("RST body", encoding="utf-8")
@@ -306,7 +306,7 @@ class TestDetectReadme:
         assert r == {"present": True, "format": "rst", "path": "m/README.rst", "content": "RST body"}
 
     def test_readme_md(self, tmp_path) -> None:
-        from oops.io.file import detect_readme
+        from oops_engine.readme import detect_readme
 
         mod = self._mod(tmp_path)
         (mod / "README.md").write_text("MD body", encoding="utf-8")
@@ -315,7 +315,7 @@ class TestDetectReadme:
         assert r["content"] == "MD body"
 
     def test_oca_fragments_concatenated_in_order(self, tmp_path) -> None:
-        from oops.io.file import detect_readme
+        from oops_engine.readme import detect_readme
 
         mod = self._mod(tmp_path)
         rd = mod / "readme"
@@ -329,7 +329,7 @@ class TestDetectReadme:
         assert r["content"] == "desc\n\nusage"
 
     def test_static_description_html_fallback(self, tmp_path) -> None:
-        from oops.io.file import detect_readme
+        from oops_engine.readme import detect_readme
 
         mod = self._mod(tmp_path)
         sd = mod / "static" / "description"
@@ -340,7 +340,7 @@ class TestDetectReadme:
         assert r["path"] == "m/static/description/index.html"
 
     def test_absent_readme(self, tmp_path) -> None:
-        from oops.io.file import detect_readme
+        from oops_engine.readme import detect_readme
 
         r = detect_readme(self._mod(tmp_path))
         assert r == {"present": False, "format": None, "path": None, "content": None}

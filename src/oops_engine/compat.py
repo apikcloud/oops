@@ -1,12 +1,12 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: compat.py — src/oops/utils/compat.py
+# File: compat.py — src/oops_engine/compat.py
 
 
 """
 Centralizes version-sensitive imports for Python 3.7+ compatibility.
-Usage: `from oops.utils.compat import Dict, List, Literal, ...`
+Usage: `from oops_engine.compat import Dict, List, Literal, ...`
 """
 
 from __future__ import annotations

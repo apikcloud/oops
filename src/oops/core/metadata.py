@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 
-from oops.core.compat import Any, Dict, Optional
+from oops_engine.compat import Any, Dict, Optional
 
 UTC = timezone.utc
 

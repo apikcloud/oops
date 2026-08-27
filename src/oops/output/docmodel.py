@@ -29,8 +29,8 @@ a ``{"kind": "link", "path", "anchor"}``; any other target becomes a
 
 from __future__ import annotations
 
-from oops.core.compat import Any, Dict, List, Optional
 from oops.utils.helpers import slugify
+from oops_engine.compat import Any, Dict, List, Optional
 
 
 def model_page_path(bare: str) -> str:

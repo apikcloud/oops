@@ -11,7 +11,7 @@ import hashlib
 import os
 from pathlib import Path
 
-from oops.core.compat import Iterable
+from oops_engine.compat import Iterable
 
 _SKIP_DIRS = {"__pycache__", ".git"}
 _SKIP_SUFFIXES = (".pyc",)

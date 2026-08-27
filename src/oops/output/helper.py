@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-from oops.core.compat import Optional
 from oops.core.metadata import Metadata
 from oops.core.models import Plan, Result, Rows
 from oops.output.formatters import SimpleSummaryConsoleFormatter, StepConsoleFormatter
@@ -21,6 +20,7 @@ from oops.output.layout import (
     TableBlock,
 )
 from oops.utils.render import colorize_from
+from oops_engine.compat import Optional
 
 # Colour per action kind. Central place to tune plan presentation.
 KIND_COLORS = {

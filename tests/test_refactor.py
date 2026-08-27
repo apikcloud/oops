@@ -929,7 +929,7 @@ class TestRefactorRebuild:
         self._patch_version(monkeypatch)
         monkeypatch.setattr(
             "oops.commands.addons.refactor.is_project_kb_stale",
-            lambda _r, _v: (True, "no project KB at ..."),
+            lambda _r, _v, _f=None: (True, "no project KB at ..."),
         )
         build_calls = self._patch_build(monkeypatch, kb_path)
         (tmp_path / "installed_modules.txt").write_text("my_module\n")
@@ -956,7 +956,7 @@ class TestRefactorRebuild:
         self._patch_version(monkeypatch)
         monkeypatch.setattr(
             "oops.commands.addons.refactor.is_project_kb_stale",
-            lambda _r, _v: (False, ""),
+            lambda _r, _v, _f=None: (False, ""),
         )
         build_calls = self._patch_build(monkeypatch, kb_path)
 
@@ -974,7 +974,7 @@ class TestRefactorRebuild:
         self._patch_version(monkeypatch)
         monkeypatch.setattr(
             "oops.commands.addons.refactor.is_project_kb_stale",
-            lambda _r, _v: (False, ""),
+            lambda _r, _v, _f=None: (False, ""),
         )
         build_calls = self._patch_build(monkeypatch, kb_path)
         monkeypatch.setattr(
@@ -997,7 +997,7 @@ class TestRefactorRebuild:
         self._patch_version(monkeypatch)
         monkeypatch.setattr(
             "oops.commands.addons.refactor.is_project_kb_stale",
-            lambda _r, _v: (True, "no project KB at ..."),
+            lambda _r, _v, _f=None: (True, "no project KB at ..."),
         )
         monkeypatch.setattr(
             "oops.commands.addons.refactor.read_installed_modules",
@@ -1018,7 +1018,7 @@ class TestRefactorRebuild:
         self._patch_version(monkeypatch)
         monkeypatch.setattr(
             "oops.commands.addons.refactor.is_project_kb_stale",
-            lambda _r, _v: (False, ""),
+            lambda _r, _v, _f=None: (False, ""),
         )
         monkeypatch.setattr(
             "oops.commands.addons.refactor.read_installed_modules",
@@ -1075,7 +1075,7 @@ class TestRefactorRebuild:
         self._patch_version(monkeypatch)
         monkeypatch.setattr(
             "oops.commands.addons.refactor.is_project_kb_stale",
-            lambda _r, _v: (False, ""),
+            lambda _r, _v, _f=None: (False, ""),
         )
         monkeypatch.setattr(
             "oops.commands.addons.refactor.read_installed_modules",
@@ -1101,7 +1101,7 @@ class TestRefactorRebuild:
         self._patch_version(monkeypatch)
         monkeypatch.setattr(
             "oops.commands.addons.refactor.is_project_kb_stale",
-            lambda _r, _v: (False, ""),
+            lambda _r, _v, _f=None: (False, ""),
         )
         monkeypatch.setattr(
             "oops.commands.addons.refactor.read_installed_modules",

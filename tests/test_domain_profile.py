@@ -10,9 +10,9 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from oops.core.compat import Any
 from oops.core.config import AnalyzeConfig
 from oops_engine.build import _resolve_module_apps
+from oops_engine.compat import Any
 from oops_engine.domain_profile import (
     compute_domain_profile,
 )

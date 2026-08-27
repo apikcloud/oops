@@ -19,26 +19,24 @@ import contextlib
 import os
 import re
 import shutil
-from collections.abc import Generator
 from os import PathLike
 from pathlib import Path
 
 import click
 from git.repo import Repo
-from oops.core.compat import List, NamedTuple, Optional, Tuple, Union
 from oops.core.config import config
 from oops.core.exceptions import ConfigError, OopsError
 from oops.core.logger import log
-from oops.core.models import AddonInfo, ImageInfo
-from oops.core.paths import PR_DIR, UNPORTED_DIR
-from oops.io.manifest import load_manifest
+from oops.core.models import ImageInfo
+from oops.core.paths import PR_DIR
 from oops.io.templates import COMPOSE_TEMPLATE, MAILDEV_ENV, MAILDEV_SERVICE, SFTP_SERVICE
 from oops.services.docker import parse_image_tag
 from oops.services.git import get_submodule_sha
 from oops.utils.helpers import filter_and_clean
 from oops.utils.net import parse_repository_url
 from oops.utils.render import print_warning
-from oops_engine.provenance import classify_addon
+from oops_engine.addons import find_addons, find_modified_addons
+from oops_engine.compat import List, NamedTuple, Optional, Tuple, Union
 
 # ---------------------------------------------------------------------------
 # Path utilities
@@ -552,124 +550,6 @@ def materialize_symlink(symlink_path: Path, dry_run: bool) -> None:
 # ---------------------------------------------------------------------------
 
 
-def find_modified_addons(files: list) -> list:
-    """Return the names of addons containing any of the given file paths.
-
-    Walks up each file path until a directory with an Odoo manifest is found.
-
-    Args:
-        files: List of file paths to inspect.
-
-    Returns:
-        Sorted list of addon directory names that contain at least one of the files.
-    """
-    addons = set()
-    for f in files:
-        p = Path(f)
-        # Go back up the tree until you find a manifest
-        for parent in [p] + list(p.parents):
-            if (parent / "__manifest__.py").exists() or (parent / "__openerp__.py").exists():
-                addons.add(str(parent.name))
-                break
-    return sorted(addons)
-
-
-def collect_addon_paths(addons_dir: Path) -> list:
-    """Collect (addon_path, unported) pairs from an addons directory.
-
-    Args:
-        addons_dir: Root addons directory to inspect.
-
-    Returns:
-        Sorted list of (Path, bool) pairs where the bool indicates
-        whether the addon lives under the unported subdirectory.
-    """
-    paths = [(p, False) for p in addons_dir.iterdir()]
-    unported = addons_dir / UNPORTED_DIR
-    if unported.is_dir():
-        paths += [(p, True) for p in unported.iterdir()]
-    return sorted(paths, key=lambda x: x[0])
-
-
-def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None, None]:
-    """Yield AddonInfo for every Odoo addon found under a root directory.
-
-    Args:
-        root: Directory to search recursively (symlinked first-level dirs are followed).
-        shallow: If True, do not recurse deeper than one level into subdirectories.
-            Defaults to False.
-
-    Yields:
-        AddonInfo for each addon directory containing a manifest file.
-    """
-
-    root_parts = root.resolve().parts
-
-    # followlinks=True lets us enter first-level *symlinked* directories
-    for dirpath, dirnames, filenames in os.walk(root, followlinks=True):
-        # skip VCS noise
-        if ".git" in dirnames:
-            dirnames.remove(".git")
-
-        if "setup" in dirnames:
-            dirnames.remove("setup")  # don't enter setup/ subdir
-
-        # found an addon here?
-        if "__manifest__.py" in filenames or "__openerp__.py" in filenames:
-            manifest = load_manifest(Path(dirpath))
-            yield AddonInfo.from_path(Path(dirpath), root_path=root, manifest=manifest)
-
-        if shallow:
-            depth = len(Path(dirpath).resolve().parts) - len(root_parts)
-            if depth >= 1:
-                # we're already in a first-level subdir (real or symlink) → don't go deeper
-                dirnames[:] = []
-
-
-def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
-    """Return all addon directories found under a root path.
-
-    Args:
-        root: Directory to search recursively.
-        with_pr: If True, descend into pull-request subdirectories. Defaults to False.
-
-    Returns:
-        List of Path objects for each directory containing a manifest file.
-    """
-    addons = []
-    for dirpath, dirnames, filenames in os.walk(root):
-        if ".git" in dirnames:
-            dirnames.remove(".git")
-        if not with_pr and PR_DIR in dirnames:
-            dirnames.remove(PR_DIR)
-        if "__manifest__.py" in filenames or "__openerp__.py" in filenames:
-            addons.append(Path(dirpath))
-    return addons
-
-
-def enrich_addon(addon: AddonInfo, sub: dict) -> None:
-    """Populate git-state and classification fields on an AddonInfo.
-
-    Args:
-        addon: The addon to enrich, mutated in place.
-        sub: Submodule metadata dict for this addon's rel_path (from list_submodules),
-            or an empty dict if the addon is not inside a submodule.
-    """
-    addon.submodule = sub.get("name", "")
-    addon.branch = sub.get("branch", "")
-    addon.pull_request = sub.get("pr", False)
-
-    submodule_org = addon.submodule.split("/")[0] if addon.submodule else ""
-    addon.classification = classify_addon(
-        addon.author,
-        addon.technical_name,
-        submodule_org,
-        project_author=config.manifest.author,
-        project_prefix=config.project.prefix,
-        github_owner=config.github.owner,
-    )
-
-
 def get_excluded_addon_names(repo_path: Path) -> list:
     """Return addon names that should be excluded from pre-commit checks.
 
@@ -708,74 +588,6 @@ def get_filtered_addon_names(repo_path: Path) -> list:
         if not addon.symlink and addon.installable and config.manifest.author.lower() in addon.author.lower():
             res.append(addon.technical_name)
     return sorted(res)
-
-
-# Standard OCA fragment order for a readme/ directory (concatenated in this order).
-_OCA_README_FRAGMENTS = (
-    "DESCRIPTION.rst",
-    "CONTEXT.rst",
-    "INSTALL.rst",
-    "CONFIGURE.rst",
-    "USAGE.rst",
-    "DEVELOP.rst",
-    "ROADMAP.rst",
-    "KNOWN_ISSUES.rst",
-    "CREDITS.rst",
-    "HISTORY.rst",
-    "CONTRIBUTORS.rst",
-)
-
-
-def detect_readme(module_path: Path) -> dict:
-    """Detect and capture a module's README (IR v2 — capture, don't convert).
-
-    Detection order (spec §5, §8.7):
-        1. ``README.rst`` / ``README.md`` at the module root.
-        2. An OCA ``readme/`` fragment directory (fragments concatenated in the
-           standard OCA order; ``format="rst"``).
-        3. ``static/description/index.html``.
-
-    Args:
-        module_path: Path to the Odoo module directory.
-
-    Returns:
-        ``{present: bool, format: "rst"|"md"|"html"|None, path: str|None,
-        content: str|None}``. Content is captured raw — never converted.
-    """
-    empty = {"present": False, "format": None, "path": None, "content": None}
-
-    for filename, fmt in (("README.rst", "rst"), ("README.md", "md")):
-        candidate = module_path / filename
-        if candidate.is_file():
-            return {
-                "present": True,
-                "format": fmt,
-                "path": f"{module_path.name}/{filename}",
-                "content": candidate.read_text(encoding="utf-8", errors="replace"),
-            }
-
-    readme_dir = module_path / "readme"
-    if readme_dir.is_dir():
-        fragments = [f for f in _OCA_README_FRAGMENTS if (readme_dir / f).is_file()]
-        if fragments:
-            content = "\n\n".join((readme_dir / f).read_text(encoding="utf-8", errors="replace") for f in fragments)
-            return {
-                "present": True,
-                "format": "rst",
-                "path": f"{module_path.name}/readme/",
-                "content": content,
-            }
-
-    index_html = module_path / "static" / "description" / "index.html"
-    if index_html.is_file():
-        return {
-            "present": True,
-            "format": "html",
-            "path": f"{module_path.name}/static/description/index.html",
-            "content": index_html.read_text(encoding="utf-8", errors="replace"),
-        }
-
-    return empty
 
 
 # ---------------------------------------------------------------------------

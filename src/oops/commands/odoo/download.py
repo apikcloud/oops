@@ -23,7 +23,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command, render_and_exit
-from oops.core.compat import Optional
 from oops.core.config import config
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
@@ -39,6 +38,7 @@ from oops.services.git import require_repository
 from oops.utils.git import clone, update_latest
 from oops.utils.helpers import normalize_version
 from oops.utils.render import prompt_select
+from oops_engine.compat import Optional
 
 from .presenters.download import DownloadPresenter
 

@@ -16,22 +16,21 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from oops.core.compat import Optional
-from oops.core.models import Result
-from oops.io.file import detect_readme
-from oops.io.manifest import load_manifest
-from oops.io.python_imports import discover_imported_files
-from oops.utils.helpers import deep_visit
+from oops_engine.compat import Optional
 from oops_engine.domain_profile import compute_domain_profile
 from oops_engine.fingerprint import chain_fingerprint, fingerprint_directory
 from oops_engine.identity import local_repo_id
 from oops_engine.inspect_module import ClassInfo, SymbolInfo, analyse_file
 from oops_engine.loc import get_addon_loc_cached
-from oops_engine.models import ClassSummary, ModuleSummary, StructureSummary, ViewsSummary
+from oops_engine.manifest import load_manifest
+from oops_engine.models import ClassSummary, ModuleSummary, Result, StructureSummary, ViewsSummary
 from oops_engine.provenance import normalize_origin
+from oops_engine.python_imports import discover_imported_files
+from oops_engine.readme import detect_readme
 from oops_engine.resolver import InheritanceResolver
 from oops_engine.scanner import build_module_field_refs
 from oops_engine.store import KBReader, write_cached_analysis
+from oops_engine.utils import deep_visit
 
 
 def build_module_summary(  # noqa: C901, PLR0912

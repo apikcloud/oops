@@ -246,29 +246,29 @@ class TestTelemetryClassification:
 
 class TestDeepVisit:
     def test_flat_dict(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
         result = dict(deep_visit({"a": 1, "b": 2}))
         assert result["a"] == 1
         assert result["b"] == 2
 
     def test_nested_dict(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
         result = dict(deep_visit({"x": {"y": 42}}))
         assert result["x.y"] == 42
 
     def test_list_values(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
         result = list(deep_visit([10, 20]))
         assert ("[0]", 10) in result
         assert ("[1]", 20) in result
 
     def test_scalar(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
         result = list(deep_visit(99))
         assert result == [("", 99)]
 
     def test_tuple_treated_as_list(self):
-        from oops.utils.helpers import deep_visit
+        from oops_engine.utils import deep_visit
         result = list(deep_visit((1, 2)))
         assert ("[0]", 1) in result
 
@@ -415,7 +415,7 @@ class TestWorkflowRunInfo:
 
 class TestAddonInfo:
     def test_symlinked_property_true(self, tmp_path):
-        from oops.core.models import AddonInfo
+        from oops_engine.models import AddonInfo
         addon = AddonInfo(
             path=str(tmp_path),
             rel_path="",
@@ -433,7 +433,7 @@ class TestAddonInfo:
         assert addon.symlinked is True
 
     def test_symlinked_property_false_not_root(self, tmp_path):
-        from oops.core.models import AddonInfo
+        from oops_engine.models import AddonInfo
         addon = AddonInfo(
             path=str(tmp_path),
             rel_path="sub",
@@ -451,7 +451,7 @@ class TestAddonInfo:
         assert addon.symlinked is False
 
     def test_from_path_regular_dir(self, tmp_path):
-        from oops.core.models import AddonInfo
+        from oops_engine.models import AddonInfo
         addon_dir = tmp_path / "my_addon"
         addon_dir.mkdir()
         manifest = {"author": "Acme", "version": "16.0.1.0.0", "installable": True}

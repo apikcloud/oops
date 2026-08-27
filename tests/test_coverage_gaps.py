@@ -194,21 +194,21 @@ class TestFindAddons:
 
 class TestFindAddonDirs:
     def test_finds_addon_directories(self, tmp_path):
-        from oops.io.file import find_addon_dirs
+        from oops_engine.addons import find_addon_dirs
 
         _make_addon(tmp_path, "addon_x")
         result = find_addon_dirs(tmp_path)
         assert any(p.name == "addon_x" for p in result)
 
     def test_excludes_pr_dir_by_default(self, tmp_path):
-        from oops.io.file import find_addon_dirs
+        from oops_engine.addons import find_addon_dirs
 
         _make_addon(tmp_path / PR_DIR, "pr_addon")
         result = find_addon_dirs(tmp_path, with_pr=False)
         assert not any(PR_DIR in str(p) for p in result)
 
     def test_includes_pr_dir_when_requested(self, tmp_path):
-        from oops.io.file import find_addon_dirs
+        from oops_engine.addons import find_addon_dirs
 
         _make_addon(tmp_path / PR_DIR, "pr_addon")
         result = find_addon_dirs(tmp_path, with_pr=True)
@@ -305,7 +305,7 @@ class TestGetRequirementsDiff:
 
 class TestCollectAddonPaths:
     def test_lists_entries(self, tmp_path):
-        from oops.io.file import collect_addon_paths
+        from oops_engine.addons import collect_addon_paths
 
         (tmp_path / "addon_a").mkdir()
         (tmp_path / "addon_b").mkdir()
@@ -315,7 +315,7 @@ class TestCollectAddonPaths:
         assert "addon_b" in names
 
     def test_marks_unported(self, tmp_path):
-        from oops.io.file import collect_addon_paths
+        from oops_engine.addons import collect_addon_paths
 
         unported = tmp_path / UNPORTED_DIR
         unported.mkdir()
@@ -326,7 +326,7 @@ class TestCollectAddonPaths:
         assert unported_entries[0][0].name == "old_addon"
 
     def test_regular_entries_not_marked_unported(self, tmp_path):
-        from oops.io.file import collect_addon_paths
+        from oops_engine.addons import collect_addon_paths
 
         (tmp_path / "regular").mkdir()
         result = collect_addon_paths(tmp_path)

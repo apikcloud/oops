@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from collections import Counter
 
-from oops.core.compat import List
 from oops.core.models import Result, Stat, StatGroup, SubmoduleInfo
 from oops.output.base import SimplePresenter
 from oops.output.layout import (
@@ -18,6 +17,7 @@ from oops.output.layout import (
     statgroup_to_panel,
 )
 from oops.utils.render import colorize
+from oops_engine.compat import List
 
 COLOR_STATUS = {
     "cancel": "red",

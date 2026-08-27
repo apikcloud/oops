@@ -91,11 +91,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Union
 
-from oops.core.compat import Any, Dict, List, Optional, Sequence
-from oops.core.logger import log
-from oops.core.models import Result
 from oops_engine.backends.base import Backend
 from oops_engine.backends.sqlite import SQLiteBackend
+from oops_engine.compat import Any, Dict, List, Optional, Sequence
+from oops_engine.logger import log
+from oops_engine.models import Result
 
 # ---------------------------------------------------------------------------
 # Schema versioning
@@ -139,8 +139,20 @@ _UPSERT_SPECS = {
     ),
     "symbols": (
         (
-            "repo_id", "model", "name", "kind", "origin", "module", "source_file", "source_line",
-            "source_end_line", "field_type", "section", "import_index", "attrs_json", "has_super",
+            "repo_id",
+            "model",
+            "name",
+            "kind",
+            "origin",
+            "module",
+            "source_file",
+            "source_line",
+            "source_end_line",
+            "field_type",
+            "section",
+            "import_index",
+            "attrs_json",
+            "has_super",
         ),
         ("repo_id", "model", "name", "kind", "module"),
     ),
@@ -150,30 +162,66 @@ _UPSERT_SPECS = {
     ),
     "model_origins": (
         (
-            "repo_id", "model", "module", "origin", "role", "model_type",
-            "inherit_json", "inherits_json", "source_file", "source_line",
-            "description", "import_index",
+            "repo_id",
+            "model",
+            "module",
+            "origin",
+            "role",
+            "model_type",
+            "inherit_json",
+            "inherits_json",
+            "source_file",
+            "source_line",
+            "description",
+            "import_index",
         ),
         ("repo_id", "model", "module"),
     ),
     "views": (
         (
-            "repo_id", "xml_id", "module", "origin", "name", "model", "view_type", "inherit_id",
-            "mode", "source_file", "source_line", "source_end_line", "fields_json", "buttons_json",
+            "repo_id",
+            "xml_id",
+            "module",
+            "origin",
+            "name",
+            "model",
+            "view_type",
+            "inherit_id",
+            "mode",
+            "source_file",
+            "source_line",
+            "source_end_line",
+            "fields_json",
+            "buttons_json",
         ),
         ("repo_id", "xml_id"),
     ),
     "actions": (
         (
-            "repo_id", "xml_id", "module", "origin", "name", "model", "view_id", "domain",
-            "source_file", "source_line",
+            "repo_id",
+            "xml_id",
+            "module",
+            "origin",
+            "name",
+            "model",
+            "view_id",
+            "domain",
+            "source_file",
+            "source_line",
         ),
         ("repo_id", "xml_id"),
     ),
     "menus": (
         (
-            "repo_id", "xml_id", "module", "origin", "name", "action", "parent_id",
-            "source_file", "source_line",
+            "repo_id",
+            "xml_id",
+            "module",
+            "origin",
+            "name",
+            "action",
+            "parent_id",
+            "source_file",
+            "source_line",
         ),
         ("repo_id", "xml_id"),
     ),
@@ -191,39 +239,91 @@ def _row_values(table: str, repo_id: str, row: Dict[str, Any]) -> tuple:
     """Build a value tuple matching _UPSERT_SPECS[table]'s column order."""
     if table == "modules":
         name, data = row["_name"], row["_data"]
-        return (repo_id, name, data["origin"], json.dumps(data["depends"]),
-                _bool_or_none(data.get("application", 0)), data.get("app"),
-                data.get("depth"), data.get("load_index"))
+        return (
+            repo_id,
+            name,
+            data["origin"],
+            json.dumps(data["depends"]),
+            _bool_or_none(data.get("application", 0)),
+            data.get("app"),
+            data.get("depth"),
+            data.get("load_index"),
+        )
     if table == "symbols":
         return (
-            repo_id, row["model"], row["name"], row["kind"], row["origin"], row["module"],
-            row["source_file"], row["source_line"], row.get("source_end_line"),
-            row.get("field_type"), row.get("section"), row.get("import_index"),
-            row.get("attrs_json"), _bool_or_none(row.get("has_super")),
+            repo_id,
+            row["model"],
+            row["name"],
+            row["kind"],
+            row["origin"],
+            row["module"],
+            row["source_file"],
+            row["source_line"],
+            row.get("source_end_line"),
+            row.get("field_type"),
+            row.get("section"),
+            row.get("import_index"),
+            row.get("attrs_json"),
+            _bool_or_none(row.get("has_super")),
         )
     if table == "field_refs":
         return (repo_id, row["model"], row["field_name"], row["module"], row["kwarg"], row["target_method"])
     if table == "model_origins":
         return (
-            repo_id, row["model"], row["module"], row["origin"], row["role"],
-            row.get("model_type", "model"), row.get("inherit_json", "[]"), row.get("inherits_json", "{}"),
-            row["source_file"], row["source_line"], row.get("description"), row.get("import_index"),
+            repo_id,
+            row["model"],
+            row["module"],
+            row["origin"],
+            row["role"],
+            row.get("model_type", "model"),
+            row.get("inherit_json", "[]"),
+            row.get("inherits_json", "{}"),
+            row["source_file"],
+            row["source_line"],
+            row.get("description"),
+            row.get("import_index"),
         )
     if table == "views":
         return (
-            repo_id, row["xml_id"], row["module"], row["origin"], row.get("name"), row.get("model"),
-            row.get("view_type"), row.get("inherit_id"), row["mode"], row["source_file"], row["source_line"],
-            row.get("source_end_line"), row.get("fields_json", "[]"), row.get("buttons_json", "[]"),
+            repo_id,
+            row["xml_id"],
+            row["module"],
+            row["origin"],
+            row.get("name"),
+            row.get("model"),
+            row.get("view_type"),
+            row.get("inherit_id"),
+            row["mode"],
+            row["source_file"],
+            row["source_line"],
+            row.get("source_end_line"),
+            row.get("fields_json", "[]"),
+            row.get("buttons_json", "[]"),
         )
     if table == "actions":
         return (
-            repo_id, row["xml_id"], row["module"], row["origin"], row.get("name"), row.get("model"),
-            row.get("view_id"), row.get("domain"), row["source_file"], row["source_line"],
+            repo_id,
+            row["xml_id"],
+            row["module"],
+            row["origin"],
+            row.get("name"),
+            row.get("model"),
+            row.get("view_id"),
+            row.get("domain"),
+            row["source_file"],
+            row["source_line"],
         )
     if table == "menus":
         return (
-            repo_id, row["xml_id"], row["module"], row["origin"], row.get("name"), row.get("action"),
-            row.get("parent_id"), row["source_file"], row["source_line"],
+            repo_id,
+            row["xml_id"],
+            row["module"],
+            row["origin"],
+            row.get("name"),
+            row.get("action"),
+            row.get("parent_id"),
+            row["source_file"],
+            row["source_line"],
         )
     raise ValueError(f"Unknown upsert table: {table}")  # pragma: no cover — internal invariant
 
@@ -275,9 +375,7 @@ def write_kb(
                 meta_rows.append((repo_id, "project", project))
             if scope is not None:
                 meta_rows.append((repo_id, "scope", json.dumps(scope)))
-            cur.executemany(
-                f"INSERT INTO repo_meta (repo_id, key, value) VALUES ({ph}, {ph}, {ph})", meta_rows
-            )
+            cur.executemany(f"INSERT INTO repo_meta (repo_id, key, value) VALUES ({ph}, {ph}, {ph})", meta_rows)
 
             # --- sources ---
             cur.executemany(
@@ -321,9 +419,7 @@ def write_kb(
     return kb_result
 
 
-def update_module_load_order(
-    db_path: BackendOrPath, repo_ids: Sequence[str], load_result: Dict[str, Any]
-) -> None:
+def update_module_load_order(db_path: BackendOrPath, repo_ids: Sequence[str], load_result: Dict[str, Any]) -> None:
     """Stamp depth and load_index onto each module row after initial write.
 
     A module's row may belong to any of the given ``repo_ids`` (e.g. a local
@@ -344,8 +440,7 @@ def update_module_load_order(
         with con:
             cur = con.cursor()
             cur.executemany(
-                f"UPDATE modules SET depth={ph}, load_index={ph} "
-                f"WHERE repo_id IN ({placeholders}) AND name={ph}",
+                f"UPDATE modules SET depth={ph}, load_index={ph} WHERE repo_id IN ({placeholders}) AND name={ph}",
                 [(depth, load_index, *repo_ids, name) for name, (depth, load_index) in load_result.items()],
             )
     finally:
@@ -515,8 +610,7 @@ def write_cached_loc(
             cur = con.cursor()
             # Same prune rationale as write_cached_analysis: keep one row per addon.
             cur.execute(
-                f"DELETE FROM loc_cache WHERE repo_id = {ph} AND addon_path = {ph} "
-                f"AND content_fingerprint != {ph}",
+                f"DELETE FROM loc_cache WHERE repo_id = {ph} AND addon_path = {ph} AND content_fingerprint != {ph}",
                 (repo_id, addon_path, content_fingerprint),
             )
             cur.execute(
@@ -553,8 +647,7 @@ def get_cached_loc(
     try:
         cur = con.cursor()
         cur.execute(
-            f"SELECT loc_json FROM loc_cache WHERE repo_id = {ph} AND addon_path = {ph} "
-            f"AND content_fingerprint = {ph}",
+            f"SELECT loc_json FROM loc_cache WHERE repo_id = {ph} AND addon_path = {ph} AND content_fingerprint = {ph}",
             (repo_id, addon_path, content_fingerprint),
         )
         row = cur.fetchone()
@@ -855,9 +948,7 @@ class KBReader:
         ).fetchone()
         return row is None
 
-    def get_model_creators(
-        self, model: str, by_load_index: bool = False
-    ) -> List[Dict[str, Any]]:
+    def get_model_creators(self, model: str, by_load_index: bool = False) -> List[Dict[str, Any]]:
         """Return all modules recorded as creators of ``model``.
 
         Args:
@@ -1130,8 +1221,16 @@ class KBReader:
             (*self._repo_ids, model),
         ).fetchall()
         cols = [
-            "model", "module", "origin", "role", "inherit_json", "inherits_json",
-            "source_file", "source_line", "import_index", "load_index",
+            "model",
+            "module",
+            "origin",
+            "role",
+            "inherit_json",
+            "inherits_json",
+            "source_file",
+            "source_line",
+            "import_index",
+            "load_index",
         ]
         return [dict(zip(cols, tuple(dict(r).get(c) for c in cols))) for r in rows]
 
@@ -1202,13 +1301,20 @@ class KBReader:
             """,
             (*self._repo_ids, model, method_name),
         ).fetchall()
-        cols = ["module", "origin", "source_file", "source_line", "source_end_line",
-                "section", "has_super", "load_index", "import_index"]
+        cols = [
+            "module",
+            "origin",
+            "source_file",
+            "source_line",
+            "source_end_line",
+            "section",
+            "has_super",
+            "load_index",
+            "import_index",
+        ]
         return [{c: dict(r).get(c) for c in cols} for r in rows]
 
-    def get_method_layers_bulk(
-        self, models: List[str]
-    ) -> "Dict[tuple, List[Dict[str, Any]]]":
+    def get_method_layers_bulk(self, models: List[str]) -> "Dict[tuple, List[Dict[str, Any]]]":
         """Fetch all method layers for a list of models in a single query.
 
         Args:
@@ -1231,8 +1337,19 @@ class KBReader:
             """,
             (*self._repo_ids, *models),
         ).fetchall()
-        cols = ["model", "name", "module", "origin", "source_file", "source_line",
-                "source_end_line", "section", "has_super", "load_index", "import_index"]
+        cols = [
+            "model",
+            "name",
+            "module",
+            "origin",
+            "source_file",
+            "source_line",
+            "source_end_line",
+            "section",
+            "has_super",
+            "load_index",
+            "import_index",
+        ]
         result: Dict[tuple, List[Dict[str, Any]]] = {}
         for r in rows:
             row = {c: dict(r).get(c) for c in cols}

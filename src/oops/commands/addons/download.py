@@ -21,7 +21,6 @@ from pathlib import Path
 import click
 import git
 from oops.commands.base import command
-from oops.core.compat import Optional, Tuple
 from oops.core.exceptions import APIError, NotFoundError
 from oops.core.logger import live_progress
 from oops.core.models import Plan, PlanAction, Result
@@ -31,6 +30,7 @@ from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, require_repository
 from oops.utils.net import encode_url
 from oops.utils.render import colorize, human_readable
+from oops_engine.compat import Optional, Tuple
 
 
 def _build_plan(remote_addons: list, existing_names: set) -> Plan:

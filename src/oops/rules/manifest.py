@@ -86,7 +86,6 @@ import re
 import libcst as cst
 import libcst.matchers as m
 from fixit import LintRule
-from oops.core.compat import Any, List, Optional, Tuple  # noqa: UP035
 from oops.core.config import ManifestConfig
 from oops.rules._helpers import (
     VERSION_PATTERN,
@@ -130,6 +129,7 @@ from oops.rules._helpers import (
 from oops.rules._helpers import (
     string_value as _string_value,
 )
+from oops_engine.compat import Any, List, Optional, Tuple  # noqa: UP035
 
 # ---------------------------------------------------------------------------
 # Rule: ManifestRequiredKeys

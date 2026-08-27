@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from oops.core.compat import Dict
 from oops.core.models import Result
 from oops.output.base import SimplePresenter
 from oops.output.layout import (
@@ -14,6 +13,7 @@ from oops.output.layout import (
     SimpleSummaryLayout,
     TableBlock,
 )
+from oops_engine.compat import Dict
 
 
 class ShowPresenter(SimplePresenter[Dict]):

@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from oops.core.compat import Any, List, Protocol, Sequence
+from oops_engine.compat import Any, List, Protocol, Sequence
 
 
 class Backend(Protocol):

@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
-from oops.core.compat import List
 from oops.core.config import _MISSING, Config, ConfigurationError, _apply, _is_list_of_path, load_config
+from oops_engine.compat import List
 
 # ---------------------------------------------------------------------------
 # _is_list_of_path

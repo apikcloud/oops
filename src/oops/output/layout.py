@@ -9,9 +9,9 @@ from abc import ABC
 from dataclasses import dataclass, field
 from datetime import timezone
 
-from oops.core.compat import Generic, L, List, Literal, Optional
 from oops.core.metadata import Metadata
 from oops.core.models import StatGroup
+from oops_engine.compat import Generic, L, List, Literal, Optional
 
 UTC = timezone.utc
 

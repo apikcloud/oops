@@ -16,11 +16,11 @@ import ast
 import json
 from pathlib import Path
 
-from oops.core.compat import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
-from oops.core.logger import log
-from oops.core.models import Result
-from oops.io.manifest import load_manifest
-from oops.io.python_imports import discover_imported_files
+from oops_engine.compat import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
+from oops_engine.logger import log
+from oops_engine.manifest import load_manifest
+from oops_engine.models import Result
+from oops_engine.python_imports import discover_imported_files
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -951,5 +951,3 @@ def odoo_addons_roots(odoo_path: Path) -> List[Path]:
         # log.warning("No addons/ or odoo/addons/ found under %s — falling back to root.", odoo_path)
         roots = [odoo_path]
     return roots
-
-

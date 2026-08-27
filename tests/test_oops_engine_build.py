@@ -10,10 +10,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-from oops.core.models import AddonInfo, Result
-from oops.io.file import enrich_addon, find_addons
+from oops.core.config import config
+from oops_engine.addons import enrich_addon, find_addons
 from oops_engine.build import build_project_kb, compute_root_drift, is_project_kb_stale, odoo_core_repo_id
 from oops_engine.identity import local_repo_id
+from oops_engine.models import AddonInfo, Result
 from oops_engine.store import KBReader, write_kb
 
 # ---------------------------------------------------------------------------
@@ -103,7 +104,7 @@ def _discover_addons(repo_path: Path, allowed_modules: "set[str]") -> "list[Addo
     addons.sort(key=lambda a: a.technical_name)
 
     for addon in addons:
-        enrich_addon(addon, {})
+        enrich_addon(addon, {}, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner)
 
     return addons
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from oops.core.compat import List, Sequence
+from oops_engine.compat import List, Sequence
 
 # ---------------------------------------------------------------------------
 # DDL — see oops_engine.store's module docstring for the schema shape.

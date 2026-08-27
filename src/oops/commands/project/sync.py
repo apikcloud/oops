@@ -20,7 +20,6 @@ from pathlib import Path
 
 import click
 from oops.commands.base import command
-from oops.core.compat import Tuple
 from oops.core.config import config
 from oops.core.exceptions import ConfigError, EarlyExit
 from oops.core.models import Plan, PlanAction, Result
@@ -29,6 +28,7 @@ from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, require_repository, show_diff
 from oops.services.project import fetch_project_files
 from oops.utils.render import colorize, conclude, rule
+from oops_engine.compat import Tuple
 from rich.live import Live
 from rich.spinner import Spinner
 

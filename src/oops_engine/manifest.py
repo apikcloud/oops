@@ -1,7 +1,8 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: manifest.py — oops/io/manifest.py
+# File: manifest.py — src/oops_engine/manifest.py
+
 
 """
 Odoo manifest reading, parsing, and addon discovery.
@@ -19,9 +20,9 @@ from collections.abc import Generator
 from pathlib import Path
 
 import libcst as cst
-from oops.core.compat import Optional, Union
-from oops.core.exceptions import NoManifestFound
-from oops.core.logger import log
+from oops_engine.compat import Optional, Union
+from oops_engine.exceptions import NoManifestFound
+from oops_engine.logger import log
 
 DEFAULT_MANIFEST_NAMES = ["__manifest__.py", "__openerp__.py", "__terp__.py"]
 

@@ -23,8 +23,8 @@ Algorithm
 
 from collections import deque
 
-from oops.core.compat import Any, Dict, List, Optional, Tuple
-from oops.core.logger import log
+from oops_engine.compat import Any, Dict, List, Optional, Tuple
+from oops_engine.logger import log
 
 # Static tier precedence used as tie-breaker (lower index = higher precedence).
 TIER_PRECEDENCE = ["third-party", "oca", "custom", "enterprise", "odoo"]

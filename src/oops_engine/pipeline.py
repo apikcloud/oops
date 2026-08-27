@@ -16,9 +16,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from oops.core.compat import Any, Dict, List, Optional
-from oops.core.models import Result
 from oops_engine.build import _resolve_module_apps, _resolve_prototype_roles, _resolve_view_types
+from oops_engine.compat import Any, Dict, List, Optional
+from oops_engine.models import Result
 from oops_engine.scanner import scan_tier
 from oops_engine.xml_scanner import scan_tier_xml
 
@@ -36,9 +36,7 @@ def _merge(py_scan: Dict[str, Any], xml_scan: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def scan_repository(
-    workspace_path: Path, repo_id: str, origin: Optional[str] = None
-) -> Result[List[Dict[str, Any]]]:
+def scan_repository(workspace_path: Path, repo_id: str, origin: Optional[str] = None) -> Result[List[Dict[str, Any]]]:
     """Scan every addon under workspace_path as one flat tier. No submodule/tier concept.
 
     Args:

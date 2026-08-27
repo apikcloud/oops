@@ -19,9 +19,9 @@ import xml.etree.ElementTree as ET
 import xml.parsers.expat as expat
 from pathlib import Path
 
-from oops.core.compat import Any, Dict, List, Optional, Set, Tuple
-from oops.core.logger import log
-from oops.core.models import Result
+from oops_engine.compat import Any, Dict, List, Optional, Set, Tuple
+from oops_engine.logger import log
+from oops_engine.models import Result
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -126,7 +126,7 @@ def _load_manifest_or_fallback(module_dir: Path) -> Optional[dict]:
     - Returns None when manifest exists but cannot be parsed.
     - Returns {} when no manifest file is found.
     """
-    from oops.io.manifest import DEFAULT_MANIFEST_NAMES, parse_manifest
+    from oops_engine.manifest import DEFAULT_MANIFEST_NAMES, parse_manifest
 
     for manifest_name in DEFAULT_MANIFEST_NAMES:
         path = module_dir / manifest_name
@@ -538,7 +538,7 @@ def scan_tier_xml(
 
     Mirrors scanner.scan_tier — same iteration, same gates.
     """
-    from oops.io.manifest import load_manifest
+    from oops_engine.manifest import load_manifest
 
     merged: Dict[str, Any] = {"views": [], "actions": [], "menus": []}
     result: "Result[Dict[str, Any]]" = Result()

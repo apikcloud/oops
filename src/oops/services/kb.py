@@ -1,14 +1,15 @@
 from pathlib import Path
 
 from git import Repo
-from oops.core.compat import Dict, List, Set
+from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.metadata import update_metadata
-from oops.core.models import AddonInfo
-from oops.io.file import enrich_addon, find_addons
 from oops.services.git import list_submodules
+from oops_engine.addons import enrich_addon, find_addons
 from oops_engine.build import odoo_core_repo_id, parse_kb_timestamp, project_kb_path
+from oops_engine.compat import Dict, List, Set
 from oops_engine.identity import local_repo_id
+from oops_engine.models import AddonInfo
 from oops_engine.paths import global_kb_path
 from oops_engine.store import KBReader
 
@@ -44,7 +45,7 @@ def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[st
 
     for addon in project_addons:
         sub = subs.get(addon.rel_path, {})
-        enrich_addon(addon, sub)
+        enrich_addon(addon, sub, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner)
 
     return project_addons
 

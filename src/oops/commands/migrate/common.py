@@ -21,10 +21,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import yaml
-from oops.core.compat import Literal, Optional
+from oops_engine.compat import Literal, Optional
 
 if TYPE_CHECKING:
-    from oops.core.models import AddonInfo
+    from oops_engine.models import AddonInfo
 
 UTC = timezone.utc
 

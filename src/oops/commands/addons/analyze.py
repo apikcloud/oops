@@ -233,7 +233,7 @@ def run_analysis(  # noqa: C901, PLR0912, PLR0915
             if extra and not installed_only:
                 scan_modules |= set(extra)
 
-        stale, reason = is_project_kb_stale(repo_path, version)
+        stale, reason = is_project_kb_stale(repo_path, version, config.project.file_installed_modules)
         needs_build = refresh or stale
 
         kb_path: Path | None = None

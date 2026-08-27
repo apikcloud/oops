@@ -23,8 +23,8 @@ from oops.commands.base import command
 from oops.commands.manifest.common import collect_paths, run_fixit
 from oops.core.exceptions import EarlyExit, OopsError
 from oops.io.file import get_filtered_addon_names
-from oops.io.manifest import get_manifest_path
 from oops.services.git import require_repository
+from oops_engine.manifest import get_manifest_path
 
 
 @command(name="check", help=__doc__)

@@ -10,6 +10,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 CACHE_DIR_NAME = ".oops-cache"
+UNPORTED_DIR = "__unported__"  # unported addons directory inside an addon path
+PR_DIR = "PRs"  # pull-request addon symlink directory
 
 
 def project_kb_path(repo_root: Path) -> Path:
@@ -40,3 +42,29 @@ def global_kb_path(version: str) -> Path:
         ``~/.cache/oops/kb/<version>.db`` (does not check for existence).
     """
     return global_kb_dir() / f"{version}.db"
+
+
+# ---------------------------------------------------------------------------
+# installed_modules.txt (project-local)
+# ---------------------------------------------------------------------------
+
+DEFAULT_INSTALLED_MODULES_FILENAME = "installed_modules.txt"
+
+
+def installed_modules_path(repo_root: Path, filename: str = DEFAULT_INSTALLED_MODULES_FILENAME) -> Path:
+    """Return the conventional path of the installed-modules file.
+
+    Pure — takes the configured filename as a parameter instead of reading
+    ``config.project.file_installed_modules`` directly, so it has no
+    dependency on ``oops.core.config``. ``oops.io.installed_modules`` is the
+    config-aware CLI-side wrapper that supplies that value.
+
+    Args:
+        repo_root: Repository root directory.
+        filename: Installed-modules filename, defaults to the project's
+            standard convention.
+
+    Returns:
+        Path to the installed-modules file (may not exist yet).
+    """
+    return repo_root / filename

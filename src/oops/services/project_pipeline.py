@@ -15,13 +15,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from oops.core.config import config
 from oops.core.logger import log
 from oops.core.metadata import get_metadata
-from oops.core.models import AddonInfo
-from oops.io.file import enrich_addon, find_addons
 from oops.output.base import RenderTarget
 from oops.services.git import list_submodules
 from oops.services.loc import get_addon_loc_cached
+from oops_engine.addons import enrich_addon, find_addons
+from oops_engine.models import AddonInfo
 
 
 def build_inventory(
@@ -53,7 +54,8 @@ def build_inventory(
 
         log.info(f"Inventory of {addon.technical_name}")
         sub = subs.get(addon.rel_path, {})
-        enrich_addon(addon, sub)
+        enrich_addon(addon, sub, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner)
+
         loc = get_addon_loc_cached(repo_path, addon.path)
 
         inventory[addon.technical_name] = {

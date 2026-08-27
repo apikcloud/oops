@@ -11,9 +11,8 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 from oops.commands.addons.list import main
-from oops.core.models import AddonInfo
 from oops.services.loc import _has_cloc, get_addon_loc
-from oops_engine.models import LocStats
+from oops_engine.models import AddonInfo, LocStats
 
 
 def _make_addon_info(

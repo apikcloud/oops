@@ -18,12 +18,12 @@ from __future__ import annotations
 import click
 from oops.commands.base import command
 from oops.commands.submodules.add import add_submodule_flow
-from oops.core.compat import Optional
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress
 from oops.services.git import require_repository
 from oops.services.github import get_pull_request
 from oops.utils.net import parse_pull_request_url
+from oops_engine.compat import Optional
 
 
 @command(name="add", help=__doc__)

@@ -8,12 +8,12 @@ import subprocess
 import zipfile
 
 import requests
-from oops.core.compat import List, Optional, Tuple
 from oops.core.config import config
 from oops.core.exceptions import APIError
 from oops.core.logger import log
 from oops.core.models import PullRequest, WorkflowRunInfo
 from oops.utils.net import make_json_get
+from oops_engine.compat import List, Optional, Tuple
 
 
 def _get_headers(token: Optional[str]) -> dict:

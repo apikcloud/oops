@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from oops.core.compat import Optional
+from oops_engine.compat import Optional
 
 
 def local_repo_id(repo_path: Path) -> str:

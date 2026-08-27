@@ -11,7 +11,7 @@ base ``oops_engine`` install never needs it.
 
 from __future__ import annotations
 
-from oops.core.compat import Any, List, Sequence
+from oops_engine.compat import Any, List, Sequence
 
 # Same table/column/index shapes as SQLiteBackend.DDL, translated:
 #   INTEGER (bool flags) -> BOOLEAN, *_json TEXT -> JSONB, no PRAGMA statements,

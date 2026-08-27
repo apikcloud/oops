@@ -16,7 +16,6 @@ from pathlib import Path
 import click
 import requests
 from oops.commands.base import command
-from oops.core.compat import Optional
 from oops.core.logger import live_progress
 from oops.core.metadata import get_metadata
 from oops.core.models import Result
@@ -31,6 +30,7 @@ from oops.utils.render import (
     format_datetime,
 )
 from oops.utils.versioning import get_last_release, get_next_releases
+from oops_engine.compat import Optional
 
 from .presenters.show import ShowPresenter
 

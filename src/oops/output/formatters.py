@@ -4,7 +4,6 @@ import csv
 import io
 import sys
 
-from oops.core.compat import Dict, Type
 from oops.core.exceptions import get_error_console
 from oops.output.base import OutputFormatter, RenderTarget
 from oops.output.layout import MetricsLayout, MinimalLayout, OnePanelLayout, Output, SimpleSummaryLayout, SummaryLayout
@@ -24,6 +23,7 @@ from oops.utils.render import (
     rule,
     warning_section,
 )
+from oops_engine.compat import Dict, Type
 
 MAX_COLUMNS = 6
 

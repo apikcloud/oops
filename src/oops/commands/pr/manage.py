@@ -17,7 +17,6 @@ from __future__ import annotations
 import shutil
 
 from oops.commands.base import command
-from oops.core.compat import Tuple
 from oops.core.config import config
 from oops.core.exceptions import AppAbort
 from oops.core.models import Plan, PlanAction, Result
@@ -26,6 +25,7 @@ from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, is_pull_request, require_repository, require_submodules
 from oops.utils.render import colorize, prompt_choices
+from oops_engine.compat import Tuple
 
 
 def _build_plan(submodules, mapping, marked_as_pr: set[str]) -> Plan:

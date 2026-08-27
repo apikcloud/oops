@@ -8,11 +8,12 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import asdict
 
-from oops.core.compat import List, Tuple
-from oops.core.models import AddonInfo, Result, Stat, StatGroup
+from oops.core.models import Stat, StatGroup
 from oops.output.base import SimplePresenter
 from oops.output.layout import ConclusionBlock, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
 from oops.utils.render import colorize, human_readable, render_boolean
+from oops_engine.compat import List, Tuple
+from oops_engine.models import AddonInfo, Result
 
 
 def _build_metrics(result: Result[List[AddonInfo]]) -> Tuple[StatGroup, StatGroup, StatGroup]:

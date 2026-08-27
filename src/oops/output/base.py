@@ -8,10 +8,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from oops.core.compat import Generic, Literal, Optional, TypeVar
 from oops.core.metadata import Metadata
 from oops.core.models import HasStatus, Result
 from oops.output.layout import Layout, Output
+from oops_engine.compat import Generic, Literal, Optional, TypeVar
 
 D = TypeVar("D")  # data type for the simple case
 T = TypeVar("T", bound=HasStatus)  # anything with ok/warnings/errors

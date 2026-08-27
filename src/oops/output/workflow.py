@@ -12,11 +12,11 @@ side effects (commit) and final rendering afterwards.
 
 from __future__ import annotations
 
-from oops.core.compat import Callable, Optional, Tuple
 from oops.core.exceptions import AppAbort, EarlyExit
 from oops.core.models import Plan, PlanAction, Result, Rows
 from oops.output.helper import render_plan
 from oops.utils.render import colorize, conclude, prompt_choices, prompt_confirm
+from oops_engine.compat import Callable, Optional, Tuple
 
 # Columns for the post-execution status table.
 DEFAULT_STATUS_COLUMNS: list[tuple[str, str, str]] = [

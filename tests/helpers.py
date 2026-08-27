@@ -7,7 +7,7 @@
 
 from typing import List, Optional
 
-from oops.core.models import AddonInfo
+from oops_engine.models import AddonInfo
 
 
 def make_addon(

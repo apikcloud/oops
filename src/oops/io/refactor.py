@@ -12,8 +12,8 @@ docstring skeletons, driven by the read-only analysis in
 from pathlib import Path
 
 import libcst as cst
-from oops.core.compat import Dict, List
 from oops.core.logger import log
+from oops_engine.compat import Dict, List
 from oops_engine.inspect_module import ClassInfo, SymbolInfo
 from oops_engine.resolve import format_source_line
 from oops_engine.scanner import (

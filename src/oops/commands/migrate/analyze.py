@@ -27,8 +27,6 @@ from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
-from oops.core.models import AddonInfo, Result
-from oops.io.file import enrich_addon, find_addons
 from oops.output.formatters import (
     FormatterRegistry,
     JsonFormatter,
@@ -39,6 +37,8 @@ from oops.output.formatters import (
 from oops.services.git import list_submodules, require_repository
 from oops.services.github import fetch_manifest_deps_rest
 from oops.utils.render import warn_experimental
+from oops_engine.addons import enrich_addon, find_addons
+from oops_engine.models import AddonInfo, Result
 
 from .common import (
     STATE_FILE,
@@ -149,7 +149,9 @@ def main(
             if not addon.root:
                 continue
             sub_meta = sub_meta_by_relpath.get(addon.rel_path, {})
-            enrich_addon(addon, sub_meta)
+            enrich_addon(
+                addon, sub_meta, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+            )
             kind, repo_slug = classify_origin(addon, sub_url=sub_meta.get("url"))
             modules[addon.technical_name] = ModuleState(
                 name=addon.technical_name,
