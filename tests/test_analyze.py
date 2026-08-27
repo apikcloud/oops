@@ -825,6 +825,71 @@ class TestAnalyzeRebuild:
 
 
 # ---------------------------------------------------------------------------
+# TestAnalyzeInstalledOnly
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeInstalledOnly:
+    """--installed-only: root addons missing from installed_modules.txt are
+    excluded from the project KB scan instead of being scanned anyway."""
+
+    def _make_fake_repo(self, tmp_path: Path) -> tuple[Path, Path]:
+        repo_path = tmp_path / "repo"
+        repo_path.mkdir()
+        db_path = repo_path / ".oops-cache" / "kb.db"
+        db_path.parent.mkdir()
+        _make_kb(db_path)
+        module_path = _make_module_full(
+            repo_path,
+            "my_module",
+            manifest={"name": "My Module", "depends": ["base"]},
+        )
+        return repo_path, module_path
+
+    def _run(self, tmp_path: Path, module_path: Path, extra_args: list[str]) -> tuple[object, list[set]]:
+        repo_path = module_path.parent
+        scan_modules_calls: list[set] = []
+
+        def fake_build(rp, version, modules, addons):  # noqa: ARG001
+            scan_modules_calls.append(set(modules))
+            return Result(data=rp / ".oops-cache" / "kb.db")
+
+        with patch("oops.commands.addons.analyze.require_repository") as mock_repo, \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17)), \
+                patch("oops.commands.addons.analyze.read_installed_modules") as mock_info, \
+                patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(True, "test")), \
+                patch("oops.commands.addons.analyze.compute_root_drift", return_value=([], ["extra_module"])), \
+                patch("oops.commands.addons.analyze.discover_project_addons", return_value=[]), \
+                patch("oops.commands.addons.analyze.build_project_kb", side_effect=fake_build), \
+                patch("oops.commands.addons.analyze.global_kb_path") as mock_gkb, \
+                patch("oops.core.logger.Live", MagicMock()):
+            mock_repo.return_value = (MagicMock(), repo_path)
+            mock_info.return_value = MagicMock(modules=["my_module"])
+            mock_gkb.return_value = repo_path / "nonexistent_global_kb.db"
+
+            result = CliRunner().invoke(main, ["--format", "json", *extra_args, str(module_path)])
+        return result, scan_modules_calls
+
+    def test_default_scans_extra_root_addon_anyway(self, tmp_path: Path) -> None:
+        repo_path, module_path = self._make_fake_repo(tmp_path)
+        result, scan_modules_calls = self._run(tmp_path, module_path, [])
+        assert result.exit_code == 0, result.output
+        assert scan_modules_calls
+        assert "extra_module" in scan_modules_calls[0]
+        data = json.loads(result.output)
+        assert any("scanned anyway; pass --installed-only to exclude" in w for w in data["warnings"])
+
+    def test_installed_only_excludes_extra_root_addon(self, tmp_path: Path) -> None:
+        repo_path, module_path = self._make_fake_repo(tmp_path)
+        result, scan_modules_calls = self._run(tmp_path, module_path, ["--installed-only"])
+        assert result.exit_code == 0, result.output
+        assert scan_modules_calls
+        assert "extra_module" not in scan_modules_calls[0]
+        data = json.loads(result.output)
+        assert any("excluded from the project KB scan — --installed-only" in w for w in data["warnings"])
+
+
+# ---------------------------------------------------------------------------
 # TestAnalyzeMultiModule
 # ---------------------------------------------------------------------------
 

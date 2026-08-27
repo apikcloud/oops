@@ -1120,6 +1120,74 @@ class TestRefactorRebuild:
 # ---------------------------------------------------------------------------
 
 
+class TestRefactorInstalledOnly:
+    """--installed-only: root addons missing from installed_modules.txt are
+    excluded from the project KB scan instead of being scanned anyway."""
+
+    def _runner(self) -> CliRunner:
+        return CliRunner()
+
+    def _setup(self, tmp_path: Path, monkeypatch):
+        from unittest.mock import MagicMock
+
+        kb_path = tmp_path / ".oops-cache" / "kb.db"
+        kb_path.parent.mkdir()
+        _make_kb(kb_path)
+        module_path = _make_module(tmp_path, "my_module", {"my_model.py": NEW_MODEL_SOURCE})
+
+        fake_repo = MagicMock()
+        fake_repo.git.checkout = MagicMock()
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.require_repository", lambda: (fake_repo, tmp_path)
+        )
+        fake_info = MagicMock()
+        fake_info.major_version = "17.0"
+        monkeypatch.setattr("oops.commands.addons.refactor.parse_odoo_version", lambda _p: fake_info)
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.is_project_kb_stale", lambda _r, _v, _f=None: (True, "test")
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.read_installed_modules",
+            lambda _r: type("M", (), {"modules": ["my_module"]})(),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.compute_root_drift",
+            lambda _r, _m: ([], ["extra_module"]),
+        )
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.discover_project_addons", lambda *_a, **_kw: []
+        )
+        build_calls: list = []
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.build_project_kb",
+            lambda _r, _v, modules, _addons: (
+                build_calls.append(set(modules)),
+                Result(data=kb_path),
+            )[1],
+        )
+        warnings: list = []
+        monkeypatch.setattr(
+            "oops.commands.addons.refactor.print_warning", lambda msg, **_kw: warnings.append(msg)
+        )
+        return module_path, build_calls, warnings
+
+    def test_default_scans_extra_root_addon_anyway(self, tmp_path, monkeypatch):
+        module_path, build_calls, warnings = self._setup(tmp_path, monkeypatch)
+        result = self._runner().invoke(main, [str(module_path), "--no-branch"])
+        assert result.exit_code == 0, result.output
+        assert build_calls
+        assert "extra_module" in build_calls[0]
+        assert any("scanned anyway; pass --installed-only to exclude" in w for w in warnings)
+
+    def test_installed_only_excludes_extra_root_addon(self, tmp_path, monkeypatch):
+        module_path, build_calls, warnings = self._setup(tmp_path, monkeypatch)
+        result = self._runner().invoke(main, [str(module_path), "--no-branch", "--installed-only"])
+        assert result.exit_code == 0, result.output
+        assert build_calls
+        assert "extra_module" not in build_calls[0]
+        assert any("excluded from the project KB scan — --installed-only" in w for w in warnings)
+
+
 class TestRefactorCommit:
     """Tests for the new --no-commit flag and per-module commit behaviour."""
 
