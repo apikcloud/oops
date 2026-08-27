@@ -72,7 +72,7 @@ def main(token: str, output_format: str, output_path: Path):
             if not is_pull_request(sub):
                 continue
 
-            log.info(f"{sub.name}")
+            log.info(sub.name)
 
             try:
                 canonical_url = get_public_repo_url(sub.url)

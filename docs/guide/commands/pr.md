@@ -149,3 +149,26 @@ Target a specific Odoo version explicitly (outside a project):
 ```bash
 oops pr explore OCA/account --version 17.0
 ```
+
+---
+
+::: mkdocs-click:commands
+    :module: oops.commands.pr.check
+    :command: main
+    :prog_name: oops pr check
+    :depth: 2
+    :style: table
+
+**Examples:**
+
+Check that no PR-convention submodule points to a closed or merged pull request:
+
+```bash
+oops pr check
+```
+
+Output as JSON:
+
+```bash
+oops pr check --format json
+```

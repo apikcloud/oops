@@ -28,6 +28,14 @@ ENVELOPE = {
         "warnings": [],
         "errors": [],
     },
+    "pr check": {
+        "metadata": {"command": "pr check"},
+        "data": [
+            {"name": "check_pr_state", "label": "Pull request state", "active": True, "status": "skipped", "items": []}
+        ],
+        "warnings": [],
+        "errors": [],
+    },
 }
 
 ERROR_ENVELOPE = {"metadata": {"command": "error"}, "error": "This command requires submodules."}
@@ -46,7 +54,7 @@ def test_check_all_assembles_sections(tmp_path):
 
     assert result["metadata"]["command"] == "checks"
     sections = result["sections"]
-    assert len(sections) == 3
+    assert len(sections) == 4
 
     assert sections[0]["command"] == "project check"
     assert sections[0]["title"] == "Project check"
@@ -59,6 +67,11 @@ def test_check_all_assembles_sections(tmp_path):
 
     assert sections[2]["command"] == "submodules check"
     assert sections[2]["data"] == ENVELOPE["submodules check"]["data"]
+
+    assert sections[3]["command"] == "pr check"
+    assert sections[3]["title"] == "Pull requests check"
+    assert sections[3]["data"] == ENVELOPE["pr check"]["data"]
+    assert sections[3]["error"] is None
 
 
 def test_check_all_degrades_on_error_section(tmp_path):

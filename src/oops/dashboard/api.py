@@ -13,6 +13,7 @@ CHECK_COMMANDS: "list[tuple[list[str], str]]" = [
     (["project", "check"], "Project check"),
     (["requirements", "check"], "Requirements check"),
     (["submodules", "check"], "Submodules check"),
+    (["pr", "check"], "Pull requests check"),
 ]
 
 
