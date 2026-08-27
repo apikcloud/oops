@@ -113,6 +113,69 @@ class TestBuildPayload:
                     MagicMock(), tmp_path, show_all=False, names=(), refresh=False
                 )
 
+    def test_build_payload_end_to_end_through_real_analysis(self, tmp_path: Path) -> None:
+        """build_ir() is exercised for real here (unlike the tests above, which
+        mock it out) — a real module's source is analyzed and the resulting IR
+        is carried all the way through ProjectDocPresenter, so a break anywhere
+        in analyze -> build_ir -> DocModel is caught. Replaces the end-to-end
+        coverage the removed `oops project doc` tests used to provide."""
+        import textwrap
+
+        from oops_engine.store import write_kb
+
+        repo_id = "e2e-test-repo"
+        db_path = tmp_path / "kb.db"
+        write_kb(
+            db_path=db_path,
+            repo_id=repo_id,
+            odoo_version="17.0",
+            project="test",
+            scope=[],
+            sources={"odoo": "/odoo"},
+            scan_results=[{"modules": {}, "symbols": [], "views": [], "actions": [], "menus": [],
+                           "model_origins": []}],
+        )
+
+        module_path = tmp_path / "my_module"
+        (module_path / "models").mkdir(parents=True)
+        (module_path / "__manifest__.py").write_text(
+            repr({"name": "My Module", "version": "17.0.1.0.0", "depends": ["base"]}),
+            encoding="utf-8",
+        )
+        (module_path / "models" / "__init__.py").write_text("from . import my_model", encoding="utf-8")
+        (module_path / "models" / "my_model.py").write_text(
+            textwrap.dedent("""\
+                from odoo import fields, models
+
+
+                class MyModel(models.Model):
+                    _name = 'my.test.model'
+
+                    name = fields.Char(string='Name')
+                """),
+            encoding="utf-8",
+        )
+
+        inventory = _fake_inventory("my_module", str(module_path))
+
+        with patch("oops.commands.project.serve.build_inventory", return_value=inventory), \
+                patch("oops.commands.project.serve.get_metadata", return_value=None), \
+                patch("oops.commands.addons.analyze.require_project", return_value=MagicMock(major_version=17.0)), \
+                patch("oops.commands.addons.analyze.read_installed_modules", return_value=None), \
+                patch("oops.commands.addons.analyze.is_project_kb_stale", return_value=(False, "")), \
+                patch("oops.commands.addons.analyze.project_kb_path", return_value=db_path), \
+                patch("oops.commands.addons.analyze.local_repo_id", return_value=repo_id), \
+                patch("oops_engine.summary.local_repo_id", return_value=repo_id), \
+                patch("oops.core.logger.Live", MagicMock()):
+            payload = build_payload(
+                MagicMock(), tmp_path, show_all=False, names=(), refresh=False
+            )
+
+        assert payload["modules"][0]["module"] == "my_module"
+        assert "my.test.model" in payload["models_by_bare"]
+        model_fields = payload["models_by_bare"]["my.test.model"]["contributions"][0]["fields"]
+        assert {f["name"] for f in model_fields} == {"name"}
+
 
 class TestPrepareSiteDir:
     def test_prepare_site_dir_writes_data_js(self, tmp_path: Path) -> None:
