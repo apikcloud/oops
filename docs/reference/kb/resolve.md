@@ -1,6 +1,6 @@
 # Resolve
 
-::: oops.kb.resolve
+::: oops_engine.resolve
 
 ---
 

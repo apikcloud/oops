@@ -1,6 +1,6 @@
 # Domains
 
-::: oops.kb.domains
+::: oops_engine.domains
 
 ---
 
@@ -24,7 +24,7 @@ as noise and skipped.
 in the UI and JSON output.  Apps not listed fall back to a title-cased version
 of their technical name (e.g. `fleet` → `Fleet`).
 
-To add a domain label, extend `DOMAIN_LABELS` in `kb/domains.py`.
+To add a domain label, extend `DOMAIN_LABELS` in `oops_engine/domains.py`.
 
 ---
 

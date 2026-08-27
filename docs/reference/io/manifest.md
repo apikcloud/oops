@@ -1,3 +1,3 @@
 # Manifest
 
-::: oops.io.manifest
+::: oops_engine.manifest

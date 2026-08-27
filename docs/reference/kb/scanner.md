@@ -1,3 +1,3 @@
 # Scanner
 
-::: oops.kb.scanner
+::: oops_engine.scanner
