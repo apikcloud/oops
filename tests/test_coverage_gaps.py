@@ -382,6 +382,23 @@ class TestGetGithubUser:
         assert "https://github.com/bob" in result
 
 
+class TestListRemoteAddons:
+    def test_recognizes_terp_only_manifest(self):
+        from unittest.mock import patch
+
+        from oops.services.github import list_remote_addons
+
+        tree_data = {
+            "tree": [
+                {"type": "blob", "path": "some_addon/__terp__.py"},
+                {"type": "blob", "path": "some_addon/models.py"},
+            ]
+        }
+        with patch("oops.services.github.make_json_get", return_value=tree_data):
+            result = list_remote_addons("owner", "repo", "17.0", "token")
+        assert result == ["some_addon"]
+
+
 # ---------------------------------------------------------------------------
 # oops/io/file.py — get_excluded_addon_names / get_filtered_addon_names
 # ---------------------------------------------------------------------------

@@ -355,6 +355,26 @@ class TestFindManifestRel:
         assert result is None
 
 
+class TestFindManifestRelTerpFallback:
+    def test_finds_terp_only_manifest_without_config(self, tmp_path):
+        addon = tmp_path / "legacy_addon"
+        addon.mkdir()
+        (addon / "__terp__.py").write_text('{"name": "Legacy Addon"}')
+        # Force `from oops.core.config import config as _cfg` to raise ImportError,
+        # exercising the hardcoded fallback list (must match DEFAULT_MANIFEST_NAMES).
+        with patch.dict("sys.modules", {"oops.core.config": None}):
+            result = _find_manifest_rel(addon, tmp_path)
+        assert result == "legacy_addon/__terp__.py"
+
+    def test_addon_root_of_finds_terp_only_addon_without_config(self, tmp_path):
+        addon = tmp_path / "legacy_addon"
+        addon.mkdir()
+        (addon / "__terp__.py").write_text('{"name": "Legacy Addon"}')
+        with patch.dict("sys.modules", {"oops.core.config": None}):
+            result = _addon_root_of(addon, tmp_path)
+        assert result == addon
+
+
 class TestAddonRootOf:
     def test_finds_addon_root_from_file_in_addon(self, tmp_path):
         addon = tmp_path / "my_addon"
