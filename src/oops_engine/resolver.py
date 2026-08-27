@@ -103,12 +103,16 @@ class InheritanceResolver:
         caused it) and can turn it into a warning; every later call for the
         same model returns the cached ``{}`` silently.
         """
-        if model_name in self._resolved_cache:
-            return self._resolved_cache[model_name]
+        cache_key = (
+            model_name,
+            frozenset(installed_modules) if installed_modules is not None else None,
+        )
+        if cache_key in self._resolved_cache:
+            return self._resolved_cache[cache_key]
         try:
             result = self.resolve(model_name, installed_modules=installed_modules)
         except Exception:
-            self._resolved_cache[model_name] = {}
+            self._resolved_cache[cache_key] = {}
             raise
-        self._resolved_cache[model_name] = result
+        self._resolved_cache[cache_key] = result
         return result

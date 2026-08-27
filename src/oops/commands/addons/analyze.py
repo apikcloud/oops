@@ -243,10 +243,10 @@ def run_analysis(  # noqa: C901, PLR0912, PLR0915
                 raise OopsError(
                     f"installed_modules.txt not found at "
                     f"{repo_path / config.project.file_installed_modules}.\n"
-                    "Create the file from the command below and re-run oops analyze:"
-                    "odoo shell --no-http << EOF"
-                    "res = env['ir.module.module'].search([('state', 'in', ['installed', 'to upgrade', 'to remove'])]).mapped('name')"  # noqa: E501
-                    "print('\n'.join(sorted(res)))"
+                    "Create the file from the command below and re-run oops analyze:\n"
+                    "odoo shell --no-http << EOF\n"
+                    "res = env['ir.module.module'].search([('state', 'in', ['installed', 'to upgrade', 'to remove'])]).mapped('name')\n"  # noqa: E501
+                    "print('\\n'.join(sorted(res)))\n"
                     "EOF"
                 )
             why = "forced via --refresh" if refresh else f"stale: {reason}"
