@@ -35,8 +35,8 @@ class TestBuildInventory:
     def test_joins_git_state_and_loc(self, tmp_path: Path) -> None:
         addon = _fake_addon("my_module", str(tmp_path / "my_module"), classification="custom")
         with patch("oops.services.project_pipeline.list_submodules", return_value={}), \
-                patch("oops.services.project_pipeline.find_addons", return_value=[addon]), \
-                patch("oops.services.project_pipeline.enrich_addon"), \
+                patch("oops_engine.addons.find_addons", return_value=[addon]), \
+                patch("oops_engine.addons.enrich_addon"), \
                 patch("oops.services.project_pipeline.get_addon_loc_cached",
                       return_value=LocStats(python=100, xml=20, javascript=0, docs=5)):
             inventory = build_inventory(MagicMock(), tmp_path, show_all=False, names=())
@@ -55,8 +55,8 @@ class TestBuildInventory:
             ".third-party/repo_b": {"name": "OCA/repo_b"},
         }
         with patch("oops.services.project_pipeline.list_submodules", return_value=subs), \
-                patch("oops.services.project_pipeline.find_addons", return_value=[a, b]), \
-                patch("oops.services.project_pipeline.enrich_addon"), \
+                patch("oops_engine.addons.find_addons", return_value=[a, b]), \
+                patch("oops_engine.addons.enrich_addon"), \
                 patch("oops.services.project_pipeline.get_addon_loc_cached", return_value=LocStats()):
             inventory = build_inventory(MagicMock(), tmp_path, show_all=False, names=("OCA/repo_a",))
 

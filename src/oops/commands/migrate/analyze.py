@@ -37,8 +37,8 @@ from oops.output.formatters import (
 from oops.services.git import list_submodules, require_repository
 from oops.services.github import fetch_manifest_deps_rest
 from oops.utils.render import warn_experimental
-from oops_engine.addons import enrich_addon, find_addons
-from oops_engine.models import Addon, Result
+from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.models import Result
 
 from .common import (
     STATE_FILE,
@@ -139,19 +139,19 @@ def main(
 
     # --- Phase 1: local observation (deterministic, no network) ---
     with live_progress(f"Analysing repository at {source_ref}…"):
-        # Dedup by resolved path, preferring root symlinks (mirrors list.py).
-        seen: dict[str, Addon] = {}
-        for addon in find_addons(repo_path, shallow=True):
-            if addon.path not in seen or addon.symlinked:
-                seen[addon.path] = addon
+        seen = dedup_addons_by_path(repo_path, shallow=True)
 
         for addon in seen.values():
             if not addon.root:
                 continue
-            sub_meta = sub_meta_by_relpath.get(addon.rel_path, {})
-            enrich_addon(
-                addon, sub_meta, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+            enrich_addon_from_subs(
+                addon,
+                sub_meta_by_relpath,
+                author=config.manifest.author,
+                prefix=config.project.prefix,
+                owner=config.github.owner,
             )
+            sub_meta = sub_meta_by_relpath.get(addon.rel_path, {})
             kind, repo_slug = classify_origin(addon, sub_url=sub_meta.get("url"))
             modules[addon.technical_name] = ModuleState(
                 name=addon.technical_name,

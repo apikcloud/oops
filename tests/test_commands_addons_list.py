@@ -47,8 +47,8 @@ def _invoke_list_json(tmp_path: Path, addons: list[Addon], loc_map: dict[str, Lo
 
     with patch("oops.commands.addons.list.require_repository") as mock_repo, patch(
         "oops.commands.addons.list.list_submodules", return_value={}
-    ), patch("oops.commands.addons.list.find_addons", return_value=iter(addons)), patch(
-        "oops.commands.addons.list.enrich_addon"
+    ), patch("oops_engine.addons.find_addons", return_value=iter(addons)), patch(
+        "oops_engine.addons.enrich_addon"
     ), patch("oops.commands.addons.list.get_addon_loc_cached", side_effect=_fake_loc), patch(
         "oops.core.logger.Live", MagicMock()
     ):
@@ -125,8 +125,8 @@ class TestListLocCaching:
         try:
             with patch("oops.commands.addons.list.require_repository") as mock_repo, patch(
                 "oops.commands.addons.list.list_submodules", return_value={}
-            ), patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), patch(
-                "oops.commands.addons.list.enrich_addon"
+            ), patch("oops_engine.addons.find_addons", return_value=iter([addon])), patch(
+                "oops_engine.addons.enrich_addon"
             ), patch("shutil.which", lambda _: "/usr/bin/cloc"), patch("oops_engine.loc.run", side_effect=_run), patch(
                 "oops.core.logger.Live", MagicMock()
             ):
@@ -158,8 +158,8 @@ class TestListLocCaching:
         try:
             with patch("oops.commands.addons.list.require_repository") as mock_repo, patch(
                 "oops.commands.addons.list.list_submodules", return_value={}
-            ), patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), patch(
-                "oops.commands.addons.list.enrich_addon"
+            ), patch("oops_engine.addons.find_addons", return_value=iter([addon])), patch(
+                "oops_engine.addons.enrich_addon"
             ), patch("shutil.which", lambda _: None), patch("oops.core.logger.Live", MagicMock()):
                 mock_repo.return_value = (MagicMock(), tmp_path)
                 result = CliRunner().invoke(main, ["--format", "json"])

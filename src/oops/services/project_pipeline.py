@@ -21,8 +21,7 @@ from oops.core.metadata import get_metadata
 from oops.output.base import RenderTarget
 from oops.services.git import list_submodules
 from oops.services.loc import get_addon_loc_cached
-from oops_engine.addons import enrich_addon, find_addons
-from oops_engine.models import Addon
+from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
 
 
 def build_inventory(
@@ -40,12 +39,7 @@ def build_inventory(
     subs = list_submodules(repo)
     active_paths = {path for path, info in subs.items() if info["name"] in names} if names else None
 
-    # Deduplicate by resolved path, preferring root-level symlinks over real
-    # files (os.walk visits both when --all is used; see list.py).
-    seen: dict[str, Addon] = {}
-    for addon in find_addons(repo_path, shallow=not show_all):
-        if addon.path not in seen or addon.symlinked:
-            seen[addon.path] = addon
+    seen = dedup_addons_by_path(repo_path, shallow=not show_all)
 
     inventory: dict[str, dict] = {}
     for addon in seen.values():
@@ -53,8 +47,9 @@ def build_inventory(
             continue
 
         log.info(f"Inventory of {addon.technical_name}")
-        sub = subs.get(addon.rel_path, {})
-        enrich_addon(addon, sub, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner)
+        enrich_addon_from_subs(
+            addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+        )
 
         loc = get_addon_loc_cached(repo_path, addon.path)
 

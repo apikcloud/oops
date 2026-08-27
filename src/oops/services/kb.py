@@ -5,9 +5,9 @@ from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.metadata import update_metadata
 from oops.services.git import list_submodules
-from oops_engine.addons import enrich_addon, find_addons
+from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
 from oops_engine.build import odoo_core_repo_id, parse_kb_timestamp, project_kb_path
-from oops_engine.compat import Dict, List, Set
+from oops_engine.compat import List, Set
 from oops_engine.identity import local_repo_id
 from oops_engine.models import Addon
 from oops_engine.paths import global_kb_path
@@ -33,19 +33,15 @@ def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[st
     """
     subs = list_submodules(repo)
 
-    # Deduplicate by resolved real path, preferring root-level symlinks over
-    # real files (mirrors commands/addons/list.py's established dedup rule).
-    seen: Dict[str, Addon] = {}
-    for addon in find_addons(repo_path, shallow=True):
-        if addon.path not in seen or addon.symlinked:
-            seen[addon.path] = addon
+    seen = dedup_addons_by_path(repo_path, shallow=True)
 
     project_addons = [a for a in seen.values() if a.technical_name in allowed_modules]
     project_addons.sort(key=lambda a: a.technical_name)
 
     for addon in project_addons:
-        sub = subs.get(addon.rel_path, {})
-        enrich_addon(addon, sub, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner)
+        enrich_addon_from_subs(
+            addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+        )
 
     return project_addons
 
