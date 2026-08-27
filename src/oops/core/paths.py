@@ -7,6 +7,9 @@ import os
 from importlib.resources import files
 from pathlib import Path
 
+from oops_engine.paths import PR_DIR as PR_DIR
+from oops_engine.paths import UNPORTED_DIR as UNPORTED_DIR
+
 WORKING_DIR = Path.cwd()
 
 # ---------------------------------------------------------------------------
@@ -26,8 +29,6 @@ CONFIG_PATHS = [
 # ---------------------------------------------------------------------------
 
 # TODO: PR_dir must be replace by `config.pull_request_dir`
-PR_DIR = "PRs"  # pull-request addon symlink directory
-UNPORTED_DIR = "__unported__"  # unported addons directory inside an addon path
 
 # ---------------------------------------------------------------------------
 # Stats / usage-tracking data directory
