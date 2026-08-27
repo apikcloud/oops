@@ -10,10 +10,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-27
 
 ### Added
 
+- `oops pr check`: new command to check pull request status, wired into the dashboard.
 - `oops addons analyze --all`: analyze every discoverable addon instead of specifying paths, mirroring `oops addons list --all`.
 - `oops addons analyze --installed-only` / `oops addons refactor --installed-only`: restrict the project KB scan to addons listed in `installed_modules.txt`, excluding root addons that aren't installed.
 
@@ -26,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - `oops project doc`: the Markdown documentation site generator has been removed. Use `oops project serve` for an interactive, always-up-to-date view of the same inventory + analysis data.
+
+### Documentation
+
+- Fixed stale mkdocstrings references following the `oops_engine` package extraction.
 
 ## [0.28.0] - 2026-08-25
 

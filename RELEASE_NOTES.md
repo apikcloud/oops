@@ -9,6 +9,28 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.0.0] - 2026-08-27
+
+`oops`'s first stable 1.0 release — a new PR check command, smarter analysis caching, and an under-the-hood engine extraction. 🎉
+
+### ✨ What's new
+
+- **`oops pr check`**: check pull request status directly from the CLI, now also shown on the dashboard
+- **`oops addons analyze --all`**: analyze every addon in one go instead of listing paths one by one
+- **`oops addons analyze --installed-only` / `oops addons refactor --installed-only`**: focus the analysis on addons actually installed in your project
+
+### 🔄 Improvements
+
+- Module analysis is now smarter about when to recompute: only an actual code change to a module or one of its dependencies triggers a fresh analysis — a KB rebuild alone no longer wipes the cache
+- Lines-of-code counts are now cached too, so repeated `list`/`analyze` runs skip redundant work on unchanged addons
+- `oops project doc` has been removed — use `oops project serve` instead for the same information, always up to date
+
+### ⚠️ Heads up
+
+- **Breaking**: `oops addons analyze` and `oops addons refactor` now include root addons that aren't listed in `installed_modules.txt` by default. Pass `--installed-only` to keep the previous behavior.
+
+---
+
 ## [0.28.0] - 2026-08-25
 
 Sharper requirements checking and a bug fix for generated requirements files.
