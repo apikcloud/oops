@@ -10,6 +10,16 @@ from typing import List, Optional
 from oops_engine.models import Addon
 
 
+def patch_requirements_addons(monkeypatch, addons: list) -> None:
+    """Replace find_addons() in the requirements module so tests control which addons are scanned."""
+    monkeypatch.setattr("oops.io.requirements.find_addons", lambda *a, **kw: iter(addons))
+
+
+def make_addon_with_python_deps(technical_name: str, python_deps: List[str]) -> Addon:
+    """Minimal `Addon` with only the python external_dependencies filled in."""
+    return make_addon(technical_name, external_dependencies={"python": python_deps})
+
+
 def make_addon(
     technical_name: str = "addon",
     version: str = "17.0.1.0.0",

@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 from oops.io.requirements import generate_requirements
-from tests.helpers import make_addon as _make_addon
-from tests.helpers import patch_requirements_addons
+from tests.helpers import make_addon, patch_requirements_addons
+from tests.helpers import make_addon_with_python_deps as _make_addon
 
 # The comment line that is always written at the top of the generated file.
 HEADER = "# generated from manifests external_dependencies"
@@ -207,12 +207,12 @@ class TestGetRequirementsDiff:
         """Ignores everything outside the 'python' key of external_dependencies."""
         cases = {
             # addon has no external_dependencies at all
-            "no python key": (_make_addon("a", external_dependencies={}), [HEADER], []),
+            "no python key": (make_addon("a", external_dependencies={}), [HEADER], []),
             # addon declares external_dependencies but python list is empty
-            "empty python list": (_make_addon("a", external_dependencies={"python": []}), [HEADER], []),
+            "empty python list": (make_addon("a", external_dependencies={"python": []}), [HEADER], []),
             # system-level deps under 'bin' must not pollute the python output
             "bin key ignored": (
-                _make_addon("a", external_dependencies={"python": ["requests"], "bin": ["wkhtmltopdf"]}),
+                make_addon("a", external_dependencies={"python": ["requests"], "bin": ["wkhtmltopdf"]}),
                 [HEADER, "requests"],
                 ["wkhtmltopdf"],
             ),

@@ -12,7 +12,7 @@ from oops.io.requirements import (
     get_requirements_with_contradictory_range,
     get_requirements_with_unsupported_operator,
 )
-from tests.helpers import make_addon as _make_addon
+from tests.helpers import make_addon_with_python_deps as _make_addon
 from tests.helpers import patch_requirements_addons as _patch_addons
 
 

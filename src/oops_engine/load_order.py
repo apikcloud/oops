@@ -5,7 +5,7 @@
 
 """Phase 1 of the Odoo inheritance resolver: module load order.
 
-Algorithm matches Odoo's Graph.__iter__ (graph.py, stable across 10.0–19.0):
+Algorithm matches Odoo's Graph.__iter__ (graph.py, stable across 10.0-19.0):
   depth(m) = max(depth(d) for d in depends(m) ∩ installed, default=-1) + 1
   load_order = sorted(installed, key=lambda m: (depth(m), m))
   load_index[m] = position in load_order
@@ -13,6 +13,7 @@ Algorithm matches Odoo's Graph.__iter__ (graph.py, stable across 10.0–19.0):
 Returns dict: module_name -> (depth, load_index).
 Drops depends entries not in `installed`; caller may log them as inconsistencies.
 """
+
 from __future__ import annotations
 
 
