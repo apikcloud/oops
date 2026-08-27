@@ -58,10 +58,13 @@ class TestManifestFallback:
         assert isinstance(result, dict)
         assert result["name"] == "My Module"
 
-    def test_unparseable_manifest_returns_none(self, tmp_path):
+    def test_unparseable_manifest_returns_empty_dict(self, tmp_path):
+        # parse_manifest() catches the ast.literal_eval failure and returns {}
+        # (logging the error) → treated the same as "readable but empty",
+        # which already falls back to a recursive XML scan downstream.
         (tmp_path / "__manifest__.py").write_text("{{not valid python{{")
         result = _load_manifest_or_fallback(tmp_path)
-        assert result is None
+        assert result == {}
 
     def test_manifest_not_dict_returns_none(self, tmp_path):
         # ast.literal_eval succeeds but returns non-dict → parse_manifest returns {}

@@ -119,28 +119,17 @@ def _end_line_of(elem: ET.Element) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _load_manifest_or_fallback(module_dir: Path) -> Optional[dict]:
-    """Return manifest dict, or None to signal "fall back to recursive scan".
+def _load_manifest_or_fallback(module_dir: Path) -> dict:
+    """Return the manifest dict for module_dir.
 
-    - Returns dict (possibly empty) when manifest is readable.
-    - Returns None when manifest exists but cannot be parsed.
-    - Returns {} when no manifest file is found.
+    Returns {} when no manifest file is found or it fails to parse
+    (parse_manifest() already logs a parse failure) — the caller's
+    `not data_entries` check on an empty dict already falls back to a
+    recursive scan, same as an unparseable manifest.
     """
-    from oops_engine.manifest import DEFAULT_MANIFEST_NAMES, parse_manifest
+    from oops_engine.manifest import load_manifest
 
-    for manifest_name in DEFAULT_MANIFEST_NAMES:
-        path = module_dir / manifest_name
-        if path.is_file():
-            try:
-                return parse_manifest(path)
-            except Exception as exc:
-                log.warning(
-                    "Manifest parse failure in %s: %s — falling back to recursive XML scan",
-                    path,
-                    exc,
-                )
-                return None
-    return {}
+    return load_manifest(module_dir)
 
 
 # ---------------------------------------------------------------------------
@@ -168,15 +157,12 @@ def _discover_xml_files(module_dir: Path) -> List[Path]:
     Strategy:
         1. Read manifest. If present and has `data`, use those entries.
            Exclude any entry that also appears in `demo`.
-        2. If manifest is unparseable (None), recursively scan `*.xml`.
-        3. If no `data` key, recursively scan `*.xml`.
-        4. Apply XML_DIR_BLACKLIST in all cases.
-        5. Keep only `.xml` files that exist.
+        2. If no manifest, it's unparseable, or it has no `data` key,
+           recursively scan `*.xml`.
+        3. Apply XML_DIR_BLACKLIST in all cases.
+        4. Keep only `.xml` files that exist.
     """
     manifest = _load_manifest_or_fallback(module_dir)
-    if manifest is None:
-        return _recursive_xml_files(module_dir)
-
     data_entries = manifest.get("data", []) or []
     demo_entries = set(manifest.get("demo", []) or [])
 

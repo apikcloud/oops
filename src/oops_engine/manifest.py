@@ -66,7 +66,11 @@ def parse_manifest(filepath: Path) -> dict:
     source = filepath.read_text(encoding="utf-8")
 
     # Convert the exact dict literal slice to a Python object (safe: literals only).
-    manifest = ast.literal_eval(source)
+    try:
+        manifest = ast.literal_eval(source)
+    except (ValueError, SyntaxError) as exc:
+        log.error(f"Failed to parse manifest {filepath}: {exc}")
+        return {}
     if not isinstance(manifest, dict):
         log.error("Parsed manifest is not a dict after literal evaluation.")
         return {}
@@ -180,9 +184,8 @@ def find_manifests(path: str, names: Optional[list] = None) -> "Generator[Option
 
     for name in os.listdir(path):
         addon_path = os.path.join(path, name)
-        try:
-            manifest_path = get_manifest_path(addon_path)
-        except NoManifestFound:
+        manifest_path = get_manifest_path(addon_path)
+        if manifest_path is None:
             continue
 
         if names and name not in names:
