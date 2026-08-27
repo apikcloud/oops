@@ -143,6 +143,43 @@ class TestListLocCaching:
         assert calls["n"] == 1  # cloc shelled out only once across both invocations
         assert (tmp_path / ".oops-cache" / "kb.db").exists()
 
+    def test_loc_cache_is_not_shared_across_repos(self, tmp_path: Path) -> None:
+        """Two different repos, each with an addon of identical content (same
+        fingerprint), must not share a cached LOC entry — each repo's cache
+        lives in its own `.oops-cache/kb.db`, keyed by that repo's repo_id."""
+        from oops_engine.loc import get_addon_loc_cached
+
+        repo_a = tmp_path / "repo_a"
+        repo_b = tmp_path / "repo_b"
+        for repo in (repo_a, repo_b):
+            addon_dir = repo / "my_addon"
+            addon_dir.mkdir(parents=True)
+            (addon_dir / "__manifest__.py").write_text("{}", encoding="utf-8")
+
+        calls: list[str] = []
+
+        def _run(cmd, **_k):  # noqa: ANN001, ANN003
+            calls.append(cmd[-1])  # addon path is the last cloc arg
+            return json.dumps({"Python": {"code": 10}})
+
+        get_addon_loc.cache_clear()
+        _has_cloc.cache_clear()
+        try:
+            with patch("shutil.which", lambda _: "/usr/bin/cloc"), \
+                    patch("oops_engine.loc.run", side_effect=_run):
+                loc_a = get_addon_loc_cached(repo_a, str(repo_a / "my_addon"))
+                get_addon_loc.cache_clear()  # defeat the in-process cache only
+                loc_b = get_addon_loc_cached(repo_b, str(repo_b / "my_addon"))
+        finally:
+            get_addon_loc.cache_clear()
+            _has_cloc.cache_clear()
+
+        assert loc_a.python == 10
+        assert loc_b.python == 10
+        assert len(calls) == 2  # cloc shelled out once per repo — no cross-repo cache hit
+        assert (repo_a / ".oops-cache" / "kb.db").exists()
+        assert (repo_b / ".oops-cache" / "kb.db").exists()
+
     def test_no_prebuilt_kb_required(self, tmp_path: Path) -> None:
         """`oops addons list` must work on a project with no `.oops-cache/kb.db`
         yet — it must not require a prior `oops addons analyze`/build-kb run."""
