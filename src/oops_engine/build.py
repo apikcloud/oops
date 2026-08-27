@@ -14,7 +14,7 @@ from oops_engine.compat import Iterable, List
 from oops_engine.identity import local_repo_id
 from oops_engine.load_order import compute_load_order
 from oops_engine.logger import log
-from oops_engine.models import AddonInfo, Result
+from oops_engine.models import Addon, Result
 from oops_engine.paths import (
     CACHE_DIR_NAME,
     DEFAULT_INSTALLED_MODULES_FILENAME,
@@ -131,7 +131,7 @@ def build_project_kb(
     repo_path: Path,
     version: str,
     modules: Iterable[str],
-    addons: "List[AddonInfo]",
+    addons: "List[Addon]",
     *,
     slug: str | None = None,
     global_kb: Path | None = None,

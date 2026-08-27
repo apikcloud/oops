@@ -9,16 +9,16 @@ from oops_engine.addons import enrich_addon, find_addons
 from oops_engine.build import odoo_core_repo_id, parse_kb_timestamp, project_kb_path
 from oops_engine.compat import Dict, List, Set
 from oops_engine.identity import local_repo_id
-from oops_engine.models import AddonInfo
+from oops_engine.models import Addon
 from oops_engine.paths import global_kb_path
 from oops_engine.store import KBReader
 
 
-def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[str]) -> List[AddonInfo]:
+def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[str]) -> List[Addon]:
     """Discover and classify root-level project addons for a KB build.
 
     Bridges the CLI's git/config-aware discovery (``io.file.find_addons``/
-    ``enrich_addon``) into the plain, already-classified ``AddonInfo`` list
+    ``enrich_addon``) into the plain, already-classified ``Addon`` list
     that ``oops_engine.build.build_project_kb()`` expects — the engine itself
     has no dependency on git, submodules, or config.
 
@@ -35,7 +35,7 @@ def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[st
 
     # Deduplicate by resolved real path, preferring root-level symlinks over
     # real files (mirrors commands/addons/list.py's established dedup rule).
-    seen: Dict[str, AddonInfo] = {}
+    seen: Dict[str, Addon] = {}
     for addon in find_addons(repo_path, shallow=True):
         if addon.path not in seen or addon.symlinked:
             seen[addon.path] = addon

@@ -7,7 +7,7 @@
 
 from typing import List, Optional
 
-from oops_engine.models import AddonInfo
+from oops_engine.models import Addon
 
 
 def make_addon(
@@ -20,9 +20,9 @@ def make_addon(
     external_dependencies: Optional[dict] = None,
     installable: bool = True,
     website: Optional[str] = None,
-) -> AddonInfo:
-    """Build a minimal `AddonInfo` for tests, with sane defaults for unused fields."""
-    return AddonInfo(
+) -> Addon:
+    """Build a minimal `Addon` for tests, with sane defaults for unused fields."""
+    return Addon(
         path=f"/tmp/{technical_name}",
         rel_path="",
         technical_name=technical_name,

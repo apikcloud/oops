@@ -38,7 +38,7 @@ from oops.services.git import list_submodules, require_repository
 from oops.services.github import fetch_manifest_deps_rest
 from oops.utils.render import warn_experimental
 from oops_engine.addons import enrich_addon, find_addons
-from oops_engine.models import AddonInfo, Result
+from oops_engine.models import Addon, Result
 
 from .common import (
     STATE_FILE,
@@ -140,7 +140,7 @@ def main(
     # --- Phase 1: local observation (deterministic, no network) ---
     with live_progress(f"Analysing repository at {source_ref}…"):
         # Dedup by resolved path, preferring root symlinks (mirrors list.py).
-        seen: dict[str, AddonInfo] = {}
+        seen: dict[str, Addon] = {}
         for addon in find_addons(repo_path, shallow=True):
             if addon.path not in seen or addon.symlinked:
                 seen[addon.path] = addon

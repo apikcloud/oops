@@ -13,10 +13,10 @@ from oops.output.base import SimplePresenter
 from oops.output.layout import ConclusionBlock, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
 from oops.utils.render import colorize, human_readable, render_boolean
 from oops_engine.compat import List, Tuple
-from oops_engine.models import AddonInfo, Result
+from oops_engine.models import Addon, Result
 
 
-def _build_metrics(result: Result[List[AddonInfo]]) -> Tuple[StatGroup, StatGroup, StatGroup]:
+def _build_metrics(result: Result[List[Addon]]) -> Tuple[StatGroup, StatGroup, StatGroup]:
 
     addons = result.unwrap
 
@@ -66,8 +66,8 @@ def _build_metrics(result: Result[List[AddonInfo]]) -> Tuple[StatGroup, StatGrou
     return summary, classification, loc
 
 
-class ListPresenter(SimplePresenter[List[AddonInfo]]):
-    def to_human(self, result: Result[List[AddonInfo]]) -> SummaryLayout:
+class ListPresenter(SimplePresenter[List[Addon]]):
+    def to_human(self, result: Result[List[Addon]]) -> SummaryLayout:
 
         addons = result.unwrap
 
@@ -120,11 +120,11 @@ class ListPresenter(SimplePresenter[List[AddonInfo]]):
             conclusion=ConclusionBlock(True, "All done"),
         )
 
-    def to_machine(self, result: "Result[List[AddonInfo]]") -> dict:
+    def to_machine(self, result: "Result[List[Addon]]") -> dict:
 
         metrics = _build_metrics(result)
 
-        def _flatten(addon: "AddonInfo") -> dict:
+        def _flatten(addon: "Addon") -> dict:
             d = asdict(addon)
             loc = d.get("loc") or {}
             d["loc_python"] = loc.get("python", 0)

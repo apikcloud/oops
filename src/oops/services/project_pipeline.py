@@ -22,7 +22,7 @@ from oops.output.base import RenderTarget
 from oops.services.git import list_submodules
 from oops.services.loc import get_addon_loc_cached
 from oops_engine.addons import enrich_addon, find_addons
-from oops_engine.models import AddonInfo
+from oops_engine.models import Addon
 
 
 def build_inventory(
@@ -42,7 +42,7 @@ def build_inventory(
 
     # Deduplicate by resolved path, preferring root-level symlinks over real
     # files (os.walk visits both when --all is used; see list.py).
-    seen: dict[str, AddonInfo] = {}
+    seen: dict[str, Addon] = {}
     for addon in find_addons(repo_path, shallow=not show_all):
         if addon.path not in seen or addon.symlinked:
             seen[addon.path] = addon

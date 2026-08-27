@@ -28,7 +28,7 @@ from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.loc import get_addon_loc_cached
 from oops_engine.addons import enrich_addon, find_addons
-from oops_engine.models import AddonInfo, Result
+from oops_engine.models import Addon, Result
 
 from .presenters.list import ListPresenter
 
@@ -93,7 +93,7 @@ def main(
     repo, repo_path = require_repository()
 
     formatter: OutputFormatter = FORMATTERS[output_format]()
-    result: Result[list[AddonInfo]] = Result()
+    result: Result[list[Addon]] = Result()
     result.data = []
 
     # 1. Long-running processing — produces a typed Result of domain dataclasses.
@@ -113,7 +113,7 @@ def main(
         # Deduplicate by resolved path, preferring root-level symlinks over real files.
         # os.walk visits both when --all is used, and dotfile dirs (.third-party) sort
         # first, so without this the real file wins and symlinks are miscounted.
-        seen: dict[str, AddonInfo] = {}
+        seen: dict[str, Addon] = {}
         for addon in find_addons(repo_path, shallow=not show_all):
             if addon.path not in seen or addon.symlinked:
                 seen[addon.path] = addon

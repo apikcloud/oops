@@ -8,7 +8,7 @@ from pathlib import Path
 
 from oops_engine.compat import Generator, Optional
 from oops_engine.manifest import load_manifest
-from oops_engine.models import AddonInfo
+from oops_engine.models import Addon
 from oops_engine.paths import PR_DIR, UNPORTED_DIR
 from oops_engine.provenance import classify_addon
 
@@ -52,8 +52,8 @@ def collect_addon_paths(addons_dir: Path) -> list:
     return sorted(paths, key=lambda x: x[0])
 
 
-def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None, None]:
-    """Yield AddonInfo for every Odoo addon found under a root directory.
+def find_addons(root: Path, shallow: bool = False) -> Generator[Addon, None, None]:
+    """Yield Addon for every Odoo addon found under a root directory.
 
     Args:
         root: Directory to search recursively (symlinked first-level dirs are followed).
@@ -61,7 +61,7 @@ def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None,
             Defaults to False.
 
     Yields:
-        AddonInfo for each addon directory containing a manifest file.
+        Addon for each addon directory containing a manifest file.
     """
 
     root_parts = root.resolve().parts
@@ -78,7 +78,7 @@ def find_addons(root: Path, shallow: bool = False) -> Generator[AddonInfo, None,
         # found an addon here?
         if "__manifest__.py" in filenames or "__openerp__.py" in filenames:
             manifest = load_manifest(Path(dirpath))
-            yield AddonInfo.from_path(Path(dirpath), root_path=root, manifest=manifest)
+            yield Addon.from_path(Path(dirpath), root_path=root, manifest=manifest)
 
         if shallow:
             depth = len(Path(dirpath).resolve().parts) - len(root_parts)
@@ -109,9 +109,9 @@ def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
 
 
 def enrich_addon(
-    addon: AddonInfo, sub: dict, author: Optional[str] = None, prefix: Optional[str] = None, owner: Optional[str] = None
+    addon: Addon, sub: dict, author: Optional[str] = None, prefix: Optional[str] = None, owner: Optional[str] = None
 ) -> None:
-    """Populate git-state and classification fields on an AddonInfo.
+    """Populate git-state and classification fields on an Addon.
 
     Args:
         addon: The addon to enrich, mutated in place.

@@ -14,7 +14,7 @@ from oops.core.config import config
 from oops_engine.addons import enrich_addon, find_addons
 from oops_engine.build import build_project_kb, compute_root_drift, is_project_kb_stale, odoo_core_repo_id
 from oops_engine.identity import local_repo_id
-from oops_engine.models import AddonInfo, Result
+from oops_engine.models import Addon, Result
 from oops_engine.store import KBReader, write_kb
 
 # ---------------------------------------------------------------------------
@@ -87,7 +87,7 @@ def _make_tp_symlinks(repo: Path, *names: str) -> None:
         (repo / name).symlink_to(tp_dir / name)
 
 
-def _discover_addons(repo_path: Path, allowed_modules: "set[str]") -> "list[AddonInfo]":
+def _discover_addons(repo_path: Path, allowed_modules: "set[str]") -> "list[Addon]":
     """Test double for services.kb.discover_project_addons (no real git repo needed).
 
     Mirrors its discovery/classification logic exactly, minus the submodule
@@ -95,7 +95,7 @@ def _discover_addons(repo_path: Path, allowed_modules: "set[str]") -> "list[Addo
     with an empty submodule dict, so classification falls back to the
     author/prefix rules alone.
     """
-    seen: "dict[str, AddonInfo]" = {}
+    seen: "dict[str, Addon]" = {}
     for addon in find_addons(repo_path, shallow=True):
         if addon.path not in seen or addon.symlinked:
             seen[addon.path] = addon
@@ -150,8 +150,7 @@ class TestBuildProjectKb:
         _make_tp_symlinks(repo, "module_a")
 
         mods = ["module_a", "module_ghost"]
-        db_path = build_project_kb(repo, "17.0", mods, _discover_addons(repo, set(mods)), global_kb=global_kb
-        ).data
+        db_path = build_project_kb(repo, "17.0", mods, _discover_addons(repo, set(mods)), global_kb=global_kb).data
 
         with KBReader(db_path, repo_ids=_repo_ids(repo)) as kb:
             modules = kb.get_modules()
@@ -213,9 +212,7 @@ class TestBuildProjectKb:
         repo.mkdir()
         local = repo / "module_local"
         local.mkdir()
-        (local / "__manifest__.py").write_text(
-            "{'name': 'Local', 'depends': ['base']}", encoding="utf-8"
-        )
+        (local / "__manifest__.py").write_text("{'name': 'Local', 'depends': ['base']}", encoding="utf-8")
 
         mods = ["module_local"]
         db_path = build_project_kb(repo, "17.0", mods, _discover_addons(repo, set(mods)), global_kb=global_kb).data
@@ -436,9 +433,7 @@ class TestComputeRootDrift:
         repo.mkdir()
         local = repo / "module_local"
         local.mkdir()
-        (local / "__manifest__.py").write_text(
-            "{'name': 'L', 'depends': []}", encoding="utf-8"
-        )
+        (local / "__manifest__.py").write_text("{'name': 'L', 'depends': []}", encoding="utf-8")
         missing, extra = compute_root_drift(repo, ["module_local"])
         assert missing == []
         assert extra == []
@@ -460,8 +455,11 @@ class TestComputeRootDrift:
 class TestResolvePrototypeRoles:
     def _make_entry(self, model, module, role, model_type="model", inherit=None):
         return {
-            "model": model, "module": module, "origin": "local",
-            "role": role, "model_type": model_type,
+            "model": model,
+            "module": module,
+            "origin": "local",
+            "role": role,
+            "model_type": model_type,
             "inherit_json": json.dumps(inherit or []),
             "inherits_json": "{}",
             "source_file": f"{module}/models/{model.replace('.', '_')}.py",
@@ -471,10 +469,15 @@ class TestResolvePrototypeRoles:
     def test_mixin_only_stays_create(self):
         """_inherit containing only abstract models does not upgrade to prototype."""
         from oops_engine.build import _resolve_prototype_roles
-        results = [{"model_origins": [
-            self._make_entry("mail.thread", "mail", "create", model_type="abstract"),
-            self._make_entry("my.model", "my_module", "create", inherit=["mail.thread"]),
-        ]}]
+
+        results = [
+            {
+                "model_origins": [
+                    self._make_entry("mail.thread", "mail", "create", model_type="abstract"),
+                    self._make_entry("my.model", "my_module", "create", inherit=["mail.thread"]),
+                ]
+            }
+        ]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.model")
         assert entry["role"] == "create"
@@ -482,10 +485,15 @@ class TestResolvePrototypeRoles:
     def test_concrete_inherit_upgrades_to_prototype(self):
         """_inherit containing a concrete model upgrades to prototype."""
         from oops_engine.build import _resolve_prototype_roles
-        results = [{"model_origins": [
-            self._make_entry("sale.order", "sale", "create", model_type="model"),
-            self._make_entry("my.sale", "my_module", "create", inherit=["sale.order"]),
-        ]}]
+
+        results = [
+            {
+                "model_origins": [
+                    self._make_entry("sale.order", "sale", "create", model_type="model"),
+                    self._make_entry("my.sale", "my_module", "create", inherit=["sale.order"]),
+                ]
+            }
+        ]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.sale")
         assert entry["role"] == "prototype"
@@ -493,10 +501,15 @@ class TestResolvePrototypeRoles:
     def test_transient_model_not_upgraded_when_inherited_as_abstract(self):
         """TransientModel creators ARE concrete — if inherited by another model, that's prototype."""
         from oops_engine.build import _resolve_prototype_roles
-        results = [{"model_origins": [
-            self._make_entry("my.wizard", "my_module", "create", model_type="transient"),
-            self._make_entry("my.other", "other_module", "create", inherit=["my.wizard"]),
-        ]}]
+
+        results = [
+            {
+                "model_origins": [
+                    self._make_entry("my.wizard", "my_module", "create", model_type="transient"),
+                    self._make_entry("my.other", "other_module", "create", inherit=["my.wizard"]),
+                ]
+            }
+        ]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.other")
         assert entry["role"] == "prototype"
@@ -504,10 +517,15 @@ class TestResolvePrototypeRoles:
     def test_extend_role_never_upgraded(self):
         """An 'extend' entry is never upgraded regardless of _inherit."""
         from oops_engine.build import _resolve_prototype_roles
-        results = [{"model_origins": [
-            self._make_entry("sale.order", "sale", "create"),
-            self._make_entry("sale.order", "my_module", "extend", inherit=["sale.order"]),
-        ]}]
+
+        results = [
+            {
+                "model_origins": [
+                    self._make_entry("sale.order", "sale", "create"),
+                    self._make_entry("sale.order", "my_module", "extend", inherit=["sale.order"]),
+                ]
+            }
+        ]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["module"] == "my_module")
         assert entry["role"] == "extend"
@@ -515,10 +533,15 @@ class TestResolvePrototypeRoles:
     def test_already_prototype_unchanged(self):
         """Idempotent: prototype entries contribute to concrete_models but are not re-processed."""
         from oops_engine.build import _resolve_prototype_roles
-        results = [{"model_origins": [
-            self._make_entry("sale.order", "sale", "create"),
-            self._make_entry("my.sale", "my_module", "prototype", inherit=["sale.order"]),
-        ]}]
+
+        results = [
+            {
+                "model_origins": [
+                    self._make_entry("sale.order", "sale", "create"),
+                    self._make_entry("my.sale", "my_module", "prototype", inherit=["sale.order"]),
+                ]
+            }
+        ]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.sale")
         assert entry["role"] == "prototype"
@@ -526,10 +549,15 @@ class TestResolvePrototypeRoles:
     def test_abstract_creator_not_upgraded(self):
         """Abstract model creator is never upgraded to prototype."""
         from oops_engine.build import _resolve_prototype_roles
-        results = [{"model_origins": [
-            self._make_entry("sale.order", "sale", "create"),
-            self._make_entry("my.mixin", "my_module", "create", model_type="abstract", inherit=["sale.order"]),
-        ]}]
+
+        results = [
+            {
+                "model_origins": [
+                    self._make_entry("sale.order", "sale", "create"),
+                    self._make_entry("my.mixin", "my_module", "create", model_type="abstract", inherit=["sale.order"]),
+                ]
+            }
+        ]
         _resolve_prototype_roles(results)
         entry = next(e for e in results[0]["model_origins"] if e["model"] == "my.mixin")
         assert entry["role"] == "create"
@@ -563,30 +591,37 @@ class TestKBReaderModelOrigins:
             repo_id=self._REPO_ID,
             odoo_version="17.0",
             sources={"odoo": "/odoo"},
-            scan_results=[
-                {"modules": {}, "symbols": [], "field_refs": [], "model_origins": origins}
-            ],
+            scan_results=[{"modules": {}, "symbols": [], "field_refs": [], "model_origins": origins}],
         )
         return db_path
 
     def test_is_model_creator_returns_true_for_create_role(self, tmp_path):
-        db = self._db_with_origins(tmp_path, [
-            self._make_origin_entry("res.client", "partner_hub", "create"),
-        ])
+        db = self._db_with_origins(
+            tmp_path,
+            [
+                self._make_origin_entry("res.client", "partner_hub", "create"),
+            ],
+        )
         with KBReader(db, repo_ids=[self._REPO_ID]) as kb:
             assert kb.is_model_creator("res.client", "partner_hub") is True
 
     def test_is_model_creator_returns_false_for_extend_role(self, tmp_path):
-        db = self._db_with_origins(tmp_path, [
-            self._make_origin_entry("res.client", "partner_hub_project", "extend"),
-        ])
+        db = self._db_with_origins(
+            tmp_path,
+            [
+                self._make_origin_entry("res.client", "partner_hub_project", "extend"),
+            ],
+        )
         with KBReader(db, repo_ids=[self._REPO_ID]) as kb:
             assert kb.is_model_creator("res.client", "partner_hub_project") is False
 
     def test_is_model_creator_returns_true_for_prototype_role(self, tmp_path):
-        db = self._db_with_origins(tmp_path, [
-            self._make_origin_entry("my.sale", "my_module", "prototype"),
-        ])
+        db = self._db_with_origins(
+            tmp_path,
+            [
+                self._make_origin_entry("my.sale", "my_module", "prototype"),
+            ],
+        )
         with KBReader(db, repo_ids=[self._REPO_ID]) as kb:
             assert kb.is_model_creator("my.sale", "my_module") is True
 
@@ -598,26 +633,35 @@ class TestKBReaderModelOrigins:
 
     def test_is_model_creator_fallback_false_when_other_creator_exists(self, tmp_path):
         """Module not in model_origins but another module IS creator → returns False."""
-        db = self._db_with_origins(tmp_path, [
-            self._make_origin_entry("res.client", "other_module", "create"),
-        ])
+        db = self._db_with_origins(
+            tmp_path,
+            [
+                self._make_origin_entry("res.client", "other_module", "create"),
+            ],
+        )
         with KBReader(db, repo_ids=[self._REPO_ID]) as kb:
             assert kb.is_model_creator("res.client", "unknown_module") is False
 
     def test_get_model_creators_returns_only_create_and_prototype(self, tmp_path):
-        db = self._db_with_origins(tmp_path, [
-            self._make_origin_entry("res.client", "partner_hub", "create"),
-            self._make_origin_entry("res.client", "partner_hub_project", "extend"),
-        ])
+        db = self._db_with_origins(
+            tmp_path,
+            [
+                self._make_origin_entry("res.client", "partner_hub", "create"),
+                self._make_origin_entry("res.client", "partner_hub_project", "extend"),
+            ],
+        )
         with KBReader(db, repo_ids=[self._REPO_ID]) as kb:
             creators = kb.get_model_creators("res.client")
         assert len(creators) == 1
         assert creators[0]["module"] == "partner_hub"
 
     def test_get_model_origin_returns_role(self, tmp_path):
-        db = self._db_with_origins(tmp_path, [
-            self._make_origin_entry("res.client", "partner_hub", "create"),
-        ])
+        db = self._db_with_origins(
+            tmp_path,
+            [
+                self._make_origin_entry("res.client", "partner_hub", "create"),
+            ],
+        )
         with KBReader(db, repo_ids=[self._REPO_ID]) as kb:
             assert kb.get_model_origin("res.client", "partner_hub") == "create"
             assert kb.get_model_origin("res.client", "unknown") is None
@@ -706,8 +750,7 @@ class TestXmlEndToEnd:
         (repo / "my_local_mod").symlink_to(mod_dir)
 
         mods = ["my_local_mod"]
-        db_path = build_project_kb(repo, "17.0", mods, _discover_addons(repo, set(mods)), global_kb=global_kb
-        ).data
+        db_path = build_project_kb(repo, "17.0", mods, _discover_addons(repo, set(mods)), global_kb=global_kb).data
         assert db_path is not None
 
         with KBReader(db_path, repo_ids=_repo_ids(repo)) as kb:
@@ -811,6 +854,4 @@ class TestSourceEndLinePreservedInMerge:
 
         confirm = next((s for s in layers if s["module"] == "sale"), None)
         assert confirm is not None, "action_confirm not found in project KB"
-        assert confirm["source_end_line"] == 25, (
-            "source_end_line was lost during global→project KB merge"
-        )
+        assert confirm["source_end_line"] == 25, "source_end_line was lost during global→project KB merge"

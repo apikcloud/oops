@@ -18,7 +18,7 @@ from oops_engine.compat import Any, Dict, Generic, List, Optional, T
 
 
 @dataclass
-class AddonInfo:
+class Addon:
     # Manifest + filesystem fields — always populated by from_path()
     path: str
     rel_path: str
@@ -57,7 +57,7 @@ class AddonInfo:
             return "inactive"
 
     @classmethod
-    def from_path(cls, path: Path, root_path: Path, manifest: Dict) -> "AddonInfo":
+    def from_path(cls, path: Path, root_path: Path, manifest: Dict) -> "Addon":
         symlink = path.is_symlink()
         root = path.parent == root_path
 

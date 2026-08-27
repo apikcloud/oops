@@ -12,16 +12,16 @@ from unittest.mock import MagicMock, patch
 from click.testing import CliRunner
 from oops.commands.addons.list import main
 from oops.services.loc import _has_cloc, get_addon_loc
-from oops_engine.models import AddonInfo, LocStats
+from oops_engine.models import Addon, LocStats
 
 
 def _make_addon_info(
     tmp_path: Path,
     name: str,
     path: str | None = None,
-) -> AddonInfo:
+) -> Addon:
     real_path = path or str(tmp_path / name)
-    return AddonInfo(
+    return Addon(
         path=real_path,
         rel_path="",
         technical_name=name,
@@ -41,7 +41,7 @@ def _make_addon_info(
     )
 
 
-def _invoke_list_json(tmp_path: Path, addons: list[AddonInfo], loc_map: dict[str, LocStats]) -> list[dict]:
+def _invoke_list_json(tmp_path: Path, addons: list[Addon], loc_map: dict[str, LocStats]) -> list[dict]:
     def _fake_loc(repo_path: Path, path: str) -> LocStats:  # noqa: ARG001
         return loc_map.get(path, LocStats())
 
@@ -123,13 +123,13 @@ class TestListLocCaching:
         get_addon_loc.cache_clear()
         _has_cloc.cache_clear()
         try:
-            with patch("oops.commands.addons.list.require_repository") as mock_repo, \
-                    patch("oops.commands.addons.list.list_submodules", return_value={}), \
-                    patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), \
-                    patch("oops.commands.addons.list.enrich_addon"), \
-                    patch("shutil.which", lambda _: "/usr/bin/cloc"), \
-                    patch("oops_engine.loc.run", side_effect=_run), \
-                    patch("oops.core.logger.Live", MagicMock()):
+            with patch("oops.commands.addons.list.require_repository") as mock_repo, patch(
+                "oops.commands.addons.list.list_submodules", return_value={}
+            ), patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), patch(
+                "oops.commands.addons.list.enrich_addon"
+            ), patch("shutil.which", lambda _: "/usr/bin/cloc"), patch("oops_engine.loc.run", side_effect=_run), patch(
+                "oops.core.logger.Live", MagicMock()
+            ):
                 mock_repo.return_value = (MagicMock(), tmp_path)
                 first = CliRunner().invoke(main, ["--format", "json"])
                 get_addon_loc.cache_clear()  # defeat the in-process cache; only the persisted one should hit
@@ -156,12 +156,11 @@ class TestListLocCaching:
         get_addon_loc.cache_clear()
         _has_cloc.cache_clear()
         try:
-            with patch("oops.commands.addons.list.require_repository") as mock_repo, \
-                    patch("oops.commands.addons.list.list_submodules", return_value={}), \
-                    patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), \
-                    patch("oops.commands.addons.list.enrich_addon"), \
-                    patch("shutil.which", lambda _: None), \
-                    patch("oops.core.logger.Live", MagicMock()):
+            with patch("oops.commands.addons.list.require_repository") as mock_repo, patch(
+                "oops.commands.addons.list.list_submodules", return_value={}
+            ), patch("oops.commands.addons.list.find_addons", return_value=iter([addon])), patch(
+                "oops.commands.addons.list.enrich_addon"
+            ), patch("shutil.which", lambda _: None), patch("oops.core.logger.Live", MagicMock()):
                 mock_repo.return_value = (MagicMock(), tmp_path)
                 result = CliRunner().invoke(main, ["--format", "json"])
         finally:
