@@ -65,6 +65,11 @@ def build_module_summary(  # noqa: C901, PLR0912
     manifest = load_manifest(module_path)
     depends = manifest.get("depends", []) if manifest else []
     own_fingerprint = fingerprint_directory(module_path)
+    # Deps outside this run's scan scope (core/OCA modules, or a project
+    # module simply not passed to this invocation) are intentionally excluded
+    # from the chain: they're not fingerprinted here, and chaining them would
+    # tie every module's cache back to kb_generated_at again — defeating the
+    # point of content-fingerprint keying (see test_unchanged_module_cache_hit_after_kb_rebuild).
     dep_fingerprints = [fingerprints[dep] for dep in depends if dep in fingerprints]
     content_fingerprint = chain_fingerprint(own_fingerprint, dep_fingerprints)
     fingerprints[module_name] = content_fingerprint
