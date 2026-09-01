@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-09-01
+
+### Fixed
+
+- `oops_engine.utils.deep_visit`: corrected `Generator` type hint to the full 3-argument form (`Generator[Tuple[str, Any], None, None]`)
+
 ## [1.0.0] - 2026-08-27
 
 ### Added

@@ -9,6 +9,12 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.0.1] - 2026-09-01
+
+A tiny maintenance release with no user-facing changes — just a type-hint correction under the hood.
+
+---
+
 ## [1.0.0] - 2026-08-27
 
 `oops`'s first stable 1.0 release — a new PR check command, smarter analysis caching, and an under-the-hood engine extraction. 🎉
