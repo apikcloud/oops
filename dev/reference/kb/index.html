@@ -2824,19 +2824,19 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops.kb" class="md-nav__link">
+  <a href="#oops_engine" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;kb
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;oops_engine
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="&nbsp;kb">
+    <nav class="md-nav" aria-label="&nbsp;oops_engine">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#oops.kb.InheritanceResolver" class="md-nav__link">
+  <a href="#oops_engine.InheritanceResolver" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;InheritanceResolver
@@ -2878,15 +2878,16 @@
 
 
 
-<h2 id="oops.kb" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">kb</span>
+<h2 id="oops_engine" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">oops_engine</span>
 
 
-<a href="#oops.kb" class="headerlink" title="Permanent link">¶</a></h2>
+<a href="#oops_engine" class="headerlink" title="Permanent link">¶</a></h2>
 
     <div class="doc doc-contents first">
 
-        <p>Knowledge Base package: scanner, store, resolver, and shared logging setup.</p>
+        <p>Source-analysis engine: scanner, store, resolver. No dependency on oops.core.config,
+oops.services, oops.commands, or Click.</p>
 
           
 
@@ -2904,7 +2905,7 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;build&lt;/span&gt; (&lt;code&gt;oops.kb.build&lt;/code&gt;)" href="build/#oops.kb.build">build</a></code></td>
+            <td><code><span title="oops_engine.addons">addons</span></code></td>
             <td>
               <div class="doc-md-description">
                 
@@ -2912,7 +2913,39 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.kb.domain_profile">domain_profile</span></code></td>
+            <td><code><span title="oops_engine.backends">backends</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pluggable storage backends for oops_engine.store.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;build&lt;/span&gt; (&lt;code&gt;oops_engine.build&lt;/code&gt;)" href="build/#oops_engine.build">build</a></code></td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.cli">cli</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>oops-engine-scan — standalone entry point for scanning one already-checked-out</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;compat&lt;/span&gt; (&lt;code&gt;oops_engine.compat&lt;/code&gt;)" href="../core/compat/#oops_engine.compat">compat</a></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Centralizes version-sensitive imports for Python 3.7+ compatibility.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.domain_profile">domain_profile</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Domain profile computation for the analyze command.</p>
@@ -2920,7 +2953,7 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;domains&lt;/span&gt; (&lt;code&gt;oops.kb.domains&lt;/code&gt;)" href="domains/#oops.kb.domains">domains</a></code></td>
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;domains&lt;/span&gt; (&lt;code&gt;oops_engine.domains&lt;/code&gt;)" href="domains/#oops_engine.domains">domains</a></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Static domain-profiling constants. Edit freely.</p>
@@ -2928,7 +2961,23 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.kb.identity">identity</span></code></td>
+            <td><code><span title="oops_engine.exceptions">exceptions</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.fingerprint">fingerprint</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Content fingerprinting for cache invalidation. No config/Click/git dependency.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.identity">identity</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Stable, module-qualified ids and source-path normalization for the IR v2.</p>
@@ -2936,7 +2985,7 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.kb.inheritance">inheritance</span></code></td>
+            <td><code><span title="oops_engine.inheritance">inheritance</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Phases 2–4 of the Odoo inheritance resolver.</p>
@@ -2944,7 +2993,15 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.kb.load_order">load_order</span></code></td>
+            <td><code><span title="oops_engine.inspect_module">inspect_module</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Per-file AST inspection of Odoo model files.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.load_order">load_order</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Phase 1 of the Odoo inheritance resolver: module load order.</p>
@@ -2952,7 +3009,47 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.kb.provenance">provenance</span></code></td>
+            <td><code><span title="oops_engine.loc">loc</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Per-addon line-of-code statistics via the external <code>cloc</code> binary.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;manifest&lt;/span&gt; (&lt;code&gt;oops_engine.manifest&lt;/code&gt;)" href="../io/manifest/#oops_engine.manifest">manifest</a></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Odoo manifest reading, parsing, and addon discovery.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.models">models</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Plain analysis-result dataclasses: the output shape of module analysis.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.paths">paths</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.pipeline">pipeline</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>The generic, non-apik-tiered scan pipeline used by <code>oops-engine-scan</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.provenance">provenance</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Single provenance vocabulary for the analyze IR (schema_version 2).</p>
@@ -2960,7 +3057,23 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;resolve&lt;/span&gt; (&lt;code&gt;oops.kb.resolve&lt;/code&gt;)" href="resolve/#oops.kb.resolve">resolve</a></code></td>
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;python_imports&lt;/span&gt; (&lt;code&gt;oops_engine.python_imports&lt;/code&gt;)" href="../io/python_imports/#oops_engine.python_imports">python_imports</a></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Walk a Python package's <strong>init</strong>.py import chain.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.readme">readme</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;resolve&lt;/span&gt; (&lt;code&gt;oops_engine.resolve&lt;/code&gt;)" href="resolve/#oops_engine.resolve">resolve</a></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Dependency graph resolution for KB symbol precedence.</p>
@@ -2968,7 +3081,7 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.kb.resolver">resolver</span></code></td>
+            <td><code><span title="oops_engine.resolver">resolver</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Top-level inheritance resolver API.</p>
@@ -2976,7 +3089,7 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;scanner&lt;/span&gt; (&lt;code&gt;oops.kb.scanner&lt;/code&gt;)" href="scanner/#oops.kb.scanner">scanner</a></code></td>
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;scanner&lt;/span&gt; (&lt;code&gt;oops_engine.scanner&lt;/code&gt;)" href="scanner/#oops_engine.scanner">scanner</a></code></td>
             <td>
               <div class="doc-md-description">
                 <p>AST-based scanner for Odoo source trees.</p>
@@ -2984,15 +3097,31 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;store&lt;/span&gt; (&lt;code&gt;oops.kb.store&lt;/code&gt;)" href="store/#oops.kb.store">store</a></code></td>
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;store&lt;/span&gt; (&lt;code&gt;oops_engine.store&lt;/code&gt;)" href="store/#oops_engine.store">store</a></code></td>
             <td>
               <div class="doc-md-description">
-                <p>SQLite persistence layer for the Odoo KB.</p>
+                <p>Persistence layer for the Odoo KB, backend-agnostic (SQLite / Postgres).</p>
               </div>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;xml_scanner&lt;/span&gt; (&lt;code&gt;oops.kb.xml_scanner&lt;/code&gt;)" href="xml_scanner/#oops.kb.xml_scanner">xml_scanner</a></code></td>
+            <td><code><span title="oops_engine.summary">summary</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Per-module analysis orchestration: the core of <code>oops addons analyze</code>,</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops_engine.utils">utils</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-module&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-module-name&quot;&gt;xml_scanner&lt;/span&gt; (&lt;code&gt;oops_engine.xml_scanner&lt;/code&gt;)" href="xml_scanner/#oops_engine.xml_scanner">xml_scanner</a></code></td>
             <td>
               <div class="doc-md-description">
                 <p>XML scanner for Odoo source trees.</p>
@@ -3017,7 +3146,7 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;InheritanceResolver&lt;/span&gt; (&lt;code&gt;oops.kb.InheritanceResolver&lt;/code&gt;)" href="#oops.kb.InheritanceResolver">InheritanceResolver</a></code></td>
+            <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;InheritanceResolver&lt;/span&gt; (&lt;code&gt;oops_engine.InheritanceResolver&lt;/code&gt;)" href="#oops_engine.InheritanceResolver">InheritanceResolver</a></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Resolve Odoo model inheritance without a live Odoo instance.</p>
@@ -3047,12 +3176,12 @@
 
 
 
-<h3 id="oops.kb.InheritanceResolver" class="doc doc-heading">
+<h3 id="oops_engine.InheritanceResolver" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">InheritanceResolver</span>
 
 
-<a href="#oops.kb.InheritanceResolver" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">InheritanceResolver</span><span class="p">(</span><span class="n"><span title="oops.kb.InheritanceResolver(reader)">reader</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;KBReader&lt;/span&gt; (&lt;code&gt;oops.kb.store.KBReader&lt;/code&gt;)" href="store/#oops.kb.store.KBReader">KBReader</a></span><span class="p">,</span> <span class="n"><span title="oops.kb.InheritanceResolver(_owns_reader)">_owns_reader</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+<a href="#oops_engine.InheritanceResolver" class="headerlink" title="Permanent link">¶</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">InheritanceResolver</span><span class="p">(</span><span class="n"><span title="oops_engine.InheritanceResolver(reader)">reader</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;KBReader&lt;/span&gt; (&lt;code&gt;oops_engine.store.KBReader&lt;/code&gt;)" href="store/#oops_engine.store.KBReader">KBReader</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.InheritanceResolver(_owns_reader)">_owns_reader</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3083,7 +3212,7 @@
       </thead>
       <tbody>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;close&lt;/span&gt; (&lt;code&gt;oops.kb.InheritanceResolver.close&lt;/code&gt;)" href="#oops.kb.InheritanceResolver.close">close</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;close&lt;/span&gt; (&lt;code&gt;oops_engine.InheritanceResolver.close&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.close">close</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Close the underlying KB connection if this resolver owns it.</p>
@@ -3096,7 +3225,7 @@
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
       &lt;small class=&quot;doc doc-label doc-label-classmethod&quot;&gt;&lt;code&gt;classmethod&lt;/code&gt;&lt;/small&gt;
-  &lt;/span&gt; (&lt;code&gt;oops.kb.InheritanceResolver.from_project_kb&lt;/code&gt;)" href="#oops.kb.InheritanceResolver.from_project_kb">from_project_kb</a></code></td>
+  &lt;/span&gt; (&lt;code&gt;oops_engine.InheritanceResolver.from_project_kb&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.from_project_kb">from_project_kb</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Open a KB and return a resolver.</p>
@@ -3104,10 +3233,18 @@
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;resolve&lt;/span&gt; (&lt;code&gt;oops.kb.InheritanceResolver.resolve&lt;/code&gt;)" href="#oops.kb.InheritanceResolver.resolve">resolve</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;resolve&lt;/span&gt; (&lt;code&gt;oops_engine.InheritanceResolver.resolve&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.resolve">resolve</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Return the full resolver output for model_name.</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;resolve_cached&lt;/span&gt; (&lt;code&gt;oops_engine.InheritanceResolver.resolve_cached&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.resolve_cached">resolve_cached</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Memoizing wrapper around <code>resolve()</code> — at most one resolution</p>
                 </div>
               </td>
             </tr>
@@ -3117,12 +3254,14 @@
 
 
                   <details class="mkdocstrings-source">
-                    <summary>Source code in <code>src/oops/kb/resolver.py</code></summary>
-                    <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">KBReader</span><span class="p">,</span> <span class="n">_owns_reader</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_reader</span> <span class="o">=</span> <span class="n">reader</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_owns_reader</span> <span class="o">=</span> <span class="n">_owns_reader</span>
+                    <summary>Source code in <code>src/oops_engine/resolver.py</code></summary>
+                    <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">KBReader</span><span class="p">,</span> <span class="n">_owns_reader</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_reader</span> <span class="o">=</span> <span class="n">reader</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_owns_reader</span> <span class="o">=</span> <span class="n">_owns_reader</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_cache</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 </span></code></pre></div></td></tr></tbody></table></div>
                   </details>
 
@@ -3142,11 +3281,11 @@
 <div class="doc doc-object doc-function">
 
 
-<h4 id="oops.kb.InheritanceResolver.close" class="doc doc-heading">
+<h4 id="oops_engine.InheritanceResolver.close" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">close</span>
 
 
-<a href="#oops.kb.InheritanceResolver.close" class="headerlink" title="Permanent link">¶</a></h4>
+<a href="#oops_engine.InheritanceResolver.close" class="headerlink" title="Permanent link">¶</a></h4>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">close</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
@@ -3157,14 +3296,14 @@
           
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/oops/kb/resolver.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-44">44</a></span>
-<span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="w">    </span><span class="sd">"""Close the underlying KB connection if this resolver owns it."""</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owns_reader</span><span class="p">:</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_reader</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+              <summary>Source code in <code>src/oops_engine/resolver.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="w">    </span><span class="sd">"""Close the underlying KB connection if this resolver owns it."""</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owns_reader</span><span class="p">:</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_reader</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </span></code></pre></div></td></tr></tbody></table></div>
             </details>
     </div>
@@ -3174,7 +3313,7 @@
 <div class="doc doc-object doc-function">
 
 
-<h4 id="oops.kb.InheritanceResolver.from_project_kb" class="doc doc-heading">
+<h4 id="oops_engine.InheritanceResolver.from_project_kb" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">from_project_kb</span>
 
 
@@ -3182,15 +3321,15 @@
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
   </span>
 
-<a href="#oops.kb.InheritanceResolver.from_project_kb" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_project_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kb_path&lt;/code&gt; (&lt;code&gt;oops.kb.InheritanceResolver.from_project_kb(kb_path)&lt;/code&gt;)" href="#oops.kb.InheritanceResolver.from_project_kb(kb_path)">kb_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'InheritanceResolver'</span>
+<a href="#oops_engine.InheritanceResolver.from_project_kb" class="headerlink" title="Permanent link">¶</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_project_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kb_path&lt;/code&gt; (&lt;code&gt;oops_engine.InheritanceResolver.from_project_kb(kb_path)&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.from_project_kb(kb_path)">kb_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_ids&lt;/code&gt; (&lt;code&gt;oops_engine.InheritanceResolver.from_project_kb(repo_ids)&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.from_project_kb(repo_ids)">repo_ids</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;typing.Sequence&lt;/code&gt;" href="https://docs.python.org/3/library/typing.html#typing.Sequence">Sequence</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">'InheritanceResolver'</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
         <p>Open a KB and return a resolver.</p>
 <p>Use as a context manager to ensure the connection is closed::</p>
-<div class="language-text highlight"><pre><span></span><code>with InheritanceResolver.from_project_kb(kb_path) as resolver:
+<div class="language-text highlight"><pre><span></span><code>with InheritanceResolver.from_project_kb(kb_path, repo_ids=["my-project"]) as resolver:
     result = resolver.resolve("sale.order")
 </code></pre></div>
 
@@ -3208,8 +3347,8 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h5 id="oops.kb.InheritanceResolver.from_project_kb(kb_path)" class="doc doc-heading doc-heading-parameter">                  <code>kb_path</code>
-<a href="#oops.kb.InheritanceResolver.from_project_kb(kb_path)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
+<h5 id="oops_engine.InheritanceResolver.from_project_kb(kb_path)" class="doc doc-heading doc-heading-parameter">                  <code>kb_path</code>
+<a href="#oops_engine.InheritanceResolver.from_project_kb(kb_path)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
                   <code><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></code>
             </td>
@@ -3222,16 +3361,30 @@
                 <em>required</em>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+<h5 id="oops_engine.InheritanceResolver.from_project_kb(repo_ids)" class="doc doc-heading doc-heading-parameter">                  <code>repo_ids</code>
+<a href="#oops_engine.InheritanceResolver.from_project_kb(repo_ids)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
+            <td>
+                  <code><a class="autorefs autorefs-external" title="&lt;code&gt;typing.Sequence&lt;/code&gt;" href="https://docs.python.org/3/library/typing.html#typing.Sequence">Sequence</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>repo_id(s) to search across (see <code>KBReader</code>).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
       </tbody>
     </table>
 
           
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/oops/kb/resolver.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+              <summary>Source code in <code>src/oops_engine/resolver.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-32">32</a></span>
 <span class="normal"><a href="#__codelineno-0-33">33</a></span>
 <span class="normal"><a href="#__codelineno-0-34">34</a></span>
 <span class="normal"><a href="#__codelineno-0-35">35</a></span>
@@ -3241,19 +3394,23 @@
 <span class="normal"><a href="#__codelineno-0-39">39</a></span>
 <span class="normal"><a href="#__codelineno-0-40">40</a></span>
 <span class="normal"><a href="#__codelineno-0-41">41</a></span>
-<span class="normal"><a href="#__codelineno-0-42">42</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="nd">@classmethod</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_project_kb</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">kb_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"InheritanceResolver"</span><span class="p">:</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="w">    </span><span class="sd">"""Open a KB and return a resolver.</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    Use as a context manager to ensure the connection is closed::</span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="nd">@classmethod</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="k">def</span><span class="w"> </span><span class="nf">from_project_kb</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">kb_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">repo_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">"InheritanceResolver"</span><span class="p">:</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="w">    </span><span class="sd">"""Open a KB and return a resolver.</span>
 </span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">        with InheritanceResolver.from_project_kb(kb_path) as resolver:</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">            result = resolver.resolve("sale.order")</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        kb_path: Path to a project KB ``.db`` file.</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">    """</span>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">KBReader</span><span class="p">(</span><span class="n">kb_path</span><span class="p">),</span> <span class="n">_owns_reader</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    Use as a context manager to ensure the connection is closed::</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">        with InheritanceResolver.from_project_kb(kb_path, repo_ids=["my-project"]) as resolver:</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">            result = resolver.resolve("sale.order")</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        kb_path: Path to a project KB ``.db`` file.</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">        repo_ids: repo_id(s) to search across (see ``KBReader``).</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">    """</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">KBReader</span><span class="p">(</span><span class="n">kb_path</span><span class="p">,</span> <span class="n">repo_ids</span><span class="o">=</span><span class="n">repo_ids</span><span class="p">),</span> <span class="n">_owns_reader</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div></td></tr></tbody></table></div>
             </details>
     </div>
@@ -3263,12 +3420,12 @@
 <div class="doc doc-object doc-function">
 
 
-<h4 id="oops.kb.InheritanceResolver.resolve" class="doc doc-heading">
+<h4 id="oops_engine.InheritanceResolver.resolve" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">resolve</span>
 
 
-<a href="#oops.kb.InheritanceResolver.resolve" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">resolve</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model_name&lt;/code&gt; (&lt;code&gt;oops.kb.InheritanceResolver.resolve(model_name)&lt;/code&gt;)" href="#oops.kb.InheritanceResolver.resolve(model_name)">model_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;installed_modules&lt;/code&gt; (&lt;code&gt;oops.kb.InheritanceResolver.resolve(installed_modules)&lt;/code&gt;)" href="#oops.kb.InheritanceResolver.resolve(installed_modules)">installed_modules</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#set">set</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span>
+<a href="#oops_engine.InheritanceResolver.resolve" class="headerlink" title="Permanent link">¶</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">resolve</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model_name&lt;/code&gt; (&lt;code&gt;oops_engine.InheritanceResolver.resolve(model_name)&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.resolve(model_name)">model_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;installed_modules&lt;/code&gt; (&lt;code&gt;oops_engine.InheritanceResolver.resolve(installed_modules)&lt;/code&gt;)" href="#oops_engine.InheritanceResolver.resolve(installed_modules)">installed_modules</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#set">set</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3289,8 +3446,8 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h5 id="oops.kb.InheritanceResolver.resolve(model_name)" class="doc doc-heading doc-heading-parameter">                  <code>model_name</code>
-<a href="#oops.kb.InheritanceResolver.resolve(model_name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
+<h5 id="oops_engine.InheritanceResolver.resolve(model_name)" class="doc doc-heading doc-heading-parameter">                  <code>model_name</code>
+<a href="#oops_engine.InheritanceResolver.resolve(model_name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
                   <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
             </td>
@@ -3305,8 +3462,8 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-<h5 id="oops.kb.InheritanceResolver.resolve(installed_modules)" class="doc doc-heading doc-heading-parameter">                  <code>installed_modules</code>
-<a href="#oops.kb.InheritanceResolver.resolve(installed_modules)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
+<h5 id="oops_engine.InheritanceResolver.resolve(installed_modules)" class="doc doc-heading doc-heading-parameter">                  <code>installed_modules</code>
+<a href="#oops_engine.InheritanceResolver.resolve(installed_modules)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
                   <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#set">set</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>] | None</code>
             </td>
@@ -3349,11 +3506,8 @@
           
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/oops/kb/resolver.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span>
-<span class="normal"><a href="#__codelineno-0-58">58</a></span>
+              <summary>Source code in <code>src/oops_engine/resolver.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-58">58</a></span>
 <span class="normal"><a href="#__codelineno-0-59">59</a></span>
 <span class="normal"><a href="#__codelineno-0-60">60</a></span>
 <span class="normal"><a href="#__codelineno-0-61">61</a></span>
@@ -3383,40 +3537,128 @@
 <span class="normal"><a href="#__codelineno-0-85">85</a></span>
 <span class="normal"><a href="#__codelineno-0-86">86</a></span>
 <span class="normal"><a href="#__codelineno-0-87">87</a></span>
-<span class="normal"><a href="#__codelineno-0-88">88</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>    <span class="n">installed_modules</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="w">    </span><span class="sd">"""Return the full resolver output for model_name.</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">        model_name: Dotted Odoo model name, e.g. ``'sale.order'``.</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="sd">        installed_modules: Restrict resolution to this module set.</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">            ``None`` uses all modules present in the KB.</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">        Dict with keys ``model``, ``chain``, ``mro``, ``fields``.</span>
-</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">    """</span>
-</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a>    <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reader</span>
-</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="n">all_depends</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_modules_with_depends</span><span class="p">()</span>
-</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a>
-</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="k">if</span> <span class="n">installed_modules</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>        <span class="n">installed_modules</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">all_depends</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="normal"><a href="#__codelineno-0-88">88</a></span>
+<span class="normal"><a href="#__codelineno-0-89">89</a></span>
+<span class="normal"><a href="#__codelineno-0-90">90</a></span>
+<span class="normal"><a href="#__codelineno-0-91">91</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="n">installed_modules</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="w">    </span><span class="sd">"""Return the full resolver output for model_name.</span>
+</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>
+</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">        model_name: Dotted Odoo model name, e.g. ``'sale.order'``.</span>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">        installed_modules: Restrict resolution to this module set.</span>
+</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">            ``None`` uses all modules present in the KB.</span>
+</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>
+</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">        Dict with keys ``model``, ``chain``, ``mro``, ``fields``.</span>
+</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">    """</span>
+</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reader</span>
+</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="n">all_depends</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_modules_with_depends</span><span class="p">()</span>
 </span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a>
-</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="n">load_order</span> <span class="o">=</span> <span class="n">compute_load_order</span><span class="p">(</span><span class="n">installed_modules</span><span class="p">,</span> <span class="n">all_depends</span><span class="p">)</span>
-</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="n">chain</span> <span class="o">=</span> <span class="n">build_class_chain</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="p">)</span>
-</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="n">mro</span> <span class="o">=</span> <span class="n">compute_mro</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">reader</span><span class="o">=</span><span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="o">=</span><span class="n">load_order</span><span class="p">)</span>
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">fields</span> <span class="o">=</span> <span class="n">merge_fields</span><span class="p">(</span><span class="n">mro</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="o">=</span><span class="n">load_order</span><span class="p">)</span>
-</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="n">methods</span> <span class="o">=</span> <span class="n">merge_methods</span><span class="p">(</span><span class="n">mro</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="o">=</span><span class="n">load_order</span><span class="p">)</span>
-</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>
-</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="k">return</span> <span class="p">{</span>
-</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>        <span class="s2">"model"</span><span class="p">:</span> <span class="n">model_name</span><span class="p">,</span>
-</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="s2">"chain"</span><span class="p">:</span> <span class="n">chain</span><span class="p">,</span>
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="s2">"mro"</span><span class="p">:</span> <span class="n">mro</span><span class="p">,</span>
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="s2">"fields"</span><span class="p">:</span> <span class="n">fields</span><span class="p">,</span>
-</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="s2">"methods"</span><span class="p">:</span> <span class="n">methods</span><span class="p">,</span>
-</span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a>    <span class="p">}</span>
+</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="k">if</span> <span class="n">installed_modules</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>        <span class="n">installed_modules</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">all_depends</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">load_order</span> <span class="o">=</span> <span class="n">compute_load_order</span><span class="p">(</span><span class="n">installed_modules</span><span class="p">,</span> <span class="n">all_depends</span><span class="p">)</span>
+</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="n">chain</span> <span class="o">=</span> <span class="n">build_class_chain</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="p">)</span>
+</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="n">mro</span> <span class="o">=</span> <span class="n">compute_mro</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">reader</span><span class="o">=</span><span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="o">=</span><span class="n">load_order</span><span class="p">)</span>
+</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="n">fields</span> <span class="o">=</span> <span class="n">merge_fields</span><span class="p">(</span><span class="n">mro</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="o">=</span><span class="n">load_order</span><span class="p">)</span>
+</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>    <span class="n">methods</span> <span class="o">=</span> <span class="n">merge_methods</span><span class="p">(</span><span class="n">mro</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">load_order</span><span class="o">=</span><span class="n">load_order</span><span class="p">)</span>
+</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="k">return</span> <span class="p">{</span>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="s2">"model"</span><span class="p">:</span> <span class="n">model_name</span><span class="p">,</span>
+</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="s2">"chain"</span><span class="p">:</span> <span class="n">chain</span><span class="p">,</span>
+</span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="s2">"mro"</span><span class="p">:</span> <span class="n">mro</span><span class="p">,</span>
+</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="s2">"fields"</span><span class="p">:</span> <span class="n">fields</span><span class="p">,</span>
+</span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a>        <span class="s2">"methods"</span><span class="p">:</span> <span class="n">methods</span><span class="p">,</span>
+</span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="p">}</span>
+</span></code></pre></div></td></tr></tbody></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="oops_engine.InheritanceResolver.resolve_cached" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">resolve_cached</span>
+
+
+<a href="#oops_engine.InheritanceResolver.resolve_cached" class="headerlink" title="Permanent link">¶</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">resolve_cached</span><span class="p">(</span><span class="n"><span title="oops_engine.InheritanceResolver.resolve_cached(model_name)">model_name</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.InheritanceResolver.resolve_cached(installed_modules)">installed_modules</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#set">set</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Memoizing wrapper around <code>resolve()</code> — at most one resolution
+attempt per model per <code>InheritanceResolver</code> instance, reused across
+every caller (e.g. every module analyzed in one run).</p>
+<p>On a cache hit, always returns without raising — including for a
+model whose sole resolution attempt failed (an empty <code>{}</code> is
+cached on failure, same as a legitimate empty result). On a cache
+miss that fails, the failure is cached <em>and</em> the exception is
+re-raised, so the caller sees it exactly once (on the attempt that
+caused it) and can turn it into a warning; every later call for the
+same model returns the cached <code>{}</code> silently.</p>
+
+          
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/oops_engine/resolver.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
+<span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
+<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
+<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
+<span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#__codelineno-0-105">105</a></span>
+<span class="normal"><a href="#__codelineno-0-106">106</a></span>
+<span class="normal"><a href="#__codelineno-0-107">107</a></span>
+<span class="normal"><a href="#__codelineno-0-108">108</a></span>
+<span class="normal"><a href="#__codelineno-0-109">109</a></span>
+<span class="normal"><a href="#__codelineno-0-110">110</a></span>
+<span class="normal"><a href="#__codelineno-0-111">111</a></span>
+<span class="normal"><a href="#__codelineno-0-112">112</a></span>
+<span class="normal"><a href="#__codelineno-0-113">113</a></span>
+<span class="normal"><a href="#__codelineno-0-114">114</a></span>
+<span class="normal"><a href="#__codelineno-0-115">115</a></span>
+<span class="normal"><a href="#__codelineno-0-116">116</a></span>
+<span class="normal"><a href="#__codelineno-0-117">117</a></span>
+<span class="normal"><a href="#__codelineno-0-118">118</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="k">def</span><span class="w"> </span><span class="nf">resolve_cached</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">installed_modules</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="w">    </span><span class="sd">"""Memoizing wrapper around ``resolve()`` — at most one resolution</span>
+</span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">    attempt per model per ``InheritanceResolver`` instance, reused across</span>
+</span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">    every caller (e.g. every module analyzed in one run).</span>
+</span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a>
+</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">    On a cache hit, always returns without raising — including for a</span>
+</span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">    model whose sole resolution attempt failed (an empty ``{}`` is</span>
+</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">    cached on failure, same as a legitimate empty result). On a cache</span>
+</span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">    miss that fails, the failure is cached *and* the exception is</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">    re-raised, so the caller sees it exactly once (on the attempt that</span>
+</span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">    caused it) and can turn it into a warning; every later call for the</span>
+</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">    same model returns the cached ``{}`` silently.</span>
+</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">    """</span>
+</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>    <span class="n">cache_key</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="n">model_name</span><span class="p">,</span>
+</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="nb">frozenset</span><span class="p">(</span><span class="n">installed_modules</span><span class="p">)</span> <span class="k">if</span> <span class="n">installed_modules</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>    <span class="p">)</span>
+</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>    <span class="k">if</span> <span class="n">cache_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_cache</span><span class="p">:</span>
+</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span>
+</span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a>        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">installed_modules</span><span class="o">=</span><span class="n">installed_modules</span><span class="p">)</span>
+</span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="k">raise</span>
+</span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_resolved_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+</span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>    <span class="k">return</span> <span class="n">result</span>
 </span></code></pre></div></td></tr></tbody></table></div>
             </details>
     </div>
@@ -3461,7 +3703,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="April 16, 2026 14:44:45 UTC"><span class="timeago" datetime="2026-04-16T14:44:45+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 16, 2026 14:44:45 UTC">2026-04-16</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="August 27, 2026 12:49:26 UTC"><span class="timeago" datetime="2026-08-27T12:49:26+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="August 27, 2026 12:49:26 UTC">2026-08-27</span>
   </span>
 
     

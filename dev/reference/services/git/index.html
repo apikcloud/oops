@@ -3376,7 +3376,7 @@
 
 
 <a href="#oops.services.git.browse_submodules" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">browse_submodules</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;submodules&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(submodules)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(submodules)">submodules</a></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="git.Submodule">Submodule</span></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;names&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(names)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(names)">names</a></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">'Generator[Tuple[int, Submodule]]'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">browse_submodules</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;submodules&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(submodules)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(submodules)">submodules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="git.Submodule">Submodule</span></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;names&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(names)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(names)">names</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">'Generator[Tuple[int, Submodule]]'</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3400,7 +3400,7 @@
 <h4 id="oops.services.git.browse_submodules(submodules)" class="doc doc-heading doc-heading-parameter">                  <code>submodules</code>
 <a href="#oops.services.git.browse_submodules(submodules)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops.core.compat.List">List</span>[<span title="git.Submodule">Submodule</span>]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="git.Submodule">Submodule</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3416,7 +3416,7 @@
 <h4 id="oops.services.git.browse_submodules(names)" class="doc doc-heading doc-heading-parameter">                  <code>names</code>
 <a href="#oops.services.git.browse_submodules(names)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops.core.compat.Tuple">Tuple</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Tuple">Tuple</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4209,7 +4209,7 @@ Stage files and create a commit using a named commit message template.</p>
 
 
 <a href="#oops.services.git.get_last_commit" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_last_commit</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_last_commit(path)&lt;/code&gt;)" href="#oops.services.git.get_last_commit(path)">path</a></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops.core.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;CommitInfo&lt;/span&gt;
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_last_commit</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_last_commit(path)&lt;/code&gt;)" href="#oops.services.git.get_last_commit(path)">path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;CommitInfo&lt;/span&gt;
 
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
@@ -4238,7 +4238,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.get_last_commit(path)" class="doc doc-heading doc-heading-parameter">                  <code>path</code>
 <a href="#oops.services.git.get_last_commit(path)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops.core.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4264,7 +4264,7 @@ Stage files and create a commit using a named commit message template.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops.core.compat.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;CommitInfo&lt;/span&gt;
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;CommitInfo&lt;/span&gt;
 
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
@@ -4347,7 +4347,7 @@ Stage files and create a commit using a named commit message template.</p>
 
 
 <a href="#oops.services.git.get_submodule_sha" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_submodule_sha</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(repo)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(repo)">repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;ref&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(ref)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(ref)">ref</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(path)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(path)">path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops.core.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_submodule_sha</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(repo)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(repo)">repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;ref&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(ref)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(ref)">ref</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(path)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(path)">path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4429,7 +4429,7 @@ Stage files and create a commit using a named commit message template.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops.core.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">

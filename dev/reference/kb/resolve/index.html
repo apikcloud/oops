@@ -2091,7 +2091,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops.kb.resolve" class="md-nav__link">
+  <a href="#oops_engine.resolve" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;resolve
@@ -2103,7 +2103,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.build_depends_chain" class="md-nav__link">
+  <a href="#oops_engine.resolve.build_depends_chain" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;build_depends_chain
@@ -2114,7 +2114,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.format_source_line" class="md-nav__link">
+  <a href="#oops_engine.resolve.format_source_line" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;format_source_line
@@ -2125,7 +2125,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.resolve_symbol" class="md-nav__link">
+  <a href="#oops_engine.resolve.resolve_symbol" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;resolve_symbol
@@ -2136,7 +2136,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.resolve_symbol_root" class="md-nav__link">
+  <a href="#oops_engine.resolve.resolve_symbol_root" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;resolve_symbol_root
@@ -2943,7 +2943,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops.kb.resolve" class="md-nav__link">
+  <a href="#oops_engine.resolve" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;resolve
@@ -2955,7 +2955,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.build_depends_chain" class="md-nav__link">
+  <a href="#oops_engine.resolve.build_depends_chain" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;build_depends_chain
@@ -2966,7 +2966,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.format_source_line" class="md-nav__link">
+  <a href="#oops_engine.resolve.format_source_line" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;format_source_line
@@ -2977,7 +2977,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.resolve_symbol" class="md-nav__link">
+  <a href="#oops_engine.resolve.resolve_symbol" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;resolve_symbol
@@ -2988,7 +2988,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops.kb.resolve.resolve_symbol_root" class="md-nav__link">
+  <a href="#oops_engine.resolve.resolve_symbol_root" class="md-nav__link">
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;resolve_symbol_root
@@ -3041,11 +3041,11 @@
 
 
 
-<h2 id="oops.kb.resolve" class="doc doc-heading">
+<h2 id="oops_engine.resolve" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-module"></code>            <span class="doc doc-object-name doc-module-name">resolve</span>
 
 
-<a href="#oops.kb.resolve" class="headerlink" title="Permanent link">¶</a></h2>
+<a href="#oops_engine.resolve" class="headerlink" title="Permanent link">¶</a></h2>
 
     <div class="doc doc-contents first">
 
@@ -3053,14 +3053,14 @@
 <p>Given a custom module and a list of symbol entries (each from a different
 upstream module), this module selects the most relevant entry — i.e. the
 one that is closest to the custom module in the dependency graph.</p>
-<h4 id="oops.kb.resolve--algorithm">Algorithm<a class="headerlink" href="#oops.kb.resolve--algorithm" title="Permanent link">¶</a></h4>
+<h4 id="oops_engine.resolve--algorithm">Algorithm<a class="headerlink" href="#oops_engine.resolve--algorithm" title="Permanent link">¶</a></h4>
 <ol>
 <li>Build the full transitive dependency list of the custom module by walking
    the <code>depends</code> graph from the KB (BFS, closest-first).</li>
 <li>For each symbol entry, compute its position in that list
    (lower index = closer to the custom module = higher precedence).</li>
 <li>Return the entry with the lowest index (most specific).</li>
-<li>Tie-break with the static tier order: third-party &gt; apik &gt; enterprise &gt; odoo.</li>
+<li>Tie-break with the static tier order: third-party &gt; oca &gt; custom &gt; enterprise &gt; odoo.</li>
 <li>If the symbol is not found in the depends chain at all, fall back to
    tier order and emit a warning.</li>
 </ol>
@@ -3087,7 +3087,7 @@ one that is closest to the custom module in the dependency graph.</p>
       </thead>
       <tbody>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;build_depends_chain&lt;/span&gt; (&lt;code&gt;oops.kb.resolve.build_depends_chain&lt;/code&gt;)" href="#oops.kb.resolve.build_depends_chain">build_depends_chain</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;build_depends_chain&lt;/span&gt; (&lt;code&gt;oops_engine.resolve.build_depends_chain&lt;/code&gt;)" href="#oops_engine.resolve.build_depends_chain">build_depends_chain</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Return the ordered transitive dependency list of a module (BFS).</p>
@@ -3095,7 +3095,7 @@ one that is closest to the custom module in the dependency graph.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;format_source_line&lt;/span&gt; (&lt;code&gt;oops.kb.resolve.format_source_line&lt;/code&gt;)" href="#oops.kb.resolve.format_source_line">format_source_line</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;format_source_line&lt;/span&gt; (&lt;code&gt;oops_engine.resolve.format_source_line&lt;/code&gt;)" href="#oops_engine.resolve.format_source_line">format_source_line</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Format a Source: line for a docstring from a KB entry.</p>
@@ -3103,7 +3103,7 @@ one that is closest to the custom module in the dependency graph.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;resolve_symbol&lt;/span&gt; (&lt;code&gt;oops.kb.resolve.resolve_symbol&lt;/code&gt;)" href="#oops.kb.resolve.resolve_symbol">resolve_symbol</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;resolve_symbol&lt;/span&gt; (&lt;code&gt;oops_engine.resolve.resolve_symbol&lt;/code&gt;)" href="#oops_engine.resolve.resolve_symbol">resolve_symbol</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Select the most relevant KB entry for a symbol.</p>
@@ -3111,7 +3111,7 @@ one that is closest to the custom module in the dependency graph.</p>
               </td>
             </tr>
             <tr class="doc-section-item">
-              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;resolve_symbol_root&lt;/span&gt; (&lt;code&gt;oops.kb.resolve.resolve_symbol_root&lt;/code&gt;)" href="#oops.kb.resolve.resolve_symbol_root">resolve_symbol_root</a></code></td>
+              <td><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-function&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-function-name&quot;&gt;resolve_symbol_root&lt;/span&gt; (&lt;code&gt;oops_engine.resolve.resolve_symbol_root&lt;/code&gt;)" href="#oops_engine.resolve.resolve_symbol_root">resolve_symbol_root</a></code></td>
               <td>
                 <div class="doc-md-description">
                   <p>Select the original definer of a symbol.</p>
@@ -3139,12 +3139,12 @@ one that is closest to the custom module in the dependency graph.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="oops.kb.resolve.build_depends_chain" class="doc doc-heading">
+<h3 id="oops_engine.resolve.build_depends_chain" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">build_depends_chain</span>
 
 
-<a href="#oops.kb.resolve.build_depends_chain" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">build_depends_chain</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops.kb.resolve.build_depends_chain(module)&lt;/code&gt;)" href="#oops.kb.resolve.build_depends_chain(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;modules_index&lt;/code&gt; (&lt;code&gt;oops.kb.resolve.build_depends_chain(modules_index)&lt;/code&gt;)" href="#oops.kb.resolve.build_depends_chain(modules_index)">modules_index</a></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops.core.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<a href="#oops_engine.resolve.build_depends_chain" class="headerlink" title="Permanent link">¶</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">build_depends_chain</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.resolve.build_depends_chain(module)&lt;/code&gt;)" href="#oops_engine.resolve.build_depends_chain(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;modules_index&lt;/code&gt; (&lt;code&gt;oops_engine.resolve.build_depends_chain(modules_index)&lt;/code&gt;)" href="#oops_engine.resolve.build_depends_chain(modules_index)">modules_index</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3168,8 +3168,8 @@ NOT included.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h4 id="oops.kb.resolve.build_depends_chain(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
-<a href="#oops.kb.resolve.build_depends_chain(module)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
+<h4 id="oops_engine.resolve.build_depends_chain(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
+<a href="#oops_engine.resolve.build_depends_chain(module)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
                   <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
             </td>
@@ -3184,10 +3184,10 @@ NOT included.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-<h4 id="oops.kb.resolve.build_depends_chain(modules_index)" class="doc doc-heading doc-heading-parameter">                  <code>modules_index</code>
-<a href="#oops.kb.resolve.build_depends_chain(modules_index)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
+<h4 id="oops_engine.resolve.build_depends_chain(modules_index)" class="doc doc-heading doc-heading-parameter">                  <code>modules_index</code>
+<a href="#oops_engine.resolve.build_depends_chain(modules_index)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops.core.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops.core.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops.core.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3214,7 +3214,7 @@ NOT included.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops.core.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3224,7 +3224,7 @@ NOT included.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops.core.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3238,7 +3238,7 @@ NOT included.</p>
           
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/oops/kb/resolve.py</code></summary>
+              <summary>Source code in <code>src/oops_engine/resolve.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-41">41</a></span>
 <span class="normal"><a href="#__codelineno-0-42">42</a></span>
 <span class="normal"><a href="#__codelineno-0-43">43</a></span>
@@ -3327,12 +3327,12 @@ NOT included.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="oops.kb.resolve.format_source_line" class="doc doc-heading">
+<h3 id="oops_engine.resolve.format_source_line" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">format_source_line</span>
 
 
-<a href="#oops.kb.resolve.format_source_line" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">format_source_line</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;entry&lt;/code&gt; (&lt;code&gt;oops.kb.resolve.format_source_line(entry)&lt;/code&gt;)" href="#oops.kb.resolve.format_source_line(entry)">entry</a></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+<a href="#oops_engine.resolve.format_source_line" class="headerlink" title="Permanent link">¶</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">format_source_line</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;entry&lt;/code&gt; (&lt;code&gt;oops_engine.resolve.format_source_line(entry)&lt;/code&gt;)" href="#oops_engine.resolve.format_source_line(entry)">entry</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3353,10 +3353,10 @@ NOT included.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h4 id="oops.kb.resolve.format_source_line(entry)" class="doc doc-heading doc-heading-parameter">                  <code>entry</code>
-<a href="#oops.kb.resolve.format_source_line(entry)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
+<h4 id="oops_engine.resolve.format_source_line(entry)" class="doc doc-heading doc-heading-parameter">                  <code>entry</code>
+<a href="#oops_engine.resolve.format_source_line(entry)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops.core.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops.core.compat.Any">Any</span>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3397,7 +3397,7 @@ NOT included.</p>
           
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/oops/kb/resolve.py</code></summary>
+              <summary>Source code in <code>src/oops_engine/resolve.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-172">172</a></span>
 <span class="normal"><a href="#__codelineno-0-173">173</a></span>
 <span class="normal"><a href="#__codelineno-0-174">174</a></span>
@@ -3434,12 +3434,12 @@ NOT included.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="oops.kb.resolve.resolve_symbol" class="doc doc-heading">
+<h3 id="oops_engine.resolve.resolve_symbol" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">resolve_symbol</span>
 
 
-<a href="#oops.kb.resolve.resolve_symbol" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">resolve_symbol</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;entries&lt;/code&gt; (&lt;code&gt;oops.kb.resolve.resolve_symbol(entries)&lt;/code&gt;)" href="#oops.kb.resolve.resolve_symbol(entries)">entries</a></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">]],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;custom_module&lt;/code&gt; (&lt;code&gt;oops.kb.resolve.resolve_symbol(custom_module)&lt;/code&gt;)" href="#oops.kb.resolve.resolve_symbol(custom_module)">custom_module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;modules_index&lt;/code&gt; (&lt;code&gt;oops.kb.resolve.resolve_symbol(modules_index)&lt;/code&gt;)" href="#oops.kb.resolve.resolve_symbol(modules_index)">modules_index</a></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops.core.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">]]</span>
+<a href="#oops_engine.resolve.resolve_symbol" class="headerlink" title="Permanent link">¶</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">resolve_symbol</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;entries&lt;/code&gt; (&lt;code&gt;oops_engine.resolve.resolve_symbol(entries)&lt;/code&gt;)" href="#oops_engine.resolve.resolve_symbol(entries)">entries</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;custom_module&lt;/code&gt; (&lt;code&gt;oops_engine.resolve.resolve_symbol(custom_module)&lt;/code&gt;)" href="#oops_engine.resolve.resolve_symbol(custom_module)">custom_module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;modules_index&lt;/code&gt; (&lt;code&gt;oops_engine.resolve.resolve_symbol(modules_index)&lt;/code&gt;)" href="#oops_engine.resolve.resolve_symbol(modules_index)">modules_index</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3460,10 +3460,10 @@ NOT included.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h4 id="oops.kb.resolve.resolve_symbol(entries)" class="doc doc-heading doc-heading-parameter">                  <code>entries</code>
-<a href="#oops.kb.resolve.resolve_symbol(entries)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
+<h4 id="oops_engine.resolve.resolve_symbol(entries)" class="doc doc-heading doc-heading-parameter">                  <code>entries</code>
+<a href="#oops_engine.resolve.resolve_symbol(entries)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops.core.compat.List">List</span>[<span title="oops.core.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops.core.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3477,8 +3477,8 @@ NOT included.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-<h4 id="oops.kb.resolve.resolve_symbol(custom_module)" class="doc doc-heading doc-heading-parameter">                  <code>custom_module</code>
-<a href="#oops.kb.resolve.resolve_symbol(custom_module)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
+<h4 id="oops_engine.resolve.resolve_symbol(custom_module)" class="doc doc-heading doc-heading-parameter">                  <code>custom_module</code>
+<a href="#oops_engine.resolve.resolve_symbol(custom_module)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
                   <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
             </td>
@@ -3493,10 +3493,10 @@ NOT included.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-<h4 id="oops.kb.resolve.resolve_symbol(modules_index)" class="doc doc-heading doc-heading-parameter">                  <code>modules_index</code>
-<a href="#oops.kb.resolve.resolve_symbol(modules_index)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
+<h4 id="oops_engine.resolve.resolve_symbol(modules_index)" class="doc doc-heading doc-heading-parameter">                  <code>modules_index</code>
+<a href="#oops_engine.resolve.resolve_symbol(modules_index)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops.core.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops.core.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops.core.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3522,7 +3522,7 @@ NOT included.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops.core.compat.Optional">Optional</span>[<span title="oops.core.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops.core.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3536,7 +3536,7 @@ NOT included.</p>
           
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/oops/kb/resolve.py</code></summary>
+              <summary>Source code in <code>src/oops_engine/resolve.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
 <span class="normal"><a href="#__codelineno-0-84"> 84</a></span>
 <span class="normal"><a href="#__codelineno-0-85"> 85</a></span>
@@ -3645,12 +3645,12 @@ NOT included.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="oops.kb.resolve.resolve_symbol_root" class="doc doc-heading">
+<h3 id="oops_engine.resolve.resolve_symbol_root" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <span class="doc doc-object-name doc-function-name">resolve_symbol_root</span>
 
 
-<a href="#oops.kb.resolve.resolve_symbol_root" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">resolve_symbol_root</span><span class="p">(</span><span class="n"><span title="oops.kb.resolve.resolve_symbol_root(entries)">entries</span></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">]],</span> <span class="n"><span title="oops.kb.resolve.resolve_symbol_root(custom_module)">custom_module</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.kb.resolve.resolve_symbol_root(modules_index)">modules_index</span></span><span class="p">:</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops.core.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops.core.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.core.compat.Any">Any</span></span><span class="p">]]</span>
+<a href="#oops_engine.resolve.resolve_symbol_root" class="headerlink" title="Permanent link">¶</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">resolve_symbol_root</span><span class="p">(</span><span class="n"><span title="oops_engine.resolve.resolve_symbol_root(entries)">entries</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]],</span> <span class="n"><span title="oops_engine.resolve.resolve_symbol_root(custom_module)">custom_module</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.resolve.resolve_symbol_root(modules_index)">modules_index</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3665,13 +3665,13 @@ closest intermediary that merely re-inherits the symbol.</p>
 2. For each candidate, check whether any <em>other</em> candidate appears in that
    candidate's depends chain.  A candidate with no such upstream is a root.
 3. If exactly one root, return it.  Multiple roots: prefer most-core tier
-   (odoo &gt; enterprise &gt; apik &gt; third-party).
+   (odoo &gt; enterprise &gt; custom &gt; oca &gt; third-party).
 4. Fallback (all have upstreams / missing data): most-core tier entry.</p>
 
           
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/oops/kb/resolve.py</code></summary>
+              <summary>Source code in <code>src/oops_engine/resolve.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-135">135</a></span>
 <span class="normal"><a href="#__codelineno-0-136">136</a></span>
 <span class="normal"><a href="#__codelineno-0-137">137</a></span>
@@ -3723,7 +3723,7 @@ closest intermediary that merely re-inherits the symbol.</p>
 </span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">    2. For each candidate, check whether any *other* candidate appears in that</span>
 </span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">       candidate's depends chain.  A candidate with no such upstream is a root.</span>
 </span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">    3. If exactly one root, return it.  Multiple roots: prefer most-core tier</span>
-</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="sd">       (odoo &gt; enterprise &gt; apik &gt; third-party).</span>
+</span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="sd">       (odoo &gt; enterprise &gt; custom &gt; oca &gt; third-party).</span>
 </span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">    4. Fallback (all have upstreams / missing data): most-core tier entry.</span>
 </span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">    """</span>
 </span><span id="__span-0-155"><a id="__codelineno-0-155" name="__codelineno-0-155"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">entries</span><span class="p">:</span>
@@ -3797,7 +3797,7 @@ the <code>AnalyzePresenter</code> uses to resolve <code>inherited_from</code> re
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="June 8, 2026 09:22:38 UTC"><span class="timeago" datetime="2026-06-08T09:22:38+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 8, 2026 09:22:38 UTC">2026-06-08</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="August 27, 2026 12:49:26 UTC"><span class="timeago" datetime="2026-08-27T12:49:26+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="August 27, 2026 12:49:26 UTC">2026-08-27</span>
   </span>
 
     
