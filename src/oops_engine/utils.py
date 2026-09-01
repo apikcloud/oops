@@ -9,7 +9,7 @@ from oops_engine.compat import Any, Generator, Optional, Tuple
 from oops_engine.logger import log
 
 
-def deep_visit(obj: Any, prefix: str = "") -> Generator[Tuple[str, Any]]:
+def deep_visit(obj: Any, prefix: str = "") -> Generator[Tuple[str, Any], None, None]:
     """Yield flattened (path, value) pairs by recursively walking a nested structure.
 
     Dict keys become dot-separated segments; list indices become ``[n]`` segments.
