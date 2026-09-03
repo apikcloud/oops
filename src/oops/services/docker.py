@@ -149,7 +149,7 @@ def fetch_odoo_images(collections: Optional[list] = None) -> list:
         collections = config.images.collections
     data = make_json_get(config.images.source.url)
 
-    items = [ImageInfo.from_raw_dict(vals) for vals in data]
+    items = [ImageInfo.from_raw_dict(vals) for vals in data if vals.get("version") is not None]
 
     def filter_out(item):
         if item.collection in collections:
