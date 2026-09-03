@@ -9,6 +9,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.0.2] - 2026-09-03
+
+A small bugfix release.
+
+### 🐛 Fixes
+
+- Fixed a crash in `oops project show` (and other commands that check for image updates) when the Docker image feed contained a tag without a version number
+
+---
+
 ## [1.0.1] - 2026-09-01
 
 A tiny maintenance release with no user-facing changes — just a type-hint correction under the hood.

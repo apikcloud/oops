@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-09-03
+
+### Fixed
+
+- `oops project show` / `oops addons ...`: `fetch_odoo_images` no longer crashes on tags with a null `version` field (e.g. a `main`/branch tag) in the images source feed; such entries are now skipped instead of raising `float() argument must be a string or a real number, not 'NoneType'`.
+
 ## [1.0.1] - 2026-09-01
 
 ### Fixed
