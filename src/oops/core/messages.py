@@ -47,8 +47,9 @@ class CommitMessages:
     - created symlinks: {symlinks}
     """
 
-    # Migration
-    migrate_prepare: str = "migrate: prepare {version} base"
+    # Upgrade
+    upgrade_prepare: str = "upgrade: prepare {version} base"
+    vanilla_strip: str = "chore(upgrade): strip non-core modules for vanilla base ({from_version})"
 
     # Miscellaneous
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."

@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 
-"""Tests for oops migrate analyze command."""
+"""Tests for oops upgrade analyze command."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 from click.testing import CliRunner
-from oops.commands.migrate.analyze import main
-from oops.commands.migrate.common import (
+from oops.commands.upgrade.analyze import main
+from oops.commands.upgrade.common import (
     ModuleState,
     Origin,
     State,
@@ -122,7 +122,7 @@ def test_save_load_state_roundtrip(tmp_path):
             ),
         },
     )
-    path = tmp_path / ".oops" / "migrate" / "state.yml"
+    path = tmp_path / ".oops" / "upgrade" / "state.yml"
     save_state(path, state)
     assert path.exists()
     loaded = load_state(path)
@@ -151,8 +151,8 @@ def _make_addon_dir(base: Path, name: str, author: str = "Acme", depends=None, w
 def _mock_repo(repo_path):
     mock_repo = MagicMock()
     mock_repo.active_branch.name = "18.0"
-    with patch("oops.commands.migrate.analyze.require_repository", return_value=(mock_repo, repo_path)):
-        with patch("oops.commands.migrate.analyze.list_submodules", return_value={}):
+    with patch("oops.commands.upgrade.analyze.require_repository", return_value=(mock_repo, repo_path)):
+        with patch("oops.commands.upgrade.analyze.list_submodules", return_value={}):
             yield
 
 
@@ -164,7 +164,7 @@ def test_analyze_writes_state(tmp_path):
         result = CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--no-probe-upstream"])
 
     assert result.exit_code == 0, result.output
-    state_file = tmp_path / ".oops" / "migrate" / "state.yml"
+    state_file = tmp_path / ".oops" / "upgrade" / "state.yml"
     assert state_file.exists()
 
     data = yaml.safe_load(state_file.read_text())
@@ -190,7 +190,24 @@ def test_analyze_detects_from_version_from_branch(tmp_path):
     with _mock_repo(tmp_path):
         result = CliRunner().invoke(main, ["--to", "19.0", "--no-probe-upstream"])
     assert result.exit_code == 0, result.output
-    state_file = tmp_path / ".oops" / "migrate" / "state.yml"
+    state_file = tmp_path / ".oops" / "upgrade" / "state.yml"
+    data = yaml.safe_load(state_file.read_text())
+    assert data["from_version"] == "18.0"
+
+
+def test_analyze_detects_from_version_from_odoo_version_file(tmp_path):
+    """When --from is omitted and the branch name has no version, fall back to odoo_version.txt."""
+    _make_addon_dir(tmp_path, "my_mod")
+    (tmp_path / "odoo_version.txt").write_text("apik/odoo:18.0-20240101\n")
+
+    mock_repo = MagicMock()
+    mock_repo.active_branch.name = "main"
+    with patch("oops.commands.upgrade.analyze.require_repository", return_value=(mock_repo, tmp_path)):
+        with patch("oops.commands.upgrade.analyze.list_submodules", return_value={}):
+            result = CliRunner().invoke(main, ["--to", "19.0", "--no-probe-upstream"])
+
+    assert result.exit_code == 0, result.output
+    state_file = tmp_path / ".oops" / "upgrade" / "state.yml"
     data = yaml.safe_load(state_file.read_text())
     assert data["from_version"] == "18.0"
 
@@ -213,7 +230,7 @@ def test_analyze_probe_upstream_default_on(tmp_path):
 
     with _mock_repo(tmp_path):
         with patch(
-            "oops.commands.migrate.analyze._probe_modules",
+            "oops.commands.upgrade.analyze._probe_modules",
         ) as mock_probe:
             CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0"])
 
@@ -226,7 +243,7 @@ def test_analyze_no_probe_upstream_skips_probe(tmp_path):
 
     with _mock_repo(tmp_path):
         with patch(
-            "oops.commands.migrate.analyze._probe_modules",
+            "oops.commands.upgrade.analyze._probe_modules",
         ) as mock_probe:
             CliRunner().invoke(main, ["--from", "18.0", "--to", "19.0", "--no-probe-upstream"])
 
@@ -245,7 +262,25 @@ def test_analyze_html_format(tmp_path):
     assert out.exists() and out.stat().st_size > 0
     content = out.read_text()
     assert "window.OOPS" in content
-    assert '"migrate analyze"' in content
+    assert '"upgrade analyze"' in content
+
+
+def test_analyze_html_report_shows_resolved_from_version(tmp_path):
+    """When --from is omitted, the report's metadata must carry the resolved
+    value, not the raw (unset) CLI default — regression for the HTML report
+    showing "?" instead of the detected version.
+    """
+    _make_addon_dir(tmp_path, "my_mod")
+    out = tmp_path / "report.html"
+    with _mock_repo(tmp_path):
+        result = CliRunner().invoke(
+            main,
+            ["--to", "19.0", "--no-probe-upstream", "--format", "html", "--output-path", str(out)],
+        )
+    assert result.exit_code == 0, result.output
+    content = out.read_text()
+    assert '"from_version": "18.0"' in content
+    assert '"to_version": "19.0"' in content
 
 
 def test_analyze_unknown_format_rejected(tmp_path):

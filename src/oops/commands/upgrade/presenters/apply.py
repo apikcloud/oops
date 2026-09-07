@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: apply.py — src/oops/commands/migrate/presenters/apply.py
+# File: apply.py — src/oops/commands/upgrade/presenters/apply.py
 
 from __future__ import annotations
 
@@ -98,7 +98,7 @@ class ApplyPresenter(SimplePresenter[dict]):
         )
 
         return SimpleSummaryLayout(
-            title=data.get("cmd", "Migration apply"),
+            title=data.get("cmd", "Upgrade apply"),
             table=table,
             panel=statgroup_to_panel(metrics),
             conclusion=ConclusionBlock(all_ok, msg),

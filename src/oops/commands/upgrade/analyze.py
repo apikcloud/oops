@@ -27,6 +27,7 @@ from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
+from oops.io.file import parse_odoo_version
 from oops.output.formatters import (
     FormatterRegistry,
     JsonFormatter,
@@ -126,13 +127,30 @@ def main(
     if not from_version:
         from_version = config.manifest.odoo_version or ""
         if not from_version:
+            try:
+                from_version = str(parse_odoo_version(repo_path).major_version)
+            except (ValueError, OSError):
+                from_version = ""
+        if not from_version:
             m = re.search(r"\b(\d+\.\d+)\b", source_ref)
             if m:
                 from_version = m.group(1)
     if not from_version:
-        raise OopsError("Cannot detect source Odoo version. Provide --from (e.g. --from 18.0).")
+        raise OopsError(
+            "Cannot detect source Odoo version. Provide --from (e.g. --from 18.0), "
+            f"set manifest.odoo_version in .oops.yaml, or check {config.project.file_odoo_version}."
+        )
     if not to_version:
         raise OopsError("Target version required. Provide --to (e.g. --to 19.0).")
+
+    # `metadata.parameters` was snapshotted from raw CLI options before this
+    # callback resolved source_ref/from_version/to_version — refresh it so
+    # presenters (e.g. the HTML report's version indicator) see the actual
+    # values used, not the CLI defaults (None).
+    if metadata is not None:
+        metadata.parameters.update(
+            {"source_ref": source_ref, "from_version": from_version, "to_version": to_version}
+        )
 
     sub_meta_by_relpath = list_submodules(repo)
     modules: dict[str, ModuleState] = {}

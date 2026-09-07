@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from oops.commands.migrate.common import ModulePlan
+from oops.commands.upgrade.common import ModulePlan
 from oops.core.models import Result
 from oops.output.base import SimplePresenter
 from oops.output.layout import (
@@ -28,7 +28,7 @@ def _action_cell(mp: ModulePlan) -> str:
 
 
 class PlanPresenter(SimplePresenter[dict]):
-    """Presenter for `oops migrate plan`."""
+    """Presenter for `oops upgrade plan`."""
 
     def to_human(self, result: Result[dict]) -> SimpleSummaryLayout:
         data = result.unwrap

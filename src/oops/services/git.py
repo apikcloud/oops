@@ -463,7 +463,7 @@ def reset_branch(repo: Repo, repo_path: Path, version: str) -> "Result[None]":
 
     # 5. Commit
     try:
-        message = commit_messages.render("migrate_prepare", version=version)
+        message = commit_messages.render("upgrade_prepare", version=version)
     except Exception as exc:
         result.add_error(str(exc))
         return result

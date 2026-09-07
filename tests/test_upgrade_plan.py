@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 
-"""Tests for oops migrate plan command."""
+"""Tests for oops upgrade plan command."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 from click.testing import CliRunner
-from oops.commands.migrate.common import (
+from oops.commands.upgrade.common import (
     MigrationPlan,
     ModulePlan,
     ModuleState,
@@ -25,7 +25,7 @@ from oops.commands.migrate.common import (
     save_plan,
     save_state,
 )
-from oops.commands.migrate.plan import _enrich_ghost_modules, _insert_ghost_modules, main
+from oops.commands.upgrade.plan import _enrich_ghost_modules, _insert_ghost_modules, main
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -34,7 +34,7 @@ from oops.commands.migrate.plan import _enrich_ghost_modules, _insert_ghost_modu
 
 def _write_state(repo_path: Path, from_v="18.0", to_v="19.0", modules=None) -> Path:
     """Write a minimal state.yml under repo_path."""
-    state_path = repo_path / ".oops" / "migrate" / "state.yml"
+    state_path = repo_path / ".oops" / "upgrade" / "state.yml"
     state = State(
         version=2,
         source_ref=from_v,
@@ -62,7 +62,7 @@ def _write_state(repo_path: Path, from_v="18.0", to_v="19.0", modules=None) -> P
 def _mock_repo(repo_path):
     mock_repo = MagicMock()
     mock_repo.active_branch.name = "18.0"
-    with patch("oops.commands.migrate.plan.require_repository", return_value=(mock_repo, repo_path)):
+    with patch("oops.commands.upgrade.plan.require_repository", return_value=(mock_repo, repo_path)):
         yield
 
 
@@ -156,7 +156,7 @@ def test_save_load_plan_roundtrip(tmp_path):
             ),
         },
     )
-    path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    path = tmp_path / ".oops" / "upgrade" / "plan.yml"
     save_plan(path, plan)
     assert path.exists()
 
@@ -218,7 +218,7 @@ def test_plan_first_run_writes_plan(tmp_path):
     with _mock_repo(tmp_path):
         result = CliRunner().invoke(main, [])
     assert result.exit_code == 0, result.output
-    plan_file = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_file = tmp_path / ".oops" / "upgrade" / "plan.yml"
     assert plan_file.exists()
 
 
@@ -226,7 +226,7 @@ def test_plan_seeds_correct_actions(tmp_path):
     _write_state(tmp_path)
     with _mock_repo(tmp_path):
         CliRunner().invoke(main, [])
-    data = yaml.safe_load((tmp_path / ".oops" / "migrate" / "plan.yml").read_text())
+    data = yaml.safe_load((tmp_path / ".oops" / "upgrade" / "plan.yml").read_text())
     assert data["modules"]["custom_sale"]["action"] == "port"
     assert "review" not in data["modules"]["custom_sale"]
     assert data["modules"]["oca_partner"]["action"] == "pull"
@@ -245,7 +245,7 @@ def test_plan_reconcile_preserves_human_action(tmp_path):
     with _mock_repo(tmp_path):
         CliRunner().invoke(main, [])
 
-    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path = tmp_path / ".oops" / "upgrade" / "plan.yml"
     data = yaml.safe_load(plan_path.read_text())
     data["modules"]["oca_partner"]["action"] = "drop"
     plan_path.write_text(yaml.safe_dump(data))
@@ -275,7 +275,7 @@ def test_plan_flags_disappeared_module(tmp_path):
         result = CliRunner().invoke(main, [])
     assert result.exit_code == 0, result.output
 
-    data = yaml.safe_load((tmp_path / ".oops" / "migrate" / "plan.yml").read_text())
+    data = yaml.safe_load((tmp_path / ".oops" / "upgrade" / "plan.yml").read_text())
     assert "oca_partner" in data["modules"]
     assert data["modules"]["oca_partner"]["review"] is True
 
@@ -297,7 +297,7 @@ def test_plan_seed_migration_keys(tmp_path):
     with _mock_repo(tmp_path):
         result = CliRunner().invoke(main, [])
     assert result.exit_code == 0, result.output
-    data = yaml.safe_load((tmp_path / ".oops" / "migrate" / "plan.yml").read_text())
+    data = yaml.safe_load((tmp_path / ".oops" / "upgrade" / "plan.yml").read_text())
     mig = data["migration"]
     assert mig["dest_branch"] == "main"
     assert mig["branch_template"] == "mig/19.0/{module}"
@@ -306,7 +306,7 @@ def test_plan_seed_migration_keys(tmp_path):
 
 
 def test_plan_reconcile_backfills_dest_branch(tmp_path):
-    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path = tmp_path / ".oops" / "upgrade" / "plan.yml"
     plan_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write an old-style plan with target_branch template and no dest_branch.
@@ -339,7 +339,7 @@ def test_plan_reconcile_backfills_dest_branch(tmp_path):
 
 
 def test_plan_reconcile_drops_strategy(tmp_path):
-    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path = tmp_path / ".oops" / "upgrade" / "plan.yml"
     plan_path.parent.mkdir(parents=True, exist_ok=True)
 
     old_plan = {
@@ -371,7 +371,7 @@ def test_plan_reconcile_drops_strategy(tmp_path):
 
 
 def test_plan_reconcile_preserves_explicit_dest_branch(tmp_path):
-    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path = tmp_path / ".oops" / "upgrade" / "plan.yml"
     plan_path.parent.mkdir(parents=True, exist_ok=True)
 
     old_plan = {
@@ -511,7 +511,7 @@ class TestEnrichGhostModules:
 
         outer = Result()
         with patch(
-            "oops.commands.migrate.plan.check_upstream_graphql",
+            "oops.commands.upgrade.plan.check_upstream_graphql",
             return_value={"ghost_mod": True},
         ):
             _enrich_ghost_modules(plan, ghost_parents, "19.0", "fake-token", outer)
@@ -530,7 +530,7 @@ class TestEnrichGhostModules:
 
         outer = Result()
         with patch(
-            "oops.commands.migrate.plan.check_upstream_graphql",
+            "oops.commands.upgrade.plan.check_upstream_graphql",
             return_value={"ghost_mod": False},
         ):
             _enrich_ghost_modules(plan, ghost_parents, "19.0", "fake-token", outer)
@@ -545,7 +545,7 @@ class TestEnrichGhostModules:
         from oops.core.models import Result
 
         outer = Result()
-        with patch("oops.commands.migrate.plan.check_upstream_graphql") as mock_gql:
+        with patch("oops.commands.upgrade.plan.check_upstream_graphql") as mock_gql:
             _enrich_ghost_modules(plan, ghost_parents, "19.0", None, outer)
             mock_gql.assert_not_called()
 
@@ -559,7 +559,7 @@ class TestEnrichGhostModules:
 
         outer = Result()
         with patch(
-            "oops.commands.migrate.plan.check_upstream_graphql",
+            "oops.commands.upgrade.plan.check_upstream_graphql",
             side_effect=RuntimeError("network fail"),
         ):
             _enrich_ghost_modules(plan, ghost_parents, "19.0", "fake-token", outer)
@@ -587,16 +587,16 @@ def test_plan_ghost_enrichment_integration(tmp_path):
     _write_state(tmp_path, modules=modules)
 
     with _mock_repo(tmp_path):
-        with patch("oops.commands.migrate.plan.load_odoo_kb", return_value={"base": {}}):
+        with patch("oops.commands.upgrade.plan.load_odoo_kb", return_value={"base": {}}):
             with patch(
-                "oops.commands.migrate.plan.check_upstream_graphql",
+                "oops.commands.upgrade.plan.check_upstream_graphql",
                 return_value={"sibling_mod": True, "unknown_mod": False},
             ):
                 result = CliRunner().invoke(main, [], obj={"token": "fake-token"})
 
     assert result.exit_code == 0, result.output
 
-    plan_path = tmp_path / ".oops" / "migrate" / "plan.yml"
+    plan_path = tmp_path / ".oops" / "upgrade" / "plan.yml"
     data = yaml.safe_load(plan_path.read_text())
 
     # base is an Odoo builtin — not in plan at all

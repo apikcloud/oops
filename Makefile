@@ -23,7 +23,7 @@ COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 .PHONY: install
 install: ## Install package in editable mode (dev + gui + mcp extras)
-	uv sync --extra dev --extra gui --extra mcp --extra migrate --active
+	uv sync --extra dev --extra gui --extra mcp --extra upgrade --active
 
 .PHONY: install-docs
 install-docs: ## Install docs dependencies

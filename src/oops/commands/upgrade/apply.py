@@ -1,13 +1,13 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: apply.py — oops/commands/migrate/apply.py
+# File: apply.py — oops/commands/upgrade/apply.py
 
 """
-Execute the migration plan: create branches and run mechanical tooling.
+Execute the upgrade plan: create branches and run mechanical tooling.
 
 A workshop preparer, NOT an automatic migrator. Operates exclusively in
-the git worktree created by `oops migrate prepare` — the source branch in
+the git worktree created by `oops upgrade prepare` — the source branch in
 the main repository is never touched.
 
 For each module in topological order:
@@ -180,7 +180,7 @@ def _validate_plan(plan: MigrationPlan, outer: "Result[None]") -> None:
     names = set(plan.modules.keys())
     for name, mp in plan.modules.items():
         if mp.action is None:
-            outer.add_error(f"'{name}' has no action — run `oops migrate plan` first.")
+            outer.add_error(f"'{name}' has no action — run `oops upgrade plan` first.")
         if mp.merge_with:
             target = mp.merge_with.get("into")
             if target and target not in names:
@@ -632,7 +632,7 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 @click.option("--output-path", "output_path", type=click.Path(dir_okay=False, path_type=Path), default=None)
 @click.pass_context
 def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_format, output_path):  # noqa: C901
-    """Execute the migration plan in the worktree."""
+    """Execute the upgrade plan in the worktree."""
     warn_experimental()
     if do_merge and not pull_only:
         raise click.UsageError("--merge requires --pull-only.")
@@ -648,11 +648,11 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
 
     # 1. Load state and plan.
     if not state_path.exists():
-        raise OopsError(f"No state found at {state_path}. Run `oops migrate analyze` first.")
+        raise OopsError(f"No state found at {state_path}. Run `oops upgrade analyze` first.")
     state: State = load_state(state_path)
 
     if not plan_path.exists():
-        raise OopsError(f"No plan at {plan_path}. Run `oops migrate plan` first.")
+        raise OopsError(f"No plan at {plan_path}. Run `oops upgrade plan` first.")
     plan: MigrationPlan = load_plan(plan_path)
 
     # 2. Validate plan.
@@ -665,7 +665,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
     migration = plan.migration
     apply_status = _load_status(status_path)
     if not dry_run and (apply_status is None or not apply_status.prepared):
-        raise OopsError("Worktree not prepared. Run `oops migrate prepare --destination-ref <ref>` first.")
+        raise OopsError("Worktree not prepared. Run `oops upgrade prepare --destination-ref <ref>` first.")
 
     # 4. Resolve worktree.
     wt_path = (
@@ -678,7 +678,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
     source_ref = migration.get("source_ref", "HEAD")
 
     if not dry_run and not wt_path.exists():
-        raise OopsError(f"Worktree not found at {wt_path}. Re-run `oops migrate prepare`.")
+        raise OopsError(f"Worktree not found at {wt_path}. Re-run `oops upgrade prepare`.")
 
     # 5. Init status if needed.
     if apply_status is None:
@@ -835,7 +835,7 @@ def main(ctx, only, force, pull_only, port_only, dry_run, do_merge, output_forma
     counts = Counter(r[3] for r in rows)
     result: Result[dict] = Result()
     result.data = {
-        "cmd": f"Migration apply {migration.get('from')} → {migration.get('to')}",
+        "cmd": f"Upgrade apply {migration.get('from')} → {migration.get('to')}",
         "dry_run": dry_run,
         "rows": rows,
         "merged_branch": merged_branch,

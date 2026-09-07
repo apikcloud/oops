@@ -1,10 +1,10 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: prepare.py — oops/commands/migrate/prepare.py
+# File: prepare.py — oops/commands/upgrade/prepare.py
 
 """
-Prepare the migration worktree and destination branch.
+Prepare the upgrade worktree and destination branch.
 
 Creates a git worktree at worktree_path (from plan.migration), resets the
 destination branch to the target Odoo version ref, runs project sync, and
@@ -38,7 +38,7 @@ from .common import (
     load_plan,
 )
 
-SENTINEL_PREFIX = "[migrate] prepare"
+SENTINEL_PREFIX = "[upgrade] prepare"
 
 
 @command(name="prepare", help=__doc__)
@@ -61,13 +61,13 @@ SENTINEL_PREFIX = "[migrate] prepare"
 )
 @click.pass_context
 def main(ctx, dest_ref, dest_branch_override, force):
-    """Prepare the migration worktree and destination branch."""
+    """Prepare the upgrade worktree and destination branch."""
     warn_experimental()
     repo, repo_path = require_repository()
 
     plan_path = artifact_path(repo_path, PLAN_FILE)
     if not plan_path.exists():
-        raise OopsError(f"No plan found at {plan_path}. Run `oops migrate plan` first.")
+        raise OopsError(f"No plan found at {plan_path}. Run `oops upgrade plan` first.")
     plan = load_plan(plan_path)
     migration = plan.migration
 
@@ -75,10 +75,10 @@ def main(ctx, dest_ref, dest_branch_override, force):
     source_ref = migration.get("source_ref", "")
     worktree_path = get_worktree_path(migration, repo_path)
     dest_branch = dest_branch_override or get_dest_branch(migration)
-    sentinel = commit_messages.render("migrate_prepare", version=to_version)
+    sentinel = commit_messages.render("upgrade_prepare", version=to_version)
 
     render_panel(
-        "Prepare migration worktree",
+        "Prepare upgrade worktree",
         "\n".join(
             [
                 f"Source branch     : [brand.primary]{source_ref}[/]",
@@ -168,4 +168,4 @@ def main(ctx, dest_ref, dest_branch_override, force):
     apply_status.dest_branch = dest_branch
     _save_status(status_path, apply_status)
 
-    conclude(True, f"Worktree ready at {worktree_path} — run: oops migrate apply")
+    conclude(True, f"Worktree ready at {worktree_path} — run: oops upgrade apply")
