@@ -170,9 +170,10 @@ cython_debug/
 # Oops KB cache (project-level, must not be committed)
 .oops-cache/
 
-# Migration artifacts (regenerable; plan.yml is versioned)
-.oops/migrate/state.yml
-.oops/migrate/status.yml
+# Upgrade artifacts (regenerable; plan.yml is versioned)
+.oops/upgrade/state.yml
+.oops/upgrade/status.yml
+.oops/upgrade/vanilla.yml
 
 .ai-factory.json
 .codegraph/

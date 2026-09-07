@@ -3,36 +3,36 @@ import type { Payload } from "../types";
 import type { Source } from "../source";
 import { el, fmt, numCell, tableWrap, originBadge, renderMetadataBar } from "../dom";
 
-interface MigrateOrigin { kind: string; repo: string | null; ref: string | null; }
-interface MigratePR { number: number; url: string; title: string; }
-interface MigrateModule {
-  origin: MigrateOrigin;
+interface UpgradeOrigin { kind: string; repo: string | null; ref: string | null; }
+interface UpgradePR { number: number; url: string; title: string; }
+interface UpgradeModule {
+  origin: UpgradeOrigin;
   depends_on: string[];
   upstream_available: boolean | null;
-  upstream_prs: MigratePR[];
+  upstream_prs: UpgradePR[];
 }
-interface MigrateMetrics {
+interface UpgradeMetrics {
   total: number; custom: number; oca: number; third_party: number;
   upstream_available: number; upstream_missing: number;
   not_probed: number; target_deps_fetched: number;
 }
-interface MigrateEffort { to_pull: number; in_pr: number; to_port: number; not_probed: number; }
-interface MigrateParams {
+interface UpgradeEffort { to_pull: number; in_pr: number; to_port: number; not_probed: number; }
+interface UpgradeParams {
   from_version?: string;
   to_version?: string;
   [k: string]: unknown;
 }
-interface MigratePayload {
+interface UpgradePayload {
   source_ref: string;
   state_path: string;
-  metrics: MigrateMetrics;
-  effort: MigrateEffort;
-  modules: Record<string, MigrateModule>;
+  metrics: UpgradeMetrics;
+  effort: UpgradeEffort;
+  modules: Record<string, UpgradeModule>;
   warnings?: string[];
-  metadata: Payload["metadata"] & { parameters?: MigrateParams };
+  metadata: Payload["metadata"] & { parameters?: UpgradeParams };
 }
 
-type RichModule = MigrateModule & { _name: string; _depCount: number; _upstreamKey: number; };
+type RichModule = UpgradeModule & { _name: string; _depCount: number; _upstreamKey: number; };
 
 function readColor(varName: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -55,7 +55,7 @@ function upstreamCell(m: RichModule): HTMLElement {
   return el("span", { class: "upstream danger" }, "✗");
 }
 
-function upstreamSortKey(m: MigrateModule): number {
+function upstreamSortKey(m: UpgradeModule): number {
   if (m.origin.kind === "custom") return 4;
   if (m.upstream_available === null) return 3;
   if (m.upstream_available === true) return 0;
@@ -63,8 +63,8 @@ function upstreamSortKey(m: MigrateModule): number {
   return 2;
 }
 
-export function viewMigrateAnalyze(root: HTMLElement, payload: Payload, _source: Source): void {
-  const p = payload as unknown as MigratePayload;
+export function viewUpgradeAnalyze(root: HTMLElement, payload: Payload, _source: Source): void {
+  const p = payload as unknown as UpgradePayload;
   const metrics = p.metrics;
   const effort = p.effort;
 
@@ -89,14 +89,14 @@ export function viewMigrateAnalyze(root: HTMLElement, payload: Payload, _source:
   const params = p.metadata?.parameters;
   const fromVer = params?.from_version ?? "?";
   const toVer   = params?.to_version   ?? "?";
-  const versionIndicator = el("div", { class: "migration-indicator" }, [
-    el("span", { class: "migration-version from" }, fromVer),
-    el("span", { class: "migration-arrow" }, "→"),
-    el("span", { class: "migration-version to" }, toVer),
+  const versionIndicator = el("div", { class: "upgrade-indicator" }, [
+    el("span", { class: "upgrade-version from" }, fromVer),
+    el("span", { class: "upgrade-arrow" }, "→"),
+    el("span", { class: "upgrade-version to" }, toVer),
   ]);
   root.append(el("div", { class: "page-header" }, [
     el("div", { class: "page-header-row" }, [
-      el("h1", {}, "Migration analysis"),
+      el("h1", {}, "Upgrade analysis"),
       versionIndicator,
     ]),
     el("p", { class: "page-subtitle" }, `${metrics.total} modules · ${metrics.custom} custom · ${metrics.oca} OCA · ${metrics.third_party} third-party`),

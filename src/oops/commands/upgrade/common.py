@@ -1,9 +1,9 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: common.py — src/oops/commands/migrate/common.py
+# File: common.py — src/oops/commands/upgrade/common.py
 #
-# Shared helpers for the migrate workflow: artifact locations, load/save,
+# Shared helpers for the upgrade workflow: artifact locations, load/save,
 # and the dataclasses describing the three files (state / plan / status).
 #
 # Mental model (Terraform-like):
@@ -82,11 +82,11 @@ HIGH_THRESHOLD = 2
 # Artifact locations
 # ---------------------------------------------------------------------------
 #
-# .oops/migrate/ is git-ignored EXCEPT plan.yml, which is versioned.
+# .oops/upgrade/ is git-ignored EXCEPT plan.yml, which is versioned.
 # state.yml and status.yml are regenerable; analyze is the mandatory
 # entry point after a fresh clone.
 
-ARTIFACT_DIR = Path(".oops") / "migrate"
+ARTIFACT_DIR = Path(".oops") / "upgrade"
 STATE_FILE = ARTIFACT_DIR / "state.yml"
 PLAN_FILE = ARTIFACT_DIR / "plan.yml"
 STATUS_FILE = ARTIFACT_DIR / "status.yml"

@@ -1,7 +1,7 @@
 # Copyright 2026 apik (https://apik.cloud).
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 #
-# File: plan.py — oops/commands/migrate/plan.py
+# File: plan.py — oops/commands/upgrade/plan.py
 
 """
 Seed or reconcile plan.yml from the current state.
@@ -104,7 +104,7 @@ def main(ctx, output_format, output_path):
 
     # 1. Require a state — analyze is the mandatory entry point.
     if not state_path.exists():
-        raise OopsError(f"No state found at {state_path}. Run `oops migrate analyze` first.")
+        raise OopsError(f"No state found at {state_path}. Run `oops upgrade analyze` first.")
     state: State = load_state(state_path)
 
     # 2. Load existing plan (None on first run).
@@ -155,7 +155,7 @@ def main(ctx, output_format, output_path):
 
     result: Result[dict] = Result()
     result.data = {
-        "cmd": "Migration plan",
+        "cmd": "Upgrade plan",
         "plan_path": str(plan_path),
         "modules": modules,
         "metrics": metrics,

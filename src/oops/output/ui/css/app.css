@@ -2044,7 +2044,7 @@ footer {
     margin-top: 1rem;
 }
 
-/* Upstream status cells (migrate analyze) */
+/* Upstream status cells (upgrade analyze) */
 .upstream {
     font-family: var(--mono);
     font-weight: 600;
@@ -2066,14 +2066,14 @@ footer {
     color: var(--text-muted);
 }
 
-/* Migration version indicator (migrate analyze header) */
+/* Upgrade version indicator (upgrade analyze header) */
 .page-header-row {
     display: flex;
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
 }
-.migration-indicator {
+.upgrade-indicator {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -2085,6 +2085,6 @@ footer {
     font-size: 0.95rem;
     font-weight: 600;
 }
-.migration-version.from { color: var(--text-muted); }
-.migration-version.to   { color: var(--ok); }
-.migration-arrow        { color: var(--text-muted); font-weight: 400; }
+.upgrade-version.from { color: var(--text-muted); }
+.upgrade-version.to   { color: var(--ok); }
+.upgrade-arrow        { color: var(--text-muted); font-weight: 400; }
