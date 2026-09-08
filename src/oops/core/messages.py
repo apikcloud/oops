@@ -49,7 +49,7 @@ class CommitMessages:
 
     # Upgrade
     upgrade_prepare: str = "upgrade: prepare {version} base"
-    vanilla_strip: str = "chore(upgrade): strip non-core modules for vanilla base ({from_version})"
+    vanilla_strip: str = "chore(upgrade): vanilla base for {to_version} (from {from_version})"
 
     # Miscellaneous
     image_update: str = "chore: update odoo image to '{new}'\n\nFrom '{old}', {days} day(s) newer."

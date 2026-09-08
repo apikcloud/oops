@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
@@ -16,13 +17,30 @@ from git import Repo
 from oops.commands.upgrade.vanilla import (
     UNINSTALL_SCRIPT_TEMPLATE,
     VanillaModule,
+    bump_odoo_version,
     compute_removal_order,
     discover_non_core_addons,
     flag_kb_collisions,
     main,
     render_uninstall_script,
+    sync_project_files,
 )
 from oops.core.exceptions import OopsError
+from oops.core.models import ImageInfo
+
+
+def _fake_find_available_images(version, enterprise, release=None, target_date=None):
+    """Stand-in for `services.docker.find_available_images` — no network."""
+    return [
+        ImageInfo(
+            image=f"apik/odoo:{version}-20260101",
+            registry="apik",
+            repository="odoo",
+            major_version=version,
+            release=date(2026, 1, 1),
+            enterprise=enterprise,
+        )
+    ]
 
 
 def _make_addon_dir(base: Path, name: str, author: str = "Acme", depends=None, website=None):
@@ -160,6 +178,69 @@ def test_render_uninstall_script_uses_shared_template():
 
 
 # ---------------------------------------------------------------------------
+# bump_odoo_version / sync_project_files
+# ---------------------------------------------------------------------------
+
+
+def test_bump_odoo_version_writes_latest_target_image(tmp_path):
+    (tmp_path / "odoo_version.txt").write_text("apik/odoo:18.0-20240101\n")
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        image = bump_odoo_version(tmp_path, "19.0")
+
+    assert image == "apik/odoo:19.0-20260101"
+    assert (tmp_path / "odoo_version.txt").read_text().strip() == "apik/odoo:19.0-20260101"
+
+
+def test_bump_odoo_version_dry_run_does_not_write(tmp_path):
+    (tmp_path / "odoo_version.txt").write_text("apik/odoo:18.0-20240101\n")
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        image = bump_odoo_version(tmp_path, "19.0", dry_run=True)
+
+    assert image == "apik/odoo:19.0-20260101"
+    assert (tmp_path / "odoo_version.txt").read_text().strip() == "apik/odoo:18.0-20240101"
+
+
+def test_bump_odoo_version_no_image_found_raises(tmp_path):
+    (tmp_path / "odoo_version.txt").write_text("apik/odoo:18.0-20240101\n")
+    with patch("oops.commands.upgrade.vanilla.find_available_images", return_value=[]):
+        with pytest.raises(OopsError):
+            bump_odoo_version(tmp_path, "19.0")
+
+
+def test_sync_project_files_skips_when_unconfigured(tmp_path):
+    # conftest's MINIMAL_CONFIG leaves sync.remote_url unset by default.
+    assert sync_project_files(tmp_path) == []
+
+
+def test_sync_project_files_copies_from_remote(tmp_path, monkeypatch):
+    from oops.core.config import config
+
+    monkeypatch.setattr(config.sync, "remote_url", "https://example.invalid/repo.git")
+    monkeypatch.setattr(config.sync, "files", {"docker-compose.yml"})
+
+    def _fake_fetch(url, branch, files, tmpdir):
+        (tmpdir / "docker-compose.yml").write_text("services: {}\n")
+
+    with patch("oops.commands.upgrade.vanilla.fetch_project_files", side_effect=_fake_fetch):
+        synced = sync_project_files(tmp_path)
+
+    assert synced == ["docker-compose.yml"]
+    assert (tmp_path / "docker-compose.yml").read_text() == "services: {}\n"
+
+
+def test_sync_project_files_dry_run_lists_configured_files_only(tmp_path, monkeypatch):
+    from oops.core.config import config
+
+    monkeypatch.setattr(config.sync, "remote_url", "https://example.invalid/repo.git")
+    monkeypatch.setattr(config.sync, "files", {"docker-compose.yml"})
+
+    synced = sync_project_files(tmp_path, dry_run=True)
+
+    assert synced == ["docker-compose.yml"]
+    assert not (tmp_path / "docker-compose.yml").exists()
+
+
+# ---------------------------------------------------------------------------
 # CLI integration (real git repos — `main` performs real branch/commit/tag
 # operations, so these are not mocked like the analyze/plan CLI tests).
 # ---------------------------------------------------------------------------
@@ -198,7 +279,8 @@ def test_cli_force_strips_local_addon(tmp_path, monkeypatch):
     _commit_all(repo, "add addon")
 
     monkeypatch.chdir(repo_path)
-    result = CliRunner().invoke(main, ["--force"])
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
 
     assert result.exit_code == 0, result.output
     assert not (repo_path / "custom_mod").exists()
@@ -208,9 +290,23 @@ def test_cli_force_strips_local_addon(tmp_path, monkeypatch):
     requirements = (repo_path / "requirements.txt").read_text()
     assert "odoo_upgrade @ git+https://github.com/odoo/upgrade-util@master" in requirements
     assert "git" in (repo_path / "packages.txt").read_text().split()
-    assert "vanilla/18.0" in [h.name for h in repo.heads]
-    assert "vanilla-18.0" in [t.name for t in repo.tags]
+    assert (repo_path / "odoo_version.txt").read_text().strip() == "apik/odoo:19.0-20260101"
+    assert "vanilla/19.0" in [h.name for h in repo.heads]
+    assert "vanilla-19.0" in [t.name for t in repo.tags]
     assert repo.is_dirty() is False
+
+
+def test_cli_requires_to_version(tmp_path, monkeypatch):
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_local_addon(repo_path, "custom_mod")
+    _commit_all(repo, "add addon")
+
+    monkeypatch.chdir(repo_path)
+    result = CliRunner().invoke(main, ["--force"])
+
+    assert result.exit_code != 0
+    assert "--to" in result.output
 
 
 def test_cli_dry_run_leaves_tree_unchanged(tmp_path, monkeypatch):
@@ -221,7 +317,8 @@ def test_cli_dry_run_leaves_tree_unchanged(tmp_path, monkeypatch):
 
     before = repo.git.status("--porcelain")
     monkeypatch.chdir(repo_path)
-    result = CliRunner().invoke(main, ["--dry-run"])
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--dry-run"])
 
     assert result.exit_code == 0, result.output
     assert (repo_path / "custom_mod").exists()
@@ -235,7 +332,7 @@ def test_cli_no_addons_exits_error(tmp_path, monkeypatch):
     repo_path = Path(repo.working_tree_dir)
 
     monkeypatch.chdir(repo_path)
-    result = CliRunner().invoke(main, ["--force"])
+    result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
 
     assert result.exit_code != 0
     assert "nothing to strip" in result.output.lower() or "no non-core addons" in result.output.lower()
@@ -250,7 +347,8 @@ def test_cli_kb_collision_still_removed_with_warning(tmp_path, monkeypatch):
     fake_kb = {"sale_extra": {"origin": "odoo", "depends": []}}
     monkeypatch.chdir(repo_path)
     with patch("oops.commands.upgrade.vanilla.load_odoo_kb", return_value=fake_kb):
-        result = CliRunner().invoke(main, ["--force", "--format", "json"])
+        with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+            result = CliRunner().invoke(main, ["--to", "19.0", "--force", "--format", "json"])
 
     assert result.exit_code == 0, result.output
     assert not (repo_path / "sale_extra").exists()
@@ -269,7 +367,8 @@ def test_cli_packages_txt_merges_existing_entries(tmp_path, monkeypatch):
     _commit_all(repo, "add addon and packages")
 
     monkeypatch.chdir(repo_path)
-    result = CliRunner().invoke(main, ["--force"])
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
 
     assert result.exit_code == 0, result.output
     packages = (repo_path / "packages.txt").read_text().split()
@@ -302,7 +401,8 @@ def test_cli_submodule_addon_removed_no_dangling_gitmodules(tmp_path, monkeypatc
     _commit_all(repo, "add submodule")
 
     monkeypatch.chdir(repo_path)
-    result = CliRunner().invoke(main, ["--force"])
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
 
     assert result.exit_code == 0, result.output
     assert "Nothing to strip" not in result.output

@@ -2,39 +2,44 @@
 # License AGPL-3.0-only (https://www.gnu.org/licenses/agpl-3.0.html)
 
 """
-Strip every non-core addon (custom, OCA, third-party) from the project and
-replace it with an upgrade-util script that uninstalls the same modules from
-the database, in reverse Odoo registry load order, the first time the
-migrated database boots.
+Strip every non-core addon (custom, OCA, third-party) from the project,
+bump the project to the target Odoo version, sync project scaffolding, and
+replace the stripped addons with an upgrade-util script that uninstalls the
+same modules from the database, in reverse Odoo registry load order, the
+first time the upgraded database boots.
 
-This is the "vanilla" starting point: a branch/tag stripped down to pure
-Odoo core, used as the base for every MdV (montee de version) project.
-Independent of state.yml/plan.yml — no per-module porting decisions apply
-here, everything non-core is removed.
+This is the "vanilla" starting point: a branch/tag on the target Odoo
+version, stripped down to pure core, used as the base for every MdV
+(montee de version) project. Independent of state.yml/plan.yml — no
+per-module porting decisions apply here, everything non-core is removed.
 """
 
 from __future__ import annotations
 
 import os
 import re
-from dataclasses import asdict, dataclass
+import tempfile
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
 import click
+import requests
 import yaml
 from git import Repo
 from oops.commands.base import command, render_and_exit
 from oops.core.config import config
-from oops.core.exceptions import OopsError
+from oops.core.exceptions import APIError, OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import parse_odoo_version, parse_packages, write_text_file
 from oops.output.formatters import FormatterRegistry, JsonFormatter, OutputFormatter, SimpleSummaryConsoleFormatter
 from oops.output.workflow import run_mutation_workflow
+from oops.services.docker import find_available_images
 from oops.services.git import commit_v2, list_submodules, require_repository
 from oops.services.kb import load_odoo_kb
+from oops.services.project import copy_project_files, fetch_project_files
 from oops.utils.render import warn_experimental
 from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
 from oops_engine.compat import Optional
@@ -109,10 +114,13 @@ class VanillaModule:
 @dataclass
 class VanillaReport:
     from_version: str
+    to_version: str
     modules: "list[VanillaModule]"
     script_path: str
     branch: "Optional[str]" = None
     tag: "Optional[str]" = None
+    image: "Optional[str]" = None
+    synced_files: "list[str]" = field(default_factory=list)
     generated_at: str = ""
     kb_checked: bool = False
 
@@ -359,6 +367,64 @@ def ensure_git_package(repo_path: Path, dry_run: bool = False) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Bump to target version / sync project scaffolding
+# ---------------------------------------------------------------------------
+
+
+def bump_odoo_version(repo_path: Path, to_version: str, dry_run: bool = False) -> str:
+    """Write odoo_version.txt to the latest available image for `to_version`.
+
+    Keeps the current edition (community/enterprise) and picks the newest
+    release of the target major version — the same image-lookup mechanism
+    `oops project update` uses for same-version refreshes
+    (`services.docker.find_available_images`), but targeting a different
+    (destination) major version instead of the current one.
+    """
+    try:
+        current = parse_odoo_version(repo_path)
+    except ValueError as exc:
+        raise OopsError(f"Could not read current Odoo version from {config.project.file_odoo_version}.") from exc
+
+    try:
+        to_major = float(to_version)
+    except ValueError as exc:
+        raise OopsError(f"Invalid --to version: {to_version!r} (expected e.g. '19.0').") from exc
+
+    try:
+        images = find_available_images(version=to_major, enterprise=current.enterprise, release=None)
+    except requests.RequestException as exc:
+        raise APIError(f"Failed to fetch available images: {exc}") from exc
+
+    if not images:
+        raise OopsError(f"No Odoo image found for version {to_version}.")
+
+    new_image = images[0].image
+    if not dry_run:
+        write_text_file(repo_path / config.project.file_odoo_version, [new_image])
+    return new_image
+
+
+def sync_project_files(repo_path: Path, dry_run: bool = False) -> "list[str]":
+    """Sync project scaffolding from the configured remote (`oops project sync`).
+
+    Degrades gracefully — returns `[]` without error when `sync.remote_url`
+    isn't configured, since this is a bonus step inside a much larger
+    destructive operation, not vanilla's primary purpose.
+    """
+    remote_url = config.sync.remote_url
+    files = sorted(config.sync.files)
+    if not remote_url or not files:
+        return []
+    if dry_run:
+        return files
+
+    with tempfile.TemporaryDirectory() as _tmpdir:
+        tmpdir = Path(_tmpdir)
+        fetch_project_files(remote_url, config.sync.branch, files, tmpdir)
+        return copy_project_files(tmpdir, files, repo_path)
+
+
+# ---------------------------------------------------------------------------
 # Command
 # ---------------------------------------------------------------------------
 
@@ -370,22 +436,30 @@ def ensure_git_package(repo_path: Path, dry_run: bool = False) -> Path:
     default=None,
     help="Source Odoo version (e.g. 18.0). Detected from odoo_version.txt/branch if omitted.",
 )
-@click.option("--branch", "branch_name", default=None, help="Branch to create (default: vanilla/<from_version>).")
-@click.option("--tag", "tag_name", default=None, help="Tag to create (default: vanilla-<from_version>).")
+@click.option(
+    "--to",
+    "to_version",
+    default=None,
+    help="Target Odoo version (e.g. 19.0). Required — the vanilla base is built on the destination version.",
+)
+@click.option("--branch", "branch_name", default=None, help="Branch to create (default: vanilla/<to_version>).")
+@click.option("--tag", "tag_name", default=None, help="Tag to create (default: vanilla-<to_version>).")
 @click.option("--dry-run", is_flag=True, help="Show what would happen, no git changes.")
 @click.option("--no-commit", is_flag=True, help="Strip and generate the script, but do not commit or tag.")
 @click.option("-f", "--force", is_flag=True, help="Apply without prompting.")
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
 @click.option("--output-path", type=click.Path(dir_okay=False, path_type=Path), default=None)
 @click.pass_context
-def main(ctx, from_version, branch_name, tag_name, dry_run, no_commit, force, output_format, output_path):  # noqa: C901
-    """Strip non-core addons and generate an upgrade-util uninstall script."""
+def main(  # noqa: C901
+    ctx, from_version, to_version, branch_name, tag_name, dry_run, no_commit, force, output_format, output_path
+):
+    """Strip non-core addons, bump to the target version, and generate an upgrade-util uninstall script."""
     warn_experimental()
     formatter: OutputFormatter = FORMATTERS[output_format]()
     metadata = get_metadata()
     repo, repo_path = require_repository()
 
-    # Resolve from_version.
+    # Resolve from_version — the version modules are discovered/ordered/KB-checked against.
     if not from_version:
         from_version = config.manifest.odoo_version or ""
         if not from_version:
@@ -406,15 +480,18 @@ def main(ctx, from_version, branch_name, tag_name, dry_run, no_commit, force, ou
             f"set manifest.odoo_version in .oops.yaml, or check {config.project.file_odoo_version}."
         )
 
-    branch_name = branch_name or f"vanilla/{from_version}"
-    tag_name = tag_name or f"vanilla-{from_version}"
+    if not to_version:
+        raise OopsError("Target version required. Provide --to (e.g. --to 19.0).")
+
+    branch_name = branch_name or f"vanilla/{to_version}"
+    tag_name = tag_name or f"vanilla-{to_version}"
 
     # `metadata.parameters` was snapshotted from raw CLI options before this
-    # callback resolved from_version/branch_name/tag_name — refresh it so
-    # presenters see the actual values used, not the CLI defaults (None).
+    # callback resolved from_version/to_version/branch_name/tag_name — refresh
+    # it so presenters see the actual values used, not the CLI defaults (None).
     if metadata is not None:
         metadata.parameters.update(
-            {"from_version": from_version, "branch": branch_name, "tag": tag_name}
+            {"from_version": from_version, "to_version": to_version, "branch": branch_name, "tag": tag_name}
         )
 
     sub_meta_by_relpath = list_submodules(repo)
@@ -440,10 +517,19 @@ def main(ctx, from_version, branch_name, tag_name, dry_run, no_commit, force, ou
     rows = [[m.name, m.classification, str(m.load_index), m.matched_origin or ""] for m in modules]
 
     if dry_run:
+        with live_progress(f"Checking target image for {to_version}…"):
+            preview_image = bump_odoo_version(repo_path, to_version, dry_run=True)
+        preview_synced = sync_project_files(repo_path, dry_run=True)
+
         log.info(f"[dry-run] Would create branch {branch_name!r} from current HEAD.")
         for m in modules:
             flag = f" [{m.matched_origin}!]" if m.matched_origin else ""
             log.info(f"[dry-run] Would remove {m.name} (load_index={m.load_index}){flag}.")
+        log.info(f"[dry-run] Would bump {config.project.file_odoo_version} to {preview_image!r}.")
+        if preview_synced:
+            log.info(f"[dry-run] Would sync project files: {', '.join(preview_synced)}.")
+        else:
+            log.info("[dry-run] sync.remote_url not configured — project sync would be skipped.")
         log.info(f"[dry-run] Would write {SCRIPT_REL_PATH}.")
         log.info(f"[dry-run] Would write {config.project.file_requirements} with the upgrade-util requirement.")
         log.info(f"[dry-run] Would ensure 'git' is listed in {config.project.file_packages}.")
@@ -452,12 +538,14 @@ def main(ctx, from_version, branch_name, tag_name, dry_run, no_commit, force, ou
 
         result: "Result[dict]" = Result()
         result.data = {
-            "cmd": f"Upgrade vanilla ({from_version}, dry-run)",
+            "cmd": f"Upgrade vanilla ({from_version} -> {to_version}, dry-run)",
             "dry_run": True,
             "rows": rows,
             "script_path": str(SCRIPT_REL_PATH),
             "branch": None,
             "tag": None,
+            "image": preview_image,
+            "synced_files": preview_synced,
             "kb_checked": kb_checked,
         }
         result.merge(outer)
@@ -484,6 +572,16 @@ def main(ctx, from_version, branch_name, tag_name, dry_run, no_commit, force, ou
         empty_message="Nothing to strip.",
     )
 
+    with live_progress(f"Bumping to Odoo {to_version}…"):
+        new_image = bump_odoo_version(repo_path, to_version)
+
+    with live_progress("Syncing project scaffolding…"):
+        synced_files = sync_project_files(repo_path)
+    if not synced_files and config.sync.remote_url:
+        outer.add_warning("Project sync configured but nothing was synced (no matching files found upstream).")
+    elif not config.sync.remote_url:
+        outer.add_warning("sync.remote_url not configured — project sync skipped.")
+
     write_uninstall_script(repo_path, script_content)
     ensure_upgrade_util_requirement(repo_path)
     ensure_git_package(repo_path)
@@ -499,6 +597,7 @@ def main(ctx, from_version, branch_name, tag_name, dry_run, no_commit, force, ou
                 [],
                 "vanilla_strip",
                 from_version=from_version,
+                to_version=to_version,
                 skip_hooks=True,
                 already_staged=True,
             )
@@ -514,22 +613,27 @@ def main(ctx, from_version, branch_name, tag_name, dry_run, no_commit, force, ou
         report_path,
         VanillaReport(
             from_version=from_version,
+            to_version=to_version,
             modules=modules,
             script_path=str(SCRIPT_REL_PATH),
             branch=branch_ref,
             tag=tag_ref,
+            image=new_image,
+            synced_files=synced_files,
             kb_checked=kb_checked,
         ),
     )
 
     final_result: "Result[dict]" = Result()
     final_result.data = {
-        "cmd": f"Upgrade vanilla ({from_version})",
+        "cmd": f"Upgrade vanilla ({from_version} -> {to_version})",
         "dry_run": False,
         "rows": rows,
         "script_path": str(SCRIPT_REL_PATH),
         "branch": branch_ref,
         "tag": tag_ref,
+        "image": new_image,
+        "synced_files": synced_files,
         "report_path": str(report_path),
         "kb_checked": kb_checked,
     }
