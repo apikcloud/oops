@@ -17,6 +17,7 @@ import ast
 from pathlib import Path
 
 from oops_engine.logger import log
+from oops_engine.utils import parse_python_source
 
 
 def discover_imported_files(package_dir: Path) -> list[Path]:
@@ -55,7 +56,7 @@ def _walk(package_dir: Path, seen: set[Path], out: list[Path]) -> None:
     if not init_path.is_file():
         return
     try:
-        tree = ast.parse(init_path.read_text(encoding="utf-8"))
+        tree = parse_python_source(init_path.read_text(encoding="utf-8"), filename=str(init_path))
     except (SyntaxError, UnicodeDecodeError) as exc:
         log.debug("skipping %s (parse failed: %s)", init_path, exc)
         return

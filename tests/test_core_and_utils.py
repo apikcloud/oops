@@ -307,6 +307,43 @@ class TestDeepVisit:
         assert ("[0]", 1) in result
 
 
+class TestParsePythonSource:
+    def test_suppresses_invalid_escape_syntax_warning(self):
+        import warnings
+
+        from oops_engine.utils import parse_python_source
+
+        # Legacy Odoo source is full of non-raw regex literals like this —
+        # CPython emits a SyntaxWarning for the invalid '\d' escape even via
+        # plain ast.parse. Must not leak past parse_python_source.
+        source = "import re\ndef f():\n    return re.sub('\\d', '', 'x')\n"
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", SyntaxWarning)
+            tree = parse_python_source(source, filename="legacy.py")
+        assert tree is not None
+
+    def test_real_syntax_error_still_raises(self):
+        from oops_engine.utils import parse_python_source
+
+        with pytest.raises(SyntaxError):
+            parse_python_source("def f(:\n    pass", filename="bad.py")
+
+    def test_does_not_leak_filter_to_caller(self):
+        """The suppression must be scoped to the call, not leaked globally —
+        a SyntaxWarning from code the caller runs afterwards must still be
+        visible (verifies catch_warnings() properly restores prior state).
+        """
+        import warnings
+
+        from oops_engine.utils import parse_python_source
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            parse_python_source("x = '\\d'\n", filename="a.py")  # suppressed internally
+            warnings.warn("still visible", SyntaxWarning, stacklevel=2)  # not suppressed
+        assert any(str(w.message) == "still visible" for w in caught)
+
+
 class TestFilterAndClean:
     def test_strips_inline_comment(self):
         from oops.utils.helpers import filter_and_clean

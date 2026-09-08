@@ -27,7 +27,6 @@ Import from here in every rule module so future rules don't duplicate code::
     )
 """
 
-import ast
 import subprocess
 from functools import lru_cache
 from pathlib import Path
@@ -36,6 +35,7 @@ import libcst as cst
 from oops.core.config import ManifestConfig
 from oops_engine.compat import Any, List, Optional, Sequence, Tuple, Union  # noqa: UP035
 from oops_engine.manifest import DEFAULT_MANIFEST_NAMES
+from oops_engine.utils import literal_eval_source
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -269,7 +269,7 @@ def parse_version_str(source: str) -> Optional[Tuple[int, ...]]:
     field is absent or cannot be parsed.
     """
     try:
-        data = ast.literal_eval(source)
+        data = literal_eval_source(source)
         raw = data.get("version", "") if isinstance(data, dict) else ""
         if not raw:
             return None
