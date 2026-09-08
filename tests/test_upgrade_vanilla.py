@@ -372,7 +372,7 @@ def test_cli_force_strips_local_addon(tmp_path, monkeypatch):
 
     assert result.exit_code == 0, result.output
     assert not (repo_path / "custom_mod").exists()
-    script_path = repo_path / "upgrades" / "base" / "0.0.0" / "end-uninstall_non_core_modules.py"
+    script_path = repo_path / "upgrades" / "pre-uninstall_non_core_modules.py"
     assert script_path.exists()
     assert '"custom_mod"' in script_path.read_text()
     requirements = (repo_path / "requirements.txt").read_text()
