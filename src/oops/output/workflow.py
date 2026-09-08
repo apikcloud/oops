@@ -34,6 +34,12 @@ ApplyFn = Callable[[PlanAction], Tuple[str, bool]]
 # OopsError to abort before the user confirms.
 OnSelectedFn = Callable[["Plan"], None]
 
+# Hook called once the user has actually agreed to proceed (confirmed, or
+# --force skipped the prompt) — and never before. Use it for a mutation that
+# must not happen on mere presentation, such as creating/checking out the
+# destination branch the `apply` actions are about to run against.
+OnConfirmedFn = Callable[[], None]
+
 
 def run_mutation_workflow(
     *,
@@ -45,6 +51,7 @@ def run_mutation_workflow(
     select: bool = True,
     select_prompt: str = "Select item(s): ",
     on_selected: "Optional[OnSelectedFn]" = None,
+    on_confirmed: "Optional[OnConfirmedFn]" = None,
     empty_message: str = "Nothing to do.",
 ) -> Result[Rows]:
     """Run the shared mutation scenario and return the execution result.
@@ -55,6 +62,7 @@ def run_mutation_workflow(
         3. Resolve selection-derived state via `on_selected` (optional).
         4. Present the plan.
         5. Ask for confirmation (skipped when --force).
+        5b. Run `on_confirmed` (optional) — only once confirmed.
         6. Execute each action via `apply`, collecting status + metrics.
 
     The workflow does NOT commit and does NOT render the result — the calling
@@ -72,6 +80,10 @@ def run_mutation_workflow(
         on_selected: Optional hook run after selection and before presentation.
             Use it to resolve state that depends on the selection and to run
             safety checks early (it may raise to abort before confirmation).
+        on_confirmed: Optional hook run right after the user has confirmed
+            (or --force bypassed the prompt), before any `apply` call. Use it
+            for a mutation — e.g. creating the destination branch — that must
+            never happen before the user has actually agreed to proceed.
         empty_message: Message shown when there is nothing to do.
 
     Returns:
@@ -109,6 +121,11 @@ def run_mutation_workflow(
     # 5. Confirmation (unless --force)
     if not force and not prompt_confirm("Proceed?", default=True):
         raise AppAbort()
+
+    # 5b. Post-confirmation hook — runs only now that the user has actually
+    # agreed to proceed (or --force skipped the prompt), never before.
+    if on_confirmed is not None:
+        on_confirmed()
 
     # 6. Execute
     result: Result[Rows] = Result(

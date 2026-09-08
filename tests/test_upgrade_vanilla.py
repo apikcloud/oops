@@ -296,6 +296,33 @@ def test_cli_force_strips_local_addon(tmp_path, monkeypatch):
     assert repo.is_dirty() is False
 
 
+def test_cli_declining_confirmation_creates_no_branch(tmp_path, monkeypatch):
+    """Regression: branch creation must happen only after the user confirms —
+    not while merely building/presenting the plan. Declining the "Proceed?"
+    prompt must leave the repository exactly as it was: no vanilla/<to>
+    branch, no tag, no stripped files, no bumped odoo_version.txt.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_local_addon(repo_path, "custom_mod")
+    _commit_all(repo, "add addon")
+
+    before_branch = repo.active_branch.name
+    before_status = repo.git.status("--porcelain")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        with patch("oops.output.workflow.prompt_confirm", return_value=False):
+            result = CliRunner().invoke(main, ["--to", "19.0"])
+
+    assert result.exit_code != 0
+    assert repo.active_branch.name == before_branch
+    assert "vanilla/19.0" not in [h.name for h in repo.heads]
+    assert "vanilla-19.0" not in [t.name for t in repo.tags]
+    assert (repo_path / "custom_mod").exists()
+    assert repo.git.status("--porcelain") == before_status
+
+
 def test_cli_requires_to_version(tmp_path, monkeypatch):
     repo = _init_repo(tmp_path)
     repo_path = Path(repo.working_tree_dir)

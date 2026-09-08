@@ -553,14 +553,20 @@ def main(  # noqa: C901
         render_and_exit(result, formatter, output, output_format, output_path)
         return
 
-    with live_progress(f"Creating branch {branch_name!r}…"):
-        repo.git.checkout("-b", branch_name)
-
+    # Plan/order/KB-check were all computed above, against the source-version
+    # tree exactly as it stood at the start of this run. Nothing has been
+    # mutated yet — the branch is not created here either: `on_confirmed`
+    # below only runs once the user has actually agreed to proceed (or
+    # --force skipped the prompt), never on mere presentation of the plan.
     plan = build_strip_plan(repo, repo_path, modules)
     sub_by_relpath = {s.path: s for s in repo.submodules}
 
     def apply(action: PlanAction) -> "tuple[str, bool]":
         return apply_strip_action(repo, repo_path, sub_by_relpath, action)
+
+    def create_branch() -> None:
+        with live_progress(f"Creating branch {branch_name!r}…"):
+            repo.git.checkout("-b", branch_name)
 
     run_mutation_workflow(
         plan=plan,
@@ -569,6 +575,7 @@ def main(  # noqa: C901
         title="Strip non-core addons",
         force=force,
         select=False,
+        on_confirmed=create_branch,
         empty_message="Nothing to strip.",
     )
 
