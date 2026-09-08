@@ -21,6 +21,7 @@ from oops.commands.upgrade.vanilla import (
     compute_removal_order,
     discover_non_core_addons,
     flag_kb_collisions,
+    load_installed_context,
     main,
     render_uninstall_script,
     sync_project_files,
@@ -120,6 +121,93 @@ def test_compute_removal_order_cycle_raises():
     b = _vm("b", depends=["a"])
     with pytest.raises(OopsError):
         compute_removal_order([a, b])
+
+
+def test_compute_removal_order_single_addon_is_trivially_zero_without_extra_depends():
+    """Regression baseline for the exact reported symptom: with a single
+    discovered addon depending only on (undiscovered) core modules, it's the
+    only entry in `installed` — load_index is trivially 0, regardless of how
+    deep its real dependency chain actually is in the Odoo registry.
+    """
+    a = _vm("addon_a", depends=["sale"])
+    modules = compute_removal_order([a])
+    assert modules[0].load_index == 0
+
+
+def test_compute_removal_order_with_extra_depends_reflects_real_depth():
+    """With the real core dependency chain supplied (as load_installed_context
+    would from installed_modules.txt + the KB), the same single addon's
+    load_index reflects its actual position past its real dependencies —
+    no longer trivially 0 — and two addons resolving through chains of
+    different depth are differentiated and correctly ordered.
+    """
+    a = _vm("addon_a", depends=["sale"])  # base -> sale -> addon_a
+    extra_depends = {"base": [], "sale": ["base"]}
+    modules = compute_removal_order([a], extra_depends)
+    assert modules[0].load_index > 0
+
+    b = _vm("addon_b", depends=["crm"])  # base -> sale -> crm -> addon_b
+    extra_depends = {"base": [], "sale": ["base"], "crm": ["sale"]}
+    modules = compute_removal_order([a, b], extra_depends)
+    by_name = {m.name: m.load_index for m in modules}
+    assert by_name["addon_b"] > by_name["addon_a"]
+    # addon_b (deeper chain) must be removed before addon_a.
+    assert [m.name for m in modules].index("addon_b") < [m.name for m in modules].index("addon_a")
+
+
+# ---------------------------------------------------------------------------
+# load_installed_context
+# ---------------------------------------------------------------------------
+
+
+def test_load_installed_context_missing_file_warns(tmp_path):
+    a = _vm("addon_a", depends=["sale"])
+    extra_depends, warnings = load_installed_context(tmp_path, [a], "14.0")
+    assert extra_depends == {}
+    assert len(warnings) == 1
+    assert "installed_modules.txt" in warnings[0]
+    assert "not found" in warnings[0]
+
+
+def test_load_installed_context_resolves_from_kb(tmp_path):
+    _make_addon_dir(tmp_path, "addon_a", depends=["sale"])
+    (tmp_path / "installed_modules.txt").write_text("addon_a\nsale\nbase\n")
+
+    fake_kb = {
+        "sale": {"origin": "odoo", "depends": ["base"]},
+        "base": {"origin": "odoo", "depends": []},
+    }
+    a = _vm("addon_a", depends=["sale"])
+    with patch("oops.commands.upgrade.vanilla.load_odoo_kb", return_value=fake_kb):
+        extra_depends, warnings = load_installed_context(tmp_path, [a], "14.0")
+
+    assert extra_depends == {"sale": ["base"], "base": []}
+    # sale/base are core (no addon at root) — expected, not an error.
+    assert any("no addon at the repo root" in w for w in warnings)
+
+
+def test_load_installed_context_unresolved_kb_entry_warns(tmp_path):
+    _make_addon_dir(tmp_path, "addon_a", depends=["some_ghost_module"])
+    (tmp_path / "installed_modules.txt").write_text("addon_a\nsome_ghost_module\n")
+
+    a = _vm("addon_a", depends=["some_ghost_module"])
+    with patch("oops.commands.upgrade.vanilla.load_odoo_kb", return_value={}):
+        extra_depends, warnings = load_installed_context(tmp_path, [a], "14.0")
+
+    assert extra_depends == {}
+    assert any("some_ghost_module" in w and "no record in the global Odoo KB" in w for w in warnings)
+
+
+def test_load_installed_context_extra_addon_at_root_warns(tmp_path):
+    _make_addon_dir(tmp_path, "addon_a", depends=[])
+    _make_addon_dir(tmp_path, "addon_b_not_listed", depends=[])
+    (tmp_path / "installed_modules.txt").write_text("addon_a\n")
+
+    a = _vm("addon_a", depends=[])
+    with patch("oops.commands.upgrade.vanilla.load_odoo_kb", return_value={}):
+        _extra_depends, warnings = load_installed_context(tmp_path, [a], "14.0")
+
+    assert any("addon_b_not_listed" in w and "will still be removed" in w for w in warnings)
 
 
 # ---------------------------------------------------------------------------
@@ -404,6 +492,33 @@ def test_cli_kb_collision_still_removed_with_warning(tmp_path, monkeypatch):
     assert payload["kb_checked"] is True
     assert payload["modules"][0]["matched_origin"] == "core"
     assert any("sale_extra" in w for w in payload["warnings"])
+
+
+def test_cli_uses_installed_modules_txt_for_load_index(tmp_path, monkeypatch):
+    """End-to-end regression for the reported symptom: with installed_modules.txt
+    present, load_index reflects the real core dependency chain instead of
+    trivially being 0/tied for every discovered addon.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_local_addon(repo_path, "sale_extra", depends=["sale"])
+    (repo_path / "installed_modules.txt").write_text("sale_extra\nsale\nbase\n")
+    _commit_all(repo, "add addon and installed_modules.txt")
+
+    fake_kb = {
+        "sale": {"origin": "odoo", "depends": ["base"]},
+        "base": {"origin": "odoo", "depends": []},
+    }
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.load_odoo_kb", return_value=fake_kb):
+        with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+            result = CliRunner().invoke(main, ["--to", "19.0", "--force", "--format", "json"])
+
+    assert result.exit_code == 0, result.output
+    json_start = result.output.index("{")
+    payload = json.loads(result.output[json_start:])
+    assert int(payload["modules"][0]["load_index"]) > 0
+    assert any("no addon at the repo root" in w for w in payload["warnings"])
 
 
 def test_cli_packages_txt_merges_existing_entries(tmp_path, monkeypatch):

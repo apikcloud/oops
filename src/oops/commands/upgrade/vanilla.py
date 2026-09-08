@@ -34,6 +34,7 @@ from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Plan, PlanAction, Result
 from oops.io.file import parse_odoo_version, parse_packages, write_text_file
+from oops.io.installed_modules import read_installed_modules
 from oops.output.formatters import FormatterRegistry, JsonFormatter, OutputFormatter, SimpleSummaryConsoleFormatter
 from oops.output.workflow import run_mutation_workflow
 from oops.services.docker import find_available_images
@@ -42,6 +43,7 @@ from oops.services.kb import load_odoo_kb
 from oops.services.project import copy_project_files, fetch_project_files
 from oops.utils.render import warn_experimental, warning_section
 from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.build import compute_root_drift
 from oops_engine.compat import Optional
 from oops_engine.load_order import compute_load_order
 from oops_engine.models import Addon
@@ -152,18 +154,100 @@ def discover_non_core_addons(repo_path: Path, sub_meta_by_relpath: dict) -> "lis
     return addons
 
 
-def compute_removal_order(addons: "list[Addon]") -> "list[VanillaModule]":
+def load_installed_context(
+    repo_path: Path, addons: "list[Addon]", from_version: str
+) -> "tuple[dict[str, list[str]], list[str]]":
+    """Resolve real dependency data for modules `compute_removal_order` needs
+    to see but that aren't among the discovered non-core addons — i.e. the
+    Odoo core/enterprise/already-installed modules a custom addon depends on.
+
+    Without this, a custom addon whose manifest ``depends`` lists only core
+    modules (e.g. ``sale``, ``account`` — never checked into the repo, so
+    never in the discovered set) has no in-`installed` dependency at all and
+    gets ``load_index=0`` like every other such addon: safe (nothing
+    among the removed modules depends on it either), but uninformative, and
+    not what the generated script's own comment claims ("position in the
+    forward Odoo registry load order").
+
+    Reads `installed_modules.txt` (the project's authoritative "what's
+    actually installed in the target database" list — the same file
+    `oops refactor`/`oops misc build-kb --installed-only` already rely on)
+    and looks up each entry not already a discovered addon in the global
+    Odoo KB for `from_version` to get its real `depends`.
+
+    Returns (extra_depends, warnings): `extra_depends` maps each such module
+    name to its KB-recorded depends list — merge into `compute_removal_order`'s
+    graph, never into the removed-modules list itself. Degrades gracefully
+    (returns `({}, [<one warning>])`) when installed_modules.txt is absent,
+    same contract as `flag_kb_collisions` for a missing global KB.
+    """
+    info = read_installed_modules(repo_path)
+    warnings: "list[str]" = []
+    file_name = config.project.file_installed_modules
+
+    if info is None:
+        warnings.append(
+            f"{file_name} not found — load order only reflects dependencies between the discovered "
+            f"non-core modules themselves, not their real position in the Odoo registry. Create it "
+            "(one module name per line) for a fully-resolved order."
+        )
+        return {}, warnings
+
+    missing_at_root, extra_at_root = compute_root_drift(repo_path, info.modules)
+    if missing_at_root:
+        warnings.append(
+            f"{file_name} lists module(s) with no addon at the repo root "
+            f"(assumed Odoo core/enterprise, not project-owned): {', '.join(missing_at_root)}"
+        )
+    if extra_at_root:
+        warnings.append(
+            f"Addon(s) at the repo root not listed in {file_name} (will still be removed): "
+            f"{', '.join(extra_at_root)}"
+        )
+
+    discovered_names = {a.technical_name for a in addons}
+    kb_modules = load_odoo_kb(from_version)
+    extra_depends: "dict[str, list[str]]" = {}
+    unresolved: "list[str]" = []
+    for name in info.modules:
+        if name in discovered_names:
+            continue
+        entry = kb_modules.get(name)
+        if entry is None:
+            unresolved.append(name)
+            continue
+        extra_depends[name] = entry.get("depends", [])
+
+    if unresolved:
+        warnings.append(
+            f"{len(unresolved)} module(s) in {file_name} have no record in the global Odoo KB for "
+            f"{from_version!r} — their dependency chain stops there: {', '.join(sorted(unresolved))}"
+        )
+
+    return extra_depends, warnings
+
+
+def compute_removal_order(
+    addons: "list[Addon]", extra_depends: "Optional[dict[str, list[str]]]" = None
+) -> "list[VanillaModule]":
     """Order addons for safe uninstall: dependents before their dependencies.
 
     Reuses `oops_engine.load_order.compute_load_order` — the same algorithm
-    that reproduces Odoo's own registry load order — restricted to the
-    project's non-core addons (core/unknown deps are silently dropped by
-    that function, which is exactly what we want here). Sorting its output
-    *descending* by load_index gives the reverse load order: modules loaded
-    last (i.e. the most dependent) are removed first.
+    that reproduces Odoo's own registry load order. `extra_depends` (from
+    `load_installed_context`) extends the graph with the real modules a
+    discovered addon depends on but that aren't discovered addons themselves
+    (core, or already-installed OCA/third-party) — without it, ordering is
+    restricted to the tiny subgraph of addons that depend on each other
+    directly. Either way, unresolvable deps are silently dropped by
+    `compute_load_order`, which is exactly what we want here. Sorting the
+    result *descending* by load_index gives the reverse load order: modules
+    loaded last (i.e. the most dependent) are removed first.
     """
     installed = {a.technical_name for a in addons}
     depends = {a.technical_name: a.depends for a in addons}
+    if extra_depends:
+        installed |= set(extra_depends)
+        depends.update(extra_depends)
 
     try:
         order = compute_load_order(installed, depends)
@@ -173,7 +257,11 @@ def compute_removal_order(addons: "list[Addon]") -> "list[VanillaModule]":
         ) from exc
 
     by_name = {a.technical_name: a for a in addons}
-    ranked = sorted(order.items(), key=lambda item: item[1][1], reverse=True)
+    ranked = sorted(
+        ((name, load_index) for name, (_depth, load_index) in order.items() if name in by_name),
+        key=lambda item: item[1],
+        reverse=True,
+    )
     return [
         VanillaModule(
             name=name,
@@ -183,7 +271,7 @@ def compute_removal_order(addons: "list[Addon]") -> "list[VanillaModule]":
             submodule=by_name[name].submodule or None,
             rel_path=by_name[name].rel_path,
         )
-        for name, (_depth, load_index) in ranked
+        for name, load_index in ranked
     ]
 
 
@@ -502,22 +590,27 @@ def main(  # noqa: C901
     if not addons:
         raise OopsError("No non-core addons found — nothing to strip.")
 
+    with live_progress(f"Resolving installed-module context ({config.project.file_installed_modules})…"):
+        extra_depends, installed_warnings = load_installed_context(repo_path, addons, from_version)
+
     with live_progress("Computing safe removal order…"):
-        modules = compute_removal_order(addons)
+        modules = compute_removal_order(addons, extra_depends)
 
     with live_progress(f"Checking against the global Odoo KB ({from_version})…"):
         kb_checked, kb_warnings = flag_kb_collisions(modules, from_version)
 
-    # Surface KB warnings now, before the strip plan is even presented — the
-    # user must know collision detection was skipped (or what it found)
-    # while they can still decide not to proceed, not only in the final
-    # summary after everything has already been stripped/committed.
-    warning_section(kb_warnings)
+    # Surface warnings now, before the strip plan is even presented — the
+    # user must know collision detection was skipped (or what it found),
+    # and whether the removal order is fully resolved or restricted to the
+    # discovered-addon subgraph, while they can still decide not to proceed —
+    # not only in the final summary after everything has already been
+    # stripped/committed.
+    warning_section(installed_warnings + kb_warnings)
 
     script_content = render_uninstall_script(modules)
 
     outer: Result[None] = Result()
-    for w in kb_warnings:
+    for w in installed_warnings + kb_warnings:
         outer.add_warning(w)
 
     rows = [[m.name, m.classification, str(m.load_index), m.matched_origin or ""] for m in modules]

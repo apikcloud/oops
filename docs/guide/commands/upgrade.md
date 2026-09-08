@@ -26,6 +26,19 @@ check has something to check against). A later `oops requirements update` on
 the resulting branch will need the `upgrade-util` requirements line re-added
 if it regenerates the file.
 
+The removal order (the "MLO" written into the generated uninstall script)
+only reflects dependencies between the discovered non-core addons themselves
+unless `installed_modules.txt` is present at the project root — a custom
+addon whose manifest only depends on core modules (e.g. `sale`, `account`,
+never checked into the repo) otherwise has nothing to resolve against and
+gets a trivial `load_index`. With `installed_modules.txt` (the same file
+`oops refactor` and `oops misc build-kb --installed-only` rely on) listing
+every module actually installed in the target database, each entry not
+already a discovered addon is resolved against the global Odoo KB for
+`--from`, so the order reflects each addon's real position in the Odoo
+registry. Missing file, root/list drift, and KB-unresolvable entries all
+degrade gracefully with a warning rather than blocking the run.
+
 ---
 
 ::: mkdocs-click:commands
