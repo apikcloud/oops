@@ -39,12 +39,12 @@ already a discovered addon is resolved against the global Odoo KB for
 registry. Missing file, root/list drift, and KB-unresolvable entries all
 degrade gracefully with a warning rather than blocking the run.
 
-The generated `upgrades/pre-uninstall_non_core_modules.py` is a
+The generated `upgrade/pre-uninstall_non_core_modules.py` is a
 `--pre-upgrade-scripts` file (Odoo ≥ 16), not a standard
 `<module>/migrations/<version>/*.py` script — it lives at the root of the
 upgrade folder, not nested under `base/0.0.0/`, and Odoo does not
 auto-discover it: the actual upgrade run must pass it explicitly
-(`--pre-upgrade-scripts=upgrades/pre-uninstall_non_core_modules.py`). This
+(`--pre-upgrade-scripts=upgrade/pre-uninstall_non_core_modules.py`). This
 runs the removal *before* the `base` module itself is upgraded — the
 recommended context for module removal per Odoo's own upgrade-util
 documentation, since the module-state bookkeeping the upgrade process
