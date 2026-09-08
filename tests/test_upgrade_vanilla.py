@@ -296,6 +296,26 @@ def test_cli_force_strips_local_addon(tmp_path, monkeypatch):
     assert repo.is_dirty() is False
 
 
+def test_cli_kb_warning_shown_before_confirmation(tmp_path, monkeypatch):
+    """Regression: the KB warning must be visible to the user before they
+    decide whether to proceed — not only in the final summary, which never
+    even renders if the user declines (AppAbort skips it entirely).
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_local_addon(repo_path, "custom_mod")
+    _commit_all(repo, "add addon")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.load_odoo_kb", return_value={}):
+        with patch("oops.output.workflow.prompt_confirm", return_value=False):
+            result = CliRunner().invoke(main, ["--to", "19.0"])
+
+    assert result.exit_code != 0
+    assert "Global Odoo KB not found" in result.output
+    assert "vanilla/19.0" not in [h.name for h in repo.heads]
+
+
 def test_cli_declining_confirmation_creates_no_branch(tmp_path, monkeypatch):
     """Regression: branch creation must happen only after the user confirms —
     not while merely building/presenting the plan. Declining the "Proceed?"

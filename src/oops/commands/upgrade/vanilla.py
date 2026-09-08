@@ -40,7 +40,7 @@ from oops.services.docker import find_available_images
 from oops.services.git import commit_v2, list_submodules, require_repository
 from oops.services.kb import load_odoo_kb
 from oops.services.project import copy_project_files, fetch_project_files
-from oops.utils.render import warn_experimental
+from oops.utils.render import warn_experimental, warning_section
 from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
 from oops_engine.compat import Optional
 from oops_engine.load_order import compute_load_order
@@ -507,6 +507,12 @@ def main(  # noqa: C901
 
     with live_progress(f"Checking against the global Odoo KB ({from_version})…"):
         kb_checked, kb_warnings = flag_kb_collisions(modules, from_version)
+
+    # Surface KB warnings now, before the strip plan is even presented — the
+    # user must know collision detection was skipped (or what it found)
+    # while they can still decide not to proceed, not only in the final
+    # summary after everything has already been stripped/committed.
+    warning_section(kb_warnings)
 
     script_content = render_uninstall_script(modules)
 
