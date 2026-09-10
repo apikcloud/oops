@@ -10,6 +10,9 @@ Queries the target repository via the GitHub Trees API to list its addon
 directories (folders containing __manifest__.py or __openerp__.py), then
 prompts for which addons to symlink at the repo root.
 
+URL accepts a full URL (HTTPS or SSH), an ``<org>/<repo>`` shorthand, or a
+bare ``<repo>`` name (requires ``github.owner`` set in config).
+
 Usage:
     oops submodules add URL BRANCH [--pull-request] [--addons a,b] [--token TOKEN]
 """
@@ -30,7 +33,7 @@ from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, require_repository
 from oops.services.github import list_remote_addons
 from oops.services.submodule import add_submodule
-from oops.utils.net import encode_url, parse_repository_url
+from oops.utils.net import encode_url, parse_repository_url, resolve_repository_url
 from oops.utils.render import colorize
 from oops_engine.compat import Optional, Tuple
 
@@ -82,8 +85,9 @@ def add_submodule_flow(  # noqa: PLR0913, C901
     extra_commit_kwargs: Optional[dict] = None,
 ) -> None:
     """Core add-submodule logic shared by `submodules add` and `pr add`."""
-    # Validate URL and normalise scheme
+    # Expand shorthand (<org>/<repo>, bare <repo>), validate, normalise scheme
     try:
+        url = resolve_repository_url(url, default_owner=config.github.owner)
         _, owner, repo_name = parse_repository_url(url)
         if config.submodules.force_scheme:
             url = encode_url(url, config.submodules.force_scheme)

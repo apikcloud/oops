@@ -19,10 +19,11 @@ SUB_NAME = "testowner/myrepo"
 REMOTE_ADDONS = ["my_addon", "other_addon"]
 
 
-def _make_config(force_scheme=None, current_path=".third-party"):
+def _make_config(force_scheme=None, current_path=".third-party", github_owner=None):
     cfg = MagicMock()
     cfg.submodules.force_scheme = force_scheme
     cfg.submodules.current_path = current_path
+    cfg.github.owner = github_owner
     return cfg
 
 
@@ -202,3 +203,45 @@ class TestCommit:
         commit_mock = patches["oops.commands.submodules.add.commit_v2"]
         kwargs = commit_mock.call_args[1]
         assert kwargs.get("already_staged") is True
+
+
+# ---------------------------------------------------------------------------
+# URL formats: shorthand and bare repo name expansion
+# ---------------------------------------------------------------------------
+
+
+class TestUrlFormats:
+    def test_org_repo_shorthand_resolves_like_full_url(self, tmp_path):
+        result, patches = _invoke(tmp_path, args=["testowner/myrepo", BRANCH, "-f", "--token", "tok"])
+        assert result.exit_code == 0, result.output
+        patches["oops.commands.submodules.add.list_remote_addons"].assert_called_once_with(
+            "testowner", "myrepo", BRANCH, "tok"
+        )
+
+    def test_bare_repo_name_expands_with_configured_owner(self, tmp_path):
+        extra = {
+            "oops.commands.submodules.add.config": _make_config(github_owner="testowner"),
+            "oops.services.submodule.config": _make_config(github_owner="testowner"),
+        }
+        result, patches = _invoke(
+            tmp_path, args=["myrepo", BRANCH, "-f", "--token", "tok"], extra_patches=extra
+        )
+        assert result.exit_code == 0, result.output
+        patches["oops.commands.submodules.add.list_remote_addons"].assert_called_once_with(
+            "testowner", "myrepo", BRANCH, "tok"
+        )
+
+    def test_bare_repo_name_without_configured_owner_exits_error(self, tmp_path):
+        result, _ = _invoke(tmp_path, args=["myrepo", BRANCH, "-f", "--token", "tok"])
+        assert result.exit_code != 0
+        assert "github.owner" in result.output
+
+    def test_https_url_still_accepted(self, tmp_path):
+        result, patches = _invoke(
+            tmp_path,
+            args=["https://github.com/testowner/myrepo", BRANCH, "-f", "--token", "tok"],
+        )
+        assert result.exit_code == 0, result.output
+        patches["oops.commands.submodules.add.list_remote_addons"].assert_called_once_with(
+            "testowner", "myrepo", BRANCH, "tok"
+        )

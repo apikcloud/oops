@@ -14,7 +14,7 @@ from oops.core.models import Result
 from oops.io.file import create_symlink, desired_path, ensure_parent
 from oops.services.git import commit_v2
 from oops.services.github import list_remote_addons
-from oops.utils.net import encode_url, parse_repository_url
+from oops.utils.net import encode_url, parse_repository_url, resolve_repository_url
 from oops_engine.compat import Optional
 
 
@@ -66,6 +66,7 @@ def add_submodule(
     Raises OopsError on fatal input/creation errors.
     """
     try:
+        url = resolve_repository_url(url, default_owner=config.github.owner)
         _, owner, repo_name = parse_repository_url(url)
         if config.submodules.force_scheme:
             url = encode_url(url, config.submodules.force_scheme)
