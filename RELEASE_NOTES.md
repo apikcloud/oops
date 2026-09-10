@@ -9,6 +9,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.1.0] - 2026-09-10
+
+A small quality-of-life release for submodule management.
+
+### ✨ What's new
+
+- **`oops submodules add`**: you can now pass a repo as `org/repo` or just `repo` (using your configured GitHub owner), instead of always typing the full SSH/HTTPS URL
+
+---
+
 ## [1.0.2] - 2026-09-03
 
 A small bugfix release.
