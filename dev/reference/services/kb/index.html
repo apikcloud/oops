@@ -677,14 +677,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../guide/commands/migrate/" class="md-nav__link">
+      <a href="../../../guide/commands/upgrade/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Migrate
+    Upgrade
   
 
     
@@ -3106,7 +3106,7 @@
 
 
 <a href="#oops.services.kb.discover_project_addons" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">discover_project_addons</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo&lt;/code&gt; (&lt;code&gt;oops.services.kb.discover_project_addons(repo)&lt;/code&gt;)" href="#oops.services.kb.discover_project_addons(repo)">repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops.services.kb.discover_project_addons(repo_path)&lt;/code&gt;)" href="#oops.services.kb.discover_project_addons(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;allowed_modules&lt;/code&gt; (&lt;code&gt;oops.services.kb.discover_project_addons(allowed_modules)&lt;/code&gt;)" href="#oops.services.kb.discover_project_addons(allowed_modules)">allowed_modules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Set">Set</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.models.Addon">Addon</span></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">discover_project_addons</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo&lt;/code&gt; (&lt;code&gt;oops.services.kb.discover_project_addons(repo)&lt;/code&gt;)" href="#oops.services.kb.discover_project_addons(repo)">repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops.services.kb.discover_project_addons(repo_path)&lt;/code&gt;)" href="#oops.services.kb.discover_project_addons(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;allowed_modules&lt;/code&gt; (&lt;code&gt;oops.services.kb.discover_project_addons(allowed_modules)&lt;/code&gt;)" href="#oops.services.kb.discover_project_addons(allowed_modules)">allowed_modules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Set">Set</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.models.Addon">Addon</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3166,7 +3166,7 @@ has no dependency on git, submodules, or config.</p>
 <h4 id="oops.services.kb.discover_project_addons(allowed_modules)" class="doc doc-heading doc-heading-parameter">                  <code>allowed_modules</code>
 <a href="#oops.services.kb.discover_project_addons(allowed_modules)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Set">Set</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Set">Set</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3290,7 +3290,7 @@ has no dependency on git, submodules, or config.</p>
 
 
 <a href="#oops.services.kb.load_odoo_kb" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">load_odoo_kb</span><span class="p">(</span><span class="n"><span title="oops.services.kb.load_odoo_kb(version)">version</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">load_odoo_kb</span><span class="p">(</span><span class="n"><span title="oops.services.kb.load_odoo_kb(version)">version</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3338,7 +3338,7 @@ work, but unresolved warnings will be louder.</p>
 
 
 <a href="#oops.services.kb.require_kb" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">require_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops.services.kb.require_kb(version)&lt;/code&gt;)" href="#oops.services.kb.require_kb(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">require_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops.services.kb.require_kb(version)&lt;/code&gt;)" href="#oops.services.kb.require_kb(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3363,7 +3363,7 @@ work, but unresolved warnings will be louder.</p>
 <h4 id="oops.services.kb.require_kb(version)" class="doc doc-heading doc-heading-parameter">                  <code>version</code>
 <a href="#oops.services.kb.require_kb(version)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3451,7 +3451,7 @@ work, but unresolved warnings will be louder.</p>
 
 
 <a href="#oops.services.kb.set_kb_metadata" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">set_kb_metadata</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops.services.kb.set_kb_metadata(repo_path)&lt;/code&gt;)" href="#oops.services.kb.set_kb_metadata(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops.services.kb.set_kb_metadata(version)&lt;/code&gt;)" href="#oops.services.kb.set_kb_metadata(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">set_kb_metadata</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops.services.kb.set_kb_metadata(repo_path)&lt;/code&gt;)" href="#oops.services.kb.set_kb_metadata(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops.services.kb.set_kb_metadata(version)&lt;/code&gt;)" href="#oops.services.kb.set_kb_metadata(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3493,7 +3493,7 @@ and forwards them to :func:<code>~oops.core.metadata.update_metadata</code>.</p>
 <h4 id="oops.services.kb.set_kb_metadata(version)" class="doc doc-heading doc-heading-parameter">                  <code>version</code>
 <a href="#oops.services.kb.set_kb_metadata(version)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">

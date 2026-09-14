@@ -24,7 +24,7 @@
     
     
       
-        <title>Migrate - Oops</title>
+        <title>Upgrade - Oops</title>
       
     
     
@@ -91,7 +91,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#migrate" class="md-skip">
+        <a href="#upgrade" class="md-skip">
           Skip to content
         </a>
       
@@ -130,7 +130,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Migrate
+              Upgrade
             
           </span>
         </div>
@@ -703,7 +703,7 @@
   <span class="md-ellipsis">
     
   
-    Migrate
+    Upgrade
   
 
     
@@ -721,7 +721,7 @@
   <span class="md-ellipsis">
     
   
-    Migrate
+    Upgrade
   
 
     
@@ -747,22 +747,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops.commands.migrate" class="md-nav__link">
+  <a href="#oops.commands.upgrade" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;migrate
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;upgrade
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="&nbsp;migrate">
+    <nav class="md-nav" aria-label="&nbsp;upgrade">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-analyze" class="md-nav__link">
+  <a href="#oops-upgrade-analyze" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate analyze
+        oops upgrade analyze
       
     </span>
   </a>
@@ -770,10 +770,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-plan" class="md-nav__link">
+  <a href="#oops-upgrade-plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate plan
+        oops upgrade plan
       
     </span>
   </a>
@@ -781,10 +781,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-prepare" class="md-nav__link">
+  <a href="#oops-upgrade-prepare" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate prepare
+        oops upgrade prepare
       
     </span>
   </a>
@@ -792,10 +792,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-apply" class="md-nav__link">
+  <a href="#oops-upgrade-apply" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate apply
+        oops upgrade apply
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-upgrade-vanilla" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops upgrade vanilla
       
     </span>
   </a>
@@ -2914,22 +2925,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
       
         <li class="md-nav__item">
-  <a href="#oops.commands.migrate" class="md-nav__link">
+  <a href="#oops.commands.upgrade" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;migrate
+        <code class="doc-symbol doc-symbol-toc doc-symbol-module"></code>&nbsp;upgrade
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="&nbsp;migrate">
+    <nav class="md-nav" aria-label="&nbsp;upgrade">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-analyze" class="md-nav__link">
+  <a href="#oops-upgrade-analyze" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate analyze
+        oops upgrade analyze
       
     </span>
   </a>
@@ -2937,10 +2948,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-plan" class="md-nav__link">
+  <a href="#oops-upgrade-plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate plan
+        oops upgrade plan
       
     </span>
   </a>
@@ -2948,10 +2959,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-prepare" class="md-nav__link">
+  <a href="#oops-upgrade-prepare" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate prepare
+        oops upgrade prepare
       
     </span>
   </a>
@@ -2959,10 +2970,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#oops-migrate-apply" class="md-nav__link">
+  <a href="#oops-upgrade-apply" class="md-nav__link">
     <span class="md-ellipsis">
       
-        oops migrate apply
+        oops upgrade apply
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oops-upgrade-vanilla" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        oops upgrade vanilla
       
     </span>
   </a>
@@ -2994,17 +3016,17 @@
   
 
 
-<h1 id="migrate">Migrate<a class="headerlink" href="#migrate" title="Permanent link">¶</a></h1>
+<h1 id="upgrade">Upgrade<a class="headerlink" href="#upgrade" title="Permanent link">¶</a></h1>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<a id="oops.commands.migrate"></a>
+<a id="oops.commands.upgrade"></a>
     <div class="doc doc-contents first">
 
-        <p>Analyse, plan, and apply Odoo version migrations.</p>
+        <p>Analyse, plan, and apply Odoo version upgrades.</p>
 
           
 
@@ -3022,7 +3044,7 @@
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code><span title="oops.commands.migrate.analyze">analyze</span></code></td>
+            <td><code><span title="oops.commands.upgrade.analyze">analyze</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Observe the repository at the source ref and write state.yml.</p>
@@ -3030,15 +3052,15 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.commands.migrate.apply">apply</span></code></td>
+            <td><code><span title="oops.commands.upgrade.apply">apply</span></code></td>
             <td>
               <div class="doc-md-description">
-                <p>Execute the migration plan: create branches and run mechanical tooling.</p>
+                <p>Execute the upgrade plan: create branches and run mechanical tooling.</p>
               </div>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.commands.migrate.common">common</span></code></td>
+            <td><code><span title="oops.commands.upgrade.common">common</span></code></td>
             <td>
               <div class="doc-md-description">
                 
@@ -3046,7 +3068,7 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.commands.migrate.plan">plan</span></code></td>
+            <td><code><span title="oops.commands.upgrade.plan">plan</span></code></td>
             <td>
               <div class="doc-md-description">
                 <p>Seed or reconcile plan.yml from the current state.</p>
@@ -3054,18 +3076,26 @@
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.commands.migrate.prepare">prepare</span></code></td>
+            <td><code><span title="oops.commands.upgrade.prepare">prepare</span></code></td>
             <td>
               <div class="doc-md-description">
-                <p>Prepare the migration worktree and destination branch.</p>
+                <p>Prepare the upgrade worktree and destination branch.</p>
               </div>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code><span title="oops.commands.migrate.presenters">presenters</span></code></td>
+            <td><code><span title="oops.commands.upgrade.presenters">presenters</span></code></td>
             <td>
               <div class="doc-md-description">
                 
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="oops.commands.upgrade.vanilla">vanilla</span></code></td>
+            <td>
+              <div class="doc-md-description">
+                <p>Strip every non-core addon (custom, OCA, third-party) from the project,</p>
               </div>
             </td>
           </tr>
@@ -3099,8 +3129,61 @@
 
     </div>
 
-</div><hr>
-<h3 id="oops-migrate-analyze">oops migrate analyze<a class="headerlink" href="#oops-migrate-analyze" title="Permanent link">¶</a></h3>
+</div><p><code>analyze</code>/<code>plan</code>/<code>prepare</code>/<code>apply</code> form a four-stage pipeline for <em>porting</em> custom
+addons across an Odoo version bump. <code>vanilla</code> is a separate, simpler entry
+point — no <code>state.yml</code>/<code>plan.yml</code>, no per-module decisions — used as the first
+step of an MdV (montée de version) project when the goal is a full return to
+Odoo standard rather than porting custom code forward. The resulting branch
+is built <strong>on the target version</strong> (<code>--to</code>), not the source one: it removes
+every discovered addon regardless of classification (custom, OCA, or
+third-party), bumps <code>odoo_version.txt</code> to the latest available image of the
+target major version, syncs project scaffolding from the configured
+<code>sync.remote_url</code> (same mechanism as <code>oops project sync</code>, skipped with a
+warning if unconfigured), and writes the <code>upgrade-util</code> pip requirement into
+<code>requirements.txt</code> while ensuring <code>git</code> is present in <code>packages.txt</code> (merged
+in, existing entries preserved) — since installing a <code>git+https://...</code> pip
+requirement needs the <code>git</code> binary in the image. It also cross-checks each
+removed module against the global Odoo KB for the <em>source</em> version and warns
+— without skipping removal — if one looks like a real Odoo core/enterprise
+module (run <code>oops misc build-kb --version &lt;from_version&gt;</code> beforehand so that
+check has something to check against). A later <code>oops requirements update</code> on
+the resulting branch will need the <code>upgrade-util</code> requirements line re-added
+if it regenerates the file.</p>
+<p>Every registered submodule is removed, not only the ones hosting a
+discovered/symlinked addon — a submodule that was never symlinked
+("inactive"), contains no addon at all, or is checked out directly at the
+repo root is swept up too, so the resulting branch ends up with zero
+submodules and an empty <code>.gitmodules</code>. These are reported separately from
+the addon table as "orphan submodules", both in the text summary (an "Orphan
+submodules removed" stat) and in <code>--format json</code> output (the
+<code>orphan_submodules</code> key).</p>
+<p>The removal order (the "MLO" written into the generated uninstall script)
+only reflects dependencies between the discovered non-core addons themselves
+unless <code>installed_modules.txt</code> is present at the project root — a custom
+addon whose manifest only depends on core modules (e.g. <code>sale</code>, <code>account</code>,
+never checked into the repo) otherwise has nothing to resolve against and
+gets a trivial <code>load_index</code>. With <code>installed_modules.txt</code> (the same file
+<code>oops refactor</code> and <code>oops misc build-kb --installed-only</code> rely on) listing
+every module actually installed in the target database, each entry not
+already a discovered addon is resolved against the global Odoo KB for
+<code>--from</code>, so the order reflects each addon's real position in the Odoo
+registry. Missing file, root/list drift, and KB-unresolvable entries all
+degrade gracefully with a warning rather than blocking the run.</p>
+<p>The generated <code>upgrade/pre-uninstall_non_core_modules.py</code> is a
+<code>--pre-upgrade-scripts</code> file (Odoo ≥ 16), not a standard
+<code>&lt;module&gt;/migrations/&lt;version&gt;/*.py</code> script — it lives at the root of the
+upgrade folder, not nested under <code>base/0.0.0/</code>, and Odoo does not
+auto-discover it: the actual upgrade run must pass it explicitly
+(<code>--pre-upgrade-scripts=upgrade/pre-uninstall_non_core_modules.py</code>). This
+runs the removal <em>before</em> the <code>base</code> module itself is upgraded — the
+recommended context for module removal per Odoo's own upgrade-util
+documentation, since the module-state bookkeeping the upgrade process
+relies on isn't guaranteed consistent once <code>base</code> has already moved.
+Wiring that flag into the actual deployment (Odoo.sh upgrade request,
+<code>docker-compose.yml</code>, <code>odoo.conf</code>, ...) is manual — <code>vanilla</code> only
+generates the file.</p>
+<hr>
+<h3 id="oops-upgrade-analyze">oops upgrade analyze<a class="headerlink" href="#oops-upgrade-analyze" title="Permanent link">¶</a></h3>
 <p>Observe the repository at the source ref and write state.yml.</p>
 <p>Deterministic and regenerable: lists every module at the repo root and its
 classification (custom / oca / third-party) plus the dependency graph from
@@ -3112,7 +3195,7 @@ confirmed available upstream, its TARGET manifest deps are also fetched in
 the same API call — these are stored as <code>target_depends_on</code> in state.yml
 and used by <code>plan</code> to detect new required modules in the target version.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops migrate analyze [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>oops upgrade analyze [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3171,24 +3254,24 @@ and used by <code>plan</code> to detect new required modules in the target versi
 </table>
 <div class="admonition warning">
 <p class="admonition-title">Experimental</p>
-<p>This command is part of the migrate pipeline. Its interface may change without
+<p>This command is part of the upgrade pipeline. Its interface may change without
 notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Snapshot with automatic version and upstream probing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze
 </span></code></pre></div>
 <p>Offline run — skip GitHub API calls:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze<span class="w"> </span>--no-probe-upstream
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze<span class="w"> </span>--no-probe-upstream
 </span></code></pre></div>
 <p>Label the snapshot and set versions explicitly:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze<span class="w"> </span>--source-ref<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--from<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--to<span class="w"> </span><span class="m">19</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze<span class="w"> </span>--source-ref<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--from<span class="w"> </span><span class="m">18</span>.0<span class="w"> </span>--to<span class="w"> </span><span class="m">19</span>.0
 </span></code></pre></div>
 <p>Write a JSON report:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>--output-path<span class="w"> </span>state_report.json
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>analyze<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>--output-path<span class="w"> </span>state_report.json
 </span></code></pre></div>
 <hr>
-<h3 id="oops-migrate-plan">oops migrate plan<a class="headerlink" href="#oops-migrate-plan" title="Permanent link">¶</a></h3>
+<h3 id="oops-upgrade-plan">oops upgrade plan<a class="headerlink" href="#oops-upgrade-plan" title="Permanent link">¶</a></h3>
 <p>Seed or reconcile plan.yml from the current state.</p>
 <p>First run: creates plan.yml from state.yml, guessing an action per module
 (marked review: true where guessed) so the human can refine it.</p>
@@ -3206,7 +3289,7 @@ the new state, and the human's intent —
 <p>Like <code>terraform plan</code>: shows the diff, does not decide. Refuses if any
 module fails the invariant "exactly one action".</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops migrate plan [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>oops upgrade plan [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3241,22 +3324,22 @@ module fails the invariant "exactly one action".</p>
 </table>
 <div class="admonition warning">
 <p class="admonition-title">Experimental</p>
-<p>This command is part of the migrate pipeline. Its interface may change without
+<p>This command is part of the upgrade pipeline. Its interface may change without
 notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Seed plan.yml on first run (requires state.yml from <code>analyze</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>plan
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>plan
 </span></code></pre></div>
 <p>Reconcile after editing plan.yml by hand:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>plan
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>plan
 </span></code></pre></div>
 <p>Emit JSON for downstream tooling:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>plan<span class="w"> </span>--format<span class="w"> </span>json
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>plan<span class="w"> </span>--format<span class="w"> </span>json
 </span></code></pre></div>
 <hr>
-<h3 id="oops-migrate-prepare">oops migrate prepare<a class="headerlink" href="#oops-migrate-prepare" title="Permanent link">¶</a></h3>
-<p>Prepare the migration worktree and destination branch.</p>
+<h3 id="oops-upgrade-prepare">oops upgrade prepare<a class="headerlink" href="#oops-upgrade-prepare" title="Permanent link">¶</a></h3>
+<p>Prepare the upgrade worktree and destination branch.</p>
 <p>Creates a git worktree at worktree_path (from plan.migration), resets the
 destination branch to the target Odoo version ref, runs project sync, and
 records a sentinel commit so apply() can verify preparation is done.</p>
@@ -3265,7 +3348,7 @@ exists and the sentinel commit is present, reports success without touching
 anything.</p>
 <p>Must be run from the source branch. apply() works exclusively in the worktree.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops migrate prepare [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>oops upgrade prepare [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3306,24 +3389,24 @@ anything.</p>
 </table>
 <div class="admonition warning">
 <p class="admonition-title">Experimental</p>
-<p>This command is part of the migrate pipeline. Its interface may change without
+<p>This command is part of the upgrade pipeline. Its interface may change without
 notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Reset destination branch to a specific Odoo version tag and create the worktree:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>prepare<span class="w"> </span>--destination-ref<span class="w"> </span><span class="m">19</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>prepare<span class="w"> </span>--destination-ref<span class="w"> </span><span class="m">19</span>.0
 </span></code></pre></div>
 <p>Override the destination branch name:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>prepare<span class="w"> </span>--destination-ref<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--destination-branch<span class="w"> </span>migration/19.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>prepare<span class="w"> </span>--destination-ref<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--destination-branch<span class="w"> </span>upgrade/19.0
 </span></code></pre></div>
 <p>Re-prepare from scratch (force):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>prepare<span class="w"> </span>--destination-ref<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>prepare<span class="w"> </span>--destination-ref<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--force
 </span></code></pre></div>
 <hr>
-<h3 id="oops-migrate-apply">oops migrate apply<a class="headerlink" href="#oops-migrate-apply" title="Permanent link">¶</a></h3>
-<p>Execute the migration plan: create branches and run mechanical tooling.</p>
+<h3 id="oops-upgrade-apply">oops upgrade apply<a class="headerlink" href="#oops-upgrade-apply" title="Permanent link">¶</a></h3>
+<p>Execute the upgrade plan: create branches and run mechanical tooling.</p>
 <p>A workshop preparer, NOT an automatic migrator. Operates exclusively in
-the git worktree created by <code>oops migrate prepare</code> — the source branch in
+the git worktree created by <code>oops upgrade prepare</code> — the source branch in
 the main repository is never touched.</p>
 <p>For each module in topological order:
   port → create branch from dest base, extract module via git archive,
@@ -3334,7 +3417,7 @@ the main repository is never touched.</p>
 <p>Idempotent via status.yml. --force re-runs done modules. --only targets
 specific modules. --pull-only / --port-only filters by action.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops migrate apply [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>oops upgrade apply [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3405,27 +3488,129 @@ specific modules. --pull-only / --port-only filters by action.</p>
 </table>
 <div class="admonition warning">
 <p class="admonition-title">Experimental</p>
-<p>This command is part of the migrate pipeline. Its interface may change without
+<p>This command is part of the upgrade pipeline. Its interface may change without
 notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Dry run — show what would happen without touching git:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Apply all modules:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply
 </span></code></pre></div>
 <p>Apply specific modules only:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--only<span class="w"> </span>sale_extension,crm_custom
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--only<span class="w"> </span>sale_extension,crm_custom
 </span></code></pre></div>
 <p>Port modules only (skip pull):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--port-only
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--port-only
 </span></code></pre></div>
 <p>Pull modules only, then fast-forward-merge onto the destination branch:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--pull-only<span class="w"> </span>--merge
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--pull-only<span class="w"> </span>--merge
 </span></code></pre></div>
 <p>Re-apply already-done modules:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops<span class="w"> </span>migrate<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span><span class="w"> </span>apply<span class="w"> </span>--force
+</span></code></pre></div>
+<hr>
+<h3 id="oops-upgrade-vanilla">oops upgrade vanilla<a class="headerlink" href="#oops-upgrade-vanilla" title="Permanent link">¶</a></h3>
+<p>Strip every non-core addon (custom, OCA, third-party) from the project,
+bump the project to the target Odoo version, sync project scaffolding, and
+replace the stripped addons with an upgrade-util script that uninstalls the
+same modules from the database, in reverse Odoo registry load order,
+<em>before</em> the base module itself is upgraded (Odoo's <code>--pre-upgrade-scripts</code>
+mechanism — the recommended context for module removal/rename/merge
+operations, since once <code>base</code> is upgraded the module-state bookkeeping the
+upgrade process relies on is expected to already be settled).</p>
+<p>This is the "vanilla" starting point: a branch on the target Odoo
+version, stripped down to pure core, used as the base for every MdV
+(montee de version) project. Independent of state.yml/plan.yml — no
+per-module porting decisions apply here, everything non-core is removed.</p>
+<p><strong>Usage:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>oops upgrade vanilla [OPTIONS]
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--from</code></td>
+<td>text</td>
+<td>Source Odoo version (e.g. 18.0). Detected from odoo_version.txt/branch if omitted.</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--to</code></td>
+<td>text</td>
+<td>Target Odoo version (e.g. 19.0). Required — the vanilla base is built on the destination version.</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--branch</code></td>
+<td>text</td>
+<td>Branch to create (default: vanilla/<to_version>).</to_version></td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>boolean</td>
+<td>Show what would happen, no git changes.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--no-commit</code></td>
+<td>boolean</td>
+<td>Strip and generate the script, but do not commit.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>-f</code>, <code>--force</code></td>
+<td>boolean</td>
+<td>Apply without prompting.</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>--format</code></td>
+<td>choice (<code>text</code> | <code>json</code>)</td>
+<td>N/A</td>
+<td><code>text</code></td>
+</tr>
+<tr>
+<td><code>--output-path</code></td>
+<td>file</td>
+<td>N/A</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>boolean</td>
+<td>Show this message and exit.</td>
+<td><code>False</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Experimental</p>
+<p>This command is part of the upgrade pipeline. Its interface may change without
+notice between releases. The same warning is printed at runtime.</p>
+</div>
+<p><strong>Examples:</strong></p>
+<p>Preview the removal plan, target image, and sync without touching git:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>vanilla<span class="w"> </span>--to<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--dry-run
+</span></code></pre></div>
+<p>Strip every non-core addon, bump to the target version, sync scaffolding, and generate the uninstall script:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>vanilla<span class="w"> </span>--to<span class="w"> </span><span class="m">19</span>.0
+</span></code></pre></div>
+<p>Override the branch name:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>vanilla<span class="w"> </span>--to<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--branch<span class="w"> </span>vanilla/19.0-cleanup
+</span></code></pre></div>
+<p>Strip and generate the script without committing (review the diff by hand first):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>oops<span class="w"> </span>upgrade<span class="w"> </span>vanilla<span class="w"> </span>--to<span class="w"> </span><span class="m">19</span>.0<span class="w"> </span>--force<span class="w"> </span>--no-commit
 </span></code></pre></div>
 
 
@@ -3449,7 +3634,7 @@ notice between releases. The same warning is printed at runtime.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 1, 2026 15:31:51 UTC"><span class="timeago" datetime="2026-07-01T15:31:51+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 1, 2026 15:31:51 UTC">2026-07-01</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="September 14, 2026 15:48:55 UTC"><span class="timeago" datetime="2026-09-14T15:48:55+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="September 14, 2026 15:48:55 UTC">2026-09-14</span>
   </span>
 
     
@@ -3459,7 +3644,7 @@ notice between releases. The same warning is printed at runtime.</p>
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="July 1, 2026 15:31:51 UTC"><span class="timeago" datetime="2026-07-01T15:31:51+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 1, 2026 15:31:51 UTC">2026-07-01</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="September 14, 2026 15:48:55 UTC"><span class="timeago" datetime="2026-09-14T15:48:55+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="September 14, 2026 15:48:55 UTC">2026-09-14</span>
   </span>
 
     

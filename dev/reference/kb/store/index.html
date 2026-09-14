@@ -677,14 +677,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../guide/commands/migrate/" class="md-nav__link">
+      <a href="../../../guide/commands/upgrade/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Migrate
+    Upgrade
   
 
     
@@ -3285,7 +3285,7 @@ idx_menus_module        on menus(repo_id, module)</p>
 
 
 <a href="#oops_engine.store.KBReader" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">KBReader</span><span class="p">(</span><span class="n"><span title="oops_engine.store.KBReader(db_path)">db_path</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><span title="oops_engine.store.KBReader(repo_ids)">repo_ids</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">KBReader</span><span class="p">(</span><span class="n"><span title="oops_engine.store.KBReader(db_path)">db_path</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><span title="oops_engine.store.KBReader(repo_ids)">repo_ids</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">])</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3787,7 +3787,7 @@ different repo_ids sharing the same file.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_actions" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_actions</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_actions</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3806,7 +3806,7 @@ different repo_ids sharing the same file.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3858,7 +3858,7 @@ different repo_ids sharing the same file.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_cached_analysis" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_cached_analysis</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_cached_analysis(module_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_cached_analysis(module_name)">module_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_cached_analysis(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_cached_analysis(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_cached_analysis</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_cached_analysis(module_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_cached_analysis(module_name)">module_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_cached_analysis(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_cached_analysis(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3882,7 +3882,7 @@ different repo_ids sharing the same file.</p>
 <h5 id="oops_engine.store.KBReader.get_cached_analysis(module_name)" class="doc doc-heading doc-heading-parameter">                  <code>module_name</code>
 <a href="#oops_engine.store.KBReader.get_cached_analysis(module_name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3898,7 +3898,7 @@ different repo_ids sharing the same file.</p>
 <h5 id="oops_engine.store.KBReader.get_cached_analysis(content_fingerprint)" class="doc doc-heading doc-heading-parameter">                  <code>content_fingerprint</code>
 <a href="#oops_engine.store.KBReader.get_cached_analysis(content_fingerprint)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3968,7 +3968,7 @@ guaranteed miss, independent of KB rebuilds.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_field_attrs" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_field_attrs</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_attrs(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_attrs(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;field_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_attrs(field_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_attrs(field_name)">field_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_field_attrs</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_attrs(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_attrs(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;field_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_attrs(field_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_attrs(field_name)">field_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3992,7 +3992,7 @@ guaranteed miss, independent of KB rebuilds.</p>
 <h5 id="oops_engine.store.KBReader.get_field_attrs(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_field_attrs(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4008,7 +4008,7 @@ guaranteed miss, independent of KB rebuilds.</p>
 <h5 id="oops_engine.store.KBReader.get_field_attrs(field_name)" class="doc doc-heading doc-heading-parameter">                  <code>field_name</code>
 <a href="#oops_engine.store.KBReader.get_field_attrs(field_name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4034,7 +4034,7 @@ guaranteed miss, independent of KB rebuilds.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4044,7 +4044,7 @@ guaranteed miss, independent of KB rebuilds.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4130,7 +4130,7 @@ guaranteed miss, independent of KB rebuilds.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_field_refs_for_field" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_field_refs_for_field</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_field(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_field(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;field_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_field(field_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_field(field_name)">field_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_field(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_field(module)">module</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_field_refs_for_field</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_field(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_field(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;field_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_field(field_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_field(field_name)">field_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_field(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_field(module)">module</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4154,7 +4154,7 @@ guaranteed miss, independent of KB rebuilds.</p>
 <h5 id="oops_engine.store.KBReader.get_field_refs_for_field(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_field_refs_for_field(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4170,7 +4170,7 @@ guaranteed miss, independent of KB rebuilds.</p>
 <h5 id="oops_engine.store.KBReader.get_field_refs_for_field(field_name)" class="doc doc-heading doc-heading-parameter">                  <code>field_name</code>
 <a href="#oops_engine.store.KBReader.get_field_refs_for_field(field_name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4186,7 +4186,7 @@ guaranteed miss, independent of KB rebuilds.</p>
 <h5 id="oops_engine.store.KBReader.get_field_refs_for_field(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.get_field_refs_for_field(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4213,7 +4213,7 @@ module are returned.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4297,7 +4297,7 @@ module are returned.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_field_refs_for_method" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_field_refs_for_method</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_method(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_method(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;target_method&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_method(target_method)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_method(target_method)">target_method</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_field_refs_for_method</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_method(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_method(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;target_method&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_field_refs_for_method(target_method)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_field_refs_for_method(target_method)">target_method</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4321,7 +4321,7 @@ module are returned.</p>
 <h5 id="oops_engine.store.KBReader.get_field_refs_for_method(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_field_refs_for_method(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4337,7 +4337,7 @@ module are returned.</p>
 <h5 id="oops_engine.store.KBReader.get_field_refs_for_method(target_method)" class="doc doc-heading doc-heading-parameter">                  <code>target_method</code>
 <a href="#oops_engine.store.KBReader.get_field_refs_for_method(target_method)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4363,7 +4363,7 @@ module are returned.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4373,7 +4373,7 @@ module are returned.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4443,7 +4443,7 @@ module are returned.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_menus" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_menus</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_menus</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4462,7 +4462,7 @@ module are returned.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4514,7 +4514,7 @@ module are returned.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_meta" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_meta</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_meta(repo_id)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_meta(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_meta</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_meta(repo_id)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_meta(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4538,7 +4538,7 @@ module are returned.</p>
 <h5 id="oops_engine.store.KBReader.get_meta(repo_id)" class="doc doc-heading doc-heading-parameter">                  <code>repo_id</code>
 <a href="#oops_engine.store.KBReader.get_meta(repo_id)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4566,7 +4566,7 @@ repo_id this reader was opened with — by convention, the
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4622,7 +4622,7 @@ repo_id this reader was opened with — by convention, the
 
 
 <a href="#oops_engine.store.KBReader.get_method_layers" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_method_layers</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_method_layers(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_method_layers(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;method_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_method_layers(method_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_method_layers(method_name)">method_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_method_layers</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_method_layers(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_method_layers(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;method_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_method_layers(method_name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_method_layers(method_name)">method_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4646,7 +4646,7 @@ repo_id this reader was opened with — by convention, the
 <h5 id="oops_engine.store.KBReader.get_method_layers(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_method_layers(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4662,7 +4662,7 @@ repo_id this reader was opened with — by convention, the
 <h5 id="oops_engine.store.KBReader.get_method_layers(method_name)" class="doc doc-heading doc-heading-parameter">                  <code>method_name</code>
 <a href="#oops_engine.store.KBReader.get_method_layers(method_name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4688,7 +4688,7 @@ repo_id this reader was opened with — by convention, the
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4698,7 +4698,7 @@ repo_id this reader was opened with — by convention, the
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4792,7 +4792,7 @@ repo_id this reader was opened with — by convention, the
 
 
 <a href="#oops_engine.store.KBReader.get_method_layers_bulk" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_method_layers_bulk</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;models&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_method_layers_bulk(models)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_method_layers_bulk(models)">models</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_method_layers_bulk</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;models&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_method_layers_bulk(models)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_method_layers_bulk(models)">models</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4816,7 +4816,7 @@ repo_id this reader was opened with — by convention, the
 <h5 id="oops_engine.store.KBReader.get_method_layers_bulk(models)" class="doc doc-heading doc-heading-parameter">                  <code>models</code>
 <a href="#oops_engine.store.KBReader.get_method_layers_bulk(models)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4842,7 +4842,7 @@ repo_id this reader was opened with — by convention, the
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>, <span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>, <span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4852,7 +4852,7 @@ repo_id this reader was opened with — by convention, the
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>, <span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>, <span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4964,7 +4964,7 @@ repo_id this reader was opened with — by convention, the
 
 
 <a href="#oops_engine.store.KBReader.get_model_creators" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_creators</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_creators(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_creators(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;by_load_index&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_creators(by_load_index)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_creators(by_load_index)">by_load_index</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_creators</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_creators(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_creators(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;by_load_index&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_creators(by_load_index)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_creators(by_load_index)">by_load_index</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4988,7 +4988,7 @@ repo_id this reader was opened with — by convention, the
 <h5 id="oops_engine.store.KBReader.get_model_creators(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_model_creators(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5004,7 +5004,7 @@ repo_id this reader was opened with — by convention, the
 <h5 id="oops_engine.store.KBReader.get_model_creators(by_load_index)" class="doc doc-heading doc-heading-parameter">                  <code>by_load_index</code>
 <a href="#oops_engine.store.KBReader.get_model_creators(by_load_index)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5031,7 +5031,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5041,7 +5041,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5139,7 +5139,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_model_description" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_description</span><span class="p">(</span><span class="n"><span title="oops_engine.store.KBReader.get_model_description(model)">model</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_description</span><span class="p">(</span><span class="n"><span title="oops_engine.store.KBReader.get_model_description(model)">model</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5183,7 +5183,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_model_inherits" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_inherits</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_inherits(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_inherits(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_inherits</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_inherits(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_inherits(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5207,7 +5207,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_model_inherits(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_model_inherits(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5233,7 +5233,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5303,7 +5303,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_model_origin" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_origin</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_origin(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_origin(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_origin(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_origin(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_origin</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_origin(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_origin(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_origin(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_origin(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5327,7 +5327,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_model_origin(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_model_origin(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5343,7 +5343,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_model_origin(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.get_model_origin(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5369,7 +5369,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5427,7 +5427,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_model_origins_with_order" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_origins_with_order</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_origins_with_order(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_origins_with_order(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_origins_with_order</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_origins_with_order(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_origins_with_order(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5451,7 +5451,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_model_origins_with_order(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_model_origins_with_order(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5477,7 +5477,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5487,7 +5487,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5587,7 +5587,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_model_symbols" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_symbols</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_symbols(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_symbols(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kind&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_symbols(kind)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_symbols(kind)">kind</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_model_symbols</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_symbols(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_symbols(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kind&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_model_symbols(kind)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_model_symbols(kind)">kind</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5611,7 +5611,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_model_symbols(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_model_symbols(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5627,7 +5627,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_model_symbols(kind)" class="doc doc-heading doc-heading-parameter">                  <code>kind</code>
 <a href="#oops_engine.store.KBReader.get_model_symbols(kind)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5728,7 +5728,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_module_action_count" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_action_count</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_action_count(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_action_count(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_action_count</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_action_count(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_action_count(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5752,7 +5752,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_module_action_count(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.get_module_action_count(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5778,7 +5778,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5834,7 +5834,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_module_app" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_app</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_app(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_app(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_app</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_app(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_app(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5858,7 +5858,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_module_app(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.get_module_app(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5884,7 +5884,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5940,7 +5940,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_module_load_order" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_load_order</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_load_order</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5959,7 +5959,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6009,7 +6009,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_module_menu_count" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_menu_count</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_menu_count(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_menu_count(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_menu_count</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_menu_count(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_menu_count(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6033,7 +6033,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_module_menu_count(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.get_module_menu_count(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6059,7 +6059,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#int">int</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#int">int</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6115,7 +6115,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_module_views" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_views</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_views(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_views(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_module_views</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_module_views(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_module_views(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6139,7 +6139,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_module_views(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.get_module_views(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6165,7 +6165,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6225,7 +6225,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_modules" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_modules</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_modules</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6244,7 +6244,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6254,7 +6254,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6322,7 +6322,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_modules_with_depends" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_modules_with_depends</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_modules_with_depends</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6341,7 +6341,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6391,7 +6391,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_sources" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_sources</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_sources</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6410,7 +6410,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6460,7 +6460,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_symbol" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_symbol</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbol(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbol(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbol(name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbol(name)">name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kind&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbol(kind)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbol(kind)">kind</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_symbol</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbol(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbol(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbol(name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbol(name)">name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kind&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbol(kind)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbol(kind)">kind</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6484,7 +6484,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_symbol(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_symbol(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6500,7 +6500,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_symbol(name)" class="doc doc-heading doc-heading-parameter">                  <code>name</code>
 <a href="#oops_engine.store.KBReader.get_symbol(name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6516,7 +6516,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_symbol(kind)" class="doc doc-heading doc-heading-parameter">                  <code>kind</code>
 <a href="#oops_engine.store.KBReader.get_symbol(kind)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6542,7 +6542,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6552,7 +6552,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6636,7 +6636,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_symbols_by_module_model" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_symbols_by_module_model</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbols_by_module_model(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbols_by_module_model(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbols_by_module_model(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbols_by_module_model(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_symbols_by_module_model</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbols_by_module_model(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbols_by_module_model(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_symbols_by_module_model(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_symbols_by_module_model(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6660,7 +6660,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_symbols_by_module_model(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.get_symbols_by_module_model(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6676,7 +6676,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_symbols_by_module_model(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.get_symbols_by_module_model(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6702,7 +6702,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6760,7 +6760,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_view" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_view</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;xml_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_view(xml_id)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_view(xml_id)">xml_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_view</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;xml_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.get_view(xml_id)&lt;/code&gt;)" href="#oops_engine.store.KBReader.get_view(xml_id)">xml_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6784,7 +6784,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.get_view(xml_id)" class="doc doc-heading doc-heading-parameter">                  <code>xml_id</code>
 <a href="#oops_engine.store.KBReader.get_view(xml_id)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6810,7 +6810,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6870,7 +6870,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.get_views" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_views</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_views</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6889,7 +6889,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6943,7 +6943,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.is_application" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_application</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.is_application(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.is_application(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_application</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.is_application(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.is_application(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -6967,7 +6967,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 <h5 id="oops_engine.store.KBReader.is_application(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.is_application(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -6993,7 +6993,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7049,7 +7049,7 @@ instead of the default <code>origin, module</code> alphabetical order.</p>
 
 
 <a href="#oops_engine.store.KBReader.is_model_creator" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_model_creator</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.is_model_creator(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.is_model_creator(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.is_model_creator(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.is_model_creator(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_model_creator</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.is_model_creator(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.is_model_creator(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.is_model_creator(module)&lt;/code&gt;)" href="#oops_engine.store.KBReader.is_model_creator(module)">module</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7076,7 +7076,7 @@ that were not included in the KB scan.</p>
 <h5 id="oops_engine.store.KBReader.is_model_creator(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.is_model_creator(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7092,7 +7092,7 @@ that were not included in the KB scan.</p>
 <h5 id="oops_engine.store.KBReader.is_model_creator(module)" class="doc doc-heading doc-heading-parameter">                  <code>module</code>
 <a href="#oops_engine.store.KBReader.is_model_creator(module)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7118,7 +7118,7 @@ that were not included in the KB scan.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7192,7 +7192,7 @@ that were not included in the KB scan.</p>
 
 
 <a href="#oops_engine.store.KBReader.model_exists" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">model_exists</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.model_exists(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.model_exists(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">model_exists</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.model_exists(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.model_exists(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7216,7 +7216,7 @@ that were not included in the KB scan.</p>
 <h5 id="oops_engine.store.KBReader.model_exists(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.model_exists(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7242,7 +7242,7 @@ that were not included in the KB scan.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7298,7 +7298,7 @@ that were not included in the KB scan.</p>
 
 
 <a href="#oops_engine.store.KBReader.module_exists" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">module_exists</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.module_exists(name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.module_exists(name)">name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">module_exists</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.module_exists(name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.module_exists(name)">name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7322,7 +7322,7 @@ that were not included in the KB scan.</p>
 <h5 id="oops_engine.store.KBReader.module_exists(name)" class="doc doc-heading doc-heading-parameter">                  <code>name</code>
 <a href="#oops_engine.store.KBReader.module_exists(name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7348,7 +7348,7 @@ that were not included in the KB scan.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7404,7 +7404,7 @@ that were not included in the KB scan.</p>
 
 
 <a href="#oops_engine.store.KBReader.symbol_exists" class="headerlink" title="Permanent link">¶</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">symbol_exists</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.symbol_exists(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.symbol_exists(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.symbol_exists(name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.symbol_exists(name)">name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kind&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.symbol_exists(kind)&lt;/code&gt;)" href="#oops_engine.store.KBReader.symbol_exists(kind)">kind</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">symbol_exists</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;model&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.symbol_exists(model)&lt;/code&gt;)" href="#oops_engine.store.KBReader.symbol_exists(model)">model</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;name&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.symbol_exists(name)&lt;/code&gt;)" href="#oops_engine.store.KBReader.symbol_exists(name)">name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kind&lt;/code&gt; (&lt;code&gt;oops_engine.store.KBReader.symbol_exists(kind)&lt;/code&gt;)" href="#oops_engine.store.KBReader.symbol_exists(kind)">kind</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7428,7 +7428,7 @@ that were not included in the KB scan.</p>
 <h5 id="oops_engine.store.KBReader.symbol_exists(model)" class="doc doc-heading doc-heading-parameter">                  <code>model</code>
 <a href="#oops_engine.store.KBReader.symbol_exists(model)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7444,7 +7444,7 @@ that were not included in the KB scan.</p>
 <h5 id="oops_engine.store.KBReader.symbol_exists(name)" class="doc doc-heading doc-heading-parameter">                  <code>name</code>
 <a href="#oops_engine.store.KBReader.symbol_exists(name)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7460,7 +7460,7 @@ that were not included in the KB scan.</p>
 <h5 id="oops_engine.store.KBReader.symbol_exists(kind)" class="doc doc-heading doc-heading-parameter">                  <code>kind</code>
 <a href="#oops_engine.store.KBReader.symbol_exists(kind)" class="headerlink" title="Permanent link">¶</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7486,7 +7486,7 @@ that were not included in the KB scan.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7555,7 +7555,7 @@ that were not included in the KB scan.</p>
 
 
 <a href="#oops_engine.store.discover_repo_ids" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">discover_repo_ids</span><span class="p">(</span><span class="n"><span title="oops_engine.store.discover_repo_ids(db_path)">db_path</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">discover_repo_ids</span><span class="p">(</span><span class="n"><span title="oops_engine.store.discover_repo_ids(db_path)">db_path</span></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7614,7 +7614,7 @@ holds.</p>
 
 
 <a href="#oops_engine.store.get_cached_loc" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_cached_loc</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(db_path)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(repo_id)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;addon_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(addon_path)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(addon_path)">addon_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_cached_loc</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(db_path)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(repo_id)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;addon_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(addon_path)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(addon_path)">addon_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.get_cached_loc(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.get_cached_loc(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7658,7 +7658,7 @@ the DDL) if it doesn't exist yet; <code>KBReader</code> requires it to already e
 <h4 id="oops_engine.store.get_cached_loc(repo_id)" class="doc doc-heading doc-heading-parameter">                  <code>repo_id</code>
 <a href="#oops_engine.store.get_cached_loc(repo_id)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7674,7 +7674,7 @@ the DDL) if it doesn't exist yet; <code>KBReader</code> requires it to already e
 <h4 id="oops_engine.store.get_cached_loc(addon_path)" class="doc doc-heading doc-heading-parameter">                  <code>addon_path</code>
 <a href="#oops_engine.store.get_cached_loc(addon_path)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7690,7 +7690,7 @@ the DDL) if it doesn't exist yet; <code>KBReader</code> requires it to already e
 <h4 id="oops_engine.store.get_cached_loc(content_fingerprint)" class="doc doc-heading doc-heading-parameter">                  <code>content_fingerprint</code>
 <a href="#oops_engine.store.get_cached_loc(content_fingerprint)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7788,7 +7788,7 @@ fingerprint (see <code>oops_engine.fingerprint</code>) — the cache key.</p>
 
 
 <a href="#oops_engine.store.update_module_load_order" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_module_load_order</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.update_module_load_order(db_path)&lt;/code&gt;)" href="#oops_engine.store.update_module_load_order(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_ids&lt;/code&gt; (&lt;code&gt;oops_engine.store.update_module_load_order(repo_ids)&lt;/code&gt;)" href="#oops_engine.store.update_module_load_order(repo_ids)">repo_ids</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;load_result&lt;/code&gt; (&lt;code&gt;oops_engine.store.update_module_load_order(load_result)&lt;/code&gt;)" href="#oops_engine.store.update_module_load_order(load_result)">load_result</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_module_load_order</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.update_module_load_order(db_path)&lt;/code&gt;)" href="#oops_engine.store.update_module_load_order(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_ids&lt;/code&gt; (&lt;code&gt;oops_engine.store.update_module_load_order(repo_ids)&lt;/code&gt;)" href="#oops_engine.store.update_module_load_order(repo_ids)">repo_ids</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Sequence">Sequence</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;load_result&lt;/code&gt; (&lt;code&gt;oops_engine.store.update_module_load_order(load_result)&lt;/code&gt;)" href="#oops_engine.store.update_module_load_order(load_result)">load_result</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7832,7 +7832,7 @@ has that module's row.</p>
 <h4 id="oops_engine.store.update_module_load_order(repo_ids)" class="doc doc-heading doc-heading-parameter">                  <code>repo_ids</code>
 <a href="#oops_engine.store.update_module_load_order(repo_ids)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Sequence">Sequence</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Sequence">Sequence</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7848,7 +7848,7 @@ has that module's row.</p>
 <h4 id="oops_engine.store.update_module_load_order(load_result)" class="doc doc-heading doc-heading-parameter">                  <code>load_result</code>
 <a href="#oops_engine.store.update_module_load_order(load_result)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7931,7 +7931,7 @@ has that module's row.</p>
 
 
 <a href="#oops_engine.store.write_cached_analysis" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">write_cached_analysis</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(db_path)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(repo_id)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(module_name)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(module_name)">module_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kb_generated_at&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(kb_generated_at)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(kb_generated_at)">kb_generated_at</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;payload&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(payload)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(payload)">payload</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">write_cached_analysis</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(db_path)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(repo_id)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;module_name&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(module_name)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(module_name)">module_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;kb_generated_at&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(kb_generated_at)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(kb_generated_at)">kb_generated_at</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;payload&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_analysis(payload)&lt;/code&gt;)" href="#oops_engine.store.write_cached_analysis(payload)">payload</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -7971,7 +7971,7 @@ has that module's row.</p>
 <h4 id="oops_engine.store.write_cached_analysis(repo_id)" class="doc doc-heading doc-heading-parameter">                  <code>repo_id</code>
 <a href="#oops_engine.store.write_cached_analysis(repo_id)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -7987,7 +7987,7 @@ has that module's row.</p>
 <h4 id="oops_engine.store.write_cached_analysis(module_name)" class="doc doc-heading doc-heading-parameter">                  <code>module_name</code>
 <a href="#oops_engine.store.write_cached_analysis(module_name)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8003,7 +8003,7 @@ has that module's row.</p>
 <h4 id="oops_engine.store.write_cached_analysis(content_fingerprint)" class="doc doc-heading doc-heading-parameter">                  <code>content_fingerprint</code>
 <a href="#oops_engine.store.write_cached_analysis(content_fingerprint)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8022,7 +8022,7 @@ different fingerprint, so the previous row is a guaranteed miss.</p>
 <h4 id="oops_engine.store.write_cached_analysis(kb_generated_at)" class="doc doc-heading doc-heading-parameter">                  <code>kb_generated_at</code>
 <a href="#oops_engine.store.write_cached_analysis(kb_generated_at)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8039,7 +8039,7 @@ time — kept as a plain (non-key) column for observability.</p>
 <h4 id="oops_engine.store.write_cached_analysis(payload)" class="doc doc-heading doc-heading-parameter">                  <code>payload</code>
 <a href="#oops_engine.store.write_cached_analysis(payload)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8178,7 +8178,7 @@ time — kept as a plain (non-key) column for observability.</p>
 
 
 <a href="#oops_engine.store.write_cached_loc" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">write_cached_loc</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(db_path)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(repo_id)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;addon_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(addon_path)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(addon_path)">addon_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;loc&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(loc)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(loc)">loc</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">write_cached_loc</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(db_path)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(repo_id)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;addon_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(addon_path)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(addon_path)">addon_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;content_fingerprint&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(content_fingerprint)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(content_fingerprint)">content_fingerprint</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;loc&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_cached_loc(loc)&lt;/code&gt;)" href="#oops_engine.store.write_cached_loc(loc)">loc</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -8218,7 +8218,7 @@ time — kept as a plain (non-key) column for observability.</p>
 <h4 id="oops_engine.store.write_cached_loc(repo_id)" class="doc doc-heading doc-heading-parameter">                  <code>repo_id</code>
 <a href="#oops_engine.store.write_cached_loc(repo_id)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8234,7 +8234,7 @@ time — kept as a plain (non-key) column for observability.</p>
 <h4 id="oops_engine.store.write_cached_loc(addon_path)" class="doc doc-heading doc-heading-parameter">                  <code>addon_path</code>
 <a href="#oops_engine.store.write_cached_loc(addon_path)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8252,7 +8252,7 @@ it's found through.</p>
 <h4 id="oops_engine.store.write_cached_loc(content_fingerprint)" class="doc doc-heading doc-heading-parameter">                  <code>content_fingerprint</code>
 <a href="#oops_engine.store.write_cached_loc(content_fingerprint)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8269,7 +8269,7 @@ it's found through.</p>
 <h4 id="oops_engine.store.write_cached_loc(loc)" class="doc doc-heading doc-heading-parameter">                  <code>loc</code>
 <a href="#oops_engine.store.write_cached_loc(loc)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8382,7 +8382,7 @@ it's found through.</p>
 
 
 <a href="#oops_engine.store.write_kb" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">write_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(db_path)&lt;/code&gt;)" href="#oops_engine.store.write_kb(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(repo_id)&lt;/code&gt;)" href="#oops_engine.store.write_kb(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;odoo_version&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(odoo_version)&lt;/code&gt;)" href="#oops_engine.store.write_kb(odoo_version)">odoo_version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;scan_results&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(scan_results)&lt;/code&gt;)" href="#oops_engine.store.write_kb(scan_results)">scan_results</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;sources&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(sources)&lt;/code&gt;)" href="#oops_engine.store.write_kb(sources)">sources</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;project&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(project)&lt;/code&gt;)" href="#oops_engine.store.write_kb(project)">project</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;scope&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(scope)&lt;/code&gt;)" href="#oops_engine.store.write_kb(scope)">scope</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.models.Result">Result</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">write_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;db_path&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(db_path)&lt;/code&gt;)" href="#oops_engine.store.write_kb(db_path)">db_path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.store.BackendOrPath">BackendOrPath</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_id&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(repo_id)&lt;/code&gt;)" href="#oops_engine.store.write_kb(repo_id)">repo_id</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;odoo_version&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(odoo_version)&lt;/code&gt;)" href="#oops_engine.store.write_kb(odoo_version)">odoo_version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;scan_results&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(scan_results)&lt;/code&gt;)" href="#oops_engine.store.write_kb(scan_results)">scan_results</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops_engine.compat.Any">Any</span></span><span class="p">]],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;sources&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(sources)&lt;/code&gt;)" href="#oops_engine.store.write_kb(sources)">sources</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Dict">Dict</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;project&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(project)&lt;/code&gt;)" href="#oops_engine.store.write_kb(project)">project</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;scope&lt;/code&gt; (&lt;code&gt;oops_engine.store.write_kb(scope)&lt;/code&gt;)" href="#oops_engine.store.write_kb(scope)">scope</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.models.Result">Result</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -8423,7 +8423,7 @@ an explicit <code>Backend</code> instance (e.g. <code>PostgresBackend</code>).</
 <h4 id="oops_engine.store.write_kb(repo_id)" class="doc doc-heading doc-heading-parameter">                  <code>repo_id</code>
 <a href="#oops_engine.store.write_kb(repo_id)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8442,7 +8442,7 @@ the same tables without collision.</p>
 <h4 id="oops_engine.store.write_kb(odoo_version)" class="doc doc-heading doc-heading-parameter">                  <code>odoo_version</code>
 <a href="#oops_engine.store.write_kb(odoo_version)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8458,7 +8458,7 @@ the same tables without collision.</p>
 <h4 id="oops_engine.store.write_kb(scan_results)" class="doc doc-heading doc-heading-parameter">                  <code>scan_results</code>
 <a href="#oops_engine.store.write_kb(scan_results)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
+                  <code><span title="oops_engine.compat.List">List</span>[<span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <span title="oops_engine.compat.Any">Any</span>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8474,7 +8474,7 @@ the same tables without collision.</p>
 <h4 id="oops_engine.store.write_kb(sources)" class="doc doc-heading doc-heading-parameter">                  <code>sources</code>
 <a href="#oops_engine.store.write_kb(sources)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Dict">Dict</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8490,7 +8490,7 @@ the same tables without collision.</p>
 <h4 id="oops_engine.store.write_kb(project)" class="doc doc-heading doc-heading-parameter">                  <code>project</code>
 <a href="#oops_engine.store.write_kb(project)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -8506,7 +8506,7 @@ the same tables without collision.</p>
 <h4 id="oops_engine.store.write_kb(scope)" class="doc doc-heading doc-heading-parameter">                  <code>scope</code>
 <a href="#oops_engine.store.write_kb(scope)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<span title="oops_engine.compat.List">List</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">

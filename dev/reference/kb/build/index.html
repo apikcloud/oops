@@ -677,14 +677,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../guide/commands/migrate/" class="md-nav__link">
+      <a href="../../../guide/commands/upgrade/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Migrate
+    Upgrade
   
 
     
@@ -3136,7 +3136,7 @@
 
 
 <a href="#oops_engine.build.build_project_kb" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">build_project_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(repo_path)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(version)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;modules&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(modules)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(modules)">modules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;addons&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(addons)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(addons)">addons</a></span><span class="p">:</span> <span class="s1">'List[Addon]'</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;slug&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(slug)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(slug)">slug</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;global_kb&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(global_kb)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(global_kb)">global_kb</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'Result[Path]'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">build_project_kb</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(repo_path)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(version)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;modules&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(modules)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(modules)">modules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;addons&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(addons)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(addons)">addons</a></span><span class="p">:</span> <span class="s1">'List[Addon]'</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;slug&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(slug)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(slug)">slug</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;global_kb&lt;/code&gt; (&lt;code&gt;oops_engine.build.build_project_kb(global_kb)&lt;/code&gt;)" href="#oops_engine.build.build_project_kb(global_kb)">global_kb</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'Result[Path]'</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3176,7 +3176,7 @@
 <h4 id="oops_engine.build.build_project_kb(version)" class="doc doc-heading doc-heading-parameter">                  <code>version</code>
 <a href="#oops_engine.build.build_project_kb(version)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3192,7 +3192,7 @@
 <h4 id="oops_engine.build.build_project_kb(modules)" class="doc doc-heading doc-heading-parameter">                  <code>modules</code>
 <a href="#oops_engine.build.build_project_kb(modules)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Iterable">Iterable</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Iterable">Iterable</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3227,7 +3227,7 @@ no knowledge of git, submodules, or config; each addon's
 <h4 id="oops_engine.build.build_project_kb(slug)" class="doc doc-heading doc-heading-parameter">                  <code>slug</code>
 <a href="#oops_engine.build.build_project_kb(slug)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | None</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3322,7 +3322,7 @@ no knowledge of git, submodules, or config; each addon's
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError">FileNotFoundError</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#FileNotFoundError">FileNotFoundError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3754,7 +3754,7 @@ no knowledge of git, submodules, or config; each addon's
 
 
 <a href="#oops_engine.build.compute_root_drift" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">compute_root_drift</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops_engine.build.compute_root_drift(repo_path)&lt;/code&gt;)" href="#oops_engine.build.compute_root_drift(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;installed_modules&lt;/code&gt; (&lt;code&gt;oops_engine.build.compute_root_drift(installed_modules)&lt;/code&gt;)" href="#oops_engine.build.compute_root_drift(installed_modules)">installed_modules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">compute_root_drift</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops_engine.build.compute_root_drift(repo_path)&lt;/code&gt;)" href="#oops_engine.build.compute_root_drift(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;installed_modules&lt;/code&gt; (&lt;code&gt;oops_engine.build.compute_root_drift(installed_modules)&lt;/code&gt;)" href="#oops_engine.build.compute_root_drift(installed_modules)">installed_modules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Iterable">Iterable</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3795,7 +3795,7 @@ no knowledge of git, submodules, or config; each addon's
 <h4 id="oops_engine.build.compute_root_drift(installed_modules)" class="doc doc-heading doc-heading-parameter">                  <code>installed_modules</code>
 <a href="#oops_engine.build.compute_root_drift(installed_modules)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Iterable">Iterable</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Iterable">Iterable</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3821,7 +3821,7 @@ no knowledge of git, submodules, or config; each addon's
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3831,7 +3831,7 @@ no knowledge of git, submodules, or config; each addon's
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3844,7 +3844,7 @@ at the root (no symlink, no local dir).</li>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>], <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>], <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3923,7 +3923,7 @@ at the root (no symlink, no local dir).</li>
 
 
 <a href="#oops_engine.build.is_project_kb_stale" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_project_kb_stale</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops_engine.build.is_project_kb_stale(repo_path)&lt;/code&gt;)" href="#oops_engine.build.is_project_kb_stale(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops_engine.build.is_project_kb_stale(version)&lt;/code&gt;)" href="#oops_engine.build.is_project_kb_stale(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;installed_modules_filename&lt;/code&gt; (&lt;code&gt;oops_engine.build.is_project_kb_stale(installed_modules_filename)&lt;/code&gt;)" href="#oops_engine.build.is_project_kb_stale(installed_modules_filename)">installed_modules_filename</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">=</span> <span class="n"><span title="oops_engine.paths.DEFAULT_INSTALLED_MODULES_FILENAME">DEFAULT_INSTALLED_MODULES_FILENAME</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_project_kb_stale</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_path&lt;/code&gt; (&lt;code&gt;oops_engine.build.is_project_kb_stale(repo_path)&lt;/code&gt;)" href="#oops_engine.build.is_project_kb_stale(repo_path)">repo_path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;version&lt;/code&gt; (&lt;code&gt;oops_engine.build.is_project_kb_stale(version)&lt;/code&gt;)" href="#oops_engine.build.is_project_kb_stale(version)">version</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;installed_modules_filename&lt;/code&gt; (&lt;code&gt;oops_engine.build.is_project_kb_stale(installed_modules_filename)&lt;/code&gt;)" href="#oops_engine.build.is_project_kb_stale(installed_modules_filename)">installed_modules_filename</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span> <span class="o">=</span> <span class="n"><span title="oops_engine.paths.DEFAULT_INSTALLED_MODULES_FILENAME">DEFAULT_INSTALLED_MODULES_FILENAME</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3963,7 +3963,7 @@ at the root (no symlink, no local dir).</li>
 <h4 id="oops_engine.build.is_project_kb_stale(version)" class="doc doc-heading doc-heading-parameter">                  <code>version</code>
 <a href="#oops_engine.build.is_project_kb_stale(version)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3979,7 +3979,7 @@ at the root (no symlink, no local dir).</li>
 <h4 id="oops_engine.build.is_project_kb_stale(installed_modules_filename)" class="doc doc-heading doc-heading-parameter">                  <code>installed_modules_filename</code>
 <a href="#oops_engine.build.is_project_kb_stale(installed_modules_filename)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4007,7 +4007,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4017,7 +4017,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4029,7 +4029,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4041,7 +4041,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4053,7 +4053,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4065,7 +4065,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4077,7 +4077,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple">tuple</a>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a>, <a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4211,7 +4211,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
 
 
 <a href="#oops_engine.build.odoo_core_repo_id" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">odoo_core_repo_id</span><span class="p">(</span><span class="n"><span title="oops_engine.build.odoo_core_repo_id(version)">version</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">odoo_core_repo_id</span><span class="p">(</span><span class="n"><span title="oops_engine.build.odoo_core_repo_id(version)">version</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4241,7 +4241,7 @@ callers should pass <code>config.project.file_installed_modules</code>.</p>
 
 
 <a href="#oops_engine.build.parse_kb_timestamp" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">parse_kb_timestamp</span><span class="p">(</span><span class="n"><span title="oops_engine.build.parse_kb_timestamp(value)">value</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;datetime.datetime&lt;/code&gt;" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span> <span class="o">|</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">parse_kb_timestamp</span><span class="p">(</span><span class="n"><span title="oops_engine.build.parse_kb_timestamp(value)">value</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;datetime.datetime&lt;/code&gt;" href="https://docs.python.org/3/library/datetime.html#datetime.datetime">datetime</a></span> <span class="o">|</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">

@@ -677,14 +677,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../guide/commands/migrate/" class="md-nav__link">
+      <a href="../../../guide/commands/upgrade/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Migrate
+    Upgrade
   
 
     
@@ -3376,7 +3376,7 @@
 
 
 <a href="#oops.services.git.browse_submodules" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">browse_submodules</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;submodules&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(submodules)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(submodules)">submodules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="git.Submodule">Submodule</span></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;names&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(names)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(names)">names</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">'Generator[Tuple[int, Submodule]]'</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">browse_submodules</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;submodules&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(submodules)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(submodules)">submodules</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.List">List</span></span><span class="p">[</span><span class="n"><span title="git.Submodule">Submodule</span></span><span class="p">],</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;names&lt;/code&gt; (&lt;code&gt;oops.services.git.browse_submodules(names)&lt;/code&gt;)" href="#oops.services.git.browse_submodules(names)">names</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">'Generator[Tuple[int, Submodule]]'</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3416,7 +3416,7 @@
 <h4 id="oops.services.git.browse_submodules(names)" class="doc doc-heading doc-heading-parameter">                  <code>names</code>
 <a href="#oops.services.git.browse_submodules(names)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Tuple">Tuple</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Tuple">Tuple</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3494,7 +3494,7 @@
 
 
 <a href="#oops.services.git.commit" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">commit</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;local_repo&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(local_repo)&lt;/code&gt;)" href="#oops.services.git.commit(local_repo)">local_repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_root&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(repo_root)&lt;/code&gt;)" href="#oops.services.git.commit(repo_root)">repo_root</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;files&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(files)&lt;/code&gt;)" href="#oops.services.git.commit(files)">files</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;message_name&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(message_name)&lt;/code&gt;)" href="#oops.services.git.commit(message_name)">message_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;skip_hooks&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(skip_hooks)&lt;/code&gt;)" href="#oops.services.git.commit(skip_hooks)">skip_hooks</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(remove)&lt;/code&gt;)" href="#oops.services.git.commit(remove)">remove</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;already_staged&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(already_staged)&lt;/code&gt;)" href="#oops.services.git.commit(already_staged)">already_staged</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove_and_add&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(remove_and_add)&lt;/code&gt;)" href="#oops.services.git.commit(remove_and_add)">remove_and_add</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;**kwargs&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(**kwargs)&lt;/code&gt;)" href="#oops.services.git.commit(**kwargs)">kwargs</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">commit</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;local_repo&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(local_repo)&lt;/code&gt;)" href="#oops.services.git.commit(local_repo)">local_repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_root&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(repo_root)&lt;/code&gt;)" href="#oops.services.git.commit(repo_root)">repo_root</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;files&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(files)&lt;/code&gt;)" href="#oops.services.git.commit(files)">files</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;message_name&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(message_name)&lt;/code&gt;)" href="#oops.services.git.commit(message_name)">message_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;skip_hooks&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(skip_hooks)&lt;/code&gt;)" href="#oops.services.git.commit(skip_hooks)">skip_hooks</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(remove)&lt;/code&gt;)" href="#oops.services.git.commit(remove)">remove</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;already_staged&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(already_staged)&lt;/code&gt;)" href="#oops.services.git.commit(already_staged)">already_staged</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove_and_add&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(remove_and_add)&lt;/code&gt;)" href="#oops.services.git.commit(remove_and_add)">remove_and_add</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;**kwargs&lt;/code&gt; (&lt;code&gt;oops.services.git.commit(**kwargs)&lt;/code&gt;)" href="#oops.services.git.commit(**kwargs)">kwargs</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#object">object</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3550,7 +3550,7 @@
 <h4 id="oops.services.git.commit(files)" class="doc doc-heading doc-heading-parameter">                  <code>files</code>
 <a href="#oops.services.git.commit(files)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3566,7 +3566,7 @@
 <h4 id="oops.services.git.commit(message_name)" class="doc doc-heading doc-heading-parameter">                  <code>message_name</code>
 <a href="#oops.services.git.commit(message_name)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3582,7 +3582,7 @@
 <h4 id="oops.services.git.commit(skip_hooks)" class="doc doc-heading doc-heading-parameter">                  <code>skip_hooks</code>
 <a href="#oops.services.git.commit(skip_hooks)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3598,7 +3598,7 @@
 <h4 id="oops.services.git.commit(remove)" class="doc doc-heading doc-heading-parameter">                  <code>remove</code>
 <a href="#oops.services.git.commit(remove)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3614,7 +3614,7 @@
 <h4 id="oops.services.git.commit(already_staged)" class="doc doc-heading doc-heading-parameter">                  <code>already_staged</code>
 <a href="#oops.services.git.commit(already_staged)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3630,7 +3630,7 @@
 <h4 id="oops.services.git.commit(remove_and_add)" class="doc doc-heading doc-heading-parameter">                  <code>remove_and_add</code>
 <a href="#oops.services.git.commit(remove_and_add)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3646,7 +3646,7 @@
 <h4 id="oops.services.git.commit(**kwargs)" class="doc doc-heading doc-heading-parameter">                  <code>**kwargs</code>
 <a href="#oops.services.git.commit(**kwargs)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#object">object</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3672,7 +3672,7 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#ValueError">ValueError</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError">ValueError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3820,7 +3820,7 @@
 
 
 <a href="#oops.services.git.commit_v2" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">commit_v2</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;local_repo&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(local_repo)&lt;/code&gt;)" href="#oops.services.git.commit_v2(local_repo)">local_repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_root&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(repo_root)&lt;/code&gt;)" href="#oops.services.git.commit_v2(repo_root)">repo_root</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;files&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(files)&lt;/code&gt;)" href="#oops.services.git.commit_v2(files)">files</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;message_name&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(message_name)&lt;/code&gt;)" href="#oops.services.git.commit_v2(message_name)">message_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;skip_hooks&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(skip_hooks)&lt;/code&gt;)" href="#oops.services.git.commit_v2(skip_hooks)">skip_hooks</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(remove)&lt;/code&gt;)" href="#oops.services.git.commit_v2(remove)">remove</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;already_staged&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(already_staged)&lt;/code&gt;)" href="#oops.services.git.commit_v2(already_staged)">already_staged</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove_and_add&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(remove_and_add)&lt;/code&gt;)" href="#oops.services.git.commit_v2(remove_and_add)">remove_and_add</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;**kwargs&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(**kwargs)&lt;/code&gt;)" href="#oops.services.git.commit_v2(**kwargs)">kwargs</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops.core.models.Result">Result</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">commit_v2</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;local_repo&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(local_repo)&lt;/code&gt;)" href="#oops.services.git.commit_v2(local_repo)">local_repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_root&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(repo_root)&lt;/code&gt;)" href="#oops.services.git.commit_v2(repo_root)">repo_root</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;files&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(files)&lt;/code&gt;)" href="#oops.services.git.commit_v2(files)">files</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;message_name&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(message_name)&lt;/code&gt;)" href="#oops.services.git.commit_v2(message_name)">message_name</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;skip_hooks&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(skip_hooks)&lt;/code&gt;)" href="#oops.services.git.commit_v2(skip_hooks)">skip_hooks</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(remove)&lt;/code&gt;)" href="#oops.services.git.commit_v2(remove)">remove</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;already_staged&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(already_staged)&lt;/code&gt;)" href="#oops.services.git.commit_v2(already_staged)">already_staged</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;remove_and_add&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(remove_and_add)&lt;/code&gt;)" href="#oops.services.git.commit_v2(remove_and_add)">remove_and_add</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;**kwargs&lt;/code&gt; (&lt;code&gt;oops.services.git.commit_v2(**kwargs)&lt;/code&gt;)" href="#oops.services.git.commit_v2(**kwargs)">kwargs</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#object">object</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops.core.models.Result">Result</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3877,7 +3877,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.commit_v2(files)" class="doc doc-heading doc-heading-parameter">                  <code>files</code>
 <a href="#oops.services.git.commit_v2(files)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3893,7 +3893,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.commit_v2(message_name)" class="doc doc-heading doc-heading-parameter">                  <code>message_name</code>
 <a href="#oops.services.git.commit_v2(message_name)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3909,7 +3909,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.commit_v2(skip_hooks)" class="doc doc-heading doc-heading-parameter">                  <code>skip_hooks</code>
 <a href="#oops.services.git.commit_v2(skip_hooks)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3925,7 +3925,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.commit_v2(remove)" class="doc doc-heading doc-heading-parameter">                  <code>remove</code>
 <a href="#oops.services.git.commit_v2(remove)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3941,7 +3941,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.commit_v2(already_staged)" class="doc doc-heading doc-heading-parameter">                  <code>already_staged</code>
 <a href="#oops.services.git.commit_v2(already_staged)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3957,7 +3957,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.commit_v2(remove_and_add)" class="doc doc-heading doc-heading-parameter">                  <code>remove_and_add</code>
 <a href="#oops.services.git.commit_v2(remove_and_add)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3973,7 +3973,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.commit_v2(**kwargs)" class="doc doc-heading doc-heading-parameter">                  <code>**kwargs</code>
 <a href="#oops.services.git.commit_v2(**kwargs)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#object">object</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#object">object</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3999,7 +3999,7 @@ Stage files and create a commit using a named commit message template.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Result</code></td>            <td>
-                  <code><span title="oops.core.models.Result">Result</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a>]</code>
+                  <code><span title="oops.core.models.Result">Result</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4171,7 +4171,7 @@ Stage files and create a commit using a named commit message template.</p>
 
 
 <a href="#oops.services.git.find_commit" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">find_commit</span><span class="p">(</span><span class="n"><span title="oops.services.git.find_commit(repo)">repo</span></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><span title="oops.services.git.find_commit(branch)">branch</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.services.git.find_commit(message)">message</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">find_commit</span><span class="p">(</span><span class="n"><span title="oops.services.git.find_commit(repo)">repo</span></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><span title="oops.services.git.find_commit(branch)">branch</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><span title="oops.services.git.find_commit(message)">message</span></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4209,7 +4209,7 @@ Stage files and create a commit using a named commit message template.</p>
 
 
 <a href="#oops.services.git.get_last_commit" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_last_commit</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_last_commit(path)&lt;/code&gt;)" href="#oops.services.git.get_last_commit(path)">path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;CommitInfo&lt;/span&gt;
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_last_commit</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_last_commit(path)&lt;/code&gt;)" href="#oops.services.git.get_last_commit(path)">path</a></span><span class="p">:</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;CommitInfo&lt;/span&gt;
 
 
   &lt;span class=&quot;doc doc-labels&quot;&gt;
@@ -4238,7 +4238,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.get_last_commit(path)" class="doc doc-heading doc-heading-parameter">                  <code>path</code>
 <a href="#oops.services.git.get_last_commit(path)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4347,7 +4347,7 @@ Stage files and create a commit using a named commit message template.</p>
 
 
 <a href="#oops.services.git.get_submodule_sha" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_submodule_sha</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(repo)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(repo)">repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;ref&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(ref)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(ref)">ref</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(path)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(path)">path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_submodule_sha</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(repo)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(repo)">repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;ref&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(ref)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(ref)">ref</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;path&lt;/code&gt; (&lt;code&gt;oops.services.git.get_submodule_sha(path)&lt;/code&gt;)" href="#oops.services.git.get_submodule_sha(path)">path</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="oops_engine.compat.Optional">Optional</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4387,7 +4387,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.get_submodule_sha(ref)" class="doc doc-heading doc-heading-parameter">                  <code>ref</code>
 <a href="#oops.services.git.get_submodule_sha(ref)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4403,7 +4403,7 @@ Stage files and create a commit using a named commit message template.</p>
 <h4 id="oops.services.git.get_submodule_sha(path)" class="doc doc-heading doc-heading-parameter">                  <code>path</code>
 <a href="#oops.services.git.get_submodule_sha(path)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4429,7 +4429,7 @@ Stage files and create a commit using a named commit message template.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</code>
+                  <code><span title="oops_engine.compat.Optional">Optional</span>[<a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4487,7 +4487,7 @@ Stage files and create a commit using a named commit message template.</p>
 
 
 <a href="#oops.services.git.is_pull_request" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_pull_request</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;submodule&lt;/code&gt; (&lt;code&gt;oops.services.git.is_pull_request(submodule)&lt;/code&gt;)" href="#oops.services.git.is_pull_request(submodule)">submodule</a></span><span class="p">:</span> <span class="n"><span title="git.Submodule">Submodule</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">is_pull_request</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;submodule&lt;/code&gt; (&lt;code&gt;oops.services.git.is_pull_request(submodule)&lt;/code&gt;)" href="#oops.services.git.is_pull_request(submodule)">submodule</a></span><span class="p">:</span> <span class="n"><span title="git.Submodule">Submodule</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4538,7 +4538,7 @@ Stage files and create a commit using a named commit message template.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4743,7 +4743,7 @@ Stage files and create a commit using a named commit message template.</p>
 
 
 <a href="#oops.services.git.list_submodules" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">list_submodules</span><span class="p">(</span><span class="n"><span title="oops.services.git.list_submodules(repo)">repo</span></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">list_submodules</span><span class="p">(</span><span class="n"><span title="oops.services.git.list_submodules(repo)">repo</span></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4764,7 +4764,7 @@ same repo are free.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4885,7 +4885,7 @@ same repo are free.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/exceptions.html#ValueError">ValueError</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError">ValueError</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5254,7 +5254,7 @@ by :class:<code>~oops.commands.base.OopsCommand</code> telemetry as
 
 
 <a href="#oops.services.git.show_diff" class="headerlink" title="Permanent link">¶</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">show_diff</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;tmpdir&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(tmpdir)&lt;/code&gt;)" href="#oops.services.git.show_diff(tmpdir)">tmpdir</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;files&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(files)&lt;/code&gt;)" href="#oops.services.git.show_diff(files)">files</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;local_repo&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(local_repo)&lt;/code&gt;)" href="#oops.services.git.show_diff(local_repo)">local_repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_root&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(repo_root)&lt;/code&gt;)" href="#oops.services.git.show_diff(repo_root)">repo_root</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">show_diff</span><span class="p">(</span><span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;tmpdir&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(tmpdir)&lt;/code&gt;)" href="#oops.services.git.show_diff(tmpdir)">tmpdir</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;files&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(files)&lt;/code&gt;)" href="#oops.services.git.show_diff(files)">files</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;local_repo&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(local_repo)&lt;/code&gt;)" href="#oops.services.git.show_diff(local_repo)">local_repo</a></span><span class="p">:</span> <span class="n"><span title="git.Repo">Repo</span></span><span class="p">,</span> <span class="n"><a class="autorefs autorefs-internal" title="&lt;code&gt;repo_root&lt;/code&gt; (&lt;code&gt;oops.services.git.show_diff(repo_root)&lt;/code&gt;)" href="#oops.services.git.show_diff(repo_root)">repo_root</a></span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="&lt;code&gt;pathlib.Path&lt;/code&gt;" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path">Path</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5294,7 +5294,7 @@ by :class:<code>~oops.commands.base.OopsCommand</code> telemetry as
 <h4 id="oops.services.git.show_diff(files)" class="doc doc-heading doc-heading-parameter">                  <code>files</code>
 <a href="#oops.services.git.show_diff(files)" class="headerlink" title="Permanent link">¶</a></h4>            </td>
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/stdtypes.html#list">list</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5352,7 +5352,7 @@ by :class:<code>~oops.commands.base.OopsCommand</code> telemetry as
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/library/functions.html#bool">bool</a></code>
+                  <code><a class="autorefs autorefs-external" href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></code>
             </td>
             <td>
               <div class="doc-md-description">
