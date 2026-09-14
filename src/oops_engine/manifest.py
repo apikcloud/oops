@@ -14,7 +14,6 @@ Sections:
     - Discovery: enumerate addons and manifest paths under a directory
 """
 
-import ast
 import os
 from collections.abc import Generator
 from pathlib import Path
@@ -23,6 +22,7 @@ import libcst as cst
 from oops_engine.compat import Optional, Union
 from oops_engine.exceptions import NoManifestFound
 from oops_engine.logger import log
+from oops_engine.utils import literal_eval_source
 
 DEFAULT_MANIFEST_NAMES = ["__manifest__.py", "__openerp__.py", "__terp__.py"]
 
@@ -67,7 +67,7 @@ def parse_manifest(filepath: Path) -> dict:
 
     # Convert the exact dict literal slice to a Python object (safe: literals only).
     try:
-        manifest = ast.literal_eval(source)
+        manifest = literal_eval_source(source)
     except (ValueError, SyntaxError) as exc:
         log.error(f"Failed to parse manifest {filepath}: {exc}")
         return {}

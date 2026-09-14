@@ -21,6 +21,7 @@ from pathlib import Path
 import click
 from oops.commands.base import command
 from oops.core.models import Plan, PlanAction, Result
+from oops.io.file import collect_symlink_paths, symlinks_into
 from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, require_repository, require_submodules
@@ -28,24 +29,11 @@ from oops.utils.render import colorize
 from oops_engine.compat import Tuple
 
 
-def _collect_symlinks(repo_path: Path) -> list[Path]:
-    result = []
-    for root, dirs, files in os.walk(repo_path):
-        if ".git" in dirs:
-            dirs.remove(".git")
-        for entry in dirs + files:
-            p = Path(root) / entry
-            if p.is_symlink():
-                result.append(p)
-    return result
-
-
 def _build_plan(submodules, repo_path: Path) -> Plan:
-    all_symlinks = _collect_symlinks(repo_path)
+    all_symlinks = collect_symlink_paths(repo_path)
     actions = []
     for sub in submodules:
-        sub_rel = os.path.relpath(repo_path / sub.path, repo_path)
-        links = [lnk for lnk in all_symlinks if sub_rel in os.readlink(lnk)]
+        links = symlinks_into(all_symlinks, str(sub.path), repo_path)
         n = len(links)
         detail = f"{n} symlink{'s' if n != 1 else ''}" if n else str(sub.path)
         actions.append(

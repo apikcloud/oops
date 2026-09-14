@@ -21,6 +21,7 @@ from oops_engine.logger import log
 from oops_engine.manifest import load_manifest
 from oops_engine.models import Result
 from oops_engine.python_imports import discover_imported_files
+from oops_engine.utils import parse_python_source
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -91,7 +92,7 @@ def _parse_file(path: Path) -> Optional[ast.Module]:
     """Parse a Python source file into an AST. Returns None on failure."""
     try:
         source = path.read_text(encoding="utf-8", errors="replace")
-        return ast.parse(source, filename=str(path))
+        return parse_python_source(source, filename=str(path))
     except SyntaxError as exc:
         log.warning("Syntax error in %s: %s", path, exc)
     except Exception as exc:
@@ -588,7 +589,7 @@ def build_module_field_refs(
     refs: Dict[Tuple[str, str], List[str]] = {}
     for py_file in py_files:
         try:
-            tree = ast.parse(py_file.read_text(encoding="utf-8", errors="replace"))
+            tree = parse_python_source(py_file.read_text(encoding="utf-8", errors="replace"), filename=str(py_file))
         except SyntaxError:
             continue
         for node in ast.walk(tree):

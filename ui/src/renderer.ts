@@ -6,7 +6,7 @@ import { viewAnalyze }        from "./views/analyze";
 import { viewDepends }        from "./views/depends";
 import { viewRelease }        from "./views/release";
 import { viewChecks }         from "./views/checks";
-import { viewMigrateAnalyze } from "./views/migrate_analyze";
+import { viewUpgradeAnalyze } from "./views/upgrade_analyze";
 import { viewError } from "./views/error";
 
 export type View = (root: HTMLElement, payload: Payload, source: Source) => void;
@@ -21,7 +21,7 @@ const VIEWS: Record<string, View> = {
   "checks":         viewChecks,
   "project check":  viewChecks,
   "requirements check": viewChecks,
-  "migrate analyze": viewMigrateAnalyze,
+  "upgrade analyze": viewUpgradeAnalyze,
   "error": viewError,
 };
 

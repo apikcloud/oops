@@ -2749,13 +2749,13 @@ gui = [
 mcp = [
     { name = "mcp", extra = ["cli"], marker = "python_full_version >= '3.10'" },
 ]
-migrate = [
-    { name = "odoo-module-migrator" },
-]
 postgres = [
     { name = "psycopg", version = "3.1.20", source = { registry = "https://pypi.org/simple" }, extra = ["binary"], marker = "python_full_version < '3.8'" },
     { name = "psycopg", version = "3.2.13", source = { registry = "https://pypi.org/simple" }, extra = ["binary"], marker = "python_full_version >= '3.8' and python_full_version < '3.10'" },
     { name = "psycopg", version = "3.3.4", source = { registry = "https://pypi.org/simple" }, extra = ["binary"], marker = "python_full_version >= '3.10'" },
+]
+upgrade = [
+    { name = "odoo-module-migrator" },
 ]
 
 [package.metadata]
@@ -2778,7 +2778,7 @@ requires-dist = [
     { name = "mkdocs-material", marker = "python_full_version >= '3.9' and extra == 'docs'", specifier = ">=9.7" },
     { name = "mkdocs-redirects", marker = "python_full_version >= '3.9' and extra == 'docs'", specifier = ">=1.2" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'" },
-    { name = "odoo-module-migrator", marker = "extra == 'migrate'", git = "https://github.com/OCA/odoo-module-migrator.git" },
+    { name = "odoo-module-migrator", marker = "extra == 'upgrade'", git = "https://github.com/OCA/odoo-module-migrator.git" },
     { name = "packaging", specifier = ">=23.2" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.1" },
     { name = "pyright", marker = "extra == 'dev'" },
@@ -2795,7 +2795,7 @@ requires-dist = [
     { name = "typing-extensions", marker = "python_full_version < '3.8'", specifier = ">=4.7" },
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-provides-extras = ["dev", "docs", "gui", "mcp", "migrate", "postgres"]
+provides-extras = ["dev", "docs", "gui", "mcp", "postgres", "upgrade"]
 
 [[package]]
 name = "packaging"

@@ -31,6 +31,7 @@ from oops_engine.scanner import (
     reconstruct_signature,
 )
 from oops_engine.store import KBReader
+from oops_engine.utils import parse_python_source
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -215,7 +216,7 @@ def analyse_file(
     """
     source = py_file.read_text(encoding="utf-8", errors="replace")
     try:
-        tree = ast.parse(source, filename=str(py_file))
+        tree = parse_python_source(source, filename=str(py_file))
     except SyntaxError as exc:
         log.warning("Syntax error in %s: %s", py_file, exc)
         return []

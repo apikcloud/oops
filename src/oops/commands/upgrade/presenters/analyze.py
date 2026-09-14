@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from oops.commands.migrate.common import ModuleState
+from oops.commands.upgrade.common import ModuleState
 from oops.core.models import Result
 from oops.output.base import SimplePresenter
 from oops.output.layout import (
@@ -51,7 +51,7 @@ def _effort_metrics(modules: dict) -> dict[str, int]:
 
 
 class AnalyzePresenter(SimplePresenter[dict]):
-    """Presenter for `oops migrate analyze`."""
+    """Presenter for `oops upgrade analyze`."""
 
     def to_human(self, result: Result[dict]) -> SimpleSummaryLayout:
         data = result.unwrap

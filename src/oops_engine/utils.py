@@ -3,10 +3,44 @@
 #
 # File: utils.py — src/oops_engine/utils.py
 
+import ast
 import subprocess
+import warnings
 
 from oops_engine.compat import Any, Generator, Optional, Tuple
 from oops_engine.logger import log
+
+
+def parse_python_source(source: str, filename: str = "<unknown>") -> ast.Module:
+    """`ast.parse`, with SyntaxWarning noise from legacy source suppressed.
+
+    Odoo core/addon trees going back several major versions are full of
+    non-raw regex string literals with invalid escape sequences (``'\\d'``,
+    ``'\\s'``, ...) — CPython's parser emits a SyntaxWarning for each one,
+    even via plain `ast.parse` (escape-sequence processing happens at parse
+    time, not just on exec/compile). Scanning a whole Odoo tree can surface
+    hundreds of these; they are pre-existing quirks in vendored source we
+    only ever read, never fix, so they drown out real output rather than
+    inform it. A genuine syntax error still raises SyntaxError normally —
+    only the warning category is suppressed, not parse failures.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", SyntaxWarning)
+        return ast.parse(source, filename=filename)
+
+
+def literal_eval_source(source: str) -> Any:
+    """`ast.literal_eval`, with the same SyntaxWarning noise suppressed.
+
+    `ast.literal_eval` parses internally (no `filename` parameter of its
+    own, always reported as ``<unknown>``) and is subject to the same
+    invalid-escape-sequence warnings as `parse_python_source` above — most
+    commonly hit here parsing old Odoo `__manifest__.py` files whose
+    `description` field contains a stray backslash.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", SyntaxWarning)
+        return ast.literal_eval(source)
 
 
 def deep_visit(obj: Any, prefix: str = "") -> Generator[Tuple[str, Any], None, None]:
