@@ -17,7 +17,9 @@ from git import Repo
 from oops.commands.upgrade.vanilla import (
     UNINSTALL_SCRIPT_TEMPLATE,
     VanillaModule,
+    build_strip_plan,
     bump_odoo_version,
+    cleanup_submodule_containers,
     compute_removal_order,
     discover_non_core_addons,
     flag_kb_collisions,
@@ -244,6 +246,125 @@ def test_flag_kb_collisions_no_kb_built():
 
 
 # ---------------------------------------------------------------------------
+# build_strip_plan — orphan submodule sweep
+# ---------------------------------------------------------------------------
+
+
+def _add_submodule(repo: Repo, upstream_path: Path, rel_path: str) -> None:
+    with repo.git.custom_environment(GIT_ALLOW_PROTOCOL="file"):
+        repo.git.submodule("add", str(upstream_path), rel_path)
+
+
+def _make_upstream_repo(tmp_path: Path, name: str, with_addon: bool = True) -> Path:
+    upstream_path = tmp_path / name
+    upstream_path.mkdir()
+    upstream = Repo.init(upstream_path)
+    with upstream.config_writer() as cw:
+        cw.set_value("user", "email", "test@test.com")
+        cw.set_value("user", "name", "Test")
+    if with_addon:
+        _add_local_addon(upstream_path, f"{name}_addon", author="Acme")
+        upstream.index.add([f"{name}_addon"])
+    else:
+        (upstream_path / "README.md").write_text("no addon here\n")
+        upstream.index.add(["README.md"])
+    upstream.index.commit("init upstream")
+    return upstream_path
+
+
+def test_build_strip_plan_removes_inactive_submodule_with_no_addon(tmp_path):
+    """A submodule cloned under `.third-party/` whose addon is never
+    symlinked to the repo root has no discovered `VanillaModule` at all —
+    `build_strip_plan` must still sweep it up as an orphan removal.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    upstream_path = _make_upstream_repo(tmp_path, "inactive_up", with_addon=True)
+    (repo_path / ".third-party").mkdir()
+    _add_submodule(repo, upstream_path, ".third-party/inactive_up")
+    _commit_all(repo, "add inactive submodule")
+
+    plan = build_strip_plan(repo, repo_path, modules=[])
+
+    assert len(plan.actionable) == 1
+    action = plan.actionable[0]
+    assert action.data["kind"] == "submodule"
+    assert action.data["orphan"] is True
+    assert action.data["rel_path"] == ".third-party/inactive_up"
+
+
+def test_build_strip_plan_removes_empty_submodule(tmp_path):
+    """A submodule containing no Odoo manifest at all (e.g. a docs/tooling
+    repo) has no discovered addon either — same orphan-sweep contract.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    upstream_path = _make_upstream_repo(tmp_path, "empty_up", with_addon=False)
+    (repo_path / ".third-party").mkdir()
+    _add_submodule(repo, upstream_path, ".third-party/empty_up")
+    _commit_all(repo, "add empty submodule")
+
+    plan = build_strip_plan(repo, repo_path, modules=[])
+
+    assert len(plan.actionable) == 1
+    action = plan.actionable[0]
+    assert action.data["kind"] == "submodule"
+    assert action.data["orphan"] is True
+    assert action.data["rel_path"] == ".third-party/empty_up"
+
+
+# ---------------------------------------------------------------------------
+# cleanup_submodule_containers
+# ---------------------------------------------------------------------------
+
+
+def test_cleanup_submodule_containers_removes_empty_current_path(tmp_path):
+    """`.third-party` (config.submodules.current_path) left with nothing but
+    empty (former submodule) directories after every submodule is stripped
+    must be removed entirely — including a nested org-level directory
+    (e.g. `.third-party/OCA`) that only becomes empty once its own last
+    submodule directory is gone.
+    """
+    (tmp_path / ".third-party" / "OCA").mkdir(parents=True)
+
+    removed = cleanup_submodule_containers(tmp_path)
+
+    assert removed == [".third-party"]
+    assert not (tmp_path / ".third-party").exists()
+
+
+def test_cleanup_submodule_containers_removes_legacy_old_path(tmp_path):
+    """A legacy container from `config.submodules.old_paths` (`third-party`,
+    without the leading dot) is swept up the same way as the current one.
+    """
+    (tmp_path / "third-party").mkdir()
+
+    removed = cleanup_submodule_containers(tmp_path)
+
+    assert removed == ["third-party"]
+    assert not (tmp_path / "third-party").exists()
+
+
+def test_cleanup_submodule_containers_leaves_non_empty_container(tmp_path):
+    """A container still holding real content (e.g. a leftover submodule
+    directory, or a file someone committed there directly) must not be
+    touched — only genuinely empty directories are removed.
+    """
+    third_party = tmp_path / ".third-party"
+    third_party.mkdir()
+    (third_party / "still_here.txt").write_text("not a submodule\n")
+
+    removed = cleanup_submodule_containers(tmp_path)
+
+    assert removed == []
+    assert (third_party / "still_here.txt").exists()
+
+
+def test_cleanup_submodule_containers_missing_container_is_a_noop(tmp_path):
+    assert cleanup_submodule_containers(tmp_path) == []
+
+
+# ---------------------------------------------------------------------------
 # render_uninstall_script
 # ---------------------------------------------------------------------------
 
@@ -329,7 +450,7 @@ def test_sync_project_files_dry_run_lists_configured_files_only(tmp_path, monkey
 
 
 # ---------------------------------------------------------------------------
-# CLI integration (real git repos — `main` performs real branch/commit/tag
+# CLI integration (real git repos — `main` performs real branch/commit
 # operations, so these are not mocked like the analyze/plan CLI tests).
 # ---------------------------------------------------------------------------
 
@@ -380,7 +501,6 @@ def test_cli_force_strips_local_addon(tmp_path, monkeypatch):
     assert "git" in (repo_path / "packages.txt").read_text().split()
     assert (repo_path / "odoo_version.txt").read_text().strip() == "apik/odoo:19.0-20260101"
     assert "vanilla/19.0" in [h.name for h in repo.heads]
-    assert "vanilla-19.0" in [t.name for t in repo.tags]
     assert repo.is_dirty() is False
 
 
@@ -408,7 +528,7 @@ def test_cli_declining_confirmation_creates_no_branch(tmp_path, monkeypatch):
     """Regression: branch creation must happen only after the user confirms —
     not while merely building/presenting the plan. Declining the "Proceed?"
     prompt must leave the repository exactly as it was: no vanilla/<to>
-    branch, no tag, no stripped files, no bumped odoo_version.txt.
+    branch, no stripped files, no bumped odoo_version.txt.
     """
     repo = _init_repo(tmp_path)
     repo_path = Path(repo.working_tree_dir)
@@ -426,7 +546,6 @@ def test_cli_declining_confirmation_creates_no_branch(tmp_path, monkeypatch):
     assert result.exit_code != 0
     assert repo.active_branch.name == before_branch
     assert "vanilla/19.0" not in [h.name for h in repo.heads]
-    assert "vanilla-19.0" not in [t.name for t in repo.tags]
     assert (repo_path / "custom_mod").exists()
     assert repo.git.status("--porcelain") == before_status
 
@@ -573,7 +692,95 @@ def test_cli_submodule_addon_removed_no_dangling_gitmodules(tmp_path, monkeypatc
     gitmodules = repo_path / ".gitmodules"
     content = gitmodules.read_text() if gitmodules.exists() else ""
     assert "oca_mod" not in content
+    assert not (repo_path / ".third-party").exists()
 
     report_path = repo_path / ".oops" / "upgrade" / "vanilla.yml"
     report = yaml.safe_load(report_path.read_text())
     assert report["modules"][0]["name"] == "oca_mod"
+
+
+def test_cli_root_level_submodule_removed_no_dangling_gitmodules(tmp_path, monkeypatch):
+    """A submodule checked out directly at the repo root (no `.third-party`
+    nesting, no symlink — the submodule's own root IS the addon root) is
+    discovered as a "local"-looking addon per today's classification, but
+    must still be removed via the submodule path, not `git rm -r`'d as a
+    plain directory (which would leave `.gitmodules` dangling).
+    """
+    upstream_path = tmp_path / "upstream_root_mod"
+    upstream_path.mkdir()
+    upstream = Repo.init(upstream_path)
+    with upstream.config_writer() as cw:
+        cw.set_value("user", "email", "test@test.com")
+        cw.set_value("user", "name", "Test")
+    manifest = {"name": "my_module", "author": "Acme", "depends": []}
+    (upstream_path / "__manifest__.py").write_text(repr(manifest))
+    upstream.index.add(["__manifest__.py"])
+    upstream.index.commit("init upstream")
+
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_submodule(repo, upstream_path, "my_module")
+    _commit_all(repo, "add root-level submodule")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
+
+    assert result.exit_code == 0, result.output
+    assert not (repo_path / "my_module").exists()
+    gitmodules = repo_path / ".gitmodules"
+    content = gitmodules.read_text() if gitmodules.exists() else ""
+    assert "my_module" not in content
+    assert not (repo_path / ".git" / "modules" / "my_module").exists()
+
+
+def test_cli_dry_run_previews_orphan_submodules(tmp_path, monkeypatch):
+    """Combine an addon-backed submodule with an orphan (never-symlinked)
+    one — `--dry-run` must preview both, and leave the tree untouched.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    (repo_path / ".third-party").mkdir()
+
+    addon_upstream = _make_upstream_repo(tmp_path, "addon_up", with_addon=True)
+    _add_submodule(repo, addon_upstream, ".third-party/addon_up")
+    (repo_path / "addon_up_addon").symlink_to(repo_path / ".third-party" / "addon_up" / "addon_up_addon")
+
+    orphan_upstream = _make_upstream_repo(tmp_path, "orphan_up", with_addon=True)
+    _add_submodule(repo, orphan_upstream, ".third-party/orphan_up")
+
+    _commit_all(repo, "add submodules")
+
+    before = repo.git.status("--porcelain")
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--dry-run"])
+
+    assert result.exit_code == 0, result.output
+    assert "orphan_up" in result.output
+    assert repo.git.status("--porcelain") == before
+
+
+def test_cli_json_output_includes_orphan_submodules(tmp_path, monkeypatch):
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    (repo_path / ".third-party").mkdir()
+
+    addon_upstream = _make_upstream_repo(tmp_path, "addon_up2", with_addon=True)
+    _add_submodule(repo, addon_upstream, ".third-party/addon_up2")
+    (repo_path / "addon_up2_addon").symlink_to(repo_path / ".third-party" / "addon_up2" / "addon_up2_addon")
+
+    orphan_upstream = _make_upstream_repo(tmp_path, "orphan_up2", with_addon=True)
+    _add_submodule(repo, orphan_upstream, ".third-party/orphan_up2")
+
+    _commit_all(repo, "add submodules")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force", "--format", "json"])
+
+    assert result.exit_code == 0, result.output
+    json_start = result.output.index("{")
+    payload = json.loads(result.output[json_start:])
+    assert payload["orphan_submodules"] == [".third-party/orphan_up2"]
+    assert payload["modules"][0]["name"] == "addon_up2_addon"

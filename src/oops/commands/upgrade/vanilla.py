@@ -11,7 +11,7 @@ mechanism — the recommended context for module removal/rename/merge
 operations, since once `base` is upgraded the module-state bookkeeping the
 upgrade process relies on is expected to already be settled).
 
-This is the "vanilla" starting point: a branch/tag on the target Odoo
+This is the "vanilla" starting point: a branch on the target Odoo
 version, stripped down to pure core, used as the base for every MdV
 (montee de version) project. Independent of state.yml/plan.yml — no
 per-module porting decisions apply here, everything non-core is removed.
@@ -126,6 +126,14 @@ class VanillaModule:
     # for one added directly via `git submodule add`) and cannot be derived
     # from itself by splitting on "/".
     rel_path: str = ""
+    # The addon's own directory name (Path(Addon.path).name). Used by
+    # `build_strip_plan` to catch a submodule checked out directly at the
+    # repo root (no `.third-party` nesting): such an addon has `rel_path ==
+    # ""` (its manifest sits at the submodule's own root), so it cannot be
+    # matched to its submodule via `rel_path` the way a nested one is — its
+    # directory name has to be checked against every submodule's `.path`
+    # instead.
+    dir_name: str = ""
     # Set by `flag_kb_collisions` when this "addon" is actually a real Odoo
     # module (core or enterprise) that shouldn't be in the project repo at
     # all. It is still removed either way — this only changes the warning
@@ -140,9 +148,9 @@ class VanillaReport:
     modules: "list[VanillaModule]"
     script_path: str
     branch: "Optional[str]" = None
-    tag: "Optional[str]" = None
     image: "Optional[str]" = None
     synced_files: "list[str]" = field(default_factory=list)
+    orphan_submodules: "list[str]" = field(default_factory=list)
     generated_at: str = ""
     kb_checked: bool = False
 
@@ -290,6 +298,7 @@ def compute_removal_order(
             load_index=load_index,
             submodule=by_name[name].submodule or None,
             rel_path=by_name[name].rel_path,
+            dir_name=Path(by_name[name].path).name,
         )
         for name, load_index in ranked
     ]
@@ -377,8 +386,29 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
     + its symlinks; root-level ("local") ones remove the addon directory.
 
     Modeled directly on `commands/submodules/remove.py:_build_plan`, extended
-    to cover every addon rather than a user-selected subset, and to handle
-    root-level (non-submodule) addons.
+    to cover every addon rather than a user-selected subset, to handle
+    root-level (non-submodule) addons, and — beyond what that command does —
+    to guarantee every registered submodule is removed, not only the ones
+    hosting a discovered addon:
+
+    1. A submodule whose addon lives under a nested path (the common case,
+       e.g. `.third-party/<org>/<repo>`) is matched via `rel_path`, exactly
+       as before.
+    2. A submodule checked out directly at the repo root has no nesting, so
+       its addon's `rel_path` is `""` and step 1 cannot match it — it is
+       instead matched by comparing the addon's own directory name
+       (`dir_name`) against every submodule's `.path`. Without this, such a
+       submodule is wrongly treated as a plain local directory: its files
+       get `git rm -r`'d but its `.gitmodules`/`.git/config`/
+       `.git/modules/<name>` entries are never cleaned up.
+    3. After every discovered addon has been matched (or not), any
+       remaining registered submodule — one with no discovered addon at
+       all: never symlinked ("inactive"), genuinely addon-less, or not
+       initialized on disk — gets its own removal action too. Every
+       submodule must go, per this command's "full non-core wipe, no
+       exceptions" contract; this mirrors the same "no referencing symlink
+       → remove" rule `oops submodules prune` already applies on its own,
+       generalized here to "no discovered addon at all → remove".
 
     Submodules are matched by `rel_path` (a Submodule's `.path`, the same key
     `services.git.list_submodules` uses and `Addon.rel_path` already carries)
@@ -392,21 +422,28 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
     actions = []
     seen_submodules: "set[str]" = set()
 
+    def submodule_action(rel_path: str, label: str, orphan: bool = False) -> PlanAction:
+        links = [lnk for lnk in all_symlinks if rel_path in os.readlink(lnk)]
+        detail = f"submodule, {len(links)} symlink(s)"
+        if orphan:
+            detail += " — no discovered addon"
+        return PlanAction(
+            label=label,
+            kind="available",
+            detail=detail,
+            data={"kind": "submodule", "rel_path": rel_path, "links": [str(lnk) for lnk in links], "orphan": orphan},
+        )
+
     for m in modules:
-        if m.submodule and m.rel_path in sub_by_relpath:
-            if m.rel_path in seen_submodules:
+        rel_path = m.rel_path if m.submodule and m.rel_path in sub_by_relpath else None
+        if rel_path is None and m.dir_name in sub_by_relpath:
+            rel_path = m.dir_name
+
+        if rel_path is not None:
+            if rel_path in seen_submodules:
                 continue
-            seen_submodules.add(m.rel_path)
-            sub = sub_by_relpath[m.rel_path]
-            links = [lnk for lnk in all_symlinks if m.rel_path in os.readlink(lnk)]
-            actions.append(
-                PlanAction(
-                    label=sub.name,
-                    kind="available",
-                    detail=f"submodule, {len(links)} symlink(s)",
-                    data={"kind": "submodule", "rel_path": m.rel_path, "links": [str(lnk) for lnk in links]},
-                )
-            )
+            seen_submodules.add(rel_path)
+            actions.append(submodule_action(rel_path, sub_by_relpath[rel_path].name))
         else:
             actions.append(
                 PlanAction(
@@ -416,6 +453,12 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
                     data={"kind": "local"},
                 )
             )
+
+    for rel_path, sub in sub_by_relpath.items():
+        if rel_path in seen_submodules:
+            continue
+        actions.append(submodule_action(str(rel_path), sub.name, orphan=True))
+
     return Plan(title="Modules to strip", actions=actions)
 
 
@@ -430,6 +473,39 @@ def apply_strip_action(
     else:
         repo.git.rm("-r", "--force", "--", action.label)
     return "removed", True
+
+
+def cleanup_submodule_containers(repo_path: Path) -> "list[str]":
+    """Remove the submodule container directories left empty once every
+    submodule has been stripped — `.third-party` (`config.submodules.current_path`)
+    and any legacy container in `config.submodules.old_paths` (e.g. `third-party`).
+
+    `Submodule.remove()` deletes each submodule's own directory but never
+    touches its parent: git doesn't track empty directories at all, so a
+    container (or an org-level subdirectory within it, e.g.
+    `.third-party/OCA`) left with nothing but empty subdirectories after the
+    last submodule under it is gone is pure filesystem residue, invisible to
+    `git status`. Checked bottom-up, on the actual (live) directory contents
+    rather than a precomputed listing, so a subdirectory just emptied by an
+    earlier step of this same pass is correctly seen as empty by its parent.
+
+    A container with any real leftover content (a non-submodule file
+    committed there) is left untouched — only directories found genuinely
+    empty are removed.
+    """
+    removed: "list[str]" = []
+    for rel in [config.submodules.current_path, *config.submodules.old_paths]:
+        container = repo_path / rel
+        if not container.is_dir():
+            continue
+        for dirpath, _dirnames, _filenames in os.walk(container, topdown=False):
+            p = Path(dirpath)
+            if p != container and not any(p.iterdir()):
+                p.rmdir()
+        if not any(container.iterdir()):
+            container.rmdir()
+            removed.append(str(rel))
+    return removed
 
 
 # ---------------------------------------------------------------------------
@@ -552,15 +628,14 @@ def sync_project_files(repo_path: Path, dry_run: bool = False) -> "list[str]":
     help="Target Odoo version (e.g. 19.0). Required — the vanilla base is built on the destination version.",
 )
 @click.option("--branch", "branch_name", default=None, help="Branch to create (default: vanilla/<to_version>).")
-@click.option("--tag", "tag_name", default=None, help="Tag to create (default: vanilla-<to_version>).")
 @click.option("--dry-run", is_flag=True, help="Show what would happen, no git changes.")
-@click.option("--no-commit", is_flag=True, help="Strip and generate the script, but do not commit or tag.")
+@click.option("--no-commit", is_flag=True, help="Strip and generate the script, but do not commit.")
 @click.option("-f", "--force", is_flag=True, help="Apply without prompting.")
 @click.option("--format", "output_format", type=click.Choice(["text", "json"]), default="text", show_default=True)
 @click.option("--output-path", type=click.Path(dir_okay=False, path_type=Path), default=None)
 @click.pass_context
 def main(  # noqa: C901
-    ctx, from_version, to_version, branch_name, tag_name, dry_run, no_commit, force, output_format, output_path
+    ctx, from_version, to_version, branch_name, dry_run, no_commit, force, output_format, output_path
 ):
     """Strip non-core addons, bump to the target version, and generate an upgrade-util uninstall script."""
     warn_experimental()
@@ -593,14 +668,13 @@ def main(  # noqa: C901
         raise OopsError("Target version required. Provide --to (e.g. --to 19.0).")
 
     branch_name = branch_name or f"vanilla/{to_version}"
-    tag_name = tag_name or f"vanilla-{to_version}"
 
     # `metadata.parameters` was snapshotted from raw CLI options before this
-    # callback resolved from_version/to_version/branch_name/tag_name — refresh
-    # it so presenters see the actual values used, not the CLI defaults (None).
+    # callback resolved from_version/to_version/branch_name — refresh it so
+    # presenters see the actual values used, not the CLI defaults (None).
     if metadata is not None:
         metadata.parameters.update(
-            {"from_version": from_version, "to_version": to_version, "branch": branch_name, "tag": tag_name}
+            {"from_version": from_version, "to_version": to_version, "branch": branch_name}
         )
 
     sub_meta_by_relpath = list_submodules(repo)
@@ -636,6 +710,14 @@ def main(  # noqa: C901
 
     rows = [[m.name, m.classification, str(m.load_index), m.matched_origin or ""] for m in modules]
 
+    # Read-only (filesystem symlink walk + repo.submodules read) — safe to
+    # build before the dry-run branch so --dry-run previews the orphan
+    # sweep too, not only the addon-backed removals.
+    plan = build_strip_plan(repo, repo_path, modules)
+    orphan_submodules = [a.label for a in plan.actionable if a.data.get("orphan")]
+    for name in orphan_submodules:
+        outer.add_warning(f"Submodule '{name}' has no discovered addon (never symlinked, or empty) — removed anyway.")
+
     if dry_run:
         with live_progress(f"Checking target image for {to_version}…"):
             preview_image = bump_odoo_version(repo_path, to_version, dry_run=True)
@@ -645,6 +727,12 @@ def main(  # noqa: C901
         for m in modules:
             flag = f" [{m.matched_origin}!]" if m.matched_origin else ""
             log.info(f"[dry-run] Would remove {m.name} (load_index={m.load_index}){flag}.")
+        for name in orphan_submodules:
+            log.info(f"[dry-run] Would remove orphan submodule {name!r} (no discovered addon).")
+        containers = [config.submodules.current_path, *config.submodules.old_paths]
+        log.info(
+            f"[dry-run] Would remove any of {', '.join(str(p) for p in containers)} left empty afterward."
+        )
         log.info(f"[dry-run] Would bump {config.project.file_odoo_version} to {preview_image!r}.")
         if preview_synced:
             log.info(f"[dry-run] Would sync project files: {', '.join(preview_synced)}.")
@@ -654,7 +742,7 @@ def main(  # noqa: C901
         log.info(f"[dry-run] Would write {config.project.file_requirements} with the upgrade-util requirement.")
         log.info(f"[dry-run] Would ensure 'git' is listed in {config.project.file_packages}.")
         if not no_commit:
-            log.info(f"[dry-run] Would commit and tag {tag_name!r}.")
+            log.info("[dry-run] Would commit.")
 
         result: "Result[dict]" = Result()
         result.data = {
@@ -663,10 +751,10 @@ def main(  # noqa: C901
             "rows": rows,
             "script_path": str(SCRIPT_REL_PATH),
             "branch": None,
-            "tag": None,
             "image": preview_image,
             "synced_files": preview_synced,
             "kb_checked": kb_checked,
+            "orphan_submodules": orphan_submodules,
         }
         result.merge(outer)
         output = VanillaPresenter().prepare(result, target=formatter.target, metadata=metadata)
@@ -678,7 +766,6 @@ def main(  # noqa: C901
     # mutated yet — the branch is not created here either: `on_confirmed`
     # below only runs once the user has actually agreed to proceed (or
     # --force skipped the prompt), never on mere presentation of the plan.
-    plan = build_strip_plan(repo, repo_path, modules)
     sub_by_relpath = {s.path: s for s in repo.submodules}
 
     def apply(action: PlanAction) -> "tuple[str, bool]":
@@ -699,6 +786,11 @@ def main(  # noqa: C901
         empty_message="Nothing to strip.",
     )
 
+    with live_progress("Cleaning up empty submodule container directories…"):
+        removed_containers = cleanup_submodule_containers(repo_path)
+    for name in removed_containers:
+        log.info(f"Removed now-empty submodule container directory {name!r}.")
+
     with live_progress(f"Bumping to Odoo {to_version}…"):
         new_image = bump_odoo_version(repo_path, to_version)
 
@@ -715,7 +807,6 @@ def main(  # noqa: C901
     repo.git.add("-A")
 
     branch_ref = None
-    tag_ref = None
     if not no_commit:
         outer.merge(
             commit_v2(
@@ -730,10 +821,9 @@ def main(  # noqa: C901
             )
         )
         if outer.ok:
-            repo.create_tag(tag_name)
-            branch_ref, tag_ref = branch_name, tag_name
+            branch_ref = branch_name
     else:
-        outer.add_warning("Don't forget to commit and tag to share this vanilla base with the team.")
+        outer.add_warning("Don't forget to commit to share this vanilla base with the team.")
 
     report_path = artifact_path(repo_path, VANILLA_REPORT_FILE)
     save_vanilla_report(
@@ -744,9 +834,9 @@ def main(  # noqa: C901
             modules=modules,
             script_path=str(SCRIPT_REL_PATH),
             branch=branch_ref,
-            tag=tag_ref,
             image=new_image,
             synced_files=synced_files,
+            orphan_submodules=orphan_submodules,
             kb_checked=kb_checked,
         ),
     )
@@ -758,11 +848,11 @@ def main(  # noqa: C901
         "rows": rows,
         "script_path": str(SCRIPT_REL_PATH),
         "branch": branch_ref,
-        "tag": tag_ref,
         "image": new_image,
         "synced_files": synced_files,
         "report_path": str(report_path),
         "kb_checked": kb_checked,
+        "orphan_submodules": orphan_submodules,
     }
     final_result.merge(outer)
 

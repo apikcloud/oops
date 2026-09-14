@@ -26,6 +26,15 @@ check has something to check against). A later `oops requirements update` on
 the resulting branch will need the `upgrade-util` requirements line re-added
 if it regenerates the file.
 
+Every registered submodule is removed, not only the ones hosting a
+discovered/symlinked addon — a submodule that was never symlinked
+("inactive"), contains no addon at all, or is checked out directly at the
+repo root is swept up too, so the resulting branch ends up with zero
+submodules and an empty `.gitmodules`. These are reported separately from
+the addon table as "orphan submodules", both in the text summary (an "Orphan
+submodules removed" stat) and in `--format json` output (the
+`orphan_submodules` key).
+
 The removal order (the "MLO" written into the generated uninstall script)
 only reflects dependencies between the discovered non-core addons themselves
 unless `installed_modules.txt` is present at the project root — a custom
@@ -236,10 +245,10 @@ Strip every non-core addon, bump to the target version, sync scaffolding, and ge
 oops upgrade vanilla --to 19.0
 ```
 
-Override the branch and tag names:
+Override the branch name:
 
 ```bash
-oops upgrade vanilla --to 19.0 --branch vanilla/19.0-cleanup --tag v19-vanilla
+oops upgrade vanilla --to 19.0 --branch vanilla/19.0-cleanup
 ```
 
 Strip and generate the script without committing (review the diff by hand first):
