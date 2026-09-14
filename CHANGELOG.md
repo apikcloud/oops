@@ -10,6 +10,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-14
+
+### Added
+
+- `oops migrate` is renamed to `oops upgrade` (all subcommands move with it: `analyze`/`plan`/`prepare`/`apply`). This is an experimental rename — `oops migrate` is not kept as an alias.
+- `oops upgrade vanilla` **(experimental)**: new command that builds a "vanilla" migration branch on the target Odoo version — removes every discovered addon and submodule regardless of classification, bumps `odoo_version.txt`, syncs project scaffolding from `sync.remote_url`, and writes the `upgrade-util` requirement while ensuring `git` is present in `packages.txt`. It cross-checks removed modules against the global Odoo KB and warns (without skipping) on suspected core/enterprise modules, and reports swept-up "orphan submodules" separately from the addon table.
+
+### Fixed
+
+- `oops upgrade vanilla`: build the branch on the target version, not the source one.
+- `oops upgrade vanilla`: defer branch creation until after user confirmation, and show the KB collision warning before the strip confirmation.
+- `oops upgrade`: compute real module removal order from `installed_modules.txt` instead of discovered addons alone.
+- `oops upgrade vanilla`: use `--pre-upgrade-scripts` for the generated uninstall script.
+- Suppress `SyntaxWarning` noise when scanning legacy Odoo source during module inspection.
+
+### Changed
+
+- Generated upgrade output folder renamed to singular `upgrade/`.
+
 ## [1.1.0] - 2026-09-10
 
 ### Added

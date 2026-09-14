@@ -9,6 +9,23 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.2.0] - 2026-09-14
+
+The upgrade tooling gets a new name and a brand-new experimental "vanilla" mode for full version-up-migration projects. 🎉
+
+### ✨ What's new
+
+- **`oops migrate` is now `oops upgrade`** (experimental rename — `analyze`, `plan`, `prepare`, `apply` work the same as before, just under the new name).
+- **`oops upgrade vanilla`** (experimental): a new command for MdV (montée de version) projects that need a clean return to Odoo standard. It builds a branch on the target version with every addon and submodule removed, the Odoo version bumped, project files synced, and the right pip/package requirements added — with warnings if it spots a module that looks like real Odoo core.
+
+### 🐛 Fixes
+
+- Smoother confirmation flow for `oops upgrade vanilla`: it now checks for KB naming collisions and asks for confirmation before touching anything.
+- More reliable module removal order, now based on your project's actual installed modules list.
+- Removed noisy warnings that could appear while scanning older Odoo source code.
+
+---
+
 ## [1.1.0] - 2026-09-10
 
 A small quality-of-life release for submodule management.
