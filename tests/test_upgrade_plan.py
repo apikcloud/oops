@@ -300,7 +300,7 @@ def test_plan_seed_migration_keys(tmp_path):
     data = yaml.safe_load((tmp_path / ".oops" / "upgrade" / "plan.yml").read_text())
     mig = data["migration"]
     assert mig["dest_branch"] == "main"
-    assert mig["branch_template"] == "mig/19.0/{module}"
+    assert mig["branch_template"] == "upgrade/19.0/{module}"
     assert "target_branch" not in mig
     assert "strategy" not in mig
 

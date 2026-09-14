@@ -284,7 +284,7 @@ def test_build_strip_plan_removes_inactive_submodule_with_no_addon(tmp_path):
     _add_submodule(repo, upstream_path, ".third-party/inactive_up")
     _commit_all(repo, "add inactive submodule")
 
-    plan = build_strip_plan(repo, repo_path, modules=[])
+    plan, _sub_by_relpath = build_strip_plan(repo, repo_path, modules=[])
 
     assert len(plan.actionable) == 1
     action = plan.actionable[0]
@@ -304,7 +304,7 @@ def test_build_strip_plan_removes_empty_submodule(tmp_path):
     _add_submodule(repo, upstream_path, ".third-party/empty_up")
     _commit_all(repo, "add empty submodule")
 
-    plan = build_strip_plan(repo, repo_path, modules=[])
+    plan, _sub_by_relpath = build_strip_plan(repo, repo_path, modules=[])
 
     assert len(plan.actionable) == 1
     action = plan.actionable[0]

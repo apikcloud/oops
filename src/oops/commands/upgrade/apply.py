@@ -393,7 +393,7 @@ def _apply_port(
         if r.returncode != 0:  # staged changes exist
             _wt_commit(
                 wt_path,
-                f"mig({mp.name}): mechanical tooling",
+                f"upgrade({mp.name}): mechanical tooling",
             )
 
     # 7. rename / merge_with template commits.
@@ -577,7 +577,7 @@ def _apply_rename(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 
     _wt_commit_template(
         wt_path,
-        subject=f"[mig] rename {mp.name} → {new_name} (checklist)",
+        subject=f"[upgrade] rename {mp.name} → {new_name} (checklist)",
         checklist=[
             f"Update all `_inherit` references from '{mp.name}' to '{new_name}'",
             "Update XML IDs in data files",
@@ -599,7 +599,7 @@ def _apply_merge_with(mp: ModulePlan, wt_path: Path, dry_run: bool) -> None:
 
     _wt_commit_template(
         wt_path,
-        subject=f"[mig] merge {mp.name} into {target} (checklist)",
+        subject=f"[upgrade] merge {mp.name} into {target} (checklist)",
         checklist=[
             f"Move models from '{mp.name}' into '{target}'",
             f"Move views and data files into '{target}'",

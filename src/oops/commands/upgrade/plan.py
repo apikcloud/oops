@@ -200,7 +200,7 @@ def _seed_plan(state: State) -> MigrationPlan:
             "to": state.to_version,
             "source_ref": state.source_ref,
             "dest_branch": "main",
-            "branch_template": f"mig/{state.to_version}/{{module}}",
+            "branch_template": f"upgrade/{state.to_version}/{{module}}",
         },
         modules=modules,
     )

@@ -575,7 +575,7 @@ def get_dest_branch(migration: dict) -> str:
 def get_worktree_path(migration: dict, repo_path: "Path") -> "Path":
     """Return the worktree path from the plan, or a sensible default.
 
-    Default: sibling of repo_path, named <project>-migrate-<to_version>
+    Default: sibling of repo_path, named <project>-upgrade-<to_version>
     where to_version has dots replaced by dashes to avoid path confusion.
     """
     raw = migration.get("worktree_path")
@@ -583,7 +583,7 @@ def get_worktree_path(migration: dict, repo_path: "Path") -> "Path":
         return Path(raw).expanduser()
     project = repo_path.name
     to = migration.get("to", "XX").replace(".", "-")  # "19.0" → "19-0"
-    return repo_path.parent / f"{project}-migrate-{to}"
+    return repo_path.parent / f"{project}-upgrade-{to}"
 
 
 def get_pull_branch(migration: dict) -> str:
@@ -592,4 +592,4 @@ def get_pull_branch(migration: dict) -> str:
     if raw:
         return raw
     to = migration.get("to", "XX")
-    return f"mig/{to}/pull"
+    return f"upgrade/{to}/pull"

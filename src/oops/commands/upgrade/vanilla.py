@@ -36,7 +36,7 @@ from oops.core.exceptions import APIError, OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Plan, PlanAction, Result
-from oops.io.file import parse_odoo_version, parse_packages, write_text_file
+from oops.io.file import collect_symlink_paths, parse_odoo_version, parse_packages, symlinks_into, write_text_file
 from oops.io.installed_modules import read_installed_modules
 from oops.output.formatters import FormatterRegistry, JsonFormatter, OutputFormatter, SimpleSummaryConsoleFormatter
 from oops.output.workflow import run_mutation_workflow
@@ -183,7 +183,7 @@ def discover_non_core_addons(repo_path: Path, sub_meta_by_relpath: dict) -> "lis
 
 
 def load_installed_context(
-    repo_path: Path, addons: "list[Addon]", from_version: str
+    repo_path: Path, addons: "list[Addon]", from_version: str, kb_modules: "Optional[dict]" = None
 ) -> "tuple[dict[str, list[str]], list[str]]":
     """Resolve real dependency data for modules `compute_removal_order` needs
     to see but that aren't among the discovered non-core addons — i.e. the
@@ -208,6 +208,10 @@ def load_installed_context(
     graph, never into the removed-modules list itself. Degrades gracefully
     (returns `({}, [<one warning>])`) when installed_modules.txt is absent,
     same contract as `flag_kb_collisions` for a missing global KB.
+
+    `kb_modules` lets the caller pass in a KB already loaded via
+    `load_odoo_kb(from_version)` (as `flag_kb_collisions` also needs) instead
+    of loading it again here.
     """
     info = read_installed_modules(repo_path)
     warnings: "list[str]" = []
@@ -234,7 +238,8 @@ def load_installed_context(
         )
 
     discovered_names = {a.technical_name for a in addons}
-    kb_modules = load_odoo_kb(from_version)
+    if kb_modules is None:
+        kb_modules = load_odoo_kb(from_version)
     extra_depends: "dict[str, list[str]]" = {}
     unresolved: "list[str]" = []
     for name in info.modules:
@@ -304,7 +309,9 @@ def compute_removal_order(
     ]
 
 
-def flag_kb_collisions(modules: "list[VanillaModule]", from_version: str) -> "tuple[bool, list[str]]":
+def flag_kb_collisions(
+    modules: "list[VanillaModule]", from_version: str, kb_modules: "Optional[dict]" = None
+) -> "tuple[bool, list[str]]":
     """Cross-check every module against the global Odoo KB for `from_version`.
 
     Any module whose technical name matches a real Odoo core/enterprise
@@ -316,8 +323,13 @@ def flag_kb_collisions(modules: "list[VanillaModule]", from_version: str) -> "tu
     for `from_version` was never built (`load_odoo_kb` returns `{}` in that
     case, per its own documented graceful-degradation contract — this is
     not an error, just a weaker guarantee, surfaced as one extra warning).
+
+    `kb_modules` lets the caller pass in a KB already loaded via
+    `load_odoo_kb(from_version)` (as `load_installed_context` also needs)
+    instead of loading it again here.
     """
-    kb_modules = load_odoo_kb(from_version)
+    if kb_modules is None:
+        kb_modules = load_odoo_kb(from_version)
     warnings: "list[str]" = []
 
     if not kb_modules:
@@ -369,19 +381,9 @@ def save_vanilla_report(path: Path, report: VanillaReport) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _collect_symlinks(repo_path: Path) -> "list[Path]":
-    result = []
-    for root, dirs, files in os.walk(repo_path):
-        if ".git" in dirs:
-            dirs.remove(".git")
-        for entry in dirs + files:
-            p = Path(root) / entry
-            if p.is_symlink():
-                result.append(p)
-    return result
-
-
-def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]") -> Plan:
+def build_strip_plan(
+    repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
+) -> "tuple[Plan, dict]":
     """One PlanAction per addon: submodule-backed ones remove the submodule
     + its symlinks; root-level ("local") ones remove the addon directory.
 
@@ -416,14 +418,18 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
     with — an "owner/repo" slug for one added via `oops submodules add`, but
     an arbitrary path for one added directly via `git submodule add` — so it
     cannot be reliably derived from itself and must not be used as a lookup key.
+
+    Returns `(plan, sub_by_relpath)` — the caller reuses `sub_by_relpath`
+    (a `Submodule.path -> Submodule` mapping) instead of rebuilding it from
+    `repo.submodules` a second time.
     """
-    all_symlinks = _collect_symlinks(repo_path)
+    all_symlinks = collect_symlink_paths(repo_path)
     sub_by_relpath = {s.path: s for s in repo.submodules}
     actions = []
     seen_submodules: "set[str]" = set()
 
     def submodule_action(rel_path: str, label: str, orphan: bool = False) -> PlanAction:
-        links = [lnk for lnk in all_symlinks if rel_path in os.readlink(lnk)]
+        links = symlinks_into(all_symlinks, rel_path, repo_path)
         detail = f"submodule, {len(links)} symlink(s)"
         if orphan:
             detail += " — no discovered addon"
@@ -459,7 +465,7 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
             continue
         actions.append(submodule_action(str(rel_path), sub.name, orphan=True))
 
-    return Plan(title="Modules to strip", actions=actions)
+    return Plan(title="Modules to strip", actions=actions), sub_by_relpath
 
 
 def apply_strip_action(
@@ -514,22 +520,28 @@ def cleanup_submodule_containers(repo_path: Path) -> "list[str]":
 
 
 def ensure_upgrade_util_requirement(repo_path: Path, dry_run: bool = False) -> Path:
-    """Write requirements.txt with the upgrade-util pip line.
+    """Ensure the upgrade-util pip line is present in requirements.txt.
 
-    Written directly (not via `io/requirements.generate_requirements`, which
-    derives its output purely from addon manifests and would produce nothing
-    useful here — every addon is being stripped). A later `oops requirements
-    update` run on this branch will regenerate the file from whatever addons
-    exist at that point and will drop this line unless re-added — a known
-    limitation, not fixed here.
+    Appends to whatever is already there (e.g. a file just written by
+    `sync_project_files`) rather than overwriting it — same merge contract
+    as `ensure_git_package` for packages.txt. Not derived via
+    `io/requirements.generate_requirements` (which builds its output purely
+    from addon manifests and would produce nothing useful here — every
+    addon is being stripped). A later `oops requirements update` run on this
+    branch will regenerate the file from whatever addons exist at that
+    point and will drop this line unless re-added — a known limitation, not
+    fixed here.
     """
     req_path = repo_path / config.project.file_requirements
     if dry_run:
         return req_path
-    req_path.write_text(
-        f"# generated by `oops upgrade vanilla`\n{UPGRADE_UTIL_REQUIREMENT}\n",
-        encoding="utf-8",
-    )
+    existing = req_path.read_text(encoding="utf-8") if req_path.exists() else ""
+    if UPGRADE_UTIL_REQUIREMENT in existing:
+        return req_path
+    with req_path.open("a", encoding="utf-8") as f:
+        if existing and not existing.endswith("\n"):
+            f.write("\n")
+        f.write(f"# generated by `oops upgrade vanilla`\n{UPGRADE_UTIL_REQUIREMENT}\n")
     return req_path
 
 
@@ -682,17 +694,22 @@ def main(  # noqa: C901
     with live_progress("Discovering non-core addons…"):
         addons = discover_non_core_addons(repo_path, sub_meta_by_relpath)
 
-    if not addons:
-        raise OopsError("No non-core addons found — nothing to strip.")
+    if not addons and not sub_meta_by_relpath:
+        raise OopsError("No non-core addons found and no submodules registered — nothing to strip.")
+
+    with live_progress(f"Loading the global Odoo KB ({from_version})…"):
+        kb_modules = load_odoo_kb(from_version)
 
     with live_progress(f"Resolving installed-module context ({config.project.file_installed_modules})…"):
-        extra_depends, installed_warnings = load_installed_context(repo_path, addons, from_version)
+        extra_depends, installed_warnings = load_installed_context(
+            repo_path, addons, from_version, kb_modules=kb_modules
+        )
 
     with live_progress("Computing safe removal order…"):
         modules = compute_removal_order(addons, extra_depends)
 
     with live_progress(f"Checking against the global Odoo KB ({from_version})…"):
-        kb_checked, kb_warnings = flag_kb_collisions(modules, from_version)
+        kb_checked, kb_warnings = flag_kb_collisions(modules, from_version, kb_modules=kb_modules)
 
     # Surface warnings now, before the strip plan is even presented — the
     # user must know collision detection was skipped (or what it found),
@@ -713,7 +730,7 @@ def main(  # noqa: C901
     # Read-only (filesystem symlink walk + repo.submodules read) — safe to
     # build before the dry-run branch so --dry-run previews the orphan
     # sweep too, not only the addon-backed removals.
-    plan = build_strip_plan(repo, repo_path, modules)
+    plan, sub_by_relpath = build_strip_plan(repo, repo_path, modules)
     orphan_submodules = [a.label for a in plan.actionable if a.data.get("orphan")]
     for name in orphan_submodules:
         outer.add_warning(f"Submodule '{name}' has no discovered addon (never symlinked, or empty) — removed anyway.")
@@ -766,12 +783,17 @@ def main(  # noqa: C901
     # mutated yet — the branch is not created here either: `on_confirmed`
     # below only runs once the user has actually agreed to proceed (or
     # --force skipped the prompt), never on mere presentation of the plan.
-    sub_by_relpath = {s.path: s for s in repo.submodules}
+    # `sub_by_relpath` was already computed once by `build_strip_plan` above.
 
     def apply(action: PlanAction) -> "tuple[str, bool]":
         return apply_strip_action(repo, repo_path, sub_by_relpath, action)
 
     def create_branch() -> None:
+        if branch_name in {h.name for h in repo.heads}:
+            raise OopsError(
+                f"Branch {branch_name!r} already exists — pass --branch to use a different name, "
+                "or delete/rename the existing branch first."
+            )
         with live_progress(f"Creating branch {branch_name!r}…"):
             repo.git.checkout("-b", branch_name)
 
@@ -785,6 +807,32 @@ def main(  # noqa: C901
         on_confirmed=create_branch,
         empty_message="Nothing to strip.",
     )
+
+    if not outer.ok:
+        # A per-action strip failure (`outer.add_error`, set by
+        # `run_mutation_workflow`) must stop the run here: proceeding to
+        # container cleanup, the version bump, project sync, script/
+        # requirements writes, and the commit itself would silently bake a
+        # partially-stripped tree into a "vanilla" base branch that claims
+        # to be a full non-core wipe.
+        outer.add_warning(
+            f"Strip failed for one or more actions — branch {branch_name!r} left uncommitted for "
+            "inspection. Fix the reported error(s) and re-run, or delete the branch and retry."
+        )
+        result: "Result[dict]" = Result()
+        result.data = {
+            "cmd": f"Upgrade vanilla ({from_version} -> {to_version})",
+            "dry_run": False,
+            "rows": rows,
+            "script_path": str(SCRIPT_REL_PATH),
+            "branch": None,
+            "kb_checked": kb_checked,
+            "orphan_submodules": orphan_submodules,
+        }
+        result.merge(outer)
+        output = VanillaPresenter().prepare(result, target=formatter.target, metadata=metadata)
+        render_and_exit(result, formatter, output, output_format, output_path)
+        return
 
     with live_progress("Cleaning up empty submodule container directories…"):
         removed_containers = cleanup_submodule_containers(repo_path)

@@ -423,6 +423,51 @@ def list_symlinks(path: PathLike, broken_only: bool = False) -> list[str]:
     return targets
 
 
+def collect_symlink_paths(path: PathLike) -> "list[Path]":
+    """Collect every symlink `Path` found recursively under a directory.
+
+    Args:
+        path: Root directory to walk.
+
+    Returns:
+        List of symlink paths found under path (as `Path` objects, not
+        their targets — see `list_symlinks` for that).
+    """
+    result = []
+    for root, dirs, files in os.walk(path):
+        if ".git" in dirs:
+            dirs.remove(".git")
+        for entry in dirs + files:
+            p = Path(root) / entry
+            if p.is_symlink():
+                result.append(p)
+    return result
+
+
+def symlinks_into(links: "list[Path]", rel_path: str, repo_path: Path) -> "list[Path]":
+    """Return the subset of `links` that resolve into `repo_path / rel_path`.
+
+    Matches by real path containment (`Path.relative_to` on the resolved
+    target) rather than a raw substring check on the unresolved target
+    string — a substring check wrongly matches a `rel_path` that happens to
+    be a string prefix of another submodule's path (e.g. the submodule at
+    `.third-party/OCA/web` would also swallow every symlink actually
+    belonging to `.third-party/OCA/website`).
+    """
+    target_root = (repo_path / rel_path).resolve()
+    matches = []
+    for link in links:
+        target = Path(os.readlink(link))
+        if not target.is_absolute():
+            target = link.parent / target
+        try:
+            target.resolve().relative_to(target_root)
+        except ValueError:
+            continue
+        matches.append(link)
+    return matches
+
+
 def get_symlink_map(path: Path) -> dict:
     """Build a mapping of symlink parent directories to their single target name.
 
