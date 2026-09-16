@@ -210,6 +210,22 @@ def parse_pull_request_url(url: str) -> Tuple[str, str, int]:
     return parts[0], parts[1], int(parts[3])
 
 
+def inject_credentials(url: str, token: Optional[str]) -> str:
+    """Embed a GitHub token as HTTPS Basic-Auth credentials in a clone URL.
+
+    Args:
+        url: Repository URL, any scheme.
+        token: GitHub token to embed. Ignored if falsy or the URL is not HTTPS.
+
+    Returns:
+        The URL with ``x-access-token:<token>@`` credentials embedded when
+        applicable, otherwise the URL unchanged.
+    """
+    if not token or not url.startswith("https://"):
+        return url
+    return url.replace("https://", f"https://x-access-token:{token}@", 1)
+
+
 def resolve_clone_target(
     repo: str,
     working_dir: str,

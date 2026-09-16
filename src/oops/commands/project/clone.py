@@ -23,7 +23,7 @@ from oops.commands.base import command
 from oops.core.config import config
 from oops.core.exceptions import ConfigError, OopsError
 from oops.core.logger import live_progress
-from oops.utils.net import resolve_clone_target
+from oops.utils.net import inject_credentials, resolve_clone_target
 from oops.utils.render import conclude, render_panel
 from oops_engine.compat import Optional
 
@@ -56,8 +56,14 @@ def _resolve_target(repo: str) -> tuple[str, Path]:
     type=click.IntRange(min=1),
     help="Parallel jobs for submodule initialisation.",
 )
-def main(repo: str, branch: Optional[str], jobs: int) -> None:
+@click.option(
+    "--token",
+    envvar=["GH_TOKEN", "GITHUB_TOKEN"],
+    help="GitHub token for HTTPS auth (or set GH_TOKEN / GITHUB_TOKEN). Ignored for SSH URLs.",
+)
+def main(repo: str, branch: Optional[str], jobs: int, token: Optional[str]) -> None:
     clone_url, target = _resolve_target(repo)
+    auth_url = inject_credentials(clone_url, token)
 
     # Context panel — what is about to happen.
     render_panel(
@@ -79,9 +85,10 @@ def main(repo: str, branch: Optional[str], jobs: int) -> None:
             clone_kwargs: dict = {}
             if branch:
                 clone_kwargs["branch"] = branch
-            cloned = Repo.clone_from(clone_url, str(target), **clone_kwargs)
+            cloned = Repo.clone_from(auth_url, str(target), **clone_kwargs)
         except GitCommandError as exc:
-            raise OopsError(f"Clone failed: {exc}") from exc
+            msg = str(exc).replace(token, "***") if token else str(exc)
+            raise OopsError(f"Clone failed: {msg}") from exc
 
     # Phase 2 — submodules (only if any)
     submodule_count = len(cloned.submodules)
