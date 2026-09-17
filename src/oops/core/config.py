@@ -232,6 +232,15 @@ class RequirementsConfig:
     )
 
 
+@dataclass
+class UpgradeConfig:
+    dotless_models: List[str] = field(
+        default_factory=lambda: [
+            "account_financial_report_abstract_wizard",
+        ]
+    )
+
+
 # ---------------------------------------------------------------------------
 # Root config
 # ---------------------------------------------------------------------------
@@ -251,6 +260,7 @@ class Config:
     stats: StatsConfig = field(default_factory=StatsConfig)
     requirements: RequirementsConfig = field(default_factory=RequirementsConfig)
     analyze: AnalyzeConfig = field(default_factory=AnalyzeConfig)
+    upgrade: UpgradeConfig = field(default_factory=UpgradeConfig)
 
     working_dir: Optional[str] = None
 
