@@ -9,6 +9,16 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.3.1] - 2026-09-17
+
+A quick bugfix release for `oops upgrade vanilla`.
+
+### 🐛 Fixes
+
+- Fixed a crash in `oops upgrade vanilla` (and `oops submodules remove`) when stripping certain OCA submodules: the tool could error out with "pathspec did not match any files" instead of cleanly removing the submodule.
+
+---
+
 ## [1.3.0] - 2026-09-17
 
 A small release focused on private-repo access and smoother upgrade checks.
