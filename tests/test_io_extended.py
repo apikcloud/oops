@@ -1,14 +1,17 @@
 """Tests for oops/io/manifest.py, oops/io/tools.py, and additional oops/io/file.py coverage."""
 
+import os
 import subprocess
 
 import pytest
 from oops.io.file import (
     check_prefix,
+    collect_symlink_paths,
     ensure_parent,
     is_dir_empty,
     parse_text_file,
     relpath,
+    symlinks_into,
     write_text_file,
 )
 from oops_engine.manifest import (
@@ -251,6 +254,89 @@ class TestCheckPrefix:
     def test_unrelated_path(self, tmp_path):
         other = tmp_path.parent / "other"
         assert check_prefix(str(other), str(tmp_path)) is False
+
+
+class TestCollectSymlinkPaths:
+    def test_skips_setup_directories(self, tmp_path):
+        """`setup/` holds OCA's setup.py egg-info convention symlinks
+        (e.g. `setup/<addon>/odoo/addons/<addon>`), internal to a
+        submodule's own committed tree and never tracked by the
+        superproject index. They must never be collected, matching the
+        `dirnames.remove("setup")` convention in `find_addons`
+        (oops_engine/addons.py).
+        """
+        addon = tmp_path / "sale_elaboration"
+        addon.mkdir()
+        internal_link_dir = tmp_path / "setup" / "sale_elaboration" / "odoo" / "addons"
+        internal_link_dir.mkdir(parents=True)
+        os.symlink(addon, internal_link_dir / "sale_elaboration")
+        root_link = tmp_path / "link_at_root"
+        os.symlink(addon, root_link)
+
+        assert collect_symlink_paths(tmp_path) == [root_link]
+
+
+class TestSymlinksInto:
+    def test_matches_root_activation_symlink(self, tmp_path):
+        sub = tmp_path / ".third-party" / "OCA" / "sale-workflow"
+        addon = sub / "sale_elaboration"
+        addon.mkdir(parents=True)
+        link = tmp_path / "sale_elaboration"
+        os.symlink(addon, link)
+
+        matches = symlinks_into(collect_symlink_paths(tmp_path), ".third-party/OCA/sale-workflow", tmp_path)
+
+        assert matches == [link]
+
+    def test_excludes_submodule_internal_setup_py_symlink(self, tmp_path):
+        """`collect_symlink_paths` already skips `setup/` dirs, so OCA's
+        setup.py egg-info symlink (setup/<addon>/odoo/addons/<addon>) never
+        reaches `symlinks_into` in the first place — end-to-end check that
+        the pipeline as a whole doesn't surface it, even though its target
+        resolves back into the same submodule.
+        """
+        sub = tmp_path / ".third-party" / "OCA" / "sale-workflow"
+        addon = sub / "sale_elaboration"
+        addon.mkdir(parents=True)
+        internal_link_dir = sub / "setup" / "sale_elaboration" / "odoo" / "addons"
+        internal_link_dir.mkdir(parents=True)
+        internal_link = internal_link_dir / "sale_elaboration"
+        os.symlink(addon, internal_link)
+
+        matches = symlinks_into(collect_symlink_paths(tmp_path), ".third-party/OCA/sale-workflow", tmp_path)
+
+        assert matches == []
+
+    def test_root_symlink_and_internal_symlink_together(self, tmp_path):
+        sub = tmp_path / ".third-party" / "OCA" / "sale-workflow"
+        addon = sub / "sale_elaboration"
+        addon.mkdir(parents=True)
+        link = tmp_path / "sale_elaboration"
+        os.symlink(addon, link)
+        internal_link_dir = sub / "setup" / "sale_elaboration" / "odoo" / "addons"
+        internal_link_dir.mkdir(parents=True)
+        internal_link = internal_link_dir / "sale_elaboration"
+        os.symlink(addon, internal_link)
+
+        matches = symlinks_into(collect_symlink_paths(tmp_path), ".third-party/OCA/sale-workflow", tmp_path)
+
+        assert matches == [link]
+
+    def test_does_not_swallow_prefix_named_submodule(self, tmp_path):
+        web = tmp_path / ".third-party" / "OCA" / "web"
+        website = tmp_path / ".third-party" / "OCA" / "website"
+        web_addon = web / "web_widget"
+        website_addon = website / "website_widget"
+        web_addon.mkdir(parents=True)
+        website_addon.mkdir(parents=True)
+        web_link = tmp_path / "web_widget"
+        website_link = tmp_path / "website_widget"
+        os.symlink(web_addon, web_link)
+        os.symlink(website_addon, website_link)
+
+        matches = symlinks_into(collect_symlink_paths(tmp_path), ".third-party/OCA/web", tmp_path)
+
+        assert matches == [web_link]
 
 
 class TestParseTextFile:

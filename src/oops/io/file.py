@@ -426,6 +426,13 @@ def list_symlinks(path: PathLike, broken_only: bool = False) -> list[str]:
 def collect_symlink_paths(path: PathLike) -> "list[Path]":
     """Collect every symlink `Path` found recursively under a directory.
 
+    `setup/` directories are skipped, matching the convention used elsewhere
+    for addon discovery (`find_addons` in `oops_engine/addons.py`) — they hold
+    OCA's setup.py egg-info convention symlinks (e.g. `setup/<addon>/odoo/
+    addons/<addon>`), which are internal to a submodule's own committed tree
+    and not tracked by the superproject index, so they must never surface as
+    candidates for a superproject `git rm`.
+
     Args:
         path: Root directory to walk.
 
@@ -437,6 +444,8 @@ def collect_symlink_paths(path: PathLike) -> "list[Path]":
     for root, dirs, files in os.walk(path):
         if ".git" in dirs:
             dirs.remove(".git")
+        if "setup" in dirs:
+            dirs.remove("setup")
         for entry in dirs + files:
             p = Path(root) / entry
             if p.is_symlink():
