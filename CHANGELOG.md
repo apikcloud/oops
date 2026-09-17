@@ -10,6 +10,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-09-17
+
+### Added
+
+- `oops project clone`: new `--token` option (or `GH_TOKEN`/`GITHUB_TOKEN` env vars) to authenticate HTTPS clones of private repositories; the token is embedded as HTTPS credentials and redacted from any clone error message. Ignored for SSH URLs.
+- `oops upgrade vanilla`: new `upgrade.dotless_models` config to allowlist dotless Odoo technical model names (e.g. custom abstract wizards) so they aren't flagged as suspect core/enterprise modules during the strip.
+
 ## [1.2.0] - 2026-09-14
 
 ### Added

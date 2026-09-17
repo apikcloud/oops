@@ -9,6 +9,17 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.3.0] - 2026-09-17
+
+A small release focused on private-repo access and smoother upgrade checks.
+
+### ✨ What's new
+
+- **Clone private repos over HTTPS**: `oops project clone` now accepts a `--token` option (or reads `GH_TOKEN`/`GITHUB_TOKEN`), so you can clone private GitHub repositories without switching to SSH.
+- **Fewer false alarms during `oops upgrade vanilla`**: you can now allowlist known "dotless" custom model names so they no longer get flagged as suspicious Odoo core modules during the strip.
+
+---
+
 ## [1.2.0] - 2026-09-14
 
 The upgrade tooling gets a new name and a brand-new experimental "vanilla" mode for full version-up-migration projects. 🎉
