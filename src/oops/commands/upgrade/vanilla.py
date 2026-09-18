@@ -44,6 +44,7 @@ from oops.services.docker import find_available_images
 from oops.services.git import commit_v2, list_submodules, require_repository
 from oops.services.kb import load_odoo_kb
 from oops.services.project import copy_project_files, fetch_project_files
+from oops.services.submodule import remove_submodule
 from oops.utils.render import warn_experimental, warning_section
 from oops_engine.addons import discover_addons
 from oops_engine.build import compute_root_drift
@@ -490,10 +491,12 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
 
 def apply_strip_action(repo: Repo, repo_path: Path, sub_by_relpath: dict, action: PlanAction) -> "tuple[str, bool]":
     if action.data["kind"] == "submodule":
-        for lnk_str in action.data["links"]:
-            rel = os.path.relpath(Path(lnk_str), repo_path)
-            repo.git.rm("--force", "--", rel)
-        sub_by_relpath[action.data["rel_path"]].remove(force=True)
+        remove_submodule(
+            repo,
+            repo_path,
+            sub_by_relpath[action.data["rel_path"]],
+            [Path(s) for s in action.data["links"]],
+        )
     else:
         repo.git.rm("-r", "--force", "--", action.label)
     return "removed", True

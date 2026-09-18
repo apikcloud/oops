@@ -15,7 +15,6 @@ automatically. Displays a plan and prompts for confirmation before applying.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import click
@@ -25,6 +24,7 @@ from oops.io.file import collect_symlink_paths, symlinks_into
 from oops.output.helper import render_and_raise
 from oops.output.workflow import run_mutation_workflow
 from oops.services.git import commit_v2, require_repository, require_submodules
+from oops.services.submodule import remove_submodule
 from oops.utils.render import colorize
 from oops_engine.compat import Tuple
 
@@ -64,11 +64,12 @@ def main(no_commit: bool, force: bool, names: Tuple[str, ...]):
     sub_map = {s.name: s for s in submodules}
 
     def apply(action: PlanAction) -> Tuple[str, bool]:
-        for lnk_str in action.data["links"]:
-            lnk = Path(lnk_str)
-            rel = os.path.relpath(lnk, repo_path)
-            repo.git.rm("--force", "--", rel)
-        sub_map[action.label].remove(force=True)
+        remove_submodule(
+            repo,
+            repo_path,
+            sub_map[action.label],
+            [Path(s) for s in action.data["links"]],
+        )
         return colorize("removed", "red"), True
 
     outer: Result[None] = Result()
