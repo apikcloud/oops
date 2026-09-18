@@ -656,6 +656,29 @@ def test_cli_packages_txt_merges_existing_entries(tmp_path, monkeypatch):
     assert set(packages) == {"git", "postgresql-client", "vim"}
 
 
+def test_cli_requirements_txt_cleared_of_addon_deps(tmp_path, monkeypatch):
+    """Unlike packages.txt (a user-curated, addon-independent OS-package
+    list), requirements.txt is addon-derived — every addon is being
+    stripped, so its pre-existing content (a leftover pip line from a
+    module that no longer exists in this tree) must not survive; only the
+    upgrade-util requirement is written.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_local_addon(repo_path, "custom_mod")
+    (repo_path / "requirements.txt").write_text("some-addon-dependency==1.0\n")
+    _commit_all(repo, "add addon and requirements")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
+
+    assert result.exit_code == 0, result.output
+    requirements = (repo_path / "requirements.txt").read_text()
+    assert "some-addon-dependency" not in requirements
+    assert "odoo_upgrade @ git+https://github.com/odoo/upgrade-util@master" in requirements
+
+
 def test_cli_submodule_addon_removed_no_dangling_gitmodules(tmp_path, monkeypatch):
     """Regression: submodule matching must not rely on Submodule.name being
     an "owner/repo" slug — a submodule added with plain `git submodule add`
