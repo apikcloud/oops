@@ -45,7 +45,7 @@ from oops.services.git import commit_v2, list_submodules, require_repository
 from oops.services.kb import load_odoo_kb
 from oops.services.project import copy_project_files, fetch_project_files
 from oops.utils.render import warn_experimental, warning_section
-from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.addons import discover_addons
 from oops_engine.build import compute_root_drift
 from oops_engine.compat import Optional
 from oops_engine.load_order import compute_load_order
@@ -185,24 +185,23 @@ class VanillaReport:
 def discover_non_core_addons(repo_path: Path, sub_meta_by_relpath: dict) -> "list[Addon]":
     """Discover and classify every addon at the repo root.
 
-    Reuses the exact discovery pattern from `upgrade analyze` (dedup by
-    path, then enrich for classification). Every discovered addon is
-    non-core by construction — Odoo core is never checked into this repo.
+    Thin filter over `oops_engine.addons.discover_addons` — the one discovery
+    pipeline shared with `addons list` and `upgrade analyze`. Every addon it
+    returns is non-core by construction: Odoo core is never checked into this
+    repo.
     """
-    seen = dedup_addons_by_path(repo_path, shallow=True)
-    addons = []
-    for addon in seen.values():
-        if not addon.root:
-            continue
-        enrich_addon_from_subs(
-            addon,
+    return [
+        addon
+        for addon in discover_addons(
+            repo_path,
             sub_meta_by_relpath,
             author=config.manifest.author,
             prefix=config.project.prefix,
             owner=config.github.owner,
+            shallow=True,
         )
-        addons.append(addon)
-    return addons
+        if addon.root
+    ]
 
 
 def load_installed_context(

@@ -6,7 +6,8 @@
 import os
 from pathlib import Path
 
-from oops_engine.compat import Generator, Optional
+from oops_engine.compat import Generator, List, Optional
+from oops_engine.logger import log
 from oops_engine.manifest import DEFAULT_MANIFEST_NAMES, load_manifest
 from oops_engine.models import Addon
 from oops_engine.paths import PR_DIR, UNPORTED_DIR
@@ -173,3 +174,45 @@ def enrich_addon_from_subs(
     """
     sub = subs.get(addon.rel_path, {})
     enrich_addon(addon, sub, author=author, prefix=prefix, owner=owner)
+
+
+def discover_addons(
+    root: Path,
+    subs: dict,
+    author: Optional[str] = None,
+    prefix: Optional[str] = None,
+    owner: Optional[str] = None,
+    shallow: bool = False,
+    rel_paths: Optional[set] = None,
+) -> "List[Addon]":
+    """Discover every addon under `root`, enriched and sorted by technical name.
+
+    The single discovery pipeline behind `addons list`, `upgrade analyze`,
+    `upgrade vanilla`, the KB builder and the project-serve inventory:
+    `dedup_addons_by_path` followed by `enrich_addon_from_subs`. Callers keep
+    their own post-filters (`addon.root`, `addon.symlink`, an allow-list of
+    technical names) — only the loop itself is shared.
+
+    Args:
+        root: Repository root to search (forwarded to `dedup_addons_by_path`).
+        subs: rel_path -> submodule metadata (from `services.git.list_submodules`).
+        author: Project author, for classification.
+        prefix: Project module prefix, for classification.
+        owner: GitHub owner, for classification.
+        shallow: Forwarded to `dedup_addons_by_path`.
+        rel_paths: If given, keep only addons whose `rel_path` is in this set —
+            the "limit to these submodules" filter shared by `addons list` and
+            `services.project_pipeline.build_inventory`.
+
+    Returns:
+        Enriched addons, sorted by `technical_name`.
+    """
+    addons: "List[Addon]" = []
+    for addon in dedup_addons_by_path(root, shallow=shallow).values():
+        if rel_paths is not None and addon.rel_path not in rel_paths:
+            continue
+        log.info(f"Enrichment of {addon.technical_name}")
+        enrich_addon_from_subs(addon, subs, author=author, prefix=prefix, owner=owner)
+        addons.append(addon)
+    addons.sort(key=lambda a: a.technical_name)
+    return addons
