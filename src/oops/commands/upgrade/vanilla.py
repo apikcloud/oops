@@ -554,6 +554,30 @@ def cleanup_submodule_containers(repo_path: Path) -> "list[str]":
     return removed
 
 
+def sweep_broken_root_symlinks(repo: Repo, repo_path: Path) -> "list[str]":
+    """Drop root-level symlinks left pointing at nothing after the strip.
+
+    Activation symlinks are derived from the discovered addon list, which can
+    only see a link whose target still holds a readable manifest. A link that
+    was already broken before the run — or one whose name differs from its
+    target directory's — yields no addon, so nothing removes it, and
+    `repo.git.add("-A")` will not either: a dangling symlink is still a valid
+    `120000` blob. Left alone it would be committed into the vanilla base.
+
+    `--ignore-unmatch` keeps an untracked link from raising; it is unlinked
+    from disk afterwards either way.
+    """
+    removed: "list[str]" = []
+    for entry in sorted(repo_path.iterdir()):
+        if not entry.is_symlink() or entry.exists():
+            continue
+        repo.git.rm("--force", "--ignore-unmatch", "--", entry.name)
+        if entry.is_symlink():
+            entry.unlink()
+        removed.append(entry.name)
+    return removed
+
+
 # ---------------------------------------------------------------------------
 # requirements.txt / packages.txt
 # ---------------------------------------------------------------------------
@@ -869,6 +893,11 @@ def main(  # noqa: C901
         output = VanillaPresenter().prepare(result, target=formatter.target, metadata=metadata)
         render_and_exit(result, formatter, output, output_format, output_path)
         return
+
+    with live_progress("Sweeping symlinks left broken by the strip…"):
+        swept = sweep_broken_root_symlinks(repo, repo_path)
+    for name in swept:
+        outer.add_warning(f"Removed symlink {name!r}, left broken by the strip.")
 
     with live_progress("Cleaning up empty submodule container directories…"):
         removed_containers = cleanup_submodule_containers(repo_path)
