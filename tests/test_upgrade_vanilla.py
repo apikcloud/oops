@@ -656,6 +656,29 @@ def test_cli_packages_txt_merges_existing_entries(tmp_path, monkeypatch):
     assert set(packages) == {"git", "postgresql-client", "vim"}
 
 
+def test_cli_requirements_txt_cleared_of_addon_deps(tmp_path, monkeypatch):
+    """Unlike packages.txt (a user-curated, addon-independent OS-package
+    list), requirements.txt is addon-derived — every addon is being
+    stripped, so its pre-existing content (a leftover pip line from a
+    module that no longer exists in this tree) must not survive; only the
+    upgrade-util requirement is written.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_local_addon(repo_path, "custom_mod")
+    (repo_path / "requirements.txt").write_text("some-addon-dependency==1.0\n")
+    _commit_all(repo, "add addon and requirements")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
+
+    assert result.exit_code == 0, result.output
+    requirements = (repo_path / "requirements.txt").read_text()
+    assert "some-addon-dependency" not in requirements
+    assert "odoo_upgrade @ git+https://github.com/odoo/upgrade-util@master" in requirements
+
+
 def test_cli_submodule_addon_removed_no_dangling_gitmodules(tmp_path, monkeypatch):
     """Regression: submodule matching must not rely on Submodule.name being
     an "owner/repo" slug — a submodule added with plain `git submodule add`
@@ -759,6 +782,118 @@ def test_cli_dry_run_previews_orphan_submodules(tmp_path, monkeypatch):
     assert result.exit_code == 0, result.output
     assert "orphan_up" in result.output
     assert repo.git.status("--porcelain") == before
+
+
+def _make_oca_setup_upstream_repo(tmp_path: Path, name: str, addon_name: str) -> Path:
+    """Build an upstream repo shaped like a real OCA module repo: the addon
+    itself plus a `setup/<addon>/odoo/addons/<addon>` symlink back into it —
+    the layout the reported bug depends on, and which `oops upgrade vanilla`
+    itself never creates (only OCA's own tooling does).
+    """
+    upstream_path = tmp_path / name
+    upstream_path.mkdir()
+    upstream = Repo.init(upstream_path)
+    with upstream.config_writer() as cw:
+        cw.set_value("user", "email", "test@test.com")
+        cw.set_value("user", "name", "Test")
+    _add_local_addon(upstream_path, addon_name, author="Odoo Community Association (OCA)")
+    setup_addons_dir = upstream_path / "setup" / addon_name / "odoo" / "addons"
+    setup_addons_dir.mkdir(parents=True)
+    (setup_addons_dir / addon_name).symlink_to(Path("../../../../") / addon_name)
+    upstream.git.add("-A")
+    upstream.index.commit("init upstream (OCA setup/ layout)")
+    return upstream_path
+
+
+def test_cli_submodule_with_oca_setup_symlinks_is_stripped(tmp_path, monkeypatch):
+    """The reported bug: a submodule whose upstream repo carries OCA's
+    `setup/<addon>/odoo/addons/<addon>` symlink — tracked only by the
+    submodule's own index, never the superproject's — must not make the
+    strip fail with a `git rm` pathspec error. Fails on pre-Phase-3 code
+    (which walked the filesystem for symlinks to `git rm`) once the
+    `setup/` prune in `io/file.py` (b2593c2) is reverted; passes after
+    Phase 3 either way, since vanilla no longer walks at all.
+    """
+    upstream_path = _make_oca_setup_upstream_repo(tmp_path, "oca_setup_up", "oca_mod")
+
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    (repo_path / ".third-party").mkdir()
+    _add_submodule(repo, upstream_path, ".third-party/oca_setup_up")
+    (repo_path / "oca_mod").symlink_to(repo_path / ".third-party" / "oca_setup_up" / "oca_mod")
+    _commit_all(repo, "add OCA-style submodule")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
+
+    assert result.exit_code == 0, result.output
+    assert "did not match any files" not in result.output
+    assert "Errors" not in result.output
+
+    report_path = repo_path / ".oops" / "upgrade" / "vanilla.yml"
+    report = yaml.safe_load(report_path.read_text())
+    assert report["branch"] is not None
+
+
+def test_cli_submodule_with_several_active_addons_removes_every_symlink(tmp_path, monkeypatch):
+    """A submodule hosting several active addons must lose every one of its
+    root symlinks, not only the first discovered — pins the accumulation
+    fix in `build_strip_plan` (links must accumulate per submodule, not
+    `continue`/skip on a repeat match).
+    """
+    upstream_path = tmp_path / "multi_addon_up"
+    upstream_path.mkdir()
+    upstream = Repo.init(upstream_path)
+    with upstream.config_writer() as cw:
+        cw.set_value("user", "email", "test@test.com")
+        cw.set_value("user", "name", "Test")
+    _add_local_addon(upstream_path, "addon_one", author="Acme")
+    _add_local_addon(upstream_path, "addon_two", author="Acme")
+    upstream.index.add(["addon_one", "addon_two"])
+    upstream.index.commit("init upstream with two addons")
+
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    (repo_path / ".third-party").mkdir()
+    _add_submodule(repo, upstream_path, ".third-party/multi_addon_up")
+    (repo_path / "addon_one").symlink_to(repo_path / ".third-party" / "multi_addon_up" / "addon_one")
+    (repo_path / "addon_two").symlink_to(repo_path / ".third-party" / "multi_addon_up" / "addon_two")
+    _commit_all(repo, "add submodule with two active addons")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
+
+    assert result.exit_code == 0, result.output
+    assert not (repo_path / "addon_one").exists()
+    assert not (repo_path / "addon_two").exists()
+    dangling = [line for line in repo.git.ls_files("-s").splitlines() if line.startswith("120000")]
+    assert dangling == []
+
+
+def test_cli_pre_existing_broken_root_symlink_is_swept(tmp_path, monkeypatch):
+    """A root symlink already broken before the run (target missing) is
+    invisible to addon discovery — nothing derives a link for it — so it
+    must be caught by the explicit broken-symlink sweep instead, with a
+    warning naming it.
+    """
+    repo = _init_repo(tmp_path)
+    repo_path = Path(repo.working_tree_dir)
+    _add_local_addon(repo_path, "custom_mod")
+    broken_link = repo_path / "already_broken"
+    broken_link.symlink_to(repo_path / "does_not_exist")
+    _commit_all(repo, "add addon and a pre-broken symlink")
+
+    monkeypatch.chdir(repo_path)
+    with patch("oops.commands.upgrade.vanilla.find_available_images", side_effect=_fake_find_available_images):
+        result = CliRunner().invoke(main, ["--to", "19.0", "--force"])
+
+    assert result.exit_code == 0, result.output
+    assert not broken_link.exists()
+    assert not broken_link.is_symlink()
+    assert "already_broken" in result.output
+    assert repo.git.ls_files("-s", "already_broken") == ""
 
 
 def test_cli_json_output_includes_orphan_submodules(tmp_path, monkeypatch):
