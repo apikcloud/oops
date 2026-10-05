@@ -27,7 +27,7 @@ from oops.output.formatters import (
 from oops.output.sinks import deliver
 from oops.services.git import list_submodules, require_repository
 from oops.services.loc import get_addon_loc_cached
-from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.addons import discover_addons
 from oops_engine.models import Addon, Result
 
 from .presenters.list import ListPresenter
@@ -110,28 +110,22 @@ def main(
         # Filter submodule names if requested
         active_paths = {path for path, info in subs.items() if info["name"] in submodules} if submodules else None
 
-        seen = dedup_addons_by_path(repo_path, shallow=not show_all)
-
-        for addon in seen.values():
-            if active_paths is not None and addon.rel_path not in active_paths:
-                continue
-
+        addons = discover_addons(
+            repo_path,
+            subs,
+            author=config.manifest.author,
+            prefix=config.project.prefix,
+            owner=config.github.owner,
+            shallow=not show_all,
+            rel_paths=active_paths,
+        )
+        for addon in addons:
             if symlinks_only and not addon.symlink:
                 continue
-
-            log.info(f"Enrichment of {addon.technical_name}")
-
-            enrich_addon_from_subs(
-                addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
-            )
-
-            # add lines of code
             addon.loc = get_addon_loc_cached(repo_path, addon.path)
-
             result.data.append(addon)
 
         log.info("Finalizing...")
-        result.data.sort(key=lambda item: item.technical_name)
 
         total_loc = sum(addon.loc.total for addon in result.data if addon.loc)
 

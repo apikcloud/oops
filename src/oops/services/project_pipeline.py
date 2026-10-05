@@ -16,12 +16,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from oops.core.config import config
-from oops.core.logger import log
 from oops.core.metadata import get_metadata
 from oops.output.base import RenderTarget
 from oops.services.git import list_submodules
 from oops.services.loc import get_addon_loc_cached
-from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.addons import discover_addons
 
 
 def build_inventory(
@@ -39,18 +38,16 @@ def build_inventory(
     subs = list_submodules(repo)
     active_paths = {path for path, info in subs.items() if info["name"] in names} if names else None
 
-    seen = dedup_addons_by_path(repo_path, shallow=not show_all)
-
     inventory: dict[str, dict] = {}
-    for addon in seen.values():
-        if active_paths is not None and addon.rel_path not in active_paths:
-            continue
-
-        log.info(f"Inventory of {addon.technical_name}")
-        enrich_addon_from_subs(
-            addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
-        )
-
+    for addon in discover_addons(
+        repo_path,
+        subs,
+        author=config.manifest.author,
+        prefix=config.project.prefix,
+        owner=config.github.owner,
+        shallow=not show_all,
+        rel_paths=active_paths,
+    ):
         loc = get_addon_loc_cached(repo_path, addon.path)
 
         inventory[addon.technical_name] = {

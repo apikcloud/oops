@@ -36,7 +36,7 @@ from oops.core.exceptions import APIError, OopsError
 from oops.core.logger import live_progress, log
 from oops.core.metadata import get_metadata
 from oops.core.models import Plan, PlanAction, Result
-from oops.io.file import collect_symlink_paths, parse_odoo_version, parse_packages, symlinks_into, write_text_file
+from oops.io.file import parse_odoo_version, parse_packages, write_text_file
 from oops.io.installed_modules import read_installed_modules
 from oops.output.formatters import FormatterRegistry, JsonFormatter, OutputFormatter, SimpleSummaryConsoleFormatter
 from oops.output.workflow import run_mutation_workflow
@@ -44,8 +44,9 @@ from oops.services.docker import find_available_images
 from oops.services.git import commit_v2, list_submodules, require_repository
 from oops.services.kb import load_odoo_kb
 from oops.services.project import copy_project_files, fetch_project_files
+from oops.services.submodule import remove_submodule
 from oops.utils.render import warn_experimental, warning_section
-from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.addons import discover_addons
 from oops_engine.build import compute_root_drift
 from oops_engine.compat import Optional
 from oops_engine.load_order import compute_load_order
@@ -185,24 +186,23 @@ class VanillaReport:
 def discover_non_core_addons(repo_path: Path, sub_meta_by_relpath: dict) -> "list[Addon]":
     """Discover and classify every addon at the repo root.
 
-    Reuses the exact discovery pattern from `upgrade analyze` (dedup by
-    path, then enrich for classification). Every discovered addon is
-    non-core by construction — Odoo core is never checked into this repo.
+    Thin filter over `oops_engine.addons.discover_addons` — the one discovery
+    pipeline shared with `addons list` and `upgrade analyze`. Every addon it
+    returns is non-core by construction: Odoo core is never checked into this
+    repo.
     """
-    seen = dedup_addons_by_path(repo_path, shallow=True)
-    addons = []
-    for addon in seen.values():
-        if not addon.root:
-            continue
-        enrich_addon_from_subs(
-            addon,
+    return [
+        addon
+        for addon in discover_addons(
+            repo_path,
             sub_meta_by_relpath,
             author=config.manifest.author,
             prefix=config.project.prefix,
             owner=config.github.owner,
+            shallow=True,
         )
-        addons.append(addon)
-    return addons
+        if addon.root
+    ]
 
 
 def load_installed_context(
@@ -443,14 +443,47 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
     Returns `(plan, sub_by_relpath)` — the caller reuses `sub_by_relpath`
     (a `Submodule.path -> Submodule` mapping) instead of rebuilding it from
     `repo.submodules` a second time.
+
+    4. A submodule's activation symlinks are taken from the discovered addon
+       list, not from a filesystem walk: `create_symlink` (io/file.py),
+       `addons add` and `addons manage` all place an activation symlink at
+       `<repo root>/<addon name>` and nowhere else, so an addon with
+       `location == "active"` *is* its own link. `submodules remove` still
+       needs the recursive `collect_symlink_paths`/`symlinks_into` pair
+       because it removes a subset of submodules and must attribute each link
+       to one of them; vanilla removes every submodule, so it has nothing to
+       attribute. Not walking also means vanilla never sees a submodule's own
+       internal `setup/<addon>/odoo/addons/<addon>` symlinks — tracked by the
+       submodule's index, never the superproject's, so a `git rm` on one fails
+       with "pathspec did not match any files".
     """
-    all_symlinks = collect_symlink_paths(repo_path)
     sub_by_relpath = {s.path: s for s in repo.submodules}
-    actions = []
-    seen_submodules: "set[str]" = set()
+    links_by_relpath: "dict[str, list[Path]]" = {}
+    order: "list[str]" = []
+    local_modules: "list[VanillaModule]" = []
+
+    for m in modules:
+        rel_path = m.rel_path if m.submodule and m.rel_path in sub_by_relpath else None
+        if rel_path is None and m.dir_name in sub_by_relpath:
+            rel_path = m.dir_name
+
+        if rel_path is None:
+            local_modules.append(m)
+            continue
+
+        if rel_path not in links_by_relpath:
+            links_by_relpath[rel_path] = []
+            order.append(rel_path)
+        # `location == "active"` means symlinked at the repo root under the
+        # addon's own name; the is_symlink() guard keeps a hand-made link
+        # whose name differs from the addon directory's from being git rm'd
+        # blind (it is then caught by the broken-link sweep instead).
+        link = repo_path / m.name
+        if m.location == "active" and link.is_symlink():
+            links_by_relpath[rel_path].append(link)
 
     def submodule_action(rel_path: str, label: str, orphan: bool = False) -> PlanAction:
-        links = symlinks_into(all_symlinks, rel_path, repo_path)
+        links = links_by_relpath.get(rel_path, [])
         detail = f"submodule, {len(links)} symlink(s)"
         if orphan:
             detail += " — no discovered addon"
@@ -461,40 +494,28 @@ def build_strip_plan(repo: Repo, repo_path: Path, modules: "list[VanillaModule]"
             data={"kind": "submodule", "rel_path": rel_path, "links": [str(lnk) for lnk in links], "orphan": orphan},
         )
 
-    for m in modules:
-        rel_path = m.rel_path if m.submodule and m.rel_path in sub_by_relpath else None
-        if rel_path is None and m.dir_name in sub_by_relpath:
-            rel_path = m.dir_name
-
-        if rel_path is not None:
-            if rel_path in seen_submodules:
-                continue
-            seen_submodules.add(rel_path)
-            actions.append(submodule_action(rel_path, sub_by_relpath[rel_path].name))
-        else:
-            actions.append(
-                PlanAction(
-                    label=m.name,
-                    kind="available",
-                    detail="local addon directory",
-                    data={"kind": "local"},
-                )
-            )
-
-    for rel_path, sub in sub_by_relpath.items():
-        if rel_path in seen_submodules:
-            continue
-        actions.append(submodule_action(str(rel_path), sub.name, orphan=True))
+    actions = [
+        PlanAction(label=m.name, kind="available", detail="local addon directory", data={"kind": "local"})
+        for m in local_modules
+    ]
+    actions += [submodule_action(rel_path, sub_by_relpath[rel_path].name) for rel_path in order]
+    actions += [
+        submodule_action(str(rel_path), sub.name, orphan=True)
+        for rel_path, sub in sub_by_relpath.items()
+        if rel_path not in links_by_relpath
+    ]
 
     return Plan(title="Modules to strip", actions=actions), sub_by_relpath
 
 
 def apply_strip_action(repo: Repo, repo_path: Path, sub_by_relpath: dict, action: PlanAction) -> "tuple[str, bool]":
     if action.data["kind"] == "submodule":
-        for lnk_str in action.data["links"]:
-            rel = os.path.relpath(Path(lnk_str), repo_path)
-            repo.git.rm("--force", "--", rel)
-        sub_by_relpath[action.data["rel_path"]].remove(force=True)
+        remove_submodule(
+            repo,
+            repo_path,
+            sub_by_relpath[action.data["rel_path"]],
+            [Path(s) for s in action.data["links"]],
+        )
     else:
         repo.git.rm("-r", "--force", "--", action.label)
     return "removed", True
@@ -533,34 +554,53 @@ def cleanup_submodule_containers(repo_path: Path) -> "list[str]":
     return removed
 
 
+def sweep_broken_root_symlinks(repo: Repo, repo_path: Path) -> "list[str]":
+    """Drop root-level symlinks left pointing at nothing after the strip.
+
+    Activation symlinks are derived from the discovered addon list, which can
+    only see a link whose target still holds a readable manifest. A link that
+    was already broken before the run — or one whose name differs from its
+    target directory's — yields no addon, so nothing removes it, and
+    `repo.git.add("-A")` will not either: a dangling symlink is still a valid
+    `120000` blob. Left alone it would be committed into the vanilla base.
+
+    `--ignore-unmatch` keeps an untracked link from raising; it is unlinked
+    from disk afterwards either way.
+    """
+    removed: "list[str]" = []
+    for entry in sorted(repo_path.iterdir()):
+        if not entry.is_symlink() or entry.exists():
+            continue
+        repo.git.rm("--force", "--ignore-unmatch", "--", entry.name)
+        if entry.is_symlink():
+            entry.unlink()
+        removed.append(entry.name)
+    return removed
+
+
 # ---------------------------------------------------------------------------
 # requirements.txt / packages.txt
 # ---------------------------------------------------------------------------
 
 
 def ensure_upgrade_util_requirement(repo_path: Path, dry_run: bool = False) -> Path:
-    """Ensure the upgrade-util pip line is present in requirements.txt.
+    """Overwrite requirements.txt with only the upgrade-util pip line.
 
-    Appends to whatever is already there (e.g. a file just written by
-    `sync_project_files`) rather than overwriting it — same merge contract
-    as `ensure_git_package` for packages.txt. Not derived via
-    `io/requirements.generate_requirements` (which builds its output purely
-    from addon manifests and would produce nothing useful here — every
-    addon is being stripped). A later `oops requirements update` run on this
-    branch will regenerate the file from whatever addons exist at that
-    point and will drop this line unless re-added — a known limitation, not
-    fixed here.
+    Unlike `ensure_git_package` for packages.txt (a user-curated OS-package
+    list, unrelated to addons), requirements.txt is addon-derived — and every
+    addon is being stripped. Whatever is already there (e.g. a file just
+    written by `sync_project_files`) belongs to modules that no longer exist
+    in this tree, so it is discarded rather than merged into. Not derived via
+    `io/requirements.generate_requirements` either (same reason: it builds its
+    output purely from addon manifests, none of which remain). A later
+    `oops requirements update` run on this branch will regenerate the file
+    from whatever addons exist at that point and will drop this line unless
+    re-added — a known limitation, not fixed here.
     """
     req_path = repo_path / config.project.file_requirements
     if dry_run:
         return req_path
-    existing = req_path.read_text(encoding="utf-8") if req_path.exists() else ""
-    if UPGRADE_UTIL_REQUIREMENT in existing:
-        return req_path
-    with req_path.open("a", encoding="utf-8") as f:
-        if existing and not existing.endswith("\n"):
-            f.write("\n")
-        f.write(f"# generated by `oops upgrade vanilla`\n{UPGRADE_UTIL_REQUIREMENT}\n")
+    req_path.write_text(f"# generated by `oops upgrade vanilla`\n{UPGRADE_UTIL_REQUIREMENT}\n", encoding="utf-8")
     return req_path
 
 
@@ -848,6 +888,11 @@ def main(  # noqa: C901
         output = VanillaPresenter().prepare(result, target=formatter.target, metadata=metadata)
         render_and_exit(result, formatter, output, output_format, output_path)
         return
+
+    with live_progress("Sweeping symlinks left broken by the strip…"):
+        swept = sweep_broken_root_symlinks(repo, repo_path)
+    for name in swept:
+        outer.add_warning(f"Removed symlink {name!r}, left broken by the strip.")
 
     with live_progress("Cleaning up empty submodule container directories…"):
         removed_containers = cleanup_submodule_containers(repo_path)

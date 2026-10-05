@@ -5,7 +5,7 @@ from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.metadata import update_metadata
 from oops.services.git import list_submodules
-from oops_engine.addons import dedup_addons_by_path, enrich_addon_from_subs
+from oops_engine.addons import discover_addons
 from oops_engine.build import odoo_core_repo_id, parse_kb_timestamp, project_kb_path
 from oops_engine.compat import List, Set
 from oops_engine.identity import local_repo_id
@@ -33,17 +33,18 @@ def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[st
     """
     subs = list_submodules(repo)
 
-    seen = dedup_addons_by_path(repo_path, shallow=True)
-
-    project_addons = [a for a in seen.values() if a.technical_name in allowed_modules]
-    project_addons.sort(key=lambda a: a.technical_name)
-
-    for addon in project_addons:
-        enrich_addon_from_subs(
-            addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+    return [
+        a
+        for a in discover_addons(
+            repo_path,
+            subs,
+            author=config.manifest.author,
+            prefix=config.project.prefix,
+            owner=config.github.owner,
+            shallow=True,
         )
-
-    return project_addons
+        if a.technical_name in allowed_modules
+    ]
 
 
 def require_kb(version: str) -> Path:

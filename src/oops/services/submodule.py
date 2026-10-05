@@ -5,9 +5,10 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-from git import GitCommandError, Repo
+from git import GitCommandError, Repo, Submodule
 from oops.core.config import config
 from oops.core.exceptions import OopsError
 from oops.core.models import Result
@@ -15,7 +16,7 @@ from oops.io.file import create_symlink, desired_path, ensure_parent
 from oops.services.git import commit_v2
 from oops.services.github import list_remote_addons
 from oops.utils.net import encode_url, parse_repository_url, resolve_repository_url
-from oops_engine.compat import Optional
+from oops_engine.compat import Iterable, Optional
 
 
 def resolve_target(
@@ -122,3 +123,34 @@ def add_submodule(
                   skip_hooks=True, already_staged=True, **commit_kwargs)
     )
     return result
+
+
+def remove_submodule(
+    repo: "Repo",
+    repo_path: Path,
+    sub: "Submodule",
+    links: "Iterable[Path]" = (),
+) -> None:
+    """Remove a submodule, and any activation symlinks pointing into it.
+
+    The one removal path behind `submodules prune`, `submodules remove` and
+    `upgrade vanilla`. `Submodule.remove(force=True)` handles the working
+    tree, `.gitmodules`, `.git/config` and `.git/modules/<name>` and stages
+    the result — callers commit with `already_staged=True`.
+
+    It does NOT touch symlinks: a root-level activation symlink survives the
+    call as a dangling but still-tracked `120000` entry, so every link the
+    caller has identified must be unstaged here first. `prune` passes none by
+    definition (it only removes submodules nothing links to); `remove` passes
+    what `symlinks_into` matched; `vanilla` passes the root links derived from
+    its addon list.
+
+    Args:
+        repo: The superproject.
+        repo_path: Superproject root, used to relativise `links`.
+        sub: The submodule to remove.
+        links: Symlink paths to `git rm` before removing the submodule.
+    """
+    for link in links:
+        repo.git.rm("--force", "--", os.path.relpath(link, repo_path))
+    sub.remove(force=True)
