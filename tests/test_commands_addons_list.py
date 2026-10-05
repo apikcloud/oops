@@ -19,29 +19,32 @@ def _make_addon_info(
     tmp_path: Path,
     name: str,
     path: str | None = None,
+    rel_path: str = "",
+    submodule: str = "",
+    classification: str = "custom",
 ) -> Addon:
     real_path = path or str(tmp_path / name)
     return Addon(
         path=real_path,
-        rel_path="",
+        rel_path=rel_path,
         technical_name=name,
         symlink=False,
-        root=True,
+        root=not rel_path,
         version="17.0.1.0.0",
-        author="Apik",
+        author="Acme",
         maintainers=[],
         summary="",
         external_dependencies={},
         depends=[],
         installable=True,
-        submodule="",
+        submodule=submodule,
         branch="",
         pull_request=False,
-        classification="custom",
+        classification=classification,
     )
 
 
-def _invoke_list_json(tmp_path: Path, addons: list[Addon], loc_map: dict[str, LocStats]) -> list[dict]:
+def _invoke_list_json(tmp_path: Path, addons: list[Addon], loc_map: dict[str, LocStats]) -> dict:
     def _fake_loc(repo_path: Path, path: str) -> LocStats:  # noqa: ARG001
         return loc_map.get(path, LocStats())
 
@@ -56,32 +59,52 @@ def _invoke_list_json(tmp_path: Path, addons: list[Addon], loc_map: dict[str, Lo
         result = CliRunner().invoke(main, ["--format", "json"])
 
     assert result.exit_code == 0, result.output
-    return json.loads(result.output)["data"]
+    return json.loads(result.output)
+
+
+def _addons(payload: dict) -> list[dict]:
+    return payload["data"]["addons"]
+
+
+ADDON_KEYS = {
+    "technical_name",
+    "path",
+    "location",
+    "classification",
+    "version",
+    "installable",
+    "summary",
+    "author",
+    "maintainers",
+    "website",
+    "depends",
+    "external_dependencies",
+    "submodule",
+    "branch",
+    "pull_request",
+    "loc",
+}
 
 
 class TestListLocKeys:
-    def test_row_has_six_loc_keys(self, tmp_path: Path) -> None:
+    def test_loc_has_six_keys(self, tmp_path: Path) -> None:
         addon = _make_addon_info(tmp_path, "my_addon")
         loc_map = {addon.path: LocStats(python=100, xml=50, javascript=10, docs=5)}
-        rows = _invoke_list_json(tmp_path, [addon], loc_map)
+        rows = _addons(_invoke_list_json(tmp_path, [addon], loc_map))
 
         assert len(rows) == 1
-        row = rows[0]
-        for key in ("loc_python", "loc_xml", "loc_js", "loc_docs", "loc_total", "loc_pct"):
-            assert key in row, f"Missing key: {key}"
+        assert set(rows[0]["loc"]) == {"python", "xml", "javascript", "docs", "total", "pct"}
 
     def test_loc_total_equals_sum(self, tmp_path: Path) -> None:
         addon = _make_addon_info(tmp_path, "my_addon")
-        loc = LocStats(python=100, xml=50, javascript=10, docs=5)
-        loc_map = {addon.path: loc}
-        rows = _invoke_list_json(tmp_path, [addon], loc_map)
+        loc_map = {addon.path: LocStats(python=100, xml=50, javascript=10, docs=5)}
+        loc = _addons(_invoke_list_json(tmp_path, [addon], loc_map))[0]["loc"]
 
-        row = rows[0]
-        assert row["loc_total"] == 165
-        assert row["loc_python"] == 100
-        assert row["loc_xml"] == 50
-        assert row["loc_js"] == 10
-        assert row["loc_docs"] == 5
+        assert loc["total"] == 165
+        assert loc["python"] == 100
+        assert loc["xml"] == 50
+        assert loc["javascript"] == 10
+        assert loc["docs"] == 5
 
     def test_loc_pct_sums_to_100(self, tmp_path: Path) -> None:
         a1 = _make_addon_info(tmp_path, "addon_a", str(tmp_path / "a"))
@@ -90,18 +113,63 @@ class TestListLocKeys:
             a1.path: LocStats(python=100, xml=0, javascript=0, docs=0),
             a2.path: LocStats(python=300, xml=0, javascript=0, docs=0),
         }
-        rows = _invoke_list_json(tmp_path, [a1, a2], loc_map)
+        rows = _addons(_invoke_list_json(tmp_path, [a1, a2], loc_map))
 
-        total_pct = sum(r["loc_pct"] for r in rows)
+        total_pct = sum(r["loc"]["pct"] for r in rows)
         assert abs(total_pct - 100.0) < 0.2
 
     def test_zero_loc_no_divide_by_zero(self, tmp_path: Path) -> None:
         addon = _make_addon_info(tmp_path, "my_addon")
-        rows = _invoke_list_json(tmp_path, [addon], {})
+        loc = _addons(_invoke_list_json(tmp_path, [addon], {}))[0]["loc"]
 
-        row = rows[0]
-        assert row["loc_total"] == 0
-        assert row["loc_pct"] == 0.0
+        assert loc["total"] == 0
+        assert loc["pct"] == 0.0
+
+
+class TestListContract:
+    def test_envelope_keys(self, tmp_path: Path) -> None:
+        payload = _invoke_list_json(tmp_path, [_make_addon_info(tmp_path, "my_addon")], {})
+
+        assert set(payload) == {"data", "warnings", "errors", "metadata"}
+        assert set(payload["data"]) == {"summary", "addons"}
+
+    def test_addon_key_set(self, tmp_path: Path) -> None:
+        rows = _addons(_invoke_list_json(tmp_path, [_make_addon_info(tmp_path, "my_addon")], {}))
+
+        assert set(rows[0]) == ADDON_KEYS
+
+    def test_summary_counters_always_have_all_keys(self, tmp_path: Path) -> None:
+        addon = _make_addon_info(tmp_path, "my_addon", classification="oca")
+        loc_map = {addon.path: LocStats(python=7, xml=3)}
+        summary = _invoke_list_json(tmp_path, [addon], loc_map)["data"]["summary"]
+
+        assert summary["total"] == 1
+        assert summary["by_location"] == {"active": 0, "local": 1, "inactive": 0}
+        assert summary["by_classification"] == {"custom": 0, "oca": 1, "third-party": 0}
+        assert summary["loc"] == {"python": 7, "xml": 3, "javascript": 0, "docs": 0, "total": 10}
+
+    def test_empty_submodule_and_branch_become_null(self, tmp_path: Path) -> None:
+        row = _addons(_invoke_list_json(tmp_path, [_make_addon_info(tmp_path, "my_addon")], {}))[0]
+
+        assert row["submodule"] is None
+        assert row["branch"] is None
+        assert row["pull_request"] is False
+
+    def test_path_at_root(self, tmp_path: Path) -> None:
+        row = _addons(_invoke_list_json(tmp_path, [_make_addon_info(tmp_path, "my_addon")], {}))[0]
+
+        assert row["path"] == "my_addon"
+        assert row["location"] == "local"
+
+    def test_path_in_submodule(self, tmp_path: Path) -> None:
+        addon = _make_addon_info(
+            tmp_path, "my_addon", rel_path=".third-party/OCA/x", submodule="OCA/x"
+        )
+        row = _addons(_invoke_list_json(tmp_path, [addon], {}))[0]
+
+        assert row["path"] == ".third-party/OCA/x/my_addon"
+        assert row["location"] == "inactive"
+        assert row["submodule"] == "OCA/x"
 
 
 class TestListLocCaching:

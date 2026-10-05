@@ -1,14 +1,36 @@
 import * as d3 from "d3";
-import type { Payload, ListPayload, Addon, MetricGroup } from "../types";
-import { el, fmt, humanize, badge, numCell, tableWrap, renderMetadataBar } from "../dom";
+import type { Payload, ListPayload, ListSummary, Addon } from "../types";
+import { el, fmt, badge, numCell, tableWrap, renderMetadataBar } from "../dom";
 
-// Extend Addon with precomputed total
-type RichAddon = Addon & { _locTotal: number; summary?: string };
+// Extend Addon with flattened sort keys (the table sorts on top-level keys)
+type RichAddon = Addon & { _locTotal: number; _locPct: number };
 
 const LOC_KEYS = ["python", "xml", "javascript", "docs"] as const;
 
-function locTotal(a: Addon): number {
-  return a.loc ? a.loc.python + a.loc.xml + a.loc.javascript + a.loc.docs : 0;
+const EMPTY_SUMMARY: ListSummary = {
+  total: 0,
+  by_location: { active: 0, local: 0, inactive: 0 },
+  by_classification: { custom: 0, oca: 0, "third-party": 0 },
+  loc: { python: 0, xml: 0, javascript: 0, docs: 0, total: 0 },
+};
+
+// Same cards/labels as the human `addons list` panels.
+function metricCards(summary: ListSummary): Array<{ label: string; rows: Array<[string, number, boolean]> }> {
+  const { by_location: loc, by_classification: cls } = summary;
+  return [
+    { label: "Summary", rows: [
+      ["Local", loc.local, false], ["Active", loc.active, false],
+      ["Inactive", loc.inactive, false], ["Total", summary.total, true],
+    ] },
+    { label: "Classification", rows: [
+      ["Custom", cls.custom, false], ["OCA", cls.oca, false], ["Third-party", cls["third-party"], false],
+    ] },
+    { label: "Lines of code", rows: [
+      ["Python", summary.loc.python, false], ["XML", summary.loc.xml, false],
+      ["JavaScript", summary.loc.javascript, false], ["Docs", summary.loc.docs, false],
+      ["Total", summary.loc.total, true],
+    ] },
+  ];
 }
 
 function readColor(varName: string): string {
@@ -17,52 +39,53 @@ function readColor(varName: string): string {
 
 export function viewList(root: HTMLElement, payload: Payload): void {
   const p = payload as unknown as ListPayload;
-  const addons = (p.data ?? []) as RichAddon[];
+  const addons = (p.data?.addons ?? []) as RichAddon[];
+  const summary = p.data?.summary ?? EMPTY_SUMMARY;
 
-  // Precompute per-addon totals
-  const byClass: Record<string, number> = {};
-  const locTotals: Record<string, number> = { python: 0, xml: 0, javascript: 0, docs: 0 };
+  // Flatten sort keys
   for (const a of addons) {
-    a._locTotal = locTotal(a);
-    const cls = a.classification || "unknown";
-    byClass[cls] = (byClass[cls] || 0) + 1;
-    for (const k of LOC_KEYS) locTotals[k] += a.loc?.[k] ?? 0;
+    a._locTotal = a.loc.total;
+    a._locPct = a.loc.pct;
   }
+  const byClass: Record<string, number> = { ...summary.by_classification };
+  const locTotals: Record<string, number> = {
+    python: summary.loc.python, xml: summary.loc.xml,
+    javascript: summary.loc.javascript, docs: summary.loc.docs,
+  };
 
   // --- Metadata bar ---
   const metaBar = renderMetadataBar(p.metadata);
   if (metaBar) root.append(metaBar);
 
   // --- Page header ---
-  const totalLoc = addons.reduce((s, a) => s + a._locTotal, 0);
+  const totalLoc = summary.loc.total;
   root.append(el("div", { class: "page-header" }, [
     el("h1", {}, "Addons"),
     el("p", { class: "page-subtitle" }, `${addons.length} addons · ${fmt(totalLoc)} total LoC`),
   ]));
 
-  // --- Warnings ---
-  if (p.warnings?.length) {
-    root.append(el("div", { class: "warnings" },
-      el("ul", {}, p.warnings.map((w) => el("li", {}, w)))
-    ));
+  // --- Errors / warnings ---
+  for (const msgs of [p.errors, p.warnings]) {
+    if (msgs?.length) {
+      root.append(el("div", { class: "warnings" },
+        el("ul", {}, msgs.map((w) => el("li", {}, w)))
+      ));
+    }
   }
 
   // --- Metrics cards ---
-  if (p.metrics?.length) {
-    const cards = el("div", { class: "stats-grid" });
-    for (const g of p.metrics as MetricGroup[]) {
-      const card = el("div", { class: "stat-card" }, el("div", { class: "stat-card-label" }, g.label));
-      for (const v of g.values) {
-        const isTotal = (v.name || "").toLowerCase() === "total";
-        card.append(el("div", { class: `stat-row${isTotal ? " is-total" : ""}` }, [
-          el("span", { class: "label" }, String(v.label ?? humanize(v.name))),
-          el("span", { class: "value" }, fmt(v.value)),
-        ]));
-      }
-      cards.append(card);
+  const cards = el("div", { class: "stats-grid" });
+  for (const g of metricCards(summary)) {
+    const card = el("div", { class: "stat-card" }, el("div", { class: "stat-card-label" }, g.label));
+    for (const [label, value, isTotal] of g.rows) {
+      card.append(el("div", { class: `stat-row${isTotal ? " is-total" : ""}` }, [
+        el("span", { class: "label" }, label),
+        el("span", { class: "value" }, fmt(value)),
+      ]));
     }
-    root.append(cards);
+    cards.append(card);
   }
+  root.append(cards);
 
   // --- Charts row (D3 renders after DOM insertion via setTimeout) ---
   const donutContainer = el("div", { class: "chart-container" });
@@ -97,6 +120,7 @@ export function viewList(root: HTMLElement, payload: Payload): void {
 
     // Classification donut
     const cData = Object.entries(byClass)
+      .filter(([, value]) => value > 0)
       .map(([key, value]) => ({ key, value }))
       .sort((a, b) => b.value - a.value);
     if (cData.length) {
@@ -211,7 +235,7 @@ export function viewList(root: HTMLElement, payload: Payload): void {
       el("th", { class: "muted sortable", "data-sort": "submodule" }, "Submodule"),
       el("th", { class: "num sortable", "data-sort": "_locTotal" }, "LoC"),
       el("th", {}, "Breakdown"),
-      el("th", { class: "num muted", "data-sort": "loc_pct" }, "%"),
+      el("th", { class: "num muted sortable", "data-sort": "_locPct" }, "%"),
     ]),
   ]);
   for (const th of thead.querySelectorAll<HTMLElement>("th[data-sort]")) {
@@ -266,7 +290,7 @@ export function viewList(root: HTMLElement, payload: Payload): void {
     for (const a of sorted) {
       const bar = el("div", { class: "loc-bar" });
       for (const k of LOC_KEYS) {
-        const v = a.loc?.[k] ?? 0;
+        const v = a.loc[k];
         if (!a._locTotal || !v) continue;
         const seg = el("div", {
           class: "loc-bar-segment",
@@ -279,7 +303,7 @@ export function viewList(root: HTMLElement, payload: Payload): void {
 
       const nameCell = el("td", {}, [
         el("div", { class: "addon-name" }, a.technical_name),
-        a.summary ? el("div", { class: "addon-summary" }, a.summary as string) : null,
+        a.summary ? el("div", { class: "addon-summary" }, a.summary) : null,
       ]);
 
       tbody.append(el("tr", {}, [
@@ -289,7 +313,7 @@ export function viewList(root: HTMLElement, payload: Payload): void {
         el("td", { class: "muted" }, a.submodule ?? "—"),
         numCell(a._locTotal || null),
         el("td", {}, bar),
-        el("td", { class: "num muted" }, `${a.loc_pct ?? 0}%`),
+        el("td", { class: "num muted" }, `${a._locPct}%`),
       ]));
     }
 

@@ -15,7 +15,6 @@ from oops.core.models import ImageInfo, Result
 from oops.utils.helpers import date_from_string
 from oops.utils.net import make_json_get
 from oops_engine.compat import Optional
-from requests import RequestException
 
 # try:
 #     import odoo as odoo
@@ -285,19 +284,33 @@ def find_available_images(
     return items
 
 
-def format_image_updates(image_info: "Optional[ImageInfo]" = None) -> str:
+def get_image_updates(image_info: "Optional[ImageInfo]" = None) -> "Optional[list]":
+    """Return images newer than *image_info*, newest first.
+
+    Returns None when there is no image or its tag carries no release date
+    (updates cannot be computed). Lets ``RequestException`` propagate.
+    """
+    if not image_info or not image_info.release:
+        return None
+    return find_available_images(
+        release=image_info.release,
+        version=image_info.major_version,
+        enterprise=image_info.enterprise,
+    )
+
+
+def format_image_updates(
+    image_info: "Optional[ImageInfo]" = None,
+    available: "Optional[list]" = None,
+    failed: bool = False,
+) -> str:
+    """Format the result of `get_image_updates` for human output."""
     if not image_info:
         return "-"
     if not image_info.release:
         return "No release date in current image tag"
-    try:
-        available = find_available_images(
-            release=image_info.release,
-            version=image_info.major_version,
-            enterprise=image_info.enterprise,
-        )
-    except RequestException as e:
-        return f"Could not fetch: {e}"
+    if failed:
+        return "Could not fetch"
     if not available:
         return "Up to date"
     latest = available[0]

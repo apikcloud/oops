@@ -18,17 +18,14 @@ import requests
 from oops.commands.base import command
 from oops.core.logger import live_progress
 from oops.core.metadata import get_metadata
-from oops.core.models import Result
+from oops.core.models import ProjectStatus, Result
 from oops.io.file import parse_odoo_version
 from oops.output.formatters import FormatterRegistry, JsonFormatter, MetricsConsoleFormatter
 from oops.output.sinks import deliver
-from oops.services.docker import format_image_updates
+from oops.services.docker import get_image_updates
 from oops.services.git import get_last_commit, require_repository
 from oops.services.github import get_latest_workflow_run
 from oops.utils.net import get_public_repo_url, parse_repository_url
-from oops.utils.render import (
-    format_datetime,
-)
 from oops.utils.versioning import get_last_release, get_next_releases
 from oops_engine.compat import Optional
 
@@ -62,81 +59,64 @@ FORMATTERS: FormatterRegistry = {
     default=None,
     help="Write the output to this path instead of stdout (json) or a temp file (html).",
 )
-def main(token: Optional[str], output_format: str, output_path: Path):  # noqa: C901, PLR0912, PLR0915
+def main(token: Optional[str], output_format: str, output_path: Path):
 
     metadata = get_metadata()
 
     repo, repo_path = require_repository()
     formatter = FORMATTERS[output_format]()
 
-    result: Result[dict] = Result()
+    result: Result[ProjectStatus] = Result()
 
     # 2. Long-running processing.
     with live_progress("Initialisation..."):
-        # outer = check_project(repo_path, strict=False)
-        result.data = {"project": repo_path.name}
+        status = ProjectStatus(project=repo_path.name)
 
+        # --- Odoo ---
         try:
-            image_info = parse_odoo_version(repo_path)
-            # outer.merge(check_image(image_info, strict=False))
+            status.image = parse_odoo_version(repo_path)
         except (FileNotFoundError, ValueError) as e:
             result.add_error(str(e) or "Could not parse Odoo version.")
-            image_info = None
 
-        # --- Odoo panel ---
-        odoo_values = [
-            ["Version", f"{image_info.major_version} ({image_info.edition})" if image_info else "—"],
-            ["Image date", image_info.release.isoformat() if image_info and image_info.release else "—"],
-            ["Registry", image_info.source if image_info else "—"],
-            ["Update(s)", format_image_updates(image_info)],
-        ]
+        try:
+            status.updates = get_image_updates(status.image)
+        except requests.RequestException as e:
+            status.updates_error = True
+            result.add_warning(f"Could not fetch image updates: {e}")
 
-        # --- Git panel ---
+        # --- Git ---
         try:
             remote_url = repo.remote("origin").url
-            canonical_url = get_public_repo_url(remote_url)
+            status.remote_url = get_public_repo_url(remote_url) or None
             _, owner, repo_name = parse_repository_url(remote_url)
         except (ValueError, IndexError):
-            canonical_url = ""
             owner = ""
             repo_name = ""
 
-        last_release = get_last_release()
+        try:
+            status.branch = repo.active_branch.name
+        except TypeError:  # detached HEAD
+            status.branch = None
+
+        status.last_release = get_last_release() or None
         try:
             minor, fix, major = get_next_releases()
-            next_releases = f"minor: {minor}, fix: {fix}, major: {major}"
+            status.next_releases = {"fix": fix, "minor": minor, "major": major}
         except ValueError:
-            next_releases = "no valid release found"
+            status.next_releases = None
 
-        last_commit = get_last_commit(str(repo_path))
+        status.last_commit = get_last_commit(str(repo_path))
 
-        git_values = [
-            ["Remote", canonical_url or "—"],
-            ["Last release", last_release or "—"],
-            ["Next releases", next_releases],
-            ["Last commit", str(last_commit) if last_commit else "—"],
-        ]
-
-        result.data["metrics"] = {
-            "odoo": odoo_values,
-            "git": git_values,
-        }
-
-        # --- Optional GitHub Actions panel ---
+        # --- Optional GitHub Actions ---
         if token and owner and repo_name:
             try:
-                run = get_latest_workflow_run(owner=owner, repo=repo_name, token=token, branch="main")
-                if run:
-                    gha_values = [
-                        ["Last run", str(run)],
-                        ["Date", f"{format_datetime(run.date)} ({run.age} days ago)"],
-                        ["URL", run.url],
-                    ]
-                    result.data["metrics"]["actions"] = gha_values
-                else:
+                status.ci = get_latest_workflow_run(owner=owner, repo=repo_name, token=token, branch="main")
+                if not status.ci:
                     result.add_warning("Could not fetch latest GitHub Actions workflow run.")
             except requests.RequestException as e:
                 result.add_warning(f"GitHub Actions fetch failed: {e}")
+
+        result.data = status
 
     # 4. Prepare for the chosen audience and render.
     output = ShowPresenter().prepare(result, target=formatter.target, metadata=metadata)

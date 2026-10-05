@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from oops.core.metadata import Metadata
 from oops.core.models import HasStatus, Result
 from oops.output.layout import Layout, Output
-from oops_engine.compat import Generic, Literal, Optional, TypeVar
+from oops_engine.compat import Any, Generic, Literal, Optional, TypeVar
 
 D = TypeVar("D")  # data type for the simple case
 T = TypeVar("T", bound=HasStatus)  # anything with ok/warnings/errors
@@ -84,9 +84,19 @@ class Presenter(Generic[T]):
 class SimplePresenter(Presenter[Result[D]], Generic[D]):
     """Presenter for commands producing a single Result[D].
 
-    Provides a default machine serialization. Multi-result commands
+    Machine output follows the shared contract ``{data, warnings, errors}``
+    (``metadata`` is appended by the formatter). Subclasses describe the
+    ``data`` shape by overriding ``to_data``. Multi-result commands
     (using ResultCollection) extend Presenter directly and define to_machine.
     """
 
+    def to_data(self, result: Result[D]) -> Any:
+        """Return the JSON-safe ``data`` member of the machine payload."""
+        return result.data
+
     def to_machine(self, result: Result[D]) -> dict:
-        return {"warnings": result.warnings, "data": result.data}
+        return {
+            "data": self.to_data(result),
+            "warnings": result.warnings,
+            "errors": result.errors,
+        }

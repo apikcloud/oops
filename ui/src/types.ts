@@ -18,28 +18,36 @@ export interface Loc {
   xml: number;
   javascript: number;
   docs: number;
-  total?: number;
+  total: number;
 }
+
+export interface AddonLoc extends Loc { pct: number; }
 
 export interface Addon {
   technical_name: string;
-  classification: string;
-  version: string | null;
+  path: string;
+  location: "active" | "local" | "inactive";
+  classification: string | null;
+  version: string;
+  summary: string;
+  author: string;
   submodule: string | null;
-  author: string | null;
-  loc: Loc | null;
-  loc_pct: number;
+  loc: AddonLoc;
   [k: string]: unknown;
 }
 
-export interface Stat { name: string; label?: string; value: number | string; }
-export interface MetricGroup { kind?: string; label: string; values: Stat[]; }
+export interface ListSummary {
+  total: number;
+  by_location: Record<"active" | "local" | "inactive", number>;
+  by_classification: Record<"custom" | "oca" | "third-party", number>;
+  loc: Loc;
+}
 
 /** `addons list` payload. */
 export interface ListPayload {
-  data: Addon[];
-  metrics: MetricGroup[];
+  data: { summary: ListSummary; addons: Addon[] };
   warnings: string[];
+  errors: string[];
   metadata: Metadata;
 }
 

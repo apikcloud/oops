@@ -6,38 +6,57 @@
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import asdict
 
 from oops.core.models import Stat, StatGroup
 from oops.output.base import SimplePresenter
 from oops.output.layout import ConclusionBlock, SectionBlock, SummaryLayout, TableBlock, statgroup_to_panel
 from oops.utils.render import colorize, human_readable, render_boolean
-from oops_engine.compat import List, Tuple
-from oops_engine.models import Addon, Result
+from oops_engine.compat import List, Optional, Tuple
+from oops_engine.models import Addon, LocStats, Result
+
+LOCATIONS = ("active", "local", "inactive")
+CLASSIFICATIONS = ("custom", "oca", "third-party")
+LOC_KEYS = ("python", "xml", "javascript", "docs", "total")
 
 
-def _build_metrics(result: Result[List[Addon]]) -> Tuple[StatGroup, StatGroup, StatGroup]:
+def _loc_dict(loc: Optional[LocStats]) -> dict:
+    loc = loc or LocStats()
+    return {
+        "python": loc.python,
+        "xml": loc.xml,
+        "javascript": loc.javascript,
+        "docs": loc.docs,
+        "total": loc.total,
+    }
 
-    addons = result.unwrap
 
-    total = len(addons)
+def _summarize(addons: List[Addon]) -> dict:
+    """Aggregate counters shared by the human panels and the machine ``summary``."""
     locations = Counter(addon.location for addon in addons)
     classifications = Counter(addon.classification for addon in addons)
-    total_loc = sum(addon.loc.total for addon in addons if addon.loc)
+    locs = [_loc_dict(addon.loc) for addon in addons]
 
-    loc_sum_py = sum(addon.loc.python for addon in addons if addon.loc)
-    loc_sum_xml = sum(addon.loc.xml for addon in addons if addon.loc)
-    loc_sum_js = sum(addon.loc.javascript for addon in addons if addon.loc)
-    loc_sum_docs = sum(addon.loc.docs for addon in addons if addon.loc)
+    return {
+        "total": len(addons),
+        "by_location": {key: locations[key] for key in LOCATIONS},
+        "by_classification": {key: classifications[key] for key in CLASSIFICATIONS},
+        "loc": {key: sum(loc[key] for loc in locs) for key in LOC_KEYS},
+    }
 
-    summary = StatGroup(
+
+def _stat_groups(summary: dict) -> Tuple[StatGroup, StatGroup, StatGroup]:
+    locations = summary["by_location"]
+    classifications = summary["by_classification"]
+    loc = summary["loc"]
+
+    overview = StatGroup(
         name="summary",
         label="Summary",
         values=[
             Stat(name="local", label="Local", value=locations["local"]),
             Stat(name="active", label="Active", value=locations["active"]),
             Stat(name="inactive", label="Inactive", value=locations["inactive"]),
-            Stat(name="total", label="Total", value=total),
+            Stat(name="total", label="Total", value=summary["total"]),
         ],
     )
 
@@ -51,19 +70,40 @@ def _build_metrics(result: Result[List[Addon]]) -> Tuple[StatGroup, StatGroup, S
         ],
     )
 
-    loc = StatGroup(
+    lines = StatGroup(
         name="lines of code",
         label="Lines of code",
         values=[
-            Stat(name="python", label="Python", value=loc_sum_py),
-            Stat(name="xml", label="XML", value=loc_sum_xml),
-            Stat(name="javascript", label="JavaScript", value=loc_sum_js),
-            Stat(name="docs", label="Docs", value=loc_sum_docs),
-            Stat(name="total", label="Total", value=total_loc),
+            Stat(name="python", label="Python", value=loc["python"]),
+            Stat(name="xml", label="XML", value=loc["xml"]),
+            Stat(name="javascript", label="JavaScript", value=loc["javascript"]),
+            Stat(name="docs", label="Docs", value=loc["docs"]),
+            Stat(name="total", label="Total", value=loc["total"]),
         ],
     )
 
-    return summary, classification, loc
+    return overview, classification, lines
+
+
+def _addon_data(addon: Addon) -> dict:
+    return {
+        "technical_name": addon.technical_name,
+        "path": f"{addon.rel_path}/{addon.technical_name}" if addon.rel_path else addon.technical_name,
+        "location": addon.location,
+        "classification": addon.classification,
+        "version": addon.version,
+        "installable": addon.installable,
+        "summary": addon.summary,
+        "author": addon.author,
+        "maintainers": addon.maintainers,
+        "website": addon.website,
+        "depends": addon.depends,
+        "external_dependencies": addon.external_dependencies,
+        "submodule": addon.submodule or None,
+        "branch": addon.branch or None,
+        "pull_request": addon.pull_request,
+        "loc": {**_loc_dict(addon.loc), "pct": addon.loc_pct},
+    }
 
 
 class ListPresenter(SimplePresenter[List[Addon]]):
@@ -71,7 +111,7 @@ class ListPresenter(SimplePresenter[List[Addon]]):
 
         addons = result.unwrap
 
-        stats = _build_metrics(result)
+        stats = _stat_groups(_summarize(addons))
 
         columns = [
             ("Addon", "brand.primary", "left"),
@@ -120,22 +160,6 @@ class ListPresenter(SimplePresenter[List[Addon]]):
             conclusion=ConclusionBlock(True, "All done"),
         )
 
-    def to_machine(self, result: "Result[List[Addon]]") -> dict:
-
-        metrics = _build_metrics(result)
-
-        def _flatten(addon: "Addon") -> dict:
-            d = asdict(addon)
-            loc = d.get("loc") or {}
-            d["loc_python"] = loc.get("python", 0)
-            d["loc_xml"] = loc.get("xml", 0)
-            d["loc_js"] = loc.get("javascript", 0)
-            d["loc_docs"] = loc.get("docs", 0)
-            d["loc_total"] = loc.get("python", 0) + loc.get("xml", 0) + loc.get("javascript", 0) + loc.get("docs", 0)
-            return d
-
-        return {
-            "data": [_flatten(addon) for addon in result.unwrap],
-            "metrics": [s.to_dict(summary=True) for s in metrics],
-            "warnings": result.warnings,
-        }
+    def to_data(self, result: Result[List[Addon]]) -> dict:
+        addons = result.unwrap
+        return {"summary": _summarize(addons), "addons": [_addon_data(addon) for addon in addons]}

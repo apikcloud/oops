@@ -298,6 +298,64 @@ Limit to a single submodule:
 oops addons list -n apikcloud/apik-addons
 ```
 
+### JSON output
+
+`--format json` emits the shared envelope `{data, warnings, errors, metadata}`
+(see `oops project show`). `data` holds an aggregate `summary` and one entry
+per addon:
+
+```json
+{
+  "summary": {
+    "total": 10,
+    "by_location": { "active": 0, "local": 10, "inactive": 0 },
+    "by_classification": { "custom": 0, "oca": 8, "third-party": 2 },
+    "loc": { "python": 7095, "xml": 5993, "javascript": 228, "docs": 698, "total": 14014 }
+  },
+  "addons": [{
+    "technical_name": "base_revision",
+    "path": "base_revision",
+    "location": "local",
+    "classification": "oca",
+    "version": "14.0.1.1.0",
+    "installable": true,
+    "summary": "Keep track of revised document",
+    "author": "Agile Business Group,...,Odoo Community Association (OCA)",
+    "maintainers": [],
+    "website": "https://github.com/OCA/server-ux",
+    "depends": ["base"],
+    "external_dependencies": {},
+    "submodule": null,
+    "branch": null,
+    "pull_request": null,
+    "loc": { "python": 200, "xml": 0, "javascript": 0, "docs": 88, "total": 288, "pct": 2.1 }
+  }]
+}
+```
+
+Key rules:
+
+- Every key is always present; unknown values are `null`.
+- `path` is relative to the repository root (`<rel_path>/<technical_name>`, or
+  `technical_name` for addons at the root).
+- `location` is `active` (symlinked at root), `local` (at root, not a symlink) or
+  `inactive` (in a submodule, not symlinked).
+- `submodule` / `branch` are `null` when the addon is not in a submodule.
+- `pull_request` is a boolean, or `null` when unknown.
+- `summary.by_location` and `summary.by_classification` always carry all three keys.
+- `loc` is always an object (zeros when not counted); `pct` is the addon's share of the
+  total lines of code.
+
+```bash
+oops addons list --format json | jq '.data.summary'
+oops addons list --format json | jq '.data.addons[] | select(.technical_name == "base_revision") | .depends'
+```
+
+!!! warning "Breaking change"
+    `data` is now an object (`data.addons[]`, `data.summary`). The top-level `metrics`
+    list, the flat `loc_*` keys, the top-level `loc_pct` and the `symlink` / `root` /
+    `rel_path` keys are removed (covered by `location`, `path` and `loc`).
+
 ---
 
 ::: mkdocs-click:commands

@@ -50,16 +50,20 @@ export function bootDashboard(root: HTMLElement, source: BridgeSource): void {
 
     function renderProjectInfo(payload: Payload) {
         projectInfo.innerHTML = "";
+        // `project show` payload: {data: {project, odoo, git, ci}, metadata}
         const meta = (payload as Record<string, unknown>)["metadata"] as Record<string, unknown> | undefined;
-        const groups = (payload as Record<string, unknown>)["metrics"] as
-            | Array<{ label: string; values: Array<{ name: string; value: unknown }> }>
+        const data = (payload as Record<string, unknown>)["data"] as
+            | {
+                  project?: string;
+                  odoo?: { version: string | null; edition: string | null };
+                  git?: { branch: string | null };
+              }
             | undefined;
-        const odoo = groups?.find((g) => g.label === "odoo")?.values ?? [];
-        const pick = (name: string) => String(odoo.find((v) => v.name === name)?.value ?? "—");
+        const odoo = data?.odoo?.version ? `${data.odoo.version} (${data.odoo.edition})` : null;
         const pairs: [string, string][] = [
-            ["Project", String(meta?.["project_name"] ?? "—")],
-            ["Odoo", pick("Version")],
-            ["Branch", String(meta?.["git_branch"] ?? "—")],
+            ["Project", String(data?.project ?? meta?.["project_name"] ?? "—")],
+            ["Odoo", String(odoo ?? meta?.["odoo_version"] ?? "—")],
+            ["Branch", String(data?.git?.branch ?? meta?.["git_branch"] ?? "—")],
         ];
         pairs
             .filter(([, v]) => v !== "—")
@@ -106,9 +110,14 @@ export function bootDashboard(root: HTMLElement, source: BridgeSource): void {
         showLoading("Scanning project");
         setButtons(false);
         try {
-            const payload = await source.run("scan_project");
-            renderProjectInfo(payload);
-            renderInApp(payload);
+            // A failing `project show` must not block the scan: skip the header instead.
+            const [info, scan] = await Promise.all([
+                source.run("project_info").catch(() => null),
+                source.run("scan_project"),
+            ]);
+            if (info) renderProjectInfo(info);
+            else projectInfo.innerHTML = "";
+            renderInApp(scan);
         } catch (e) {
             showError((e as Error).message);
         } finally {

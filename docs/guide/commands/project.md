@@ -218,6 +218,70 @@ Include the latest GitHub Actions run:
 oops project show --token $GH_TOKEN
 ```
 
+### JSON output
+
+`--format json` emits a fixed envelope, shared with `oops addons list`:
+
+```json
+{
+  "data": { ... },
+  "warnings": ["..."],
+  "errors": ["..."],
+  "metadata": { "command": "...", "generated_at": "...", ... }
+}
+```
+
+Every key of `data` is always present; unknown values are `null` (never omitted,
+never a display string such as `"—"`).
+
+```json
+{
+  "project": "my_project",
+  "odoo": {
+    "version": "15.0",
+    "edition": "community",
+    "image": { "name": "acme/odoo:15.0-20230103", "registry": "acme/odoo", "release_date": "2023-01-03", "age_days": 1006 },
+    "updates": { "available": 12, "latest_release_date": "2025-01-01", "latest_lag_days": 729 }
+  },
+  "git": {
+    "remote_url": "https://github.com/acme/my_project",
+    "branch": "main",
+    "last_release": "v1.0.0",
+    "next_releases": { "fix": "v1.0.1", "minor": "v1.1.0", "major": "v2.0.0" },
+    "last_commit": { "sha": "6525df12", "message": "...", "author": "...", "date": "2026-06-25T19:35:55+02:00" }
+  },
+  "ci": {
+    "name": "CI", "status": "completed", "conclusion": "success", "branch": "main",
+    "sha": "...", "actor": "...", "event": "push",
+    "date": "2026-06-25T17:40:00+00:00", "age_days": 3, "url": "https://github.com/..."
+  }
+}
+```
+
+| Situation | Value |
+|---|---|
+| Odoo version file missing/unparsable | `odoo.version/edition/image/updates` all `null` (keys kept), error in `errors` |
+| Image tag without release date | `image.release_date = null`, `image.age_days = null`, `updates = null` |
+| Image registry fetch failed | `updates = null`, message in `warnings` |
+| Image up to date | `updates = {"available": 0, "latest_release_date": null, "latest_lag_days": null}` |
+| No `origin` remote / unparsable URL | `git.remote_url = null` |
+| Detached HEAD | `git.branch = null` |
+| No semver tag | `git.last_release = null`, `git.next_releases = null` |
+| No commit | `git.last_commit = null` |
+| No token, or no run found, or fetch failed | `ci = null` (warning on fetch failure / no run) |
+
+Fatal errors (not a git repository, unexpected exception) are not wrapped: they are
+printed as `✘ msg` on stderr with a non-zero exit code.
+
+```bash
+oops project show --format json | jq '.data.odoo.version'
+oops project show --format json | jq -r '.data.git.branch'
+```
+
+!!! warning "Breaking change"
+    The former `metrics` member (pre-formatted display rows) is replaced by
+    `data.odoo`, `data.git` and `data.ci`.
+
 ---
 
 ::: mkdocs-click:commands

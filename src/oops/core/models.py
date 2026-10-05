@@ -157,6 +157,22 @@ class WorkflowRunInfo:
         )
 
 
+@dataclass
+class ProjectStatus:
+    """Neutral snapshot gathered by `project show`; presenters format it."""
+
+    project: str
+    image: Optional[ImageInfo] = None
+    updates: Optional[List[ImageInfo]] = None  # None = unknown, [] = up to date
+    updates_error: bool = False  # registry fetch failed
+    remote_url: Optional[str] = None
+    branch: Optional[str] = None
+    last_release: Optional[str] = None
+    next_releases: Optional[Dict[str, str]] = None  # {"fix", "minor", "major"}
+    last_commit: Optional[CommitInfo] = None
+    ci: Optional[WorkflowRunInfo] = None
+
+
 class HasStatus(Protocol):
     @property
     def ok(self) -> bool: ...
