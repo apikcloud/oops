@@ -774,6 +774,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#json-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-addons-manage" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3135,6 +3146,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#json-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-addons-manage" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3819,11 +3841,64 @@ PR flag, version, and author. Output can be formatted as text, JSON, or CSV.</p>
 <p>Limit to a single submodule:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>-n<span class="w"> </span>apikcloud/apik-addons
 </span></code></pre></div>
+<h3 id="json-output">JSON output<a class="headerlink" href="#json-output" title="Permanent link">¶</a></h3>
+<p><code>--format json</code> emits the shared envelope <code>{data, warnings, errors, metadata}</code>
+(see <code>oops project show</code>). <code>data</code> holds an aggregate <code>summary</code> and one entry
+per addon:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">    </span><span class="nt">"total"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">    </span><span class="nt">"by_location"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"active"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"local"</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="nt">"inactive"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">    </span><span class="nt">"by_classification"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"custom"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"oca"</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="nt">"third-party"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">    </span><span class="nt">"loc"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"python"</span><span class="p">:</span><span class="w"> </span><span class="mi">7095</span><span class="p">,</span><span class="w"> </span><span class="nt">"xml"</span><span class="p">:</span><span class="w"> </span><span class="mi">5993</span><span class="p">,</span><span class="w"> </span><span class="nt">"javascript"</span><span class="p">:</span><span class="w"> </span><span class="mi">228</span><span class="p">,</span><span class="w"> </span><span class="nt">"docs"</span><span class="p">:</span><span class="w"> </span><span class="mi">698</span><span class="p">,</span><span class="w"> </span><span class="nt">"total"</span><span class="p">:</span><span class="w"> </span><span class="mi">14014</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="w">  </span><span class="nt">"addons"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+</span><span id="__span-32-9"><a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="w">    </span><span class="nt">"technical_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"base_revision"</span><span class="p">,</span>
+</span><span id="__span-32-10"><a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"base_revision"</span><span class="p">,</span>
+</span><span id="__span-32-11"><a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a><span class="w">    </span><span class="nt">"location"</span><span class="p">:</span><span class="w"> </span><span class="s2">"local"</span><span class="p">,</span>
+</span><span id="__span-32-12"><a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a><span class="w">    </span><span class="nt">"classification"</span><span class="p">:</span><span class="w"> </span><span class="s2">"oca"</span><span class="p">,</span>
+</span><span id="__span-32-13"><a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a><span class="w">    </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"14.0.1.1.0"</span><span class="p">,</span>
+</span><span id="__span-32-14"><a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a><span class="w">    </span><span class="nt">"installable"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-32-15"><a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a><span class="w">    </span><span class="nt">"summary"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Keep track of revised document"</span><span class="p">,</span>
+</span><span id="__span-32-16"><a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a><span class="w">    </span><span class="nt">"author"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Agile Business Group,...,Odoo Community Association (OCA)"</span><span class="p">,</span>
+</span><span id="__span-32-17"><a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a><span class="w">    </span><span class="nt">"maintainers"</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+</span><span id="__span-32-18"><a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a><span class="w">    </span><span class="nt">"website"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://github.com/OCA/server-ux"</span><span class="p">,</span>
+</span><span id="__span-32-19"><a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a><span class="w">    </span><span class="nt">"depends"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"base"</span><span class="p">],</span>
+</span><span id="__span-32-20"><a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a><span class="w">    </span><span class="nt">"external_dependencies"</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+</span><span id="__span-32-21"><a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a><span class="w">    </span><span class="nt">"submodule"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-32-22"><a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a><span class="w">    </span><span class="nt">"branch"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-32-23"><a id="__codelineno-32-23" name="__codelineno-32-23" href="#__codelineno-32-23"></a><span class="w">    </span><span class="nt">"pull_request"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-32-24"><a id="__codelineno-32-24" name="__codelineno-32-24" href="#__codelineno-32-24"></a><span class="w">    </span><span class="nt">"loc"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"python"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">"xml"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"javascript"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"docs"</span><span class="p">:</span><span class="w"> </span><span class="mi">88</span><span class="p">,</span><span class="w"> </span><span class="nt">"total"</span><span class="p">:</span><span class="w"> </span><span class="mi">288</span><span class="p">,</span><span class="w"> </span><span class="nt">"pct"</span><span class="p">:</span><span class="w"> </span><span class="mf">2.1</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-32-25"><a id="__codelineno-32-25" name="__codelineno-32-25" href="#__codelineno-32-25"></a><span class="w">  </span><span class="p">}]</span>
+</span><span id="__span-32-26"><a id="__codelineno-32-26" name="__codelineno-32-26" href="#__codelineno-32-26"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Key rules:</p>
+<ul>
+<li>Every key is always present; unknown values are <code>null</code>.</li>
+<li><code>path</code> is relative to the repository root (<code>&lt;rel_path&gt;/&lt;technical_name&gt;</code>, or
+  <code>technical_name</code> for addons at the root).</li>
+<li><code>location</code> is <code>active</code> (symlinked at root), <code>local</code> (at root, not a symlink) or
+  <code>inactive</code> (in a submodule, not symlinked).</li>
+<li><code>submodule</code> / <code>branch</code> are <code>null</code> when the addon is not in a submodule.</li>
+<li><code>pull_request</code> is a boolean, or <code>null</code> when unknown.</li>
+<li><code>summary.by_location</code> and <code>summary.by_classification</code> always carry all three keys.</li>
+<li><code>loc</code> is always an object (zeros when not counted); <code>pct</code> is the addon's share of the
+  total lines of code.</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.data.summary'</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>oops<span class="w"> </span>addons<span class="w"> </span>list<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.data.addons[] | select(.technical_name == "base_revision") | .depends'</span>
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Breaking change</p>
+<p><code>data</code> is now an object (<code>data.addons[]</code>, <code>data.summary</code>). The top-level <code>metrics</code>
+list, the flat <code>loc_*</code> keys, the top-level <code>loc_pct</code> and the <code>symlink</code> / <code>root</code> /
+<code>rel_path</code> keys are removed (covered by <code>location</code>, <code>path</code> and <code>loc</code>).</p>
+</div>
 <hr>
 <h3 id="oops-addons-manage">oops addons manage<a class="headerlink" href="#oops-addons-manage" title="Permanent link">¶</a></h3>
 <p>Interactively link or unlink addons from submodules at the repo root.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops addons manage [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops addons manage [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3852,10 +3927,10 @@ PR flag, version, and author. Output can be formatted as text, JSON, or CSV.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Open the interactive picker to link or unlink addons:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage
 </span></code></pre></div>
 <p>Apply changes without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>manage<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-materialize">oops addons materialize<a class="headerlink" href="#oops-addons-materialize" title="Permanent link">¶</a></h3>
@@ -3866,7 +3941,7 @@ processed; real directories are skipped.</p>
 <p>By default all symlinks found at the repository root are processed.
 Use --include to restrict to a subset, or --exclude to skip specific addons.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops addons materialize [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops addons materialize [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3913,19 +3988,19 @@ Use --include to restrict to a subset, or --exclude to skip specific addons.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Materialize all symlinks at the repository root (interactive confirmation):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize
 </span></code></pre></div>
 <p>Apply without confirmation prompt:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Materialize only specific addons:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--include<span class="w"> </span>my_addon,other_addon
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--include<span class="w"> </span>my_addon,other_addon
 </span></code></pre></div>
 <p>Materialize all symlinks except specific ones:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--exclude<span class="w"> </span>legacy_addon
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--exclude<span class="w"> </span>legacy_addon
 </span></code></pre></div>
 <p>Materialize without committing:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>materialize<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <hr>
 <h3 id="oops-addons-refactor">oops addons refactor<a class="headerlink" href="#oops-addons-refactor" title="Permanent link">¶</a></h3>
@@ -3956,7 +4031,7 @@ per module is produced. Use --no-branch to stay on the current branch and
 <li>It never touches non-model Python files, XML, CSV, or <strong>manifest</strong>.py.</li>
 </ul>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops addons refactor [OPTIONS] MODULE_PATHS...
+<div class="language-text highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>oops addons refactor [OPTIONS] MODULE_PATHS...
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -4026,22 +4101,22 @@ notice between releases. The same warning is printed at runtime.</p>
 </div>
 <p><strong>Examples:</strong></p>
 <p>Rewrite a single module on a dedicated <code>refactor/doc-&lt;module&gt;</code> branch with one commit:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-42-1"><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module
 </span></code></pre></div>
 <p>Rewrite several modules in one run (one commit per module on <code>refactor/doc-multi</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-43-1"><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>other_module
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>other_module
 </span></code></pre></div>
 <p>Preview the changes without writing any file:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-44-1"><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--dry-run
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--dry-run
 </span></code></pre></div>
 <p>Stay on the current branch and skip the commit (edits are staged):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-45-1"><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--no-branch<span class="w"> </span>--no-commit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--no-branch<span class="w"> </span>--no-commit
 </span></code></pre></div>
 <p>Force a project KB rebuild before running:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-46-1"><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--refresh
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-48-1"><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--refresh
 </span></code></pre></div>
 <p>Use an external KB database (skips the project-KB freshness check and <code>--refresh</code>):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-47-1"><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--kb<span class="w"> </span>/path/to/project_kb.db
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-49-1"><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>oops<span class="w"> </span>addons<span class="w"> </span>refactor<span class="w"> </span>my_module<span class="w"> </span>--kb<span class="w"> </span>/path/to/project_kb.db
 </span></code></pre></div>
 
 
@@ -4065,7 +4140,7 @@ notice between releases. The same warning is printed at runtime.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="August 27, 2026 12:18:24 UTC"><span class="timeago" datetime="2026-08-27T12:18:24+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="August 27, 2026 12:18:24 UTC">2026-08-27</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 5, 2026 17:37:22 UTC"><span class="timeago" datetime="2026-10-05T17:37:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 5, 2026 17:37:22 UTC">2026-10-05</span>
   </span>
 
     

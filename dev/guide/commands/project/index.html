@@ -909,6 +909,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#json-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-project-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3036,6 +3047,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#json-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#oops-project-sync" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3643,11 +3665,100 @@ Actions workflow run.</p>
 <p>Include the latest GitHub Actions run:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>oops<span class="w"> </span>project<span class="w"> </span>show<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GH_TOKEN</span>
 </span></code></pre></div>
+<h3 id="json-output">JSON output<a class="headerlink" href="#json-output" title="Permanent link">¶</a></h3>
+<p><code>--format json</code> emits a fixed envelope, shared with <code>oops addons list</code>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="p">{</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">  </span><span class="nt">"warnings"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"..."</span><span class="p">],</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">  </span><span class="nt">"errors"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"..."</span><span class="p">],</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="w">  </span><span class="nt">"metadata"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Every key of <code>data</code> is always present; unknown values are <code>null</code> (never omitted,
+never a display string such as <code>"—"</code>).</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">  </span><span class="nt">"project"</span><span class="p">:</span><span class="w"> </span><span class="s2">"my_project"</span><span class="p">,</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">  </span><span class="nt">"odoo"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">    </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"15.0"</span><span class="p">,</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">    </span><span class="nt">"edition"</span><span class="p">:</span><span class="w"> </span><span class="s2">"community"</span><span class="p">,</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">    </span><span class="nt">"image"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"acme/odoo:15.0-20230103"</span><span class="p">,</span><span class="w"> </span><span class="nt">"registry"</span><span class="p">:</span><span class="w"> </span><span class="s2">"acme/odoo"</span><span class="p">,</span><span class="w"> </span><span class="nt">"release_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2023-01-03"</span><span class="p">,</span><span class="w"> </span><span class="nt">"age_days"</span><span class="p">:</span><span class="w"> </span><span class="mi">1006</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">    </span><span class="nt">"updates"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"available"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="nt">"latest_release_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2025-01-01"</span><span class="p">,</span><span class="w"> </span><span class="nt">"latest_lag_days"</span><span class="p">:</span><span class="w"> </span><span class="mi">729</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-32-9"><a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="w">  </span><span class="nt">"git"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-32-10"><a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="w">    </span><span class="nt">"remote_url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://github.com/acme/my_project"</span><span class="p">,</span>
+</span><span id="__span-32-11"><a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a><span class="w">    </span><span class="nt">"branch"</span><span class="p">:</span><span class="w"> </span><span class="s2">"main"</span><span class="p">,</span>
+</span><span id="__span-32-12"><a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a><span class="w">    </span><span class="nt">"last_release"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v1.0.0"</span><span class="p">,</span>
+</span><span id="__span-32-13"><a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a><span class="w">    </span><span class="nt">"next_releases"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"fix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v1.0.1"</span><span class="p">,</span><span class="w"> </span><span class="nt">"minor"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v1.1.0"</span><span class="p">,</span><span class="w"> </span><span class="nt">"major"</span><span class="p">:</span><span class="w"> </span><span class="s2">"v2.0.0"</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-32-14"><a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a><span class="w">    </span><span class="nt">"last_commit"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"sha"</span><span class="p">:</span><span class="w"> </span><span class="s2">"6525df12"</span><span class="p">,</span><span class="w"> </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"author"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-06-25T19:35:55+02:00"</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-32-15"><a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-32-16"><a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a><span class="w">  </span><span class="nt">"ci"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-32-17"><a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a><span class="w">    </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CI"</span><span class="p">,</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"completed"</span><span class="p">,</span><span class="w"> </span><span class="nt">"conclusion"</span><span class="p">:</span><span class="w"> </span><span class="s2">"success"</span><span class="p">,</span><span class="w"> </span><span class="nt">"branch"</span><span class="p">:</span><span class="w"> </span><span class="s2">"main"</span><span class="p">,</span>
+</span><span id="__span-32-18"><a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a><span class="w">    </span><span class="nt">"sha"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"actor"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"event"</span><span class="p">:</span><span class="w"> </span><span class="s2">"push"</span><span class="p">,</span>
+</span><span id="__span-32-19"><a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a><span class="w">    </span><span class="nt">"date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-06-25T17:40:00+00:00"</span><span class="p">,</span><span class="w"> </span><span class="nt">"age_days"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://github.com/..."</span>
+</span><span id="__span-32-20"><a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-32-21"><a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a><span class="p">}</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Odoo version file missing/unparsable</td>
+<td><code>odoo.version/edition/image/updates</code> all <code>null</code> (keys kept), error in <code>errors</code></td>
+</tr>
+<tr>
+<td>Image tag without release date</td>
+<td><code>image.release_date = null</code>, <code>image.age_days = null</code>, <code>updates = null</code></td>
+</tr>
+<tr>
+<td>Image registry fetch failed</td>
+<td><code>updates = null</code>, message in <code>warnings</code></td>
+</tr>
+<tr>
+<td>Image up to date</td>
+<td><code>updates = {"available": 0, "latest_release_date": null, "latest_lag_days": null}</code></td>
+</tr>
+<tr>
+<td>No <code>origin</code> remote / unparsable URL</td>
+<td><code>git.remote_url = null</code></td>
+</tr>
+<tr>
+<td>Detached HEAD</td>
+<td><code>git.branch = null</code></td>
+</tr>
+<tr>
+<td>No semver tag</td>
+<td><code>git.last_release = null</code>, <code>git.next_releases = null</code></td>
+</tr>
+<tr>
+<td>No commit</td>
+<td><code>git.last_commit = null</code></td>
+</tr>
+<tr>
+<td>No token, or no run found, or fetch failed</td>
+<td><code>ci = null</code> (warning on fetch failure / no run)</td>
+</tr>
+</tbody>
+</table>
+<p>Fatal errors (not a git repository, unexpected exception) are not wrapped: they are
+printed as <code>✘ msg</code> on stderr with a non-zero exit code.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>project<span class="w"> </span>show<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.data.odoo.version'</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>oops<span class="w"> </span>project<span class="w"> </span>show<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'.data.git.branch'</span>
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Breaking change</p>
+<p>The former <code>metrics</code> member (pre-formatted display rows) is replaced by
+<code>data.odoo</code>, <code>data.git</code> and <code>data.ci</code>.</p>
+</div>
 <hr>
 <h3 id="oops-project-sync">oops project sync<a class="headerlink" href="#oops-project-sync" title="Permanent link">¶</a></h3>
 <p>Synchronise files from the configured remote repository.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>oops project sync [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops project sync [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3694,16 +3805,16 @@ Actions workflow run.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Sync files from the configured remote repository with confirmation prompt:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync
 </span></code></pre></div>
 <p>Apply changes without confirmation:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync<span class="w"> </span>--force
 </span></code></pre></div>
 <p>Sync from a specific branch:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync<span class="w"> </span>--branch<span class="w"> </span>develop
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync<span class="w"> </span>--branch<span class="w"> </span>develop
 </span></code></pre></div>
 <p>Sync only specific files/folders (overrides config):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync<span class="w"> </span>-F<span class="w"> </span>.pre-commit-config.yaml<span class="w"> </span>-F<span class="w"> </span>.github/workflows
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>project<span class="w"> </span>sync<span class="w"> </span>-F<span class="w"> </span>.pre-commit-config.yaml<span class="w"> </span>-F<span class="w"> </span>.github/workflows
 </span></code></pre></div>
 <hr>
 <h3 id="oops-project-update">oops project update<a class="headerlink" href="#oops-project-update" title="Permanent link">¶</a></h3>
@@ -3712,7 +3823,7 @@ Actions workflow run.</p>
 version and prompts the user to select one. With --force, picks the latest
 image automatically and commits the change.</p>
 <p><strong>Usage:</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>oops project update [OPTIONS]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>oops project update [OPTIONS]
 </span></code></pre></div>
 <p><strong>Options:</strong></p>
 <table>
@@ -3741,10 +3852,10 @@ image automatically and commits the change.</p>
 </table>
 <p><strong>Examples:</strong></p>
 <p>Interactively select a new Odoo image:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>oops<span class="w"> </span>project<span class="w"> </span>update
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-40-1"><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>oops<span class="w"> </span>project<span class="w"> </span>update
 </span></code></pre></div>
 <p>Pick the latest image automatically without prompting:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>oops<span class="w"> </span>project<span class="w"> </span>update<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-41-1"><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>oops<span class="w"> </span>project<span class="w"> </span>update<span class="w"> </span>--force
 </span></code></pre></div>
 
 
@@ -3768,7 +3879,7 @@ image automatically and commits the change.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="August 27, 2026 12:18:24 UTC"><span class="timeago" datetime="2026-08-27T12:18:24+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="August 27, 2026 12:18:24 UTC">2026-08-27</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="October 5, 2026 17:37:22 UTC"><span class="timeago" datetime="2026-10-05T17:37:22+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 5, 2026 17:37:22 UTC">2026-10-05</span>
   </span>
 
     
