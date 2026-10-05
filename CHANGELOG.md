@@ -10,6 +10,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-05
+
+### Breaking Changes
+
+- `oops addons list --format json`: `data` is now an object `{summary, addons}`. The top-level `metrics` list, flat `loc_*` keys, top-level `loc_pct` and the `symlink` / `root` / `rel_path` keys are removed (replaced by `summary`, nested `loc`, `location` and `path`)
+- `oops project show --format json`: the pre-formatted `metrics` rows are replaced by typed `data.odoo`, `data.git` and `data.ci` objects
+
+### Added
+
+- Agent-readable JSON contract for `oops project show` and `oops addons list`: every payload uses a fixed envelope `{data, warnings, errors, metadata}`, and every `data` key is always present (`null` when unknown, never a display string)
+- `oops project show --format json`: typed Odoo image info (release date, age, available updates), git info (remote, branch, last/next releases, last commit) and latest GitHub Actions run
+- `oops addons list --format json`: aggregate `summary` (counts by location and classification, lines of code) and repo-relative `path` per addon
+- `oops upgrade vanilla`: sweep root symlinks left broken by the strip (including ones already broken before the run) and report each one as a warning
+
+### Changed
+
+- Machine output of commands without a dedicated JSON shape now also includes an `errors` key
+- `oops project show`: an image registry fetch failure is now reported as a warning (the `Update(s)` row reads `Could not fetch`)
+- `oops addons list --format html` and the dashboard read the new JSON shape; the dashboard header now shows the project's Odoo version and branch from `oops project show`
+- Addon discovery and submodule removal are factored into shared helpers used by `oops addons list`, `oops submodules remove/prune` and `oops upgrade`; `oops upgrade vanilla` derives root symlinks from the addon list instead of a filesystem walk
+
+### Fixed
+
+- `oops upgrade vanilla`: `requirements.txt` is now overwritten with only the `upgrade-util` line instead of being merged with the previous content
+
+### Documentation
+
+- JSON output sections (envelope, examples, null rules, `jq` recipes) for `oops project show` and `oops addons list`
+
 ## [1.3.1] - 2026-09-17
 
 ### Fixed

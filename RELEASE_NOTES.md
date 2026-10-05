@@ -9,6 +9,32 @@ This page summarises what's new, improved, or fixed in each version of `oops`.
 
 ---
 
+## [1.4.0] - 2026-10-05
+
+A release that makes `oops` easy to drive from scripts and AI agents, plus a cleaner `oops upgrade vanilla`. 🎉
+
+### ⚠️ Heads up
+
+- **Breaking**: the JSON output of `oops addons list` and `oops project show` has a new, stable shape. If you parse it with `jq` or a script, update your queries — for example `.data[]` becomes `.data.addons[]`, and `project show` values now live under `.data.odoo`, `.data.git` and `.data.ci`. See the command docs for the full format.
+
+### ✨ What's new
+
+- **Predictable JSON output**: `oops project show --format json` and `oops addons list --format json` now always return the same keys, with clear `null` values when something is unknown — no more guessing or parsing display text.
+- **Richer project facts**: `oops project show --format json` exposes your Odoo version and edition, image age, available updates, git branch, releases, last commit and latest CI run as ready-to-use values.
+- **Addon summary at a glance**: `oops addons list --format json` includes totals by location and classification and lines of code, plus each addon's path in the repository.
+
+### 🔄 Improvements
+
+- The dashboard header now shows your project's Odoo version and branch.
+- `oops project show` tells you explicitly when the image registry can't be reached.
+- `oops upgrade vanilla` cleans up symlinks left broken after stripping addons and tells you which ones were removed.
+
+### 🐛 Fixes
+
+- `oops upgrade vanilla` now resets `requirements.txt` to just the upgrade tooling instead of keeping stale dependencies from the old version.
+
+---
+
 ## [1.3.1] - 2026-09-17
 
 A quick bugfix release for `oops upgrade vanilla`.
