@@ -45,6 +45,7 @@ def build_inventory(
         author=config.manifest.author,
         prefix=config.project.prefix,
         owner=config.github.owner,
+        overrides=config.classification,
         shallow=not show_all,
         rel_paths=active_paths,
     ):

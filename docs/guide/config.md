@@ -134,6 +134,46 @@ project:
 
 ---
 
+### `classification`
+
+Optional. Forces the class of specific addons (`custom`, `oca` or `third-party`), for cases the automatic detection cannot infer, such as a family of addons with a legacy prefix or addons without any prefix.
+
+```yaml
+classification:
+  custom:
+    - "legacy_*"
+    - unprefixed_addon
+  third-party:
+    - acme_vendored_addon
+```
+
+Without this section, addons are classified automatically, in this order:
+
+1. `(OCA)` in the manifest author: `oca`
+2. Manifest author equal to `manifest.author`: `custom`
+3. Technical name starting with `project.prefix`: `custom`
+4. Submodule owned by `OCA`: `oca`, or by `github.owner`: `custom`
+5. Otherwise: `third-party`
+
+Rules of this section run first and override all of the above.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `custom` | list[str] | `[]` | Addons forced to `custom` |
+| `oca` | list[str] | `[]` | Addons forced to `oca` |
+| `third-party` | list[str] | `[]` | Addons forced to `third-party` |
+
+Each entry is an exact technical name or a glob (`*`, `?`, `[seq]`), matched case-sensitively against the whole name: `mr` does not match `mrp_workorder`, use `mr*` for that.
+
+An exact name beats any glob, which allows exceptions to a family of addons. If an addon matches several classes at the same level, the command fails instead of picking one. The same entry in two classes is rejected when the configuration is loaded.
+
+As `classification` is a mapping, a local `.oops.yaml` section replaces the global one entirely.
+
+!!! note "Project KB"
+    The KB stores the class of each addon and does not track this section. After changing it, rebuild the KB with `oops addons analyze --refresh`.
+
+---
+
 ### `sync`
 
 Source repository for `oops project sync`.

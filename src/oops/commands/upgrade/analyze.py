@@ -148,9 +148,7 @@ def main(
     # presenters (e.g. the HTML report's version indicator) see the actual
     # values used, not the CLI defaults (None).
     if metadata is not None:
-        metadata.parameters.update(
-            {"source_ref": source_ref, "from_version": from_version, "to_version": to_version}
-        )
+        metadata.parameters.update({"source_ref": source_ref, "from_version": from_version, "to_version": to_version})
 
     sub_meta_by_relpath = list_submodules(repo)
     modules: dict[str, ModuleState] = {}
@@ -163,6 +161,7 @@ def main(
             author=config.manifest.author,
             prefix=config.project.prefix,
             owner=config.github.owner,
+            overrides=config.classification,
             shallow=True,
         ):
             if not addon.root:

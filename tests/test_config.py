@@ -160,3 +160,73 @@ class TestLoadConfig:
         monkeypatch.setattr("oops.core.config._CONFIG_PATHS", [missing])
         with pytest.raises(ConfigurationError, match="No config file found"):
             load_config()
+
+
+# ---------------------------------------------------------------------------
+# classification
+# ---------------------------------------------------------------------------
+
+
+class TestClassificationConfig:
+    def _load(self, tmp_path, monkeypatch, section: str) -> Config:
+        local = tmp_path / ".oops.yaml"
+        local.write_text(REQUIRED_YAML + section)
+        monkeypatch.setattr("oops.core.config._CONFIG_PATHS", [local])
+        return load_config()
+
+    def test_absent_section_defaults_to_empty(self, tmp_path, monkeypatch):
+        assert self._load(tmp_path, monkeypatch, "").classification == {}
+
+    def test_empty_section_defaults_to_empty(self, tmp_path, monkeypatch):
+        assert self._load(tmp_path, monkeypatch, "classification:\n").classification == {}
+
+    def test_empty_class_is_dropped(self, tmp_path, monkeypatch):
+        cfg = self._load(tmp_path, monkeypatch, "classification:\n  oca:\n  custom:\n    - a\n")
+        assert cfg.classification == {"custom": ["a"]}
+
+    def test_loads_all_classes(self, tmp_path, monkeypatch):
+        section = (
+            "classification:\n"
+            "  custom:\n    - 'legacy_*'\n    - unprefixed_addon\n"
+            "  oca:\n    - forked_module\n"
+            "  third-party:\n    - vendored\n"
+        )
+        assert self._load(tmp_path, monkeypatch, section).classification == {
+            "custom": ["legacy_*", "unprefixed_addon"],
+            "oca": ["forked_module"],
+            "third-party": ["vendored"],
+        }
+
+    def test_overlapping_globs_are_accepted_at_load(self, tmp_path, monkeypatch):
+        # Only a real addon name can reveal such a conflict: see match_classification.
+        section = "classification:\n  custom:\n    - 'acme_*'\n  third-party:\n    - '*_sale'\n"
+        assert self._load(tmp_path, monkeypatch, section).classification
+
+    def test_rejects_unknown_class(self, tmp_path, monkeypatch):
+        with pytest.raises(ConfigurationError, match="third_party"):
+            self._load(tmp_path, monkeypatch, "classification:\n  third_party:\n    - a\n")
+
+    def test_rejects_section_that_is_not_a_mapping(self, tmp_path, monkeypatch):
+        with pytest.raises(ConfigurationError, match="classification"):
+            self._load(tmp_path, monkeypatch, "classification: custom\n")
+
+    def test_rejects_scalar_instead_of_list(self, tmp_path, monkeypatch):
+        with pytest.raises(ConfigurationError, match="classification.custom"):
+            self._load(tmp_path, monkeypatch, "classification:\n  custom: 'legacy_*'\n")
+
+    def test_rejects_non_string_pattern(self, tmp_path, monkeypatch):
+        with pytest.raises(ConfigurationError, match="classification.custom"):
+            self._load(tmp_path, monkeypatch, "classification:\n  custom:\n    - 12\n")
+
+    def test_rejects_same_pattern_in_two_classes(self, tmp_path, monkeypatch):
+        section = "classification:\n  custom:\n    - sale_x\n  oca:\n    - sale_x\n"
+        with pytest.raises(ConfigurationError, match="sale_x"):
+            self._load(tmp_path, monkeypatch, section)
+
+    def test_local_section_replaces_global_one(self, tmp_path, monkeypatch):
+        global_file = tmp_path / "global.yaml"
+        global_file.write_text(REQUIRED_YAML + "classification:\n  custom:\n    - from_global\n")
+        local_file = tmp_path / "local.yaml"
+        local_file.write_text("version: 1\nclassification:\n  oca:\n    - from_local\n")
+        monkeypatch.setattr("oops.core.config._CONFIG_PATHS", [global_file, local_file])
+        assert load_config().classification == {"oca": ["from_local"]}

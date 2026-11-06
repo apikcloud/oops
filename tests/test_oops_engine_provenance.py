@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import pytest
+from oops_engine.exceptions import ClassificationConflict
 from oops_engine.provenance import (
     ORIGIN_CORE,
     ORIGIN_CUSTOM,
@@ -16,6 +17,7 @@ from oops_engine.provenance import (
     ORIGIN_THIRD_PARTY,
     ORIGINS,
     classify_addon,
+    match_classification,
     normalize_origin,
 )
 
@@ -80,9 +82,7 @@ class TestClassifyAddon:
         assert classify_addon("Apik", "some_module", "", project_author="Apik") == "custom"
 
     def test_custom_by_prefix(self) -> None:
-        assert (
-            classify_addon("Someone", "apk_sale_extension", "", project_prefix="apk_") == "custom"
-        )
+        assert classify_addon("Someone", "apk_sale_extension", "", project_prefix="apk_") == "custom"
 
     def test_oca_by_org(self) -> None:
         assert classify_addon("Someone", "server_tools", "OCA") == "oca"
@@ -94,7 +94,85 @@ class TestClassifyAddon:
         assert classify_addon("Someone Else", "unrelated_module", "") == "third-party"
 
     def test_oca_by_author_wins_over_org(self) -> None:
-        result = classify_addon(
-            "Odoo Community Association (OCA)", "m", "apik-cloud", github_owner="apik-cloud"
-        )
+        result = classify_addon("Odoo Community Association (OCA)", "m", "apik-cloud", github_owner="apik-cloud")
         assert result == "oca"
+
+
+class TestClassifyAddonOverrides:
+    def test_no_overrides_keeps_heuristics(self) -> None:
+        for overrides in (None, {}):
+            assert classify_addon("Someone", "legacy_mail", "", overrides=overrides) == "third-party"
+
+    def test_glob_promotes_to_custom(self) -> None:
+        overrides = {"custom": ["legacy_*"]}
+        assert classify_addon("Someone", "legacy_mail", "", overrides=overrides) == "custom"
+
+    def test_exact_name_promotes_to_custom(self) -> None:
+        overrides = {"custom": ["unprefixed_addon"]}
+        assert classify_addon("Someone", "unprefixed_addon", "", overrides=overrides) == "custom"
+
+    def test_can_demote_prefixed_addon(self) -> None:
+        overrides = {"third-party": ["apk_vendored"]}
+        result = classify_addon("Someone", "apk_vendored", "", project_prefix="apk_", overrides=overrides)
+        assert result == "third-party"
+
+    def test_wins_over_project_author(self) -> None:
+        overrides = {"third-party": ["some_module"]}
+        result = classify_addon("Apik", "some_module", "", project_author="Apik", overrides=overrides)
+        assert result == "third-party"
+
+    def test_wins_over_oca_author(self) -> None:
+        overrides = {"custom": ["server_tools"]}
+        result = classify_addon("Odoo Community Association (OCA)", "server_tools", "", overrides=overrides)
+        assert result == "custom"
+
+    def test_wins_over_submodule_org(self) -> None:
+        overrides = {"custom": ["server_tools"]}
+        assert classify_addon("Someone", "server_tools", "OCA", overrides=overrides) == "custom"
+
+    def test_unmatched_addon_falls_through_to_heuristics(self) -> None:
+        overrides = {"custom": ["legacy_*"]}
+        assert classify_addon("Apik", "other", "", project_author="Apik", overrides=overrides) == "custom"
+        assert classify_addon("Someone", "other", "", overrides=overrides) == "third-party"
+
+
+class TestMatchClassification:
+    def test_no_match_returns_none(self) -> None:
+        assert match_classification("sale_x", {"custom": ["legacy_*"]}) is None
+
+    def test_no_rules_returns_none(self) -> None:
+        assert match_classification("sale_x", None) is None
+        assert match_classification("sale_x", {}) is None
+
+    def test_pattern_must_match_whole_name(self) -> None:
+        # A bare prefix is an exact name, not a startswith: this is what keeps
+        # a "mr" rule away from "mrp_*" addons.
+        assert match_classification("mrp_workorder", {"custom": ["mr"]}) is None
+
+    def test_glob_does_not_match_inside_name(self) -> None:
+        assert match_classification("x_legacy_mail", {"custom": ["legacy_*"]}) is None
+
+    def test_matching_is_case_sensitive(self) -> None:
+        assert match_classification("legacy_mail", {"custom": ["LEGACY_*"]}) is None
+
+    def test_exact_name_beats_glob_of_other_class(self) -> None:
+        rules = {"custom": ["acme_*"], "third-party": ["acme_vendored"]}
+        assert match_classification("acme_vendored", rules) == "third-party"
+        assert match_classification("acme_sale", rules) == "custom"
+
+    def test_two_globs_same_class_is_not_a_conflict(self) -> None:
+        assert match_classification("acme_sale", {"custom": ["acme_*", "*_sale"]}) == "custom"
+
+    def test_globs_of_two_classes_conflict(self) -> None:
+        rules = {"custom": ["acme_*"], "third-party": ["*_sale"]}
+        with pytest.raises(ClassificationConflict, match="acme_sale"):
+            match_classification("acme_sale", rules)
+
+    def test_exact_names_of_two_classes_conflict(self) -> None:
+        rules = {"custom": ["sale_x"], "oca": ["sale_x"]}
+        with pytest.raises(ClassificationConflict, match="sale_x"):
+            match_classification("sale_x", rules)
+
+    def test_conflict_only_raised_for_affected_addon(self) -> None:
+        rules = {"custom": ["acme_*"], "third-party": ["*_sale"]}
+        assert match_classification("acme_crm", rules) == "custom"

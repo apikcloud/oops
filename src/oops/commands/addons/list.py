@@ -87,7 +87,6 @@ def main(
     show_all: bool,
     output_path: Path,
 ):
-
     metadata = get_metadata()
 
     repo, repo_path = require_repository()
@@ -116,6 +115,7 @@ def main(
             author=config.manifest.author,
             prefix=config.project.prefix,
             owner=config.github.owner,
+            overrides=config.classification,
             shallow=not show_all,
             rel_paths=active_paths,
         )

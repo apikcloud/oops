@@ -6,3 +6,7 @@
 
 class NoManifestFound(Exception):
     """Raised when no manifest file is found in an addon."""
+
+
+class ClassificationConflict(Exception):
+    """Raised when classification rules assign an addon to several classes."""

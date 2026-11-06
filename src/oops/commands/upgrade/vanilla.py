@@ -199,6 +199,7 @@ def discover_non_core_addons(repo_path: Path, sub_meta_by_relpath: dict) -> "lis
             author=config.manifest.author,
             prefix=config.project.prefix,
             owner=config.github.owner,
+            overrides=config.classification,
             shallow=True,
         )
         if addon.root
