@@ -146,8 +146,8 @@ class TestMatchClassification:
 
     def test_pattern_must_match_whole_name(self) -> None:
         # A bare prefix is an exact name, not a startswith: this is what keeps
-        # a "mr" rule away from "mrp_*" addons.
-        assert match_classification("mrp_workorder", {"custom": ["mr"]}) is None
+        # a "sale" rule away from "sale_*" addons.
+        assert match_classification("sale_management", {"custom": ["sale"]}) is None
 
     def test_glob_does_not_match_inside_name(self) -> None:
         assert match_classification("x_legacy_mail", {"custom": ["legacy_*"]}) is None

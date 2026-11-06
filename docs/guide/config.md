@@ -163,7 +163,7 @@ Rules of this section run first and override all of the above.
 | `oca` | list[str] | `[]` | Addons forced to `oca` |
 | `third-party` | list[str] | `[]` | Addons forced to `third-party` |
 
-Each entry is an exact technical name or a glob (`*`, `?`, `[seq]`), matched case-sensitively against the whole name: `mr` does not match `mrp_workorder`, use `mr*` for that.
+Each entry is an exact technical name or a glob (`*`, `?`, `[seq]`), matched case-sensitively against the whole name: `sale` does not match `sale_management`, use `sale*` for that.
 
 An exact name beats any glob, which allows exceptions to a family of addons. If an addon matches several classes at the same level, the command fails instead of picking one. The same entry in two classes is rejected when the configuration is loaded.
 
