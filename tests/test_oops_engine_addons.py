@@ -82,3 +82,12 @@ class TestDiscoverAddons:
 
         assert [a.technical_name for a in shallow_addons] == []
         assert [a.technical_name for a in deep_addons] == ["addon_deep"]
+
+    def test_applies_classification_overrides(self, tmp_path):
+        _make_addon(tmp_path, "", "legacy_mail", author="Some Vendor")
+        _make_addon(tmp_path, "", "other_mod", author="Some Vendor")
+
+        addons = discover_addons(tmp_path, {}, overrides={"custom": ["legacy_*"]})
+
+        by_name = {a.technical_name: a.classification for a in addons}
+        assert by_name == {"legacy_mail": "custom", "other_mod": "third-party"}

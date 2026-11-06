@@ -70,3 +70,10 @@ class TestEnrichAddonFromSubs:
 
         assert addon.submodule == ""
         assert addon.pull_request is False
+
+    def test_forwards_classification_overrides(self):
+        addon = _make_addon("/repo/legacy_mail", rel_path="")
+
+        enrich_addon_from_subs(addon, {}, author="Apik", prefix="apik_", overrides={"custom": ["legacy_*"]})
+
+        assert addon.classification == "custom"

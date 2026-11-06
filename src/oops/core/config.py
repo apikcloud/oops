@@ -14,6 +14,7 @@ import yaml
 from oops.core.exceptions import ConfigurationError
 from oops.core.paths import CONFIG_PATHS as _CONFIG_PATHS
 from oops_engine.compat import Dict, Final, List, Optional, Union, get_type_hints
+from oops_engine.provenance import CLASSIFICATIONS
 
 logger = logging.getLogger(__name__)
 
@@ -261,6 +262,8 @@ class Config:
     requirements: RequirementsConfig = field(default_factory=RequirementsConfig)
     analyze: AnalyzeConfig = field(default_factory=AnalyzeConfig)
     upgrade: UpgradeConfig = field(default_factory=UpgradeConfig)
+    # Explicit addon classification: class -> patterns (optional, see docs/guide/config.md)
+    classification: Dict[str, List[str]] = field(default_factory=dict)
 
     working_dir: Optional[str] = None
 
@@ -340,6 +343,43 @@ def _apply(obj, data: dict, path: str = "") -> None:
             setattr(obj, key, value)
 
 
+def _normalize_classification(rules: object) -> Dict[str, List[str]]:
+    """Validate the 'classification' section and return its non-empty classes.
+
+    Args:
+        rules: Raw value of the section once all config files are merged.
+
+    Returns:
+        Class name -> patterns, without the classes left empty.
+
+    Raises:
+        ConfigurationError: The section is malformed, names an unknown class,
+            or lists the same pattern in two classes.
+    """
+    if rules is None:
+        return {}
+    if not isinstance(rules, dict):
+        raise ConfigurationError("classification: expected a mapping of class to patterns")
+
+    normalized: Dict[str, List[str]] = {}
+    owners: Dict[str, str] = {}
+    for name, patterns in rules.items():
+        if name not in CLASSIFICATIONS:
+            raise ConfigurationError(
+                f"classification: unknown class {name!r} (expected one of: {', '.join(CLASSIFICATIONS)})"
+            )
+        if patterns is None:
+            continue
+        if not isinstance(patterns, list) or not all(isinstance(p, str) for p in patterns):
+            raise ConfigurationError(f"classification.{name}: expected a list of addon names or globs")
+        for pattern in patterns:
+            if owners.setdefault(pattern, name) != name:
+                raise ConfigurationError(f"classification: {pattern!r} is listed in both {owners[pattern]} and {name}")
+        if patterns:
+            normalized[name] = patterns
+    return normalized
+
+
 def _check_version(data: dict, path: Path) -> None:
     """Validate the 'version' key from a config file."""
     version = data.get("version")
@@ -380,6 +420,8 @@ def load_config() -> Config:
             grouped.setdefault(root, []).append(m)
         lines = "\n".join(f"  [{section}]: {', '.join(keys)}" for section, keys in grouped.items())
         raise ConfigurationError(f"Missing required configuration:\n{lines}\nSet them in ~/.oops.yaml or .oops.yaml")
+
+    cfg.classification = _normalize_classification(cfg.classification)
 
     logger.debug("Config loaded successfully")
     return cfg

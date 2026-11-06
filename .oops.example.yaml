@@ -153,3 +153,13 @@ github:
 # ---------------------------------------------------------------------------
 stats:
   enabled: false
+
+# ---------------------------------------------------------------------------
+# Addon classification (optional)
+# ---------------------------------------------------------------------------
+classification: # overrides automatic detection; exact names beat globs
+  custom:
+    - "legacy_prefix_*"
+    - some_addon
+  third-party:
+    - vendored_addon

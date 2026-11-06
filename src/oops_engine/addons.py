@@ -6,7 +6,7 @@
 import os
 from pathlib import Path
 
-from oops_engine.compat import Generator, List, Optional
+from oops_engine.compat import Dict, Generator, List, Optional
 from oops_engine.logger import log
 from oops_engine.manifest import DEFAULT_MANIFEST_NAMES, load_manifest
 from oops_engine.models import Addon
@@ -110,7 +110,12 @@ def find_addon_dirs(root: Path, with_pr: bool = False) -> list:
 
 
 def enrich_addon(
-    addon: Addon, sub: dict, author: Optional[str] = None, prefix: Optional[str] = None, owner: Optional[str] = None
+    addon: Addon,
+    sub: dict,
+    author: Optional[str] = None,
+    prefix: Optional[str] = None,
+    owner: Optional[str] = None,
+    overrides: Optional[Dict[str, List[str]]] = None,
 ) -> None:
     """Populate git-state and classification fields on an Addon.
 
@@ -131,6 +136,7 @@ def enrich_addon(
         project_author=author,
         project_prefix=prefix,
         github_owner=owner,
+        overrides=overrides,
     )
 
 
@@ -162,6 +168,7 @@ def enrich_addon_from_subs(
     author: Optional[str] = None,
     prefix: Optional[str] = None,
     owner: Optional[str] = None,
+    overrides: Optional[Dict[str, List[str]]] = None,
 ) -> None:
     """Enrich addon using a pre-fetched submodule metadata dict.
 
@@ -173,7 +180,7 @@ def enrich_addon_from_subs(
         subs: rel_path -> metadata dict (from services.git.list_submodules()).
     """
     sub = subs.get(addon.rel_path, {})
-    enrich_addon(addon, sub, author=author, prefix=prefix, owner=owner)
+    enrich_addon(addon, sub, author=author, prefix=prefix, owner=owner, overrides=overrides)
 
 
 def discover_addons(
@@ -182,6 +189,7 @@ def discover_addons(
     author: Optional[str] = None,
     prefix: Optional[str] = None,
     owner: Optional[str] = None,
+    overrides: Optional[Dict[str, List[str]]] = None,
     shallow: bool = False,
     rel_paths: Optional[set] = None,
 ) -> "List[Addon]":
@@ -199,6 +207,7 @@ def discover_addons(
         author: Project author, for classification.
         prefix: Project module prefix, for classification.
         owner: GitHub owner, for classification.
+        overrides: Explicit class -> patterns rules, for classification.
         shallow: Forwarded to `dedup_addons_by_path`.
         rel_paths: If given, keep only addons whose `rel_path` is in this set —
             the "limit to these submodules" filter shared by `addons list` and
@@ -212,7 +221,7 @@ def discover_addons(
         if rel_paths is not None and addon.rel_path not in rel_paths:
             continue
         log.info(f"Enrichment of {addon.technical_name}")
-        enrich_addon_from_subs(addon, subs, author=author, prefix=prefix, owner=owner)
+        enrich_addon_from_subs(addon, subs, author=author, prefix=prefix, owner=owner, overrides=overrides)
         addons.append(addon)
     addons.sort(key=lambda a: a.technical_name)
     return addons

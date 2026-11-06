@@ -78,7 +78,12 @@ def main(ctx, output_format: str, output_path: Optional[Path]) -> None:
         for addon in find_addons(repo_path, shallow=True):
             log.info(f"Enrichment of {addon.technical_name}")
             enrich_addon_from_subs(
-                addon, subs, author=config.manifest.author, prefix=config.project.prefix, owner=config.github.owner
+                addon,
+                subs,
+                author=config.manifest.author,
+                prefix=config.project.prefix,
+                owner=config.github.owner,
+                overrides=config.classification,
             )
             result.data["addons"].append(
                 {

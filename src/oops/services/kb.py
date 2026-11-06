@@ -41,6 +41,7 @@ def discover_project_addons(repo: Repo, repo_path: Path, allowed_modules: Set[st
             author=config.manifest.author,
             prefix=config.project.prefix,
             owner=config.github.owner,
+            overrides=config.classification,
             shallow=True,
         )
         if a.technical_name in allowed_modules
